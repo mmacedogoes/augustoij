@@ -1,0 +1,160 @@
+import { useEffect, useMemo, useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputTextarea,
+  PromptInputFooter,
+  PromptInputSubmit,
+} from "@/components/ai-elements/prompt-input";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { Scale } from "lucide-react";
+import { createConversa, listMensagens } from "@/lib/chat.functions";
+
+type Props = {
+  condominioId: string;
+  hasReadyDocs: boolean;
+  conversaId: string | null;
+  onConversaCreated: (id: string) => void;
+};
+
+export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCreated }: Props) {
+  const ensureConversa = useServerFn(createConversa);
+  const fetchMensagens = useServerFn(listMensagens);
+  const [activeId, setActiveId] = useState<string | null>(conversaId);
+  const [initial, setInitial] = useState<UIMessage[]>([]);
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setToken(data.session?.access_token ?? null));
+  }, []);
+
+  useEffect(() => {
+    setActiveId(conversaId);
+    if (!conversaId) {
+      setInitial([]);
+      return;
+    }
+    fetchMensagens({ data: { conversaId } })
+      .then((rows) => {
+        const mapped: UIMessage[] = (rows as Array<{ id: string; papel: "user" | "assistant"; conteudo: string }>).map(
+          (r) => ({
+            id: r.id,
+            role: r.papel,
+            parts: [{ type: "text", text: r.conteudo }],
+          }),
+        );
+        setInitial(mapped);
+      })
+      .catch(() => setInitial([]));
+  }, [conversaId, fetchMensagens]);
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        headers: () => (token ? { Authorization: `Bearer ${token}` } : {}),
+        body: () => ({ condominioId, conversaId: activeId }),
+      }),
+    [token, condominioId, activeId],
+  );
+
+  const { messages, sendMessage, status } = useChat({
+    id: activeId ?? "new",
+    messages: initial,
+    transport,
+    onError: (e) => toast.error(e.message || "Falha no chat"),
+  });
+
+  const isLoading = status === "submitted" || status === "streaming";
+
+  const handleSubmit = async (message: { text?: string }) => {
+    const text = message.text?.trim();
+    if (!text) return;
+    if (!hasReadyDocs) {
+      toast.error("Envie ao menos um documento processado para iniciar o chat.");
+      return;
+    }
+    let id = activeId;
+    if (!id) {
+      try {
+        const conv = await ensureConversa({ data: { condominioId } });
+        id = (conv as { id: string }).id;
+        setActiveId(id);
+        onConversaCreated(id);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Falha ao criar conversa");
+        return;
+      }
+    }
+    await sendMessage({ text });
+  };
+
+  return (
+    <div className="flex flex-col h-[70vh] min-h-[500px] border rounded-lg overflow-hidden bg-card">
+      <Conversation className="flex-1">
+        <ConversationContent>
+          {messages.length === 0 ? (
+            <ConversationEmptyState
+              icon={<Scale className="h-8 w-8 text-accent" />}
+              title="Pergunte ao assistente"
+              description={
+                hasReadyDocs
+                  ? "Tire dúvidas sobre a convenção, regimento, atas e contratos do condomínio."
+                  : "Envie um documento na aba Documentos para começar."
+              }
+            />
+          ) : (
+            messages.map((m) => {
+              const text = m.parts
+                .map((p) => (p.type === "text" ? p.text : ""))
+                .join("");
+              return (
+                <Message key={m.id} from={m.role}>
+                  <MessageContent>
+                    {m.role === "assistant" ? <MessageResponse>{text}</MessageResponse> : text}
+                  </MessageContent>
+                </Message>
+              );
+            })
+          )}
+          {isLoading && (
+            <div className="px-4 py-2">
+              <Shimmer>Pensando…</Shimmer>
+            </div>
+          )}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
+
+      <div className="border-t p-3 space-y-2">
+        <PromptInput onSubmit={handleSubmit}>
+          <PromptInputTextarea
+            placeholder={
+              hasReadyDocs
+                ? "Pergunte sobre a convenção, ata, contratos…"
+                : "Envie documentos para habilitar o chat"
+            }
+            disabled={!hasReadyDocs}
+          />
+          <PromptInputFooter className="justify-end">
+            <PromptInputSubmit status={status} disabled={!hasReadyDocs || isLoading} />
+          </PromptInputFooter>
+        </PromptInput>
+        <p className="text-[11px] text-muted-foreground text-center px-2">
+          ⚠️ Conteúdo informativo, não substitui parecer da OAB. Seus documentos são processados conforme a LGPD.
+        </p>
+      </div>
+    </div>
+  );
+}
