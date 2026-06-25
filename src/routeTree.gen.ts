@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -51,6 +52,12 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppCondominiosIndexRoute =
+  AuthenticatedAppCondominiosIndexRouteImport.update({
+    id: '/app/condominios/',
+    path: '/app/condominios/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/app/': typeof AuthenticatedAppIndexRoute
+  '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,6 +75,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/app': typeof AuthenticatedAppIndexRoute
+  '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,12 +86,27 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
+  '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/privacidade' | '/signup' | '/termos' | '/app/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/privacidade'
+    | '/signup'
+    | '/termos'
+    | '/app/'
+    | '/app/condominios/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/privacidade' | '/signup' | '/termos' | '/app'
+  to:
+    | '/'
+    | '/login'
+    | '/privacidade'
+    | '/signup'
+    | '/termos'
+    | '/app'
+    | '/app/condominios'
   id:
     | '__root__'
     | '/'
@@ -92,6 +116,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/_authenticated/app/'
+    | '/_authenticated/app/condominios/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -154,15 +179,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/condominios/': {
+      id: '/_authenticated/app/condominios/'
+      path: '/app/condominios'
+      fullPath: '/app/condominios/'
+      preLoaderRoute: typeof AuthenticatedAppCondominiosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppCondominiosIndexRoute: typeof AuthenticatedAppCondominiosIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppCondominiosIndexRoute: AuthenticatedAppCondominiosIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
