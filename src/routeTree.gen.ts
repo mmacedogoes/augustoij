@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
 import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
 
@@ -53,6 +54,11 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
+  id: '/app/conta',
+  path: '/app/conta',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppCondominiosIndexRoute =
   AuthenticatedAppCondominiosIndexRouteImport.update({
     id: '/app/condominios/',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
+  '/app/conta': typeof AuthenticatedAppContaRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
+  '/app/conta': typeof AuthenticatedAppContaRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
+  '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/signup'
     | '/termos'
+    | '/app/conta'
     | '/app/'
     | '/app/condominios/$id'
     | '/app/condominios/'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/signup'
     | '/termos'
+    | '/app/conta'
     | '/app'
     | '/app/condominios/$id'
     | '/app/condominios'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/signup'
     | '/termos'
+    | '/_authenticated/app/conta'
     | '/_authenticated/app/'
     | '/_authenticated/app/condominios/$id'
     | '/_authenticated/app/condominios/'
@@ -192,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/conta': {
+      id: '/_authenticated/app/conta'
+      path: '/app/conta'
+      fullPath: '/app/conta'
+      preLoaderRoute: typeof AuthenticatedAppContaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/condominios/': {
       id: '/_authenticated/app/condominios/'
       path: '/app/condominios'
@@ -210,12 +229,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
   AuthenticatedAppCondominiosIndexRoute: typeof AuthenticatedAppCondominiosIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
   AuthenticatedAppCondominiosIndexRoute: AuthenticatedAppCondominiosIndexRoute,
