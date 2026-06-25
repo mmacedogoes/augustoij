@@ -63,7 +63,8 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        headers: () => (token ? { Authorization: `Bearer ${token}` } : {}),
+        headers: (): Record<string, string> =>
+          token ? { Authorization: `Bearer ${token}` } : {},
         body: () => ({ condominioId, conversaId: activeId }),
       }),
     [token, condominioId, activeId],
