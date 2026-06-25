@@ -1,0 +1,150 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+const BUCKET = "documentos";
+
+export const listDocumentos = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ condominioId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("documentos")
+      .select("id, nome_arquivo, tipo, status_processamento, created_at")
+      .eq("condominio_id", data.condominioId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+const tipoEnum = z.enum(["convencao", "regimento", "ata", "contrato", "outro"]);
+
+export const createDocumento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        condominioId: z.string().uuid(),
+        nomeArquivo: z.string().min(1).max(255),
+        tipo: tipoEnum,
+        storagePath: z.string().min(1),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("documentos")
+      .insert({
+        condominio_id: data.condominioId,
+        nome_arquivo: data.nomeArquivo,
+        tipo: data.tipo,
+        storage_path: data.storagePath,
+        status_processamento: "processando",
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const deleteDocumento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: doc, error: errGet } = await context.supabase
+      .from("documentos")
+      .select("id, storage_path, condominio_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (errGet) throw new Error(errGet.message);
+    if (!doc) throw new Error("Documento não encontrado");
+
+    await context.supabase.storage.from(BUCKET).remove([doc.storage_path]);
+    const { error: errDel } = await context.supabase.from("documentos").delete().eq("id", doc.id);
+    if (errDel) throw new Error(errDel.message);
+    return { ok: true };
+  });
+
+export const processDocumento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+
+    const { data: doc, error: errGet } = await context.supabase
+      .from("documentos")
+      .select("id, condominio_id, storage_path, nome_arquivo")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (errGet) throw new Error(errGet.message);
+    if (!doc) throw new Error("Documento não encontrado");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { embedText } = await import("./ai-gateway.server");
+    const { extractText, chunkText } = await import("./documentos.server");
+
+    try {
+      const { data: file, error: dlErr } = await supabaseAdmin.storage.from(BUCKET).download(doc.storage_path);
+      if (dlErr || !file) throw new Error(dlErr?.message || "Falha ao baixar arquivo");
+      const buffer = new Uint8Array(await file.arrayBuffer());
+
+      const text = await extractText(buffer, doc.nome_arquivo);
+      if (!text.trim()) throw new Error("Não foi possível extrair texto do documento (PDF escaneado?)");
+
+      const chunks = chunkText(text, 1000, 150);
+
+      // Embeddings + insert in batches
+      const rows: Array<{ condominio_id: string; documento_id: string; conteudo: string; embedding: string }> = [];
+      for (const c of chunks) {
+        const emb = await embedText(apiKey, c);
+        rows.push({
+          condominio_id: doc.condominio_id,
+          documento_id: doc.id,
+          conteudo: c,
+          embedding: `[${emb.join(",")}]`,
+        });
+      }
+
+      // insert in batches of 50
+      for (let i = 0; i < rows.length; i += 50) {
+        const slice = rows.slice(i, i + 50);
+        const { error: insErr } = await supabaseAdmin.from("document_chunks").insert(slice);
+        if (insErr) throw new Error(insErr.message);
+      }
+
+      await supabaseAdmin
+        .from("documentos")
+        .update({ status_processamento: "pronto" })
+        .eq("id", doc.id);
+
+      return { ok: true, chunks: chunks.length };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await supabaseAdmin
+        .from("documentos")
+        .update({ status_processamento: `erro: ${msg.slice(0, 200)}` })
+        .eq("id", doc.id);
+      throw new Error(msg);
+    }
+  });
+
+export const getUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        condominioId: z.string().uuid(),
+        nomeArquivo: z.string().min(1).max(255),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const safeName = data.nomeArquivo.replace(/[^\w.\-]+/g, "_");
+    const path = `${data.condominioId}/${Date.now()}_${safeName}`;
+    const { data: signed, error } = await context.supabase.storage
+      .from(BUCKET)
+      .createSignedUploadUrl(path);
+    if (error) throw new Error(error.message);
+    return { path, token: signed.token, signedUrl: signed.signedUrl };
+  });

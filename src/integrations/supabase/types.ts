@@ -374,6 +374,21 @@ export type Database = {
         Args: { _condominio_id: string; _user_id: string }
         Returns: boolean
       }
+      match_document_chunks: {
+        Args: {
+          _condominio_id: string
+          _match_count?: number
+          _min_similarity?: number
+          _query_embedding: string
+        }
+        Returns: {
+          chunk_id: string
+          conteudo: string
+          documento_id: string
+          nome_arquivo: string
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "sindico" | "administradora"
