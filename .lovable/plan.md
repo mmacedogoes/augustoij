@@ -1,70 +1,81 @@
 
-# CondoIA — Plano da Fase 1
+# CondoIA — Fase 2: Documentos + Chat com IA (RAG)
 
-Você pediu muita coisa de uma vez. Para entregar com qualidade, vou dividir em fases e implementar agora só o que você marcou como "começar": estrutura, schema completo no Supabase com RLS, páginas públicas, login/cadastro funcional e dashboard vazio. Chat com RAG, upload vetorizado, Stripe e área admin ficam para iterações seguintes (mas o schema já contempla tudo).
+Tudo necessário já está disponível: Lovable AI Gateway (`LOVABLE_API_KEY` configurada), banco com `document_chunks` (pgvector) e RLS por membro de condomínio. Falta criar o bucket de storage, a pipeline de ingestão e o chat com busca semântica.
 
-## O que entra agora (Fase 1)
+## Escopo desta fase
 
-### 1. Infraestrutura
-- Habilitar **Lovable Cloud** (Supabase gerenciado — auth, banco, storage, edge functions, pgvector).
-- Criar bucket de Storage `documentos` (privado, RLS por condomínio) — pronto para o upload da fase 2.
-- Configurar design system em `src/styles.css`: paleta azul-marinho `#1E3A5F`, esmeralda `#10B981`, branco; fonte Inter via `<link>` no `__root.tsx`; tokens semânticos (primary, accent, etc.) em `oklch`.
+### 1. Storage e migration de suporte
 
-### 2. Schema do banco + RLS (migration única)
-Tabelas exatamente como você especificou:
-`profiles`, `subscriptions`, `condominios`, `condominio_members`, `documentos`, `document_chunks` (vector(1536) + índice ivfflat), `conversas`, `mensagens`, `uso_mensal`.
+- Criar bucket privado **`documentos`** com policies de RLS em `storage.objects`: somente membros do condomínio podem `SELECT`/`INSERT`/`DELETE` arquivos cujo path começa com `<condominio_id>/...`.
+- Ajustar a coluna `document_chunks.embedding` para **`vector(1536)`** (alinha com `openai/text-embedding-3-small` no Gateway) e criar índice HNSW `vector_cosine_ops`.
+- Adicionar função SQL `match_document_chunks(_condominio_id uuid, query_embedding vector(1536), match_count int)` `SECURITY DEFINER`, que filtra por condomínio e retorna `documento_id, nome_arquivo, conteudo, similarity` ordenado por cosine distance.
+- Trigger para atualizar `uso_mensal` (mensagens/tokens) a cada `mensagens.INSERT` do papel `assistant`.
 
-Padrões obrigatórios:
-- Enum separado `app_role` (`owner`, `admin`, `sindico`, `administradora`) e tabela `user_roles` para evitar escalonamento de privilégio. `profiles.papel` **não** é fonte de verdade para autorização — uso a função `has_role(uuid, app_role)` `SECURITY DEFINER`.
-- Trigger `on_auth_user_created` cria `profiles` automaticamente no signup.
-- RLS habilitado em todas as tabelas + `GRANT`s explícitos para `authenticated` / `service_role`.
-- Função `is_condominio_member(condo_id, user_id)` `SECURITY DEFINER` para evitar recursão nas policies de documentos/chunks/conversas.
-- Policies:
-  - `condominios`: SELECT/UPDATE/DELETE se owner ou membro; INSERT se `owner_id = auth.uid()`.
-  - `documentos` / `document_chunks`: visíveis apenas para membros do condomínio.
-  - `conversas` / `mensagens`: visíveis apenas para `user_id = auth.uid()`.
-  - `subscriptions` / `uso_mensal`: SELECT só do próprio user; writes só via `service_role`.
-  - Tabelas administrativas: acesso só via `has_role(auth.uid(), 'owner')`.
+### 2. Upload e processamento de documentos (`/app/condominios/$id` → aba Documentos)
 
-### 3. Auth (Supabase)
-- Email + senha, com `emailRedirectTo: window.location.origin`.
-- Listener `onAuthStateChange` no `__root.tsx` (filtrado para SIGNED_IN/OUT/USER_UPDATED).
-- Layout protegido em `src/routes/_authenticated/route.tsx` (gerenciado pela integração, `ssr: false`, redireciona para `/auth`).
-- Validação de formulários com `zod`.
+UI:
+- Drag-and-drop / botão "Enviar documento" aceitando PDF e DOCX (limite 10 MB).
+- Lista de documentos do condomínio com nome, tipo, status (`processando` / `pronto` / `erro`) e botão de excluir.
+- Polling leve (a cada 3 s) enquanto houver itens em `processando`.
 
-### 4. Páginas (rotas TanStack Start, uma por arquivo, com `head()` próprio)
+Server functions (`src/lib/documentos.functions.ts`):
+- `listDocumentos({ condominioId })` — leitura via RLS.
+- `getUploadUrl({ condominioId, nomeArquivo, tipo })` — gera URL assinada de upload no bucket `documentos`.
+- `processDocumento({ documentoId })` — handler que:
+  1. Baixa o arquivo pelo `storage_path` (admin client).
+  2. Extrai texto: PDF via **`unpdf`** (compatível com Workers), DOCX via **`mammoth`**.
+  3. Faz chunking ~1.000 chars com overlap de 150.
+  4. Chama o Gateway `/embeddings` (modelo `openai/text-embedding-3-small`, `dimensions: 1536`) por chunk em lotes.
+  5. Insere em `document_chunks` (`condominio_id`, `documento_id`, `conteudo`, `embedding`, `metadata`).
+  6. Atualiza `documentos.status_processamento` ao final.
+- `deleteDocumento({ id })` — remove chunks, objeto no storage e linha em `documentos`.
 
-Públicas:
-- `/` — landing: hero, 3 benefícios, demo das 6 skills, tabela de 3 planos (Solo R$ 297, Pro R$ 597, Administradora R$ 1.997), FAQ, CTA de trial 7 dias. CTAs vão para `/signup`.
-- `/login` — email + senha.
-- `/signup` — nome, email, senha, OAB (opcional), checkbox de aceite Termos+LGPD (obrigatório, grava `lgpd_aceite_em`).
-- `/termos` e `/privacidade` — conteúdo base em pt-BR (você revisa depois com seu jurídico).
+Todas autenticadas via `requireSupabaseAuth`; a checagem de pertencimento ao condomínio fica a cargo de RLS + `is_condominio_member`.
 
-Autenticadas (sob `_authenticated/`):
-- `/app` — dashboard: saudação com nome, cards dos condomínios (vazio com CTA se nenhum), card de uso do mês (zerado), atalhos visuais das 6 skills (ainda sem ação).
-- `/app/condominios` — lista + botão "novo condomínio" (modal funcional criando registro real).
-- `/app/condominios/$id` — abas Documentos / Chat / Histórico / Configurações como placeholders prontos para Fase 2.
-- `/app/conta` — dados do perfil e card "plano: trial" (botão Stripe desabilitado por enquanto).
+### 3. Chat com IA + RAG (aba Chat)
 
-### 5. Server functions (Fase 1)
-- `getMyCondominios`, `createCondominio`, `getCondominio`, `updateProfile` — todas com `requireSupabaseAuth`, RLS faz o trabalho pesado.
+- Rota server route `src/routes/api/chat.ts` (POST, streaming) usando AI SDK + helper Lovable AI Gateway (`createLovableAiGatewayProvider`). Modelo default: `google/gemini-3-flash-preview`.
+- Recebe `{ conversaId, condominioId, messages }`. Valida com Zod e autentica via bearer (lê o token do header, reusa cliente Supabase publishable + JWT do usuário para checar `is_condominio_member`).
+- Pipeline por requisição:
+  1. Gera embedding da última mensagem do usuário (`text-embedding-3-small`, 1536 dims).
+  2. Chama `match_document_chunks` (top 6, similaridade ≥ 0.3).
+  3. Monta system prompt em pt-BR: persona "assistente jurídico de condomínios", contexto dos chunks com citação `[Documento: nome — trecho N]`, disclaimer obrigatório de que não substitui parecer da OAB.
+  4. Faz `streamText` com histórico das últimas 20 mensagens da conversa + nova mensagem.
+  5. `onFinish`: persiste `mensagens` (user e assistant), atualiza `conversas.titulo` se for a primeira mensagem (gera título curto via Gateway).
+- Server function `getOrCreateConversa({ condominioId, conversaId? })` e `listMensagens({ conversaId })`.
+
+UI da aba Chat (`src/components/chat/ChatPanel.tsx`) usando **AI Elements** (`conversation`, `message`, `prompt-input`, `shimmer`):
+- Render markdown com `MessageResponse`.
+- Indicador "Pensando..." enquanto `status === 'submitted' | 'streaming'`.
+- Rodapé fixo com disclaimer LGPD/OAB.
+- Bloqueio quando o condomínio não tem documentos prontos ("Envie ao menos um documento para iniciar").
+
+### 4. Histórico (aba Histórico)
+
+- Lista de `conversas` do condomínio com data, título e botão "Abrir" (carrega o chat com aquela conversa) e "Excluir".
+
+### 5. Telemetria de uso
+
+- Trigger SQL incrementa `uso_mensal.total_mensagens` e `total_tokens` (somando `mensagens.tokens_usados`) por user_id no mês corrente.
+- Card "Mensagens este mês" do dashboard passa a refletir dado real (já está conectado a `getUsoMensal`).
 
 ### 6. SEO / qualidade
-- `sitemap.xml` + `robots.txt`.
-- `head()` único por rota pública (title, description, og:*).
-- Mobile-responsive, foco visível, contraste WCAG AA.
 
-## O que NÃO entra agora (próximas iterações, já confirmadas no roadmap)
-- **Fase 2** — Upload de PDF/DOCX + edge function de vetorização (chunking + `text-embedding-3-small` + insert em `document_chunks`).
-- **Fase 3** — Chat com RAG (busca por similaridade no pgvector, montagem de prompt, GPT-4o / 4o-mini, disclaimer fixo, export PDF, contador de uso, bloqueio por plano).
-- **Fase 4** — Stripe (Checkout, Customer Portal, webhook `/api/public/webhooks/stripe`, trial 7 dias, 3 produtos).
-- **Fase 5** — Área admin (`/admin`, `/admin/users`, `/admin/logs`) com métricas de MRR/churn/custo OpenAI.
+- Sem mudanças em rotas públicas.
+- Tratamento de erros 402/429 do Gateway com toast claro ("Créditos esgotados — contate o admin" / "Muitas requisições, tente novamente em instantes").
 
-## Decisões técnicas (resumo para você, mesmo se não-técnico)
-- Uso o backend nativo do Lovable (Lovable Cloud) — sem precisar criar conta em lugar nenhum. Já inclui banco PostgreSQL, autenticação, storage de arquivos e funções serverless.
-- Papéis de usuário ficam numa tabela separada (`user_roles`) — exigência de segurança para evitar que alguém consiga "se promover" a admin via API.
-- Toda tabela tem regras de acesso (RLS) — atende LGPD na camada de banco, não só na aplicação.
-- Stripe e OpenAI serão ligados nas próximas fases; quando chegarmos lá vou te pedir as chaves de API no momento certo (Stripe é integração nativa, não precisa de chave manual).
+## Dependências npm a instalar
+`ai`, `@ai-sdk/react`, `@ai-sdk/openai-compatible`, `unpdf`, `mammoth`, AI Elements (`bun x ai-elements@latest add conversation message prompt-input shimmer`).
 
-## Pergunta antes de executar
-Confirma esse escopo da Fase 1? Se sim, eu já habilito o Lovable Cloud e começo a implementar.
+## Fora do escopo (próximas fases)
+- **Fase 3** — Stripe (Checkout, Customer Portal, webhook), planos Solo/Pro/Administradora, limites por plano.
+- **Fase 4** — Área admin (`/admin`) com métricas MRR/churn/custo, gestão de usuários.
+- **Fase 5** — Convidar co-síndicos / colaboradores (`condominio_members`), export PDF de conversas.
+
+## Riscos técnicos
+- `unpdf`/`mammoth` rodam em Worker, mas PDFs escaneados (imagem) não terão OCR — sinalizamos status `erro` com mensagem clara.
+- Embeddings em lote consomem créditos da workspace — surfaço 402 explicitamente.
+- Cosine threshold (0.3) pode precisar de ajuste após teste com documentos reais.
+
+Confirma esse escopo? Se sim, parto direto para a migration + bucket e sigo com a pipeline.
