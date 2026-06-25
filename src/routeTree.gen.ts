@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
 import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
@@ -54,6 +55,11 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
+  id: '/api/public/bootstrap-admin',
+  path: '/api/public/bootstrap-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
   id: '/app/conta',
   path: '/app/conta',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/app/conta'
+    | '/api/public/bootstrap-admin'
     | '/app/'
     | '/app/condominios/$id'
     | '/app/condominios/'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/app/conta'
+    | '/api/public/bootstrap-admin'
     | '/app'
     | '/app/condominios/$id'
     | '/app/condominios'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/_authenticated/app/conta'
+    | '/api/public/bootstrap-admin'
     | '/_authenticated/app/'
     | '/_authenticated/app/condominios/$id'
     | '/_authenticated/app/condominios/'
@@ -151,6 +163,7 @@ export interface RootRouteChildren {
   PrivacidadeRoute: typeof PrivacidadeRoute
   SignupRoute: typeof SignupRoute
   TermosRoute: typeof TermosRoute
+  ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/bootstrap-admin': {
+      id: '/api/public/bootstrap-admin'
+      path: '/api/public/bootstrap-admin'
+      fullPath: '/api/public/bootstrap-admin'
+      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/app/conta': {
       id: '/_authenticated/app/conta'
       path: '/app/conta'
@@ -252,6 +272,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadeRoute: PrivacidadeRoute,
   SignupRoute: SignupRoute,
   TermosRoute: TermosRoute,
+  ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
