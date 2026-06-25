@@ -100,7 +100,7 @@ ${contexto ? `CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO:\n\n${contexto}` : "Nenhum 
           const result = streamText({
             model,
             system: systemPrompt,
-            messages: convertToModelMessages(messages),
+            messages: await convertToModelMessages(messages),
             onFinish: async ({ text, usage }) => {
               try {
                 await supabase.from("mensagens").insert({
