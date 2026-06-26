@@ -27,8 +27,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 bg-sidebar text-sidebar-foreground flex-col">
-        <div className="px-6 py-6">
-          <Logo variant="invertida" height={28} />
+        <div className="p-6">
+          <Logo variant="inverted" size="md" />
         </div>
         <nav className="flex-1 px-3 space-y-1">
           {nav.map((n) => {
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="md:hidden border-b border-border bg-card sticky top-0 z-40">
         <div className="px-4 py-3 flex items-center justify-between">
           <Link to="/app" className="flex items-center">
-            <Logo variant="principal" height={24} />
+            <Logo variant="default" size="sm" />
           </Link>
           <button onClick={handleSignOut} className="text-sm text-muted-foreground">Sair</button>
         </div>

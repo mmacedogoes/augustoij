@@ -48,15 +48,14 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="flex items-center justify-center bg-card px-6 py-12">
-        <div className="w-full max-w-[400px]">
-          <Link to="/" className="flex justify-center mb-8">
-            <Logo variant="principal" height={72} />
-          </Link>
-          <h1 className="text-3xl font-bold text-primary tracking-tight text-center">Entrar</h1>
-          <p className="mt-2 text-sm text-muted-foreground text-center">Acesse o painel do condoIA.</p>
-          <form onSubmit={onSubmit} className="mt-8 space-y-5">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
+      <div className="w-full max-w-[420px]">
+        <Link to="/" className="flex justify-center mb-8">
+          <Logo variant="default" size="lg" />
+        </Link>
+        <h1 className="text-3xl font-bold text-primary tracking-tight text-center">Entrar</h1>
+        <p className="mt-2 text-sm text-muted-foreground text-center">Acesse o painel do condoIA.</p>
+        <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">E-mail</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
@@ -66,16 +65,9 @@ function LoginPage() {
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</Button>
-          </form>
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Ainda não tem conta? <Link to="/signup" className="text-primary font-medium hover:underline">Criar conta</Link>
-          </p>
-        </div>
-      </div>
-      <div className="hidden lg:flex flex-col items-center justify-center bg-sidebar text-sidebar-accent-foreground p-12">
-        <Logo variant="invertida" height={96} />
-        <p className="mt-8 max-w-sm text-center text-sm text-sidebar-foreground leading-relaxed">
-          Inteligência para condomínios. Atas, notificações, contratos e pareceres em minutos — com fundamento jurídico brasileiro.
+        </form>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Ainda não tem conta? <Link to="/signup" className="text-primary font-medium hover:underline">Criar conta</Link>
         </p>
       </div>
     </div>

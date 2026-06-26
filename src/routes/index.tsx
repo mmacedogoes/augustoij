@@ -39,7 +39,7 @@ function Landing() {
       <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-50">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
           <Link to="/" className="flex items-center">
-            <Logo variant="principal" height={56} />
+            <Logo variant="default" size="md" />
           </Link>
           <nav className="flex items-center gap-6">
             <a href="#planos" className="hidden sm:inline text-sm text-muted-foreground hover:text-primary transition-colors">Planos</a>
@@ -50,21 +50,24 @@ function Landing() {
       </header>
 
       {/* Hero */}
-      <section className="mx-auto max-w-6xl px-4 py-16 md:py-24 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground tracking-wide uppercase">
-          <Brain className="h-3.5 w-3.5" strokeWidth={1.5} /> Inteligência para condomínios
-        </div>
-        <h1 className="mt-6 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-primary leading-[1.1]">
+      <section className="px-4 py-16 md:py-24 text-center">
+        <div className="mx-auto max-w-[800px] flex flex-col items-center">
+          <Logo variant="default" size="xl" className="mb-10" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground tracking-wide uppercase">
+            <Brain className="h-3.5 w-3.5" strokeWidth={1.5} /> Inteligência para condomínios
+          </div>
+          <h1 className="mt-6 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-primary leading-[1.1]">
           O copiloto jurídico e operacional<br/>do seu condomínio
         </h1>
-        <p className="mt-6 mx-auto max-w-[600px] text-lg text-muted-foreground leading-relaxed">
+          <p className="mt-6 max-w-[600px] text-lg text-muted-foreground leading-relaxed">
           Assistente de IA treinado em direito condominial brasileiro. Atas, notificações, contratos e pareceres em minutos.
         </p>
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <Link to="/signup"><Button size="lg">Começar teste grátis de 7 dias <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
           <a href="#planos"><Button size="lg" variant="ghost">Ver planos</Button></a>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">Sem cartão de crédito • Cancele quando quiser</p>
+          <p className="mt-4 text-xs text-muted-foreground">Sem cartão de crédito • Cancele quando quiser</p>
+        </div>
       </section>
 
       {/* Benefícios */}
@@ -162,9 +165,9 @@ function Landing() {
       {/* Footer */}
       <footer className="border-t border-border py-10 bg-background">
         <div className="mx-auto max-w-6xl px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-3">
-            <Logo variant="principal" height={40} />
-            <span>© {new Date().getFullYear()} condoIA. Todos os direitos reservados.</span>
+          <div className="flex items-center gap-4">
+            <Logo variant="icon" size="sm" />
+            <span className="text-xs text-muted-foreground">© {new Date().getFullYear()} condoIA · Inteligência para Condomínios</span>
           </div>
           <div className="flex gap-4">
             <Link to="/termos" className="hover:text-primary transition-colors">Termos de uso</Link>
