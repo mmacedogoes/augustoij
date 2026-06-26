@@ -11,12 +11,7 @@ import { Button } from "@/components/ui/button";
 import { isCurrentUserAdmin, listUsuariosAdmin, setUserRole } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios")({
-  component: AdminUsuariosPage,
-  beforeLoad: async () => {
-    try {
-      const r = await isCurrentUserAdmin();
-      if (!r?.admin) throw redirect({ to: "/app" });
-    } catch {
+  component: AdminUsuariosPage catch {
       throw redirect({ to: "/app" });
     }
   },

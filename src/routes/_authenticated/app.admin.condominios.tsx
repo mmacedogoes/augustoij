@@ -7,12 +7,7 @@ import { Card } from "@/components/ui/card";
 import { isCurrentUserAdmin, listCondominiosAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/condominios")({
-  component: Page,
-  beforeLoad: async () => {
-    try {
-      const r = await isCurrentUserAdmin();
-      if (!r?.admin) throw redirect({ to: "/app" });
-    } catch {
+  component: Page catch {
       throw redirect({ to: "/app" });
     }
   },
