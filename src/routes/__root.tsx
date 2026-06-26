@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import iconeAsset from "@/assets/condoia-icone.jpg.asset.json";
 
 function NotFoundComponent() {
   return (
@@ -77,20 +78,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CondoIA — Inteligência artificial para síndicos e administradoras" },
+      { title: "condoIA — Inteligência para Condomínios" },
       { name: "description", content: "Plataforma de IA que ajuda síndicos e administradoras a gerenciar condomínios com apoio jurídico e operacional." },
-      { name: "author", content: "CondoIA" },
-      { property: "og:title", content: "CondoIA — IA para condomínios" },
+      { name: "author", content: "condoIA" },
+      { property: "og:title", content: "condoIA — Inteligência para Condomínios" },
       { property: "og:description", content: "Apoio inteligente para síndicos e administradoras." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "CondoIA" },
+      { name: "twitter:title", content: "condoIA" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/jpeg", href: iconeAsset.url },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" },
     ],
   }),
   shellComponent: RootShell,
