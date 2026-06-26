@@ -37,9 +37,9 @@ function Landing() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-50">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
           <Link to="/" className="flex items-center">
-            <Logo variant="principal" height={28} />
+            <Logo variant="principal" height={56} />
           </Link>
           <nav className="flex items-center gap-6">
             <a href="#planos" className="hidden sm:inline text-sm text-muted-foreground hover:text-primary transition-colors">Planos</a>
@@ -162,8 +162,8 @@ function Landing() {
       {/* Footer */}
       <footer className="border-t border-border py-10 bg-background">
         <div className="mx-auto max-w-6xl px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <Logo variant="principal" height={20} />
+          <div className="flex items-center gap-3">
+            <Logo variant="principal" height={40} />
             <span>© {new Date().getFullYear()} condoIA. Todos os direitos reservados.</span>
           </div>
           <div className="flex gap-4">
