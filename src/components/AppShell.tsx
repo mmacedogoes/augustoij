@@ -1,20 +1,33 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Building, User, LogOut } from "lucide-react";
+import { LayoutDashboard, Building, User, LogOut, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { isCurrentUserAdmin } from "@/lib/admin.functions";
 
-const nav = [
+const baseNav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard },
   { to: "/app/condominios", label: "Condomínios", icon: Building },
   { to: "/app/conta", label: "Conta", icon: User },
 ] as const;
 
+const adminNav = { to: "/app/admin", label: "Admin", icon: Shield } as const;
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const checkAdmin = useServerFn(isCurrentUserAdmin);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAdmin().then((r) => setIsAdmin(!!r?.admin)).catch(() => setIsAdmin(false));
+  }, [checkAdmin]);
+
+  const nav = isAdmin ? ([...baseNav, adminNav] as ReadonlyArray<typeof baseNav[number] | typeof adminNav>) : baseNav;
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -34,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {nav.map((n) => {
             const active = pathname === n.to || (n.to !== "/app" && pathname.startsWith(n.to));
             return (
-              <Link key={n.to} to={n.to} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:text-sidebar-accent-foreground"}`}>
+              <Link key={n.to} to={n.to as "/app"} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:text-sidebar-accent-foreground"}`}>
                 <n.icon className="h-4 w-4" strokeWidth={1.5} /> {n.label}
               </Link>
             );
@@ -56,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {nav.map((n) => {
             const active = pathname === n.to || (n.to !== "/app" && pathname.startsWith(n.to));
             return (
-              <Link key={n.to} to={n.to} className={`flex-1 px-3 py-2 text-xs text-center ${active ? "text-primary font-medium border-b-2 border-primary" : "text-muted-foreground"}`}>
+              <Link key={n.to} to={n.to as "/app"} className={`flex-1 px-3 py-2 text-xs text-center ${active ? "text-primary font-medium border-b-2 border-primary" : "text-muted-foreground"}`}>
                 {n.label}
               </Link>
             );
