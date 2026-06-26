@@ -55,6 +55,7 @@ export const Route = createFileRoute("/api/chat")({
 
           // RAG retrieval
           let contexto = "";
+          let contextoKb = "";
           if (userText) {
             try {
               const queryEmbedding = await embedText(apiKey, userText);
@@ -72,20 +73,60 @@ export const Route = createFileRoute("/api/chat")({
                   )
                   .join("\n\n---\n\n");
               }
+
+              // Base de conhecimento global (treinada pelo admin)
+              const { data: kb } = await supabase.rpc("match_kb_chunks", {
+                _query_embedding: `[${queryEmbedding.join(",")}]` as unknown as string,
+                _match_count: 4,
+                _min_similarity: 0.3,
+              });
+              if (kb && Array.isArray(kb) && kb.length > 0) {
+                contextoKb = kb
+                  .map(
+                    (
+                      m: { titulo: string; tipo: string; fonte: string | null; conteudo: string },
+                      i: number,
+                    ) =>
+                      `[KB ${i + 1} — ${m.tipo.toUpperCase()} • ${m.titulo}${m.fonte ? ` (${m.fonte})` : ""}]\n${m.conteudo}`,
+                  )
+                  .join("\n\n---\n\n");
+              }
             } catch (e) {
               console.error("RAG retrieval failed:", e);
             }
+          }
+
+          // Orientações globais do administrador
+          let orientacoesBlock = "";
+          try {
+            const { data: orientacoes } = await supabase
+              .from("ai_orientacoes")
+              .select("titulo, conteudo")
+              .eq("ativo", true)
+              .order("ordem", { ascending: true });
+            if (orientacoes && orientacoes.length > 0) {
+              orientacoesBlock = orientacoes
+                .map((o) => `• ${o.titulo}: ${o.conteudo}`)
+                .join("\n");
+            }
+          } catch (e) {
+            console.error("Orientações fetch failed:", e);
           }
 
           const systemPrompt = `Você é o assistente jurídico do CondoIA, especialista em gestão de condomínios brasileiros (Código Civil, Lei 4.591/64, jurisprudência do STJ).
 
 REGRAS:
 - Responda em português brasileiro, claro e objetivo.
-- Use APENAS o contexto dos documentos do condomínio fornecidos abaixo quando relevante. Cite o trecho referenciando o nome do arquivo entre colchetes.
+- Priorize o contexto dos documentos do condomínio. Cite o trecho referenciando o nome do arquivo entre colchetes.
+- Use a base de conhecimento (KB) curada pelos administradores para fundamentar com jurisprudência, doutrina e legislação. Cite a fonte quando usar.
 - Se não houver contexto suficiente, diga isso explicitamente e responda com base na legislação geral.
 - Sempre encerre com: "⚠️ Este conteúdo é informativo e não substitui parecer jurídico de advogado(a) inscrito(a) na OAB."
 
-${contexto ? `CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO:\n\n${contexto}` : "Nenhum documento relevante foi encontrado nos arquivos do condomínio para esta pergunta."}`;
+${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${
+            contexto
+              ? `CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO:\n\n${contexto}\n\n`
+              : "Nenhum documento relevante foi encontrado nos arquivos do condomínio para esta pergunta.\n\n"
+          }${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}` : ""}`;
 
           // Persist user message
           await supabase.from("mensagens").insert({
