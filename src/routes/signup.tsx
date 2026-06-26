@@ -59,13 +59,14 @@ function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="flex items-center justify-center bg-card px-6 py-12">
-        <div className="w-full max-w-[400px]">
-          <Link to="/" className="inline-flex mb-10 lg:hidden"><Logo variant="principal" height={28} /></Link>
-          <h1 className="text-3xl font-bold text-primary tracking-tight">Criar conta</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Teste grátis por 7 dias. Sem cartão.</p>
-          <form onSubmit={onSubmit} className="mt-8 space-y-5">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
+      <div className="w-full max-w-[420px]">
+        <Link to="/" className="flex justify-center mb-8">
+          <Logo variant="default" size="lg" />
+        </Link>
+        <h1 className="text-3xl font-bold text-primary tracking-tight text-center">Criar conta</h1>
+        <p className="mt-2 text-sm text-muted-foreground text-center">Teste grátis por 7 dias. Sem cartão.</p>
+        <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="nome" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">Nome completo</Label>
               <Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
@@ -89,16 +90,9 @@ function SignupPage() {
               </span>
             </label>
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Criando..." : "Criar conta"}</Button>
-          </form>
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Já tem conta? <Link to="/login" className="text-primary font-medium hover:underline">Entrar</Link>
-          </p>
-        </div>
-      </div>
-      <div className="hidden lg:flex flex-col items-center justify-center bg-sidebar text-sidebar-accent-foreground p-12">
-        <Logo variant="invertida" height={56} />
-        <p className="mt-8 max-w-sm text-center text-sm text-sidebar-foreground leading-relaxed">
-          Inteligência para condomínios. O copiloto jurídico e operacional da sua gestão.
+        </form>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Já tem conta? <Link to="/login" className="text-primary font-medium hover:underline">Entrar</Link>
         </p>
       </div>
     </div>
