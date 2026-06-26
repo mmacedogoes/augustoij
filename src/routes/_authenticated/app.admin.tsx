@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Users, Building2, MessagesSquare, Coins } from "lucide-react";
 import { getAdminMetrics, getUsageTimeseries, isCurrentUserAdmin } from "@/lib/admin.functions";
 
-export const Route = createFileRoute("/_authenticated/app/admin/")({
+export const Route = createFileRoute("/_authenticated/app/admin")({
   component: AdminDashboardPage,
   beforeLoad: async () => {
     try {

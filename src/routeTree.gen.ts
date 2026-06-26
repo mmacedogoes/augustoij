@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
+import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
 
@@ -65,6 +66,11 @@ const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
   path: '/app/conta',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
+  id: '/app/admin',
+  path: '/app/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppCondominiosIndexRoute =
   AuthenticatedAppCondominiosIndexRouteImport.update({
     id: '/app/condominios/',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/api/chat': typeof ApiChatRoute
+  '/app/admin': typeof AuthenticatedAppAdminRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/api/chat': typeof ApiChatRoute
+  '/app/admin': typeof AuthenticatedAppAdminRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/api/chat': typeof ApiChatRoute
+  '/_authenticated/app/admin': typeof AuthenticatedAppAdminRoute
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/api/chat'
+    | '/app/admin'
     | '/app/conta'
     | '/app/'
     | '/app/condominios/$id'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/api/chat'
+    | '/app/admin'
     | '/app/conta'
     | '/app'
     | '/app/condominios/$id'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/api/chat'
+    | '/_authenticated/app/admin'
     | '/_authenticated/app/conta'
     | '/_authenticated/app/'
     | '/_authenticated/app/condominios/$id'
@@ -231,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppContaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/admin': {
+      id: '/_authenticated/app/admin'
+      path: '/app/admin'
+      fullPath: '/app/admin'
+      preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/condominios/': {
       id: '/_authenticated/app/condominios/'
       path: '/app/condominios'
@@ -249,6 +268,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRoute
   AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
@@ -256,6 +276,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppAdminRoute: AuthenticatedAppAdminRoute,
   AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
