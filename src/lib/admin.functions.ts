@@ -1,15 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-async function ensureAdmin(context: { supabase: ReturnType<typeof Object>; userId: string } & Record<string, unknown>) {
-  const { data, error } = await (context.supabase as { rpc: (n: string, a: Record<string, unknown>) => Promise<{ data: boolean | null; error: { message: string } | null }> }).rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Acesso restrito a administradores");
-}
+import { ensureAdmin } from "./admin-guard";
 
 export const isCurrentUserAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
