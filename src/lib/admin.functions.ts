@@ -75,11 +75,21 @@ export const listCondominiosAdmin = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("condominios")
-      .select("id, nome, uf, qtd_unidades, owner_id, created_at, profiles:owner_id(email,nome)")
+      .select("id, nome, uf, qtd_unidades, owner_id, created_at")
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const rows = data ?? [];
+    const ownerIds = Array.from(new Set(rows.map((r) => r.owner_id).filter(Boolean)));
+    let ownersById: Record<string, { email: string | null; nome: string | null }> = {};
+    if (ownerIds.length > 0) {
+      const { data: owners } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email, nome")
+        .in("id", ownerIds);
+      ownersById = Object.fromEntries((owners ?? []).map((o) => [o.id, { email: o.email, nome: o.nome }]));
+    }
+    return rows.map((r) => ({ ...r, profiles: ownersById[r.owner_id] ?? null }));
   });
 
 export const setUserRole = createServerFn({ method: "POST" })
