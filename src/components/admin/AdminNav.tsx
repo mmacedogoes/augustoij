@@ -1,14 +1,21 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { BarChart3, Users, Building2, GraduationCap, Megaphone, History } from "lucide-react";
 
-const items = [
+type AdminNavItem = {
+  to: string;
+  label: string;
+  icon: typeof BarChart3;
+  exact?: boolean;
+};
+
+const items: AdminNavItem[] = [
   { to: "/app/admin", label: "Visão geral", icon: BarChart3, exact: true },
   { to: "/app/admin/usuarios", label: "Usuários", icon: Users },
   { to: "/app/admin/condominios", label: "Condomínios", icon: Building2 },
   { to: "/app/admin/treinamento", label: "Treinar IA", icon: GraduationCap },
   { to: "/app/admin/orientacoes", label: "Orientações", icon: Megaphone },
   { to: "/app/admin/auditoria", label: "Auditoria", icon: History },
-] as const;
+];
 
 export function AdminNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -19,7 +26,7 @@ export function AdminNav() {
         return (
           <Link
             key={i.to}
-            to={i.to}
+            to={i.to as "/app/admin"}
             className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
               active
                 ? "bg-primary text-primary-foreground"
