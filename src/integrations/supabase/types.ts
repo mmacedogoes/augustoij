@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          target_condominio_id: string | null
+          target_kb_id: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_condominio_id?: string | null
+          target_kb_id?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_condominio_id?: string | null
+          target_kb_id?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_orientacoes: {
+        Row: {
+          ativo: boolean
+          conteudo: string
+          created_at: string
+          id: string
+          ordem: number
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          conteudo: string
+          created_at?: string
+          id?: string
+          ordem?: number
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          conteudo?: string
+          created_at?: string
+          id?: string
+          ordem?: number
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       condominio_members: {
         Row: {
           condominio_id: string
@@ -200,6 +266,83 @@ export type Database = {
           },
         ]
       }
+      kb_chunks: {
+        Row: {
+          conteudo: string
+          created_at: string
+          embedding: string | null
+          id: string
+          kb_documento_id: string
+          metadata: Json
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          kb_documento_id: string
+          metadata?: Json
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          kb_documento_id?: string
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_chunks_kb_documento_id_fkey"
+            columns: ["kb_documento_id"]
+            isOneToOne: false
+            referencedRelation: "kb_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_documentos: {
+        Row: {
+          conteudo_bruto: string | null
+          created_at: string
+          created_by: string
+          fonte: string | null
+          id: string
+          status_processamento: string
+          storage_path: string | null
+          tipo: Database["public"]["Enums"]["kb_tipo"]
+          titulo: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          conteudo_bruto?: string | null
+          created_at?: string
+          created_by: string
+          fonte?: string | null
+          id?: string
+          status_processamento?: string
+          storage_path?: string | null
+          tipo?: Database["public"]["Enums"]["kb_tipo"]
+          titulo: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          conteudo_bruto?: string | null
+          created_at?: string
+          created_by?: string
+          fonte?: string | null
+          id?: string
+          status_processamento?: string
+          storage_path?: string | null
+          tipo?: Database["public"]["Enums"]["kb_tipo"]
+          titulo?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       mensagens: {
         Row: {
           conteudo: string
@@ -363,6 +506,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_dashboard_metrics: { Args: never; Returns: Json }
+      admin_list_users: {
+        Args: { _limit?: number; _offset?: number; _search?: string }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          is_admin: boolean
+          mensagens_mes: number
+          nome: string
+          oab: string
+          plano: string
+          total_condominios: number
+        }[]
+      }
+      admin_usage_timeseries: {
+        Args: { _days?: number }
+        Returns: {
+          dia: string
+          mensagens: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -389,9 +554,32 @@ export type Database = {
           similarity: number
         }[]
       }
+      match_kb_chunks: {
+        Args: {
+          _match_count?: number
+          _min_similarity?: number
+          _query_embedding: string
+        }
+        Returns: {
+          chunk_id: string
+          conteudo: string
+          fonte: string
+          kb_documento_id: string
+          similarity: number
+          tipo: Database["public"]["Enums"]["kb_tipo"]
+          titulo: string
+        }[]
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "sindico" | "administradora"
+      kb_tipo:
+        | "jurisprudencia"
+        | "doutrina"
+        | "lei"
+        | "peca"
+        | "orientacao"
+        | "outro"
       papel_condominio: "sindico" | "subsindico" | "conselheiro" | "colaborador"
       papel_mensagem: "user" | "assistant"
       plano_assinatura: "solo" | "pro" | "administradora"
@@ -524,6 +712,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "sindico", "administradora"],
+      kb_tipo: [
+        "jurisprudencia",
+        "doutrina",
+        "lei",
+        "peca",
+        "orientacao",
+        "outro",
+      ],
       papel_condominio: ["sindico", "subsindico", "conselheiro", "colaborador"],
       papel_mensagem: ["user", "assistant"],
       plano_assinatura: ["solo", "pro", "administradora"],
