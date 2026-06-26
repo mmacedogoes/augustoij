@@ -2,7 +2,13 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { BarChart3, Users, Building2, GraduationCap, Megaphone, History } from "lucide-react";
 
 type AdminNavItem = {
-  to: string;
+  to:
+    | "/app/admin"
+    | "/app/admin/usuarios"
+    | "/app/admin/condominios"
+    | "/app/admin/treinamento"
+    | "/app/admin/orientacoes"
+    | "/app/admin/auditoria";
   label: string;
   icon: typeof BarChart3;
   exact?: boolean;
@@ -26,7 +32,7 @@ export function AdminNav() {
         return (
           <Link
             key={i.to}
-            to={i.to as "/app/admin"}
+            to={i.to}
             className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
               active
                 ? "bg-primary text-primary-foreground"

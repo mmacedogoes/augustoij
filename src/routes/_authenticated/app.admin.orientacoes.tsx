@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -22,18 +22,9 @@ import {
   upsertOrientacao,
   deleteOrientacao,
 } from "@/lib/admin-kb.functions";
-import { isCurrentUserAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/orientacoes")({
   component: Page,
-  beforeLoad: async () => {
-    try {
-      const r = await isCurrentUserAdmin();
-      if (!r?.admin) throw redirect({ to: "/app" });
-    } catch {
-      throw redirect({ to: "/app" });
-    }
-  },
 });
 
 type Row = {

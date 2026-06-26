@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -8,18 +8,10 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { isCurrentUserAdmin, listUsuariosAdmin, setUserRole } from "@/lib/admin.functions";
+import { listUsuariosAdmin, setUserRole } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios")({
   component: AdminUsuariosPage,
-  beforeLoad: async () => {
-    try {
-      const r = await isCurrentUserAdmin();
-      if (!r?.admin) throw redirect({ to: "/app" });
-    } catch {
-      throw redirect({ to: "/app" });
-    }
-  },
 });
 
 type UserRow = {

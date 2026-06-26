@@ -1,21 +1,13 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
-import { isCurrentUserAdmin, listAuditLog } from "@/lib/admin.functions";
+import { listAuditLog } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/auditoria")({
   component: Page,
-  beforeLoad: async () => {
-    try {
-      const r = await isCurrentUserAdmin();
-      if (!r?.admin) throw redirect({ to: "/app" });
-    } catch {
-      throw redirect({ to: "/app" });
-    }
-  },
 });
 
 type Row = {
