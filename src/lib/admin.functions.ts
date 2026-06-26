@@ -6,8 +6,20 @@ import { ensureAdmin } from "./admin-guard";
 export const isCurrentUserAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    return { admin: data === true };
+    try {
+      const { data, error } = await context.supabase.rpc("has_role", {
+        _user_id: context.userId,
+        _role: "admin",
+      });
+      if (error) {
+        console.error("[isCurrentUserAdmin] has_role error:", error);
+        return { admin: false };
+      }
+      return { admin: data === true };
+    } catch (e) {
+      console.error("[isCurrentUserAdmin] unexpected:", e);
+      return { admin: false };
+    }
   });
 
 export const assertAdmin = createServerFn({ method: "GET" })
