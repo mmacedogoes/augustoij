@@ -1,81 +1,136 @@
 
-# CondoIA — Fase 2: Documentos + Chat com IA (RAG)
+# Fase 4 — Área administrativa + Treinamento da IA
 
-Tudo necessário já está disponível: Lovable AI Gateway (`LOVABLE_API_KEY` configurada), banco com `document_chunks` (pgvector) e RLS por membro de condomínio. Falta criar o bucket de storage, a pipeline de ingestão e o chat com busca semântica.
+Painel global em `/admin`, restrito a `user_roles.role = 'admin'`. Inclui métricas operacionais, gestão de usuários, auditoria **e** uma base de conhecimento global que treina a IA (jurisprudências, artigos, peças, diretrizes).
 
-## Escopo desta fase
+**Pode ser feito agora?** Sim. O projeto já usa a Lovable AI Gateway, que expõe `openai/text-embedding-3-small` (embeddings) e `google/gemini-3-flash-preview` (chat). Não precisa de chave OpenAI separada. A mesma pipeline RAG que processa documentos de condomínio é reaproveitada para a base global do administrador.
 
-### 1. Storage e migration de suporte
+---
 
-- Criar bucket privado **`documentos`** com policies de RLS em `storage.objects`: somente membros do condomínio podem `SELECT`/`INSERT`/`DELETE` arquivos cujo path começa com `<condominio_id>/...`.
-- Ajustar a coluna `document_chunks.embedding` para **`vector(1536)`** (alinha com `openai/text-embedding-3-small` no Gateway) e criar índice HNSW `vector_cosine_ops`.
-- Adicionar função SQL `match_document_chunks(_condominio_id uuid, query_embedding vector(1536), match_count int)` `SECURITY DEFINER`, que filtra por condomínio e retorna `documento_id, nome_arquivo, conteudo, similarity` ordenado por cosine distance.
-- Trigger para atualizar `uso_mensal` (mensagens/tokens) a cada `mensagens.INSERT` do papel `assistant`.
+## 1. Banco de dados (migração additiva)
 
-### 2. Upload e processamento de documentos (`/app/condominios/$id` → aba Documentos)
+Sem mexer em tabelas existentes.
 
-UI:
-- Drag-and-drop / botão "Enviar documento" aceitando PDF e DOCX (limite 10 MB).
-- Lista de documentos do condomínio com nome, tipo, status (`processando` / `pronto` / `erro`) e botão de excluir.
-- Polling leve (a cada 3 s) enquanto houver itens em `processando`.
+**Tabelas novas:**
 
-Server functions (`src/lib/documentos.functions.ts`):
-- `listDocumentos({ condominioId })` — leitura via RLS.
-- `getUploadUrl({ condominioId, nomeArquivo, tipo })` — gera URL assinada de upload no bucket `documentos`.
-- `processDocumento({ documentoId })` — handler que:
-  1. Baixa o arquivo pelo `storage_path` (admin client).
-  2. Extrai texto: PDF via **`unpdf`** (compatível com Workers), DOCX via **`mammoth`**.
-  3. Faz chunking ~1.000 chars com overlap de 150.
-  4. Chama o Gateway `/embeddings` (modelo `openai/text-embedding-3-small`, `dimensions: 1536`) por chunk em lotes.
-  5. Insere em `document_chunks` (`condominio_id`, `documento_id`, `conteudo`, `embedding`, `metadata`).
-  6. Atualiza `documentos.status_processamento` ao final.
-- `deleteDocumento({ id })` — remove chunks, objeto no storage e linha em `documentos`.
+- `public.admin_audit_log` — `id, actor_user_id, action, target_user_id?, target_condominio_id?, target_kb_id?, metadata jsonb, created_at`. RLS: SELECT só admin; INSERT só via funções `SECURITY DEFINER`.
+- `public.kb_documentos` — base global de conhecimento jurídico:
+  `id, titulo, tipo (enum: jurisprudencia | doutrina | lei | peca | orientacao | outro), fonte text, url text?, storage_path text?, conteudo_bruto text?, status_processamento, created_by uuid, created_at`. RLS: SELECT para `authenticated` (todo usuário pode se beneficiar), INSERT/UPDATE/DELETE só admin.
+- `public.kb_chunks` — chunks vetorizados da base global:
+  `id, kb_documento_id, conteudo text, embedding vector(1536), metadata jsonb, created_at`. Índice HNSW cosine. RLS: SELECT `authenticated`; escrita só `service_role`.
+- `public.ai_orientacoes` — diretrizes textuais do admin que viram parte do system prompt:
+  `id, titulo, conteudo text, ativo bool default true, ordem int default 0, updated_by uuid, updated_at`. RLS: SELECT `authenticated`; escrita só admin. Limite prático: ~10 entradas ativas (validado na UI).
 
-Todas autenticadas via `requireSupabaseAuth`; a checagem de pertencimento ao condomínio fica a cargo de RLS + `is_condominio_member`.
+**Funções `SECURITY DEFINER`:**
 
-### 3. Chat com IA + RAG (aba Chat)
+- `admin_dashboard_metrics()` — totais de usuários, condomínios, documentos, mensagens/tokens/custo do mês, itens na KB.
+- `admin_list_users(_search, _limit, _offset)` — perfis + papel + plano + uso do mês + qtd. de condomínios.
+- `admin_usage_timeseries(_days)` — mensagens/dia (últimos 30 dias).
+- `match_kb_chunks(_query_embedding vector(1536), _match_count int, _min_similarity float)` — busca semântica na base global (sem filtro por condomínio). Não exige admin; qualquer usuário autenticado pode consultar (é via chat).
 
-- Rota server route `src/routes/api/chat.ts` (POST, streaming) usando AI SDK + helper Lovable AI Gateway (`createLovableAiGatewayProvider`). Modelo default: `google/gemini-3-flash-preview`.
-- Recebe `{ conversaId, condominioId, messages }`. Valida com Zod e autentica via bearer (lê o token do header, reusa cliente Supabase publishable + JWT do usuário para checar `is_condominio_member`).
-- Pipeline por requisição:
-  1. Gera embedding da última mensagem do usuário (`text-embedding-3-small`, 1536 dims).
-  2. Chama `match_document_chunks` (top 6, similaridade ≥ 0.3).
-  3. Monta system prompt em pt-BR: persona "assistente jurídico de condomínios", contexto dos chunks com citação `[Documento: nome — trecho N]`, disclaimer obrigatório de que não substitui parecer da OAB.
-  4. Faz `streamText` com histórico das últimas 20 mensagens da conversa + nova mensagem.
-  5. `onFinish`: persiste `mensagens` (user e assistant), atualiza `conversas.titulo` se for a primeira mensagem (gera título curto via Gateway).
-- Server function `getOrCreateConversa({ condominioId, conversaId? })` e `listMensagens({ conversaId })`.
+**Bucket de storage:** `kb-documentos` (privado). Policy: SELECT/INSERT/DELETE só admin.
 
-UI da aba Chat (`src/components/chat/ChatPanel.tsx`) usando **AI Elements** (`conversation`, `message`, `prompt-input`, `shimmer`):
-- Render markdown com `MessageResponse`.
-- Indicador "Pensando..." enquanto `status === 'submitted' | 'streaming'`.
-- Rodapé fixo com disclaimer LGPD/OAB.
-- Bloqueio quando o condomínio não tem documentos prontos ("Envie ao menos um documento para iniciar").
+**Trigger:** ajuste leve em `tg_update_uso_mensal` para também incrementar `uso_mensal.custo_estimado_brl` (tarifa aproximada R$ 0,000015/token, constante na função).
 
-### 4. Histórico (aba Histórico)
+---
 
-- Lista de `conversas` do condomínio com data, título e botão "Abrir" (carrega o chat com aquela conversa) e "Excluir".
+## 2. Pipeline de treinamento
 
-### 5. Telemetria de uso
+Reutiliza o que já existe em `src/lib/documentos.server.ts` (extração PDF/DOCX/TXT + chunking) e `src/lib/ai-gateway.server.ts` (`embedText`).
 
-- Trigger SQL incrementa `uso_mensal.total_mensagens` e `total_tokens` (somando `mensagens.tokens_usados`) por user_id no mês corrente.
-- Card "Mensagens este mês" do dashboard passa a refletir dado real (já está conectado a `getUsoMensal`).
+Server functions em `src/lib/admin-kb.functions.ts` (todas com `requireSupabaseAuth` + checagem `has_role(...,'admin')`):
 
-### 6. SEO / qualidade
+- `listKbDocumentos({ search, tipo })` — lista da base global.
+- `createKbDocumentoTexto({ titulo, tipo, fonte, conteudo })` — cola direta de texto (jurisprudência, artigo curto). Vai direto para chunking + embeddings.
+- `getKbUploadUrl({ nomeArquivo })` — URL assinada no bucket `kb-documentos`.
+- `createKbDocumentoArquivo({ titulo, tipo, fonte, storagePath, nomeArquivo })` — registra metadados, dispara processamento.
+- `processKbDocumento({ id })` — baixa arquivo (se houver) → extrai texto → chunking → embeddings → insere em `kb_chunks` (admin client). Idêntico ao fluxo de `processDocumento`, mas grava em `kb_chunks` sem `condominio_id`.
+- `deleteKbDocumento({ id })` — remove chunks, storage e linha.
+- `listOrientacoes()` / `upsertOrientacao({ id?, titulo, conteudo, ativo, ordem })` / `deleteOrientacao({ id })`.
 
-- Sem mudanças em rotas públicas.
-- Tratamento de erros 402/429 do Gateway com toast claro ("Créditos esgotados — contate o admin" / "Muitas requisições, tente novamente em instantes").
+Toda ação grava em `admin_audit_log`.
 
-## Dependências npm a instalar
-`ai`, `@ai-sdk/react`, `@ai-sdk/openai-compatible`, `unpdf`, `mammoth`, AI Elements (`bun x ai-elements@latest add conversation message prompt-input shimmer`).
+---
 
-## Fora do escopo (próximas fases)
-- **Fase 3** — Stripe (Checkout, Customer Portal, webhook), planos Solo/Pro/Administradora, limites por plano.
-- **Fase 4** — Área admin (`/admin`) com métricas MRR/churn/custo, gestão de usuários.
-- **Fase 5** — Convidar co-síndicos / colaboradores (`condominio_members`), export PDF de conversas.
+## 3. Integração ao chat (RAG ampliado)
 
-## Riscos técnicos
-- `unpdf`/`mammoth` rodam em Worker, mas PDFs escaneados (imagem) não terão OCR — sinalizamos status `erro` com mensagem clara.
-- Embeddings em lote consomem créditos da workspace — surfaço 402 explicitamente.
-- Cosine threshold (0.3) pode precisar de ajuste após teste com documentos reais.
+`src/routes/api/chat.ts` passa a montar contexto a partir de **duas fontes**:
 
-Confirma esse escopo? Se sim, parto direto para a migration + bucket e sigo com a pipeline.
+1. `match_document_chunks(condominio_id, ...)` — documentos privados do condomínio (top 6).
+2. `match_kb_chunks(query_embedding, ...)` — base global do admin (top 4, similaridade ≥ 0.35).
+
+System prompt passa a incluir:
+
+- Persona atual ("assistente jurídico…").
+- **Bloco "Diretrizes do administrador":** concatenação de `ai_orientacoes` onde `ativo = true`, ordenado por `ordem`. Limitado a ~3.000 caracteres.
+- Contexto dos chunks (documentos do condomínio + KB global), com rotulação clara: `[Documento do condomínio: …]` vs `[Base de conhecimento: <título> — <fonte>]`.
+- Disclaimer OAB obrigatório.
+
+Sem mudança no front-end do chat.
+
+---
+
+## 4. Rotas e UI
+
+Subtree `/admin` (gate em `beforeLoad` chamando `assertAdmin` server-side):
+
+```text
+/admin                 → métricas + gráfico + últimos eventos
+/admin/usuarios        → tabela, busca, promover/remover admin
+/admin/condominios     → tabela global de condomínios
+/admin/treinamento     → base global da IA (KB)
+/admin/orientacoes     → diretrizes textuais para o system prompt
+/admin/auditoria       → eventos sensíveis
+```
+
+**`/admin/treinamento`:**
+- Abas: "Documentos" (upload PDF/DOCX/TXT) e "Texto colado" (textarea grande com título/tipo/fonte).
+- Lista com filtros por tipo (jurisprudência, doutrina, lei, peça, orientação, outro), status (processando/pronto/erro), busca por título.
+- Excluir com confirmação.
+- Polling leve enquanto houver itens em `processando`.
+
+**`/admin/orientacoes`:**
+- Lista das diretrizes ativas/inativas com toggle e ordenação.
+- Editor por entrada (título + conteúdo Markdown, limite 1.000 caracteres por entrada). Pré-visualização do system prompt resultante.
+- Aviso: "Estas orientações são enviadas em toda resposta — seja conciso para não inflar custo."
+
+`AppShell` ganha item "Admin" no menu lateral, visível somente quando `getCurrentUserRoles()` indicar admin (cacheado via TanStack Query).
+
+---
+
+## 5. Segurança
+
+- Defesa em camadas: gate na rota (`beforeLoad`) + checagem em cada server fn + RLS no banco + `SECURITY DEFINER` interno verificando `has_role`.
+- `supabaseAdmin` só carregado dentro de handlers, após validar admin.
+- `match_kb_chunks` exposto a todo `authenticated` (alimenta o chat), mas `kb_documentos` e `kb_chunks` têm escrita travada.
+- Bloqueio para o último admin não conseguir se auto-rebaixar.
+- Toda ação de admin (promover, treinar, apagar) registra em `admin_audit_log`.
+
+---
+
+## 6. Custos e limites
+
+- Embeddings de treinamento consomem créditos da workspace — mesma tarifa do upload normal de documentos. Surfaço 402/429 com mensagem clara.
+- Limite prático na UI: arquivos até 10 MB, texto colado até 200 KB por entrada.
+- Diretrizes ativas limitadas a 10 entradas e ~3.000 caracteres totais para não estourar a janela de contexto.
+
+---
+
+## 7. Fora do escopo
+
+- Stripe (Fase 3).
+- Convidar co-síndicos (Fase 5).
+- Export PDF de conversas (Fase 5).
+- Versionamento/aprovação de orientações (futuro).
+- Reprocessar todos os chunks ao trocar de modelo de embedding (futuro, ao migrar para `gemini-embedding-001`).
+
+---
+
+## 8. Verificações finais
+
+- `tsgo` limpo.
+- `/admin/*` retorna redirect para não-admin (testado com `invoke-server-function`).
+- Após criar uma entrada na KB, uma pergunta no chat traz o trecho citado como `[Base de conhecimento: ...]`.
+- Linter Supabase sem novos warnings críticos.
+
+Confirma para eu começar pela migração SQL + bucket e seguir com as server functions e telas?
