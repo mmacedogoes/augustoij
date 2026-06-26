@@ -18,8 +18,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
-import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
+import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authenticated/app.admin.index'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
 import { Route as AuthenticatedAppAdminUsuariosRouteImport } from './routes/_authenticated/app.admin.usuarios'
 import { Route as AuthenticatedAppAdminTreinamentoRouteImport } from './routes/_authenticated/app.admin.treinamento'
@@ -71,15 +71,16 @@ const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
   path: '/app/conta',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
-  id: '/app/admin',
-  path: '/app/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedAppCondominiosIndexRoute =
   AuthenticatedAppCondominiosIndexRouteImport.update({
     id: '/app/condominios/',
     path: '/app/condominios/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppAdminIndexRoute =
+  AuthenticatedAppAdminIndexRouteImport.update({
+    id: '/app/admin/',
+    path: '/app/admin/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppCondominiosIdRoute =
@@ -90,33 +91,33 @@ const AuthenticatedAppCondominiosIdRoute =
   } as any)
 const AuthenticatedAppAdminUsuariosRoute =
   AuthenticatedAppAdminUsuariosRouteImport.update({
-    id: '/usuarios',
-    path: '/usuarios',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
+    id: '/app/admin/usuarios',
+    path: '/app/admin/usuarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppAdminTreinamentoRoute =
   AuthenticatedAppAdminTreinamentoRouteImport.update({
-    id: '/treinamento',
-    path: '/treinamento',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
+    id: '/app/admin/treinamento',
+    path: '/app/admin/treinamento',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppAdminOrientacoesRoute =
   AuthenticatedAppAdminOrientacoesRouteImport.update({
-    id: '/orientacoes',
-    path: '/orientacoes',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
+    id: '/app/admin/orientacoes',
+    path: '/app/admin/orientacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppAdminCondominiosRoute =
   AuthenticatedAppAdminCondominiosRouteImport.update({
-    id: '/condominios',
-    path: '/condominios',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
+    id: '/app/admin/condominios',
+    path: '/app/admin/condominios',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppAdminAuditoriaRoute =
   AuthenticatedAppAdminAuditoriaRouteImport.update({
-    id: '/auditoria',
-    path: '/auditoria',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
+    id: '/app/admin/auditoria',
+    path: '/app/admin/auditoria',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -126,7 +127,6 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/api/chat': typeof ApiChatRoute
-  '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
@@ -135,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/treinamento': typeof AuthenticatedAppAdminTreinamentoRoute
   '/app/admin/usuarios': typeof AuthenticatedAppAdminUsuariosRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -144,7 +145,6 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/api/chat': typeof ApiChatRoute
-  '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
@@ -153,6 +153,7 @@ export interface FileRoutesByTo {
   '/app/admin/treinamento': typeof AuthenticatedAppAdminTreinamentoRoute
   '/app/admin/usuarios': typeof AuthenticatedAppAdminUsuariosRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/app/admin': typeof AuthenticatedAppAdminIndexRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
 }
 export interface FileRoutesById {
@@ -164,7 +165,6 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/api/chat': typeof ApiChatRoute
-  '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
@@ -173,6 +173,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/treinamento': typeof AuthenticatedAppAdminTreinamentoRoute
   '/_authenticated/app/admin/usuarios': typeof AuthenticatedAppAdminUsuariosRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
 }
 export interface FileRouteTypes {
@@ -184,7 +185,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/api/chat'
-    | '/app/admin'
     | '/app/conta'
     | '/app/'
     | '/app/admin/auditoria'
@@ -193,6 +193,7 @@ export interface FileRouteTypes {
     | '/app/admin/treinamento'
     | '/app/admin/usuarios'
     | '/app/condominios/$id'
+    | '/app/admin/'
     | '/app/condominios/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -202,7 +203,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/api/chat'
-    | '/app/admin'
     | '/app/conta'
     | '/app'
     | '/app/admin/auditoria'
@@ -211,6 +211,7 @@ export interface FileRouteTypes {
     | '/app/admin/treinamento'
     | '/app/admin/usuarios'
     | '/app/condominios/$id'
+    | '/app/admin'
     | '/app/condominios'
   id:
     | '__root__'
@@ -221,7 +222,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/termos'
     | '/api/chat'
-    | '/_authenticated/app/admin'
     | '/_authenticated/app/conta'
     | '/_authenticated/app/'
     | '/_authenticated/app/admin/auditoria'
@@ -230,6 +230,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/treinamento'
     | '/_authenticated/app/admin/usuarios'
     | '/_authenticated/app/condominios/$id'
+    | '/_authenticated/app/admin/'
     | '/_authenticated/app/condominios/'
   fileRoutesById: FileRoutesById
 }
@@ -308,18 +309,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppContaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/admin': {
-      id: '/_authenticated/app/admin'
-      path: '/app/admin'
-      fullPath: '/app/admin'
-      preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/app/condominios/': {
       id: '/_authenticated/app/condominios/'
       path: '/app/condominios'
       fullPath: '/app/condominios/'
       preLoaderRoute: typeof AuthenticatedAppCondominiosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/admin/': {
+      id: '/_authenticated/app/admin/'
+      path: '/app/admin'
+      fullPath: '/app/admin/'
+      preLoaderRoute: typeof AuthenticatedAppAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/condominios/$id': {
@@ -331,76 +332,65 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/app/admin/usuarios': {
       id: '/_authenticated/app/admin/usuarios'
-      path: '/usuarios'
+      path: '/app/admin/usuarios'
       fullPath: '/app/admin/usuarios'
       preLoaderRoute: typeof AuthenticatedAppAdminUsuariosRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/admin/treinamento': {
       id: '/_authenticated/app/admin/treinamento'
-      path: '/treinamento'
+      path: '/app/admin/treinamento'
       fullPath: '/app/admin/treinamento'
       preLoaderRoute: typeof AuthenticatedAppAdminTreinamentoRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/admin/orientacoes': {
       id: '/_authenticated/app/admin/orientacoes'
-      path: '/orientacoes'
+      path: '/app/admin/orientacoes'
       fullPath: '/app/admin/orientacoes'
       preLoaderRoute: typeof AuthenticatedAppAdminOrientacoesRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/admin/condominios': {
       id: '/_authenticated/app/admin/condominios'
-      path: '/condominios'
+      path: '/app/admin/condominios'
       fullPath: '/app/admin/condominios'
       preLoaderRoute: typeof AuthenticatedAppAdminCondominiosRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/admin/auditoria': {
       id: '/_authenticated/app/admin/auditoria'
-      path: '/auditoria'
+      path: '/app/admin/auditoria'
       fullPath: '/app/admin/auditoria'
       preLoaderRoute: typeof AuthenticatedAppAdminAuditoriaRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
-interface AuthenticatedAppAdminRouteChildren {
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
+  AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppAdminAuditoriaRoute: typeof AuthenticatedAppAdminAuditoriaRoute
   AuthenticatedAppAdminCondominiosRoute: typeof AuthenticatedAppAdminCondominiosRoute
   AuthenticatedAppAdminOrientacoesRoute: typeof AuthenticatedAppAdminOrientacoesRoute
   AuthenticatedAppAdminTreinamentoRoute: typeof AuthenticatedAppAdminTreinamentoRoute
   AuthenticatedAppAdminUsuariosRoute: typeof AuthenticatedAppAdminUsuariosRoute
+  AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
+  AuthenticatedAppAdminIndexRoute: typeof AuthenticatedAppAdminIndexRoute
+  AuthenticatedAppCondominiosIndexRoute: typeof AuthenticatedAppCondominiosIndexRoute
 }
 
-const AuthenticatedAppAdminRouteChildren: AuthenticatedAppAdminRouteChildren = {
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
+  AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppAdminAuditoriaRoute: AuthenticatedAppAdminAuditoriaRoute,
   AuthenticatedAppAdminCondominiosRoute: AuthenticatedAppAdminCondominiosRoute,
   AuthenticatedAppAdminOrientacoesRoute: AuthenticatedAppAdminOrientacoesRoute,
   AuthenticatedAppAdminTreinamentoRoute: AuthenticatedAppAdminTreinamentoRoute,
   AuthenticatedAppAdminUsuariosRoute: AuthenticatedAppAdminUsuariosRoute,
-}
-
-const AuthenticatedAppAdminRouteWithChildren =
-  AuthenticatedAppAdminRoute._addFileChildren(
-    AuthenticatedAppAdminRouteChildren,
-  )
-
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
-  AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
-  AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
-  AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
-  AuthenticatedAppCondominiosIndexRoute: typeof AuthenticatedAppCondominiosIndexRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAppAdminRoute: AuthenticatedAppAdminRouteWithChildren,
-  AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
-  AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
+  AuthenticatedAppAdminIndexRoute: AuthenticatedAppAdminIndexRoute,
   AuthenticatedAppCondominiosIndexRoute: AuthenticatedAppCondominiosIndexRoute,
 }
 
@@ -419,13 +409,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
