@@ -1,15 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { ensureAdmin } from "./admin-guard";
 
 const BUCKET = "kb-documentos";
 const kbTipo = z.enum(["jurisprudencia", "doutrina", "lei", "peca", "orientacao", "outro"]);
-
-async function ensureAdmin(context: { supabase: { rpc: (n: string, a: Record<string, unknown>) => Promise<{ data: boolean | null; error: { message: string } | null }> }; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Acesso restrito a administradores");
-}
 
 export const listKbDocumentos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
