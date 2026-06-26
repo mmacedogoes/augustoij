@@ -8,7 +8,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { isCurrentUserAdmin, listUsuariosAdmin, setUserRole } from "@/lib/admin.functions";
+import { listUsuariosAdmin, setUserRole } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios")({
   component: AdminUsuariosPage catch {

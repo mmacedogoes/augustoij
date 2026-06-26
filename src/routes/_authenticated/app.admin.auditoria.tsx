@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
-import { isCurrentUserAdmin, listAuditLog } from "@/lib/admin.functions";
+import { listAuditLog } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/auditoria")({
   component: Page catch {

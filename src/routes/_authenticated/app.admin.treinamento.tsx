@@ -41,7 +41,6 @@ import {
   processKbDocumento,
   deleteKbDocumento,
 } from "@/lib/admin-kb.functions";
-import { isCurrentUserAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/treinamento")({
   component: Page catch {

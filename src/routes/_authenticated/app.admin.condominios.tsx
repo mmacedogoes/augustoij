@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
-import { isCurrentUserAdmin, listCondominiosAdmin } from "@/lib/admin.functions";
+import { listCondominiosAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/condominios")({
   component: Page catch {
