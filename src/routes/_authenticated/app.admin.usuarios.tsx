@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -11,10 +11,7 @@ import { Button } from "@/components/ui/button";
 import { listUsuariosAdmin, setUserRole } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios")({
-  component: AdminUsuariosPage catch {
-      throw redirect({ to: "/app" });
-    }
-  },
+  component: AdminUsuariosPage,
 });
 
 type UserRow = {

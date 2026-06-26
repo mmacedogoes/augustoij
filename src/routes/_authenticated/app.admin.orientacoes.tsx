@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -24,10 +24,7 @@ import {
 } from "@/lib/admin-kb.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/orientacoes")({
-  component: Page catch {
-      throw redirect({ to: "/app" });
-    }
-  },
+  component: Page,
 });
 
 type Row = {

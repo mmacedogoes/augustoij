@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
@@ -7,10 +7,7 @@ import { Card } from "@/components/ui/card";
 import { listCondominiosAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/condominios")({
-  component: Page catch {
-      throw redirect({ to: "/app" });
-    }
-  },
+  component: Page,
 });
 
 type Row = {
