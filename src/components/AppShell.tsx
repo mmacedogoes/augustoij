@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Building2, LayoutDashboard, Building, User, LogOut } from "lucide-react";
+import { LayoutDashboard, Building, User, LogOut } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -24,39 +25,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/30">
+    <div className="min-h-screen bg-background">
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 bg-sidebar text-sidebar-foreground flex-col">
-        <div className="p-6 flex items-center gap-2 font-bold">
-          <Building2 className="h-6 w-6 text-sidebar-primary" />
-          <span>CondoIA</span>
+        <div className="px-6 py-6">
+          <Logo variant="invertida" height={28} />
         </div>
         <nav className="flex-1 px-3 space-y-1">
           {nav.map((n) => {
             const active = pathname === n.to || (n.to !== "/app" && pathname.startsWith(n.to));
             return (
-              <Link key={n.to} to={n.to} className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/60"}`}>
-                <n.icon className="h-4 w-4" /> {n.label}
+              <Link key={n.to} to={n.to} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:text-sidebar-accent-foreground"}`}>
+                <n.icon className="h-4 w-4" strokeWidth={1.5} /> {n.label}
               </Link>
             );
           })}
         </nav>
-        <button onClick={handleSignOut} className="m-3 flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent/60">
-          <LogOut className="h-4 w-4" /> Sair
+        <button onClick={handleSignOut} className="m-3 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent transition-colors">
+          <LogOut className="h-4 w-4" strokeWidth={1.5} /> Sair
         </button>
       </aside>
 
-      <header className="md:hidden border-b bg-background sticky top-0 z-40">
+      <header className="md:hidden border-b border-border bg-card sticky top-0 z-40">
         <div className="px-4 py-3 flex items-center justify-between">
-          <Link to="/app" className="flex items-center gap-2 font-bold text-primary">
-            <Building2 className="h-5 w-5 text-accent" /> CondoIA
+          <Link to="/app" className="flex items-center">
+            <Logo variant="principal" height={24} />
           </Link>
           <button onClick={handleSignOut} className="text-sm text-muted-foreground">Sair</button>
         </div>
-        <nav className="flex border-t overflow-x-auto">
+        <nav className="flex border-t border-border overflow-x-auto">
           {nav.map((n) => {
             const active = pathname === n.to || (n.to !== "/app" && pathname.startsWith(n.to));
             return (
-              <Link key={n.to} to={n.to} className={`flex-1 px-3 py-2 text-xs text-center ${active ? "text-accent font-medium border-b-2 border-accent" : "text-muted-foreground"}`}>
+              <Link key={n.to} to={n.to} className={`flex-1 px-3 py-2 text-xs text-center ${active ? "text-primary font-medium border-b-2 border-primary" : "text-muted-foreground"}`}>
                 {n.label}
               </Link>
             );

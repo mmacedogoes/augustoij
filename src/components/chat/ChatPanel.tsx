@@ -18,7 +18,8 @@ import {
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { Scale } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import iconeAsset from "@/assets/condoia-icone.jpg.asset.json";
 import { createConversa, listMensagens } from "@/lib/chat.functions";
 
 type Props = {
@@ -102,12 +103,12 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
   };
 
   return (
-    <div className="flex flex-col h-[70vh] min-h-[500px] border rounded-lg overflow-hidden bg-card">
+    <div className="flex flex-col h-[70vh] min-h-[500px] border border-border rounded-lg overflow-hidden bg-card">
       <Conversation className="flex-1">
         <ConversationContent>
           {messages.length === 0 ? (
             <ConversationEmptyState
-              icon={<Scale className="h-8 w-8 text-accent" />}
+              icon={<Logo variant="principal" height={36} />}
               title="Pergunte ao assistente"
               description={
                 hasReadyDocs
@@ -120,10 +121,27 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
               const text = m.parts
                 .map((p) => (p.type === "text" ? p.text : ""))
                 .join("");
+              if (m.role === "assistant") {
+                return (
+                  <Message key={m.id} from={m.role} className="max-w-full">
+                    <div className="flex gap-3 items-start">
+                      <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <MessageContent>
+                          <MessageResponse>{text}</MessageResponse>
+                        </MessageContent>
+                        <p className="mt-2 text-[12px] italic text-muted-foreground">
+                          ⚖️ Esta orientação tem caráter de apoio técnico e não substitui consulta jurídica formal.
+                        </p>
+                      </div>
+                    </div>
+                  </Message>
+                );
+              }
               return (
                 <Message key={m.id} from={m.role}>
-                  <MessageContent>
-                    {m.role === "assistant" ? <MessageResponse>{text}</MessageResponse> : text}
+                  <MessageContent className="group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground">
+                    {text}
                   </MessageContent>
                 </Message>
               );

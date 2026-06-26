@@ -1,12 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Building2 } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { Logo } from "@/components/Logo";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
@@ -60,43 +59,47 @@ function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/40 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
-        <Link to="/" className="flex items-center justify-center gap-2 mb-6 font-bold text-primary">
-          <Building2 className="h-6 w-6 text-accent" /> <span className="text-xl">CondoIA</span>
-        </Link>
-        <Card className="p-6">
-          <h1 className="text-2xl font-bold text-primary">Criar conta</h1>
-          <p className="text-sm text-muted-foreground">Teste grátis por 7 dias. Sem cartão.</p>
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome completo</Label>
+    <div className="min-h-screen grid lg:grid-cols-2">
+      <div className="flex items-center justify-center bg-card px-6 py-12">
+        <div className="w-full max-w-[400px]">
+          <Link to="/" className="inline-flex mb-10 lg:hidden"><Logo variant="principal" height={28} /></Link>
+          <h1 className="text-3xl font-bold text-primary tracking-tight">Criar conta</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Teste grátis por 7 dias. Sem cartão.</p>
+          <form onSubmit={onSubmit} className="mt-8 space-y-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="nome" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">Nome completo</Label>
               <Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">E-mail</Label>
               <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required autoComplete="email" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">Senha</Label>
               <Input id="password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} autoComplete="new-password" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="oab">OAB <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="oab" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">OAB <span className="normal-case tracking-normal">(opcional)</span></Label>
               <Input id="oab" value={form.oab} onChange={(e) => setForm({ ...form, oab: e.target.value })} placeholder="Ex: SP 123456" />
             </div>
             <label className="flex items-start gap-2 text-sm">
               <Checkbox checked={lgpd} onCheckedChange={(c) => setLgpd(c === true)} className="mt-0.5" />
               <span className="text-muted-foreground">
-                Li e aceito os <Link to="/termos" className="text-accent underline">Termos de uso</Link> e a <Link to="/privacidade" className="text-accent underline">Política de privacidade</Link> (LGPD).
+                Li e aceito os <Link to="/termos" className="text-primary underline">Termos de uso</Link> e a <Link to="/privacidade" className="text-primary underline">Política de privacidade</Link> (LGPD).
               </span>
             </label>
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Criando..." : "Criar conta"}</Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Já tem conta? <Link to="/login" className="text-accent font-medium">Entrar</Link>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Já tem conta? <Link to="/login" className="text-primary font-medium hover:underline">Entrar</Link>
           </p>
-        </Card>
+        </div>
+      </div>
+      <div className="hidden lg:flex flex-col items-center justify-center bg-sidebar text-sidebar-accent-foreground p-12">
+        <Logo variant="invertida" height={56} />
+        <p className="mt-8 max-w-sm text-center text-sm text-sidebar-foreground leading-relaxed">
+          Inteligência para condomínios. O copiloto jurídico e operacional da sua gestão.
+        </p>
       </div>
     </div>
   );

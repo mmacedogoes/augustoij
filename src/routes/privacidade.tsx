@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Building2 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
@@ -16,8 +16,8 @@ function PrivacidadePage() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="mx-auto max-w-4xl px-4 py-4">
-          <Link to="/" className="flex items-center gap-2 font-bold text-primary">
-            <Building2 className="h-5 w-5 text-accent" /> CondoIA
+          <Link to="/" className="inline-flex items-center">
+            <Logo variant="principal" height={24} />
           </Link>
         </div>
       </header>
