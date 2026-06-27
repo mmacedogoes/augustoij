@@ -7,18 +7,17 @@ export const isCurrentUserAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     try {
-      const { data, error } = await context.supabase.rpc("has_role", {
-        _user_id: context.userId,
-        _role: "admin",
-      });
-      if (error) {
-        console.error("[isCurrentUserAdmin] has_role error:", error);
-        return { admin: false };
-      }
-      return { admin: data === true };
+      const { data: prof } = await context.supabase
+        .from("profiles")
+        .select("papel_sistema")
+        .eq("id", context.userId)
+        .maybeSingle();
+      const papel = prof?.papel_sistema ?? null;
+      const admin = papel === "super_admin" || papel === "admin_operacional" || papel === "admin_suporte";
+      return { admin, papel };
     } catch (e) {
       console.error("[isCurrentUserAdmin] unexpected:", e);
-      return { admin: false };
+      return { admin: false, papel: null };
     }
   });
 
@@ -97,42 +96,42 @@ export const setUserRole = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({
       userId: z.string().uuid(),
-      role: z.enum(["admin", "sindico", "administradora", "owner"]),
-      grant: z.boolean(),
+      papel: z.enum([
+        "super_admin",
+        "admin_operacional",
+        "admin_suporte",
+        "cliente_pf",
+        "cliente_pj_dono",
+        "cliente_pj_operador",
+      ]),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    if (!data.grant && data.role === "admin") {
-      // Bloqueia auto-remoção do último admin
+    // Bloqueia auto-rebaixamento do último super_admin
+    if (data.papel !== "super_admin" && data.userId === context.userId) {
       const { count } = await supabaseAdmin
-        .from("user_roles")
+        .from("profiles")
         .select("id", { count: "exact", head: true })
-        .eq("role", "admin");
-      if ((count ?? 0) <= 1 && data.userId === context.userId) {
-        throw new Error("Não é possível remover o último administrador");
+        .eq("papel_sistema", "super_admin");
+      if ((count ?? 0) <= 1) {
+        throw new Error("Não é possível remover o último super administrador");
       }
     }
 
-    if (data.grant) {
-      const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: data.userId, role: data.role });
-      if (error && !String(error.message).includes("duplicate")) throw new Error(error.message);
-    } else {
-      const { error } = await supabaseAdmin
-        .from("user_roles")
-        .delete()
-        .eq("user_id", data.userId)
-        .eq("role", data.role);
-      if (error) throw new Error(error.message);
-    }
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ papel_sistema: data.papel })
+      .eq("id", data.userId);
+    if (error) throw new Error(error.message);
 
     await supabaseAdmin.from("admin_audit_log").insert({
       actor_user_id: context.userId,
-      action: data.grant ? "role.grant" : "role.revoke",
+      action: "role.set",
       target_user_id: data.userId,
-      metadata: { role: data.role },
+      metadata: { papel: data.papel },
     });
 
     return { ok: true };

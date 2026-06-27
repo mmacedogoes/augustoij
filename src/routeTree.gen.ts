@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
@@ -61,6 +62,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -171,6 +179,7 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/signup'
     | '/termos'
+    | '/onboarding'
     | '/api/chat'
     | '/app/admin'
     | '/app/conta'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/signup'
     | '/termos'
+    | '/onboarding'
     | '/api/chat'
     | '/app/conta'
     | '/app'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/signup'
     | '/termos'
+    | '/_authenticated/onboarding'
     | '/api/chat'
     | '/_authenticated/app/admin'
     | '/_authenticated/app/conta'
@@ -304,6 +316,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
@@ -409,6 +428,7 @@ const AuthenticatedAppAdminRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
   AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
@@ -417,6 +437,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedAppAdminRoute: AuthenticatedAppAdminRouteWithChildren,
   AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
@@ -439,13 +460,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
