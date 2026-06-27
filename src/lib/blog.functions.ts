@@ -118,7 +118,7 @@ export const adminUpsertPost = createServerFn({ method: "POST" })
         conteudo_markdown: z.string().min(1),
         imagem_capa: z.string().url().max(500).optional().nullable(),
         categoria_id: z.string().uuid().optional().nullable(),
-        status: z.enum(["rascunho", "publicado", "arquivado"]).default("rascunho"),
+        status: z.enum(["rascunho", "publicado", "agendado"]).default("rascunho"),
       })
       .parse(input),
   )
