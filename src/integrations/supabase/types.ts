@@ -80,11 +80,108 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_categorias: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          agendado_para: string | null
+          autor_id: string | null
+          categoria_id: string | null
+          conteudo_markdown: string | null
+          created_at: string
+          id: string
+          imagem_capa: string | null
+          meta_description: string | null
+          publicado_em: string | null
+          resumo: string | null
+          slug: string
+          status: Database["public"]["Enums"]["blog_status"]
+          tags: string[]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          agendado_para?: string | null
+          autor_id?: string | null
+          categoria_id?: string | null
+          conteudo_markdown?: string | null
+          created_at?: string
+          id?: string
+          imagem_capa?: string | null
+          meta_description?: string | null
+          publicado_em?: string | null
+          resumo?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["blog_status"]
+          tags?: string[]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          agendado_para?: string | null
+          autor_id?: string | null
+          categoria_id?: string | null
+          conteudo_markdown?: string | null
+          created_at?: string
+          id?: string
+          imagem_capa?: string | null
+          meta_description?: string | null
+          publicado_em?: string | null
+          resumo?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["blog_status"]
+          tags?: string[]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_posts_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "blog_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       condominio_members: {
         Row: {
           condominio_id: string
           created_at: string
           id: string
+          papel: Database["public"]["Enums"]["papel_condo_v2"]
           papel_no_condominio: Database["public"]["Enums"]["papel_condominio"]
           user_id: string
         }
@@ -92,6 +189,7 @@ export type Database = {
           condominio_id: string
           created_at?: string
           id?: string
+          papel?: Database["public"]["Enums"]["papel_condo_v2"]
           papel_no_condominio?: Database["public"]["Enums"]["papel_condominio"]
           user_id: string
         }
@@ -99,6 +197,7 @@ export type Database = {
           condominio_id?: string
           created_at?: string
           id?: string
+          papel?: Database["public"]["Enums"]["papel_condo_v2"]
           papel_no_condominio?: Database["public"]["Enums"]["papel_condominio"]
           user_id?: string
         }
@@ -182,6 +281,123 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      creditos_avulsos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          preco: number
+          quantidade_mensagens: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id: string
+          nome: string
+          ordem?: number
+          preco: number
+          quantidade_mensagens: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          preco?: number
+          quantidade_mensagens?: number
+        }
+        Relationships: []
+      }
+      custos_cliente_mensal: {
+        Row: {
+          created_at: string
+          custo_embeddings: number
+          custo_storage: number
+          custo_tokens_openai: number
+          id: string
+          margem_estimada: number
+          mes_ano: string
+          total_mensagens: number
+          total_tokens_input: number
+          total_tokens_output: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_embeddings?: number
+          custo_storage?: number
+          custo_tokens_openai?: number
+          id?: string
+          margem_estimada?: number
+          mes_ano: string
+          total_mensagens?: number
+          total_tokens_input?: number
+          total_tokens_output?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custo_embeddings?: number
+          custo_storage?: number
+          custo_tokens_openai?: number
+          id?: string
+          margem_estimada?: number
+          mes_ano?: string
+          total_mensagens?: number
+          total_tokens_input?: number
+          total_tokens_output?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      despesas: {
+        Row: {
+          automatica: boolean
+          categoria: string
+          created_at: string
+          created_by: string | null
+          data: string
+          descricao: string
+          id: string
+          metadata: Json
+          periodicidade: string
+          recorrente: boolean
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          automatica?: boolean
+          categoria: string
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao: string
+          id?: string
+          metadata?: Json
+          periodicidade?: string
+          recorrente?: boolean
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          automatica?: boolean
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao?: string
+          id?: string
+          metadata?: Json
+          periodicidade?: string
+          recorrente?: boolean
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
       }
       document_chunks: {
         Row: {
@@ -381,95 +597,174 @@ export type Database = {
           },
         ]
       }
+      planos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          features: string[]
+          id: string
+          limite_condominios: number | null
+          limite_mensagens_mes: number | null
+          limite_storage_mb: number | null
+          limite_usuarios: number | null
+          nome: string
+          ordem: number
+          preco_mensal: number | null
+          tipo_pessoa: Database["public"]["Enums"]["tipo_pessoa"]
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          features?: string[]
+          id: string
+          limite_condominios?: number | null
+          limite_mensagens_mes?: number | null
+          limite_storage_mb?: number | null
+          limite_usuarios?: number | null
+          nome: string
+          ordem?: number
+          preco_mensal?: number | null
+          tipo_pessoa: Database["public"]["Enums"]["tipo_pessoa"]
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          features?: string[]
+          id?: string
+          limite_condominios?: number | null
+          limite_mensagens_mes?: number | null
+          limite_storage_mb?: number | null
+          limite_usuarios?: number | null
+          nome?: string
+          ordem?: number
+          preco_mensal?: number | null
+          tipo_pessoa?: Database["public"]["Enums"]["tipo_pessoa"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          convidado_por: string | null
+          cpf_cnpj: string | null
           created_at: string
           email: string | null
           id: string
           lgpd_aceite_em: string | null
           nome: string | null
           oab: string | null
+          onboarding_completo: boolean
+          papel_sistema: Database["public"]["Enums"]["papel_sistema"]
+          razao_social: string | null
           telefone: string | null
+          tipo_pessoa: Database["public"]["Enums"]["tipo_pessoa"] | null
+          ultimo_acesso: string | null
           updated_at: string
         }
         Insert: {
+          convidado_por?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
           id: string
           lgpd_aceite_em?: string | null
           nome?: string | null
           oab?: string | null
+          onboarding_completo?: boolean
+          papel_sistema?: Database["public"]["Enums"]["papel_sistema"]
+          razao_social?: string | null
           telefone?: string | null
+          tipo_pessoa?: Database["public"]["Enums"]["tipo_pessoa"] | null
+          ultimo_acesso?: string | null
           updated_at?: string
         }
         Update: {
+          convidado_por?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
           id?: string
           lgpd_aceite_em?: string | null
           nome?: string | null
           oab?: string | null
+          onboarding_completo?: boolean
+          papel_sistema?: Database["public"]["Enums"]["papel_sistema"]
+          razao_social?: string | null
           telefone?: string | null
+          tipo_pessoa?: Database["public"]["Enums"]["tipo_pessoa"] | null
+          ultimo_acesso?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_convidado_por_fkey"
+            columns: ["convidado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscriptions: {
         Row: {
           created_at: string
+          creditos_mensagens_extras: number
           current_period_end: string | null
           id: string
-          plano: Database["public"]["Enums"]["plano_assinatura"]
+          plano: Database["public"]["Enums"]["plano_assinatura"] | null
+          plano_id: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          tipo_assinatura: string
+          trial_end: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          creditos_mensagens_extras?: number
           current_period_end?: string | null
           id?: string
-          plano?: Database["public"]["Enums"]["plano_assinatura"]
+          plano?: Database["public"]["Enums"]["plano_assinatura"] | null
+          plano_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          tipo_assinatura?: string
+          trial_end?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          creditos_mensagens_extras?: number
           current_period_end?: string | null
           id?: string
-          plano?: Database["public"]["Enums"]["plano_assinatura"]
+          plano?: Database["public"]["Enums"]["plano_assinatura"] | null
+          plano_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          tipo_assinatura?: string
+          trial_end?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       uso_mensal: {
         Row: {
@@ -528,6 +823,17 @@ export type Database = {
           mensagens: number
         }[]
       }
+      calcular_custo_mensal: {
+        Args: { _mes_ano: string; _user_id: string }
+        Returns: Json
+      }
+      has_papel_sistema: {
+        Args: {
+          _papeis: Database["public"]["Enums"]["papel_sistema"][]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -535,10 +841,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_any_admin: { Args: { _user_id: string }; Returns: boolean }
       is_condominio_member: {
         Args: { _condominio_id: string; _user_id: string }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       match_document_chunks: {
         Args: {
           _condominio_id: string
@@ -573,6 +881,7 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "sindico" | "administradora"
+      blog_status: "rascunho" | "publicado" | "agendado"
       kb_tipo:
         | "jurisprudencia"
         | "doutrina"
@@ -580,10 +889,19 @@ export type Database = {
         | "peca"
         | "orientacao"
         | "outro"
+      papel_condo_v2: "dono_condominio" | "operador_condominio"
       papel_condominio: "sindico" | "subsindico" | "conselheiro" | "colaborador"
       papel_mensagem: "user" | "assistant"
+      papel_sistema:
+        | "super_admin"
+        | "admin_operacional"
+        | "admin_suporte"
+        | "cliente_pf"
+        | "cliente_pj_dono"
+        | "cliente_pj_operador"
       plano_assinatura: "solo" | "pro" | "administradora"
       tipo_documento: "convencao" | "regimento" | "ata" | "contrato" | "outro"
+      tipo_pessoa: "pf" | "pj"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -712,6 +1030,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "sindico", "administradora"],
+      blog_status: ["rascunho", "publicado", "agendado"],
       kb_tipo: [
         "jurisprudencia",
         "doutrina",
@@ -720,10 +1039,20 @@ export const Constants = {
         "orientacao",
         "outro",
       ],
+      papel_condo_v2: ["dono_condominio", "operador_condominio"],
       papel_condominio: ["sindico", "subsindico", "conselheiro", "colaborador"],
       papel_mensagem: ["user", "assistant"],
+      papel_sistema: [
+        "super_admin",
+        "admin_operacional",
+        "admin_suporte",
+        "cliente_pf",
+        "cliente_pj_dono",
+        "cliente_pj_operador",
+      ],
       plano_assinatura: ["solo", "pro", "administradora"],
       tipo_documento: ["convencao", "regimento", "ata", "contrato", "outro"],
+      tipo_pessoa: ["pf", "pj"],
     },
   },
 } as const
