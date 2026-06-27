@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
@@ -64,6 +65,11 @@ const IndexRoute = IndexRouteImport.update({
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/blog': typeof BlogIndexRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -207,6 +215,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/onboarding'
     | '/api/chat'
+    | '/blog/$slug'
     | '/blog/'
     | '/app/admin'
     | '/app/conta'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/onboarding'
     | '/api/chat'
+    | '/blog/$slug'
     | '/blog'
     | '/app/conta'
     | '/app'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/_authenticated/onboarding'
     | '/api/chat'
+    | '/blog/$slug'
     | '/blog/'
     | '/_authenticated/app/admin'
     | '/_authenticated/app/conta'
@@ -302,6 +314,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermosRoute: typeof TermosRoute
   ApiChatRoute: typeof ApiChatRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
 }
 
@@ -354,6 +367,13 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -520,6 +540,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermosRoute: TermosRoute,
   ApiChatRoute: ApiChatRoute,
+  BlogSlugRoute: BlogSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
 }
 export const routeTree = rootRouteImport

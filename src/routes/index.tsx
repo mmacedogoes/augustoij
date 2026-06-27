@@ -43,6 +43,7 @@ function Landing() {
           </Link>
           <nav className="flex items-center gap-6">
             <a href="#planos" className="hidden sm:inline text-sm text-muted-foreground hover:text-primary transition-colors">Planos</a>
+            <Link to="/blog" className="hidden sm:inline text-sm text-muted-foreground hover:text-primary transition-colors">Blog</Link>
             <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Entrar</Link>
             <Link to="/signup"><Button>Começar grátis</Button></Link>
           </nav>
@@ -173,6 +174,7 @@ function Landing() {
           <div className="flex gap-4">
             <Link to="/termos" className="hover:text-primary transition-colors">Termos de uso</Link>
             <Link to="/privacidade" className="hover:text-primary transition-colors">Privacidade</Link>
+            <Link to="/blog" className="hover:text-primary transition-colors">Blog</Link>
           </div>
           </div>
           <p className="text-[11px] italic leading-relaxed text-muted-foreground/80 max-w-3xl">
