@@ -164,7 +164,8 @@ function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-border py-10 bg-background">
-        <div className="mx-auto max-w-6xl px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+        <div className="mx-auto max-w-6xl px-4 flex flex-col gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
             <Logo variant="icon" size="sm" />
             <span className="text-xs text-muted-foreground">© {new Date().getFullYear()} condoIA · Inteligência para Condomínios</span>
@@ -173,6 +174,11 @@ function Landing() {
             <Link to="/termos" className="hover:text-primary transition-colors">Termos de uso</Link>
             <Link to="/privacidade" className="hover:text-primary transition-colors">Privacidade</Link>
           </div>
+          </div>
+          <p className="text-[11px] italic leading-relaxed text-muted-foreground/80 max-w-3xl">
+            As respostas geradas pelo CondoIA têm caráter informativo e não substituem a orientação
+            de profissional habilitado. Valide decisões formais com seu advogado e/ou contador.
+          </p>
         </div>
       </footer>
     </div>

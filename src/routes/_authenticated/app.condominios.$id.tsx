@@ -10,6 +10,9 @@ import { getCondominio } from "@/lib/condominios.functions";
 import { DocumentosPanel, useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { listConversas, deleteConversa } from "@/lib/chat.functions";
+import { listMembros, inviteMembro, removeMembro } from "@/lib/membros.functions";
+import { getProfile } from "@/lib/condominios.functions";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 
@@ -22,14 +25,28 @@ function CondominioDetail() {
   const fetchCondo = useServerFn(getCondominio);
   const fetchConversas = useServerFn(listConversas);
   const removeConversa = useServerFn(deleteConversa);
+  const fetchMembros = useServerFn(listMembros);
+  const inviteFn = useServerFn(inviteMembro);
+  const removeFn = useServerFn(removeMembro);
+  const fetchProfile = useServerFn(getProfile);
   const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null } | null>(null);
   const [conversaAtiva, setConversaAtiva] = useState<string | null>(null);
   const [conversas, setConversas] = useState<Array<{ id: string; titulo: string | null; created_at: string }>>([]);
+  const [membros, setMembros] = useState<Array<{ id: string; user_id: string; papel: string; nome: string | null; email: string | null }>>([]);
+  const [emailConvite, setEmailConvite] = useState("");
+  const [isPJ, setIsPJ] = useState(false);
   const hasReadyDocs = useHasReadyDocs(id);
 
   useEffect(() => {
     fetchCondo({ data: { id } }).then((r) => setCondo(r as typeof condo)).catch(() => {});
-  }, [fetchCondo, id]);
+    fetchProfile().then((p) => setIsPJ(p?.tipo_pessoa === "pj")).catch(() => {});
+  }, [fetchCondo, fetchProfile, id]);
+
+  const refreshMembros = () => {
+    fetchMembros({ data: { condominioId: id } })
+      .then((rows) => setMembros(rows as typeof membros))
+      .catch(() => {});
+  };
 
   const refreshConversas = () => {
     fetchConversas({ data: { condominioId: id } })
@@ -39,6 +56,7 @@ function CondominioDetail() {
 
   useEffect(() => {
     refreshConversas();
+    refreshMembros();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -129,10 +147,79 @@ function CondominioDetail() {
             )}
           </TabsContent>
           <TabsContent value="config">
-            <Card className="p-6 space-y-2">
-              <p className="text-sm"><strong>CNPJ:</strong> {condo?.cnpj ?? "—"}</p>
-              <p className="text-sm"><strong>Endereço:</strong> {condo?.endereco ?? "—"}</p>
-            </Card>
+            <div className="space-y-4">
+              <Card className="p-6 space-y-2">
+                <h3 className="font-semibold">Dados do condomínio</h3>
+                <p className="text-sm"><strong>CNPJ:</strong> {condo?.cnpj ?? "—"}</p>
+                <p className="text-sm"><strong>Endereço:</strong> {condo?.endereco ?? "—"}</p>
+              </Card>
+
+              {isPJ && (
+                <Card className="p-6 space-y-4">
+                  <div>
+                    <h3 className="font-semibold">Operadores do condomínio</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Convide membros da sua equipe para acessar este condomínio. O usuário precisa já ter conta no CondoIA.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="email@empresa.com"
+                      value={emailConvite}
+                      onChange={(e) => setEmailConvite(e.target.value)}
+                    />
+                    <Button
+                      onClick={async () => {
+                        if (!emailConvite.trim()) return;
+                        try {
+                          await inviteFn({ data: { condominioId: id, email: emailConvite.trim() } });
+                          toast.success("Operador adicionado");
+                          setEmailConvite("");
+                          refreshMembros();
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Falha");
+                        }
+                      }}
+                    >
+                      Convidar
+                    </Button>
+                  </div>
+                  {membros.length > 0 && (
+                    <div className="divide-y border rounded-md">
+                      {membros.map((m) => (
+                        <div key={m.id} className="flex items-center justify-between p-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{m.nome ?? m.email ?? m.user_id}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {m.email ?? "—"} · {m.papel === "dono_condominio" ? "Dono" : "Operador"}
+                            </p>
+                          </div>
+                          {m.papel !== "dono_condominio" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                if (!confirm("Remover este operador?")) return;
+                                try {
+                                  await removeFn({ data: { id: m.id } });
+                                  toast.success("Removido");
+                                  refreshMembros();
+                                } catch (e) {
+                                  toast.error(e instanceof Error ? e.message : "Falha");
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
