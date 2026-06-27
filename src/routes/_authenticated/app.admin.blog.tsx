@@ -29,6 +29,9 @@ import {
 
 export const Route = createFileRoute("/_authenticated/app/admin/blog")({
   component: AdminBlogPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    edit: typeof s.edit === "string" ? s.edit : undefined,
+  }),
 });
 
 type Categoria = { id: string; nome: string; slug: string };

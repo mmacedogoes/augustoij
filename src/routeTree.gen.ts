@@ -28,6 +28,7 @@ import { Route as AuthenticatedAppAdminTreinamentoRouteImport } from './routes/_
 import { Route as AuthenticatedAppAdminOrientacoesRouteImport } from './routes/_authenticated/app.admin.orientacoes'
 import { Route as AuthenticatedAppAdminFinanceiroRouteImport } from './routes/_authenticated/app.admin.financeiro'
 import { Route as AuthenticatedAppAdminCondominiosRouteImport } from './routes/_authenticated/app.admin.condominios'
+import { Route as AuthenticatedAppAdminBlogRouteImport } from './routes/_authenticated/app.admin.blog'
 import { Route as AuthenticatedAppAdminAuditoriaRouteImport } from './routes/_authenticated/app.admin.auditoria'
 
 const TermosRoute = TermosRouteImport.update({
@@ -132,6 +133,12 @@ const AuthenticatedAppAdminCondominiosRoute =
     path: '/condominios',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
+const AuthenticatedAppAdminBlogRoute =
+  AuthenticatedAppAdminBlogRouteImport.update({
+    id: '/blog',
+    path: '/blog',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
 const AuthenticatedAppAdminAuditoriaRoute =
   AuthenticatedAppAdminAuditoriaRouteImport.update({
     id: '/auditoria',
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
+  '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
   '/app/admin/condominios': typeof AuthenticatedAppAdminCondominiosRoute
   '/app/admin/financeiro': typeof AuthenticatedAppAdminFinanceiroRoute
   '/app/admin/orientacoes': typeof AuthenticatedAppAdminOrientacoesRoute
@@ -171,6 +179,7 @@ export interface FileRoutesByTo {
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
+  '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
   '/app/admin/condominios': typeof AuthenticatedAppAdminCondominiosRoute
   '/app/admin/financeiro': typeof AuthenticatedAppAdminFinanceiroRoute
   '/app/admin/orientacoes': typeof AuthenticatedAppAdminOrientacoesRoute
@@ -194,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
+  '/_authenticated/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
   '/_authenticated/app/admin/condominios': typeof AuthenticatedAppAdminCondominiosRoute
   '/_authenticated/app/admin/financeiro': typeof AuthenticatedAppAdminFinanceiroRoute
   '/_authenticated/app/admin/orientacoes': typeof AuthenticatedAppAdminOrientacoesRoute
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/app/conta'
     | '/app/'
     | '/app/admin/auditoria'
+    | '/app/admin/blog'
     | '/app/admin/condominios'
     | '/app/admin/financeiro'
     | '/app/admin/orientacoes'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/app/conta'
     | '/app'
     | '/app/admin/auditoria'
+    | '/app/admin/blog'
     | '/app/admin/condominios'
     | '/app/admin/financeiro'
     | '/app/admin/orientacoes'
@@ -259,6 +271,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/conta'
     | '/_authenticated/app/'
     | '/_authenticated/app/admin/auditoria'
+    | '/_authenticated/app/admin/blog'
     | '/_authenticated/app/admin/condominios'
     | '/_authenticated/app/admin/financeiro'
     | '/_authenticated/app/admin/orientacoes'
@@ -414,6 +427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminCondominiosRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
+    '/_authenticated/app/admin/blog': {
+      id: '/_authenticated/app/admin/blog'
+      path: '/blog'
+      fullPath: '/app/admin/blog'
+      preLoaderRoute: typeof AuthenticatedAppAdminBlogRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
     '/_authenticated/app/admin/auditoria': {
       id: '/_authenticated/app/admin/auditoria'
       path: '/auditoria'
@@ -426,6 +446,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAppAdminRouteChildren {
   AuthenticatedAppAdminAuditoriaRoute: typeof AuthenticatedAppAdminAuditoriaRoute
+  AuthenticatedAppAdminBlogRoute: typeof AuthenticatedAppAdminBlogRoute
   AuthenticatedAppAdminCondominiosRoute: typeof AuthenticatedAppAdminCondominiosRoute
   AuthenticatedAppAdminFinanceiroRoute: typeof AuthenticatedAppAdminFinanceiroRoute
   AuthenticatedAppAdminOrientacoesRoute: typeof AuthenticatedAppAdminOrientacoesRoute
@@ -436,6 +457,7 @@ interface AuthenticatedAppAdminRouteChildren {
 
 const AuthenticatedAppAdminRouteChildren: AuthenticatedAppAdminRouteChildren = {
   AuthenticatedAppAdminAuditoriaRoute: AuthenticatedAppAdminAuditoriaRoute,
+  AuthenticatedAppAdminBlogRoute: AuthenticatedAppAdminBlogRoute,
   AuthenticatedAppAdminCondominiosRoute: AuthenticatedAppAdminCondominiosRoute,
   AuthenticatedAppAdminFinanceiroRoute: AuthenticatedAppAdminFinanceiroRoute,
   AuthenticatedAppAdminOrientacoesRoute: AuthenticatedAppAdminOrientacoesRoute,
