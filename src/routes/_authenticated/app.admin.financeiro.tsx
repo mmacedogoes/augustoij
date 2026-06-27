@@ -1,0 +1,287 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
+import { AppShell } from "@/components/AppShell";
+import { AdminNav } from "@/components/admin/AdminNav";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  getFinanceiroResumo,
+  listCustosClientes,
+  listDespesas,
+  createDespesa,
+  deleteDespesa,
+} from "@/lib/admin-financeiro.functions";
+
+export const Route = createFileRoute("/_authenticated/app/admin/financeiro")({
+  component: FinanceiroPage,
+});
+
+const brl = (n: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+
+type Resumo = Awaited<ReturnType<typeof getFinanceiroResumo>>;
+
+function FinanceiroPage() {
+  return (
+    <AppShell>
+      <div className="max-w-6xl">
+        <h1 className="text-3xl font-bold text-primary">Financeiro</h1>
+        <p className="text-muted-foreground">Receita, custos, margem e despesas operacionais.</p>
+        <div className="mt-6">
+          <AdminNav />
+        </div>
+
+        <Tabs defaultValue="receita" className="mt-2">
+          <TabsList>
+            <TabsTrigger value="receita">Receita</TabsTrigger>
+            <TabsTrigger value="custos">Custos</TabsTrigger>
+            <TabsTrigger value="margem">Margem</TabsTrigger>
+            <TabsTrigger value="despesas">Despesas</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="receita" className="mt-4">
+            <ReceitaTab />
+          </TabsContent>
+          <TabsContent value="custos" className="mt-4">
+            <CustosTab />
+          </TabsContent>
+          <TabsContent value="margem" className="mt-4">
+            <MargemTab />
+          </TabsContent>
+          <TabsContent value="despesas" className="mt-4">
+            <DespesasTab />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AppShell>
+  );
+}
+
+function useResumo() {
+  const fn = useServerFn(getFinanceiroResumo);
+  const [data, setData] = useState<Resumo | null>(null);
+  useEffect(() => {
+    fn({ data: undefined as never })
+      .then(setData)
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar"));
+  }, [fn]);
+  return data;
+}
+
+function ReceitaTab() {
+  const r = useResumo();
+  if (!r) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Card className="p-5">
+        <p className="text-xs uppercase text-muted-foreground">MRR projetado</p>
+        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
+      </Card>
+      <Card className="p-5">
+        <p className="text-xs uppercase text-muted-foreground">Assinaturas ativas</p>
+        <p className="mt-2 text-2xl font-bold text-primary">{r.assinaturas_ativas}</p>
+      </Card>
+      <Card className="p-5">
+        <p className="text-xs uppercase text-muted-foreground">Ticket médio</p>
+        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.ticket_medio)}</p>
+      </Card>
+      <Card className="p-5">
+        <p className="text-xs uppercase text-muted-foreground">Receita do mês</p>
+        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
+        <p className="mt-1 text-xs text-muted-foreground">Estimativa baseada nas assinaturas ativas.</p>
+      </Card>
+    </div>
+  );
+}
+
+function CustosTab() {
+  const r = useResumo();
+  const fn = useServerFn(listCustosClientes);
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof listCustosClientes>>>([]);
+  useEffect(() => {
+    fn({ data: undefined as never })
+      .then((x) => setRows(x as typeof rows))
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
+  }, [fn]);
+  return (
+    <div className="space-y-4">
+      <div className="grid sm:grid-cols-3 gap-4">
+        <Card className="p-5">
+          <p className="text-xs uppercase text-muted-foreground">Custo clientes (mês)</p>
+          <p className="mt-2 text-2xl font-bold text-primary">{brl(r?.custos_clientes_mes ?? 0)}</p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-xs uppercase text-muted-foreground">Despesas operacionais (mês)</p>
+          <p className="mt-2 text-2xl font-bold text-primary">{brl(r?.despesas_mes ?? 0)}</p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-xs uppercase text-muted-foreground">Custo total</p>
+          <p className="mt-2 text-2xl font-bold text-primary">{brl((r?.custos_clientes_mes ?? 0) + (r?.despesas_mes ?? 0))}</p>
+        </Card>
+      </div>
+      <Card className="divide-y">
+        <div className="p-4 text-xs uppercase text-muted-foreground grid grid-cols-12 gap-2">
+          <div className="col-span-5">Cliente</div>
+          <div className="col-span-2 text-right">Mensagens</div>
+          <div className="col-span-2 text-right">OpenAI</div>
+          <div className="col-span-1 text-right">Embed</div>
+          <div className="col-span-2 text-right">Storage</div>
+        </div>
+        {rows.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">Sem custos registrados neste mês.</p>
+        ) : (
+          rows.map((r) => (
+            <div key={r.user_id} className="p-4 grid grid-cols-12 gap-2 items-center text-sm">
+              <div className="col-span-5">
+                <p className="font-medium text-primary">{r.profile?.nome ?? "—"}</p>
+                <p className="text-xs text-muted-foreground">{r.profile?.email ?? r.user_id}</p>
+              </div>
+              <div className="col-span-2 text-right">{r.total_mensagens}</div>
+              <div className="col-span-2 text-right">{brl(Number(r.custo_tokens_openai))}</div>
+              <div className="col-span-1 text-right">{brl(Number(r.custo_embeddings))}</div>
+              <div className="col-span-2 text-right">{brl(Number(r.custo_storage))}</div>
+            </div>
+          ))
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function MargemTab() {
+  const r = useResumo();
+  if (!r) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  const margem = r.margem_mes;
+  return (
+    <div className="grid sm:grid-cols-3 gap-4">
+      <Card className="p-5">
+        <p className="text-xs uppercase text-muted-foreground">Receita</p>
+        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
+      </Card>
+      <Card className="p-5">
+        <p className="text-xs uppercase text-muted-foreground">Custo total</p>
+        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.custos_clientes_mes + r.despesas_mes)}</p>
+      </Card>
+      <Card className="p-5">
+        <p className="text-xs uppercase text-muted-foreground">Margem do mês</p>
+        <p className={`mt-2 text-2xl font-bold ${margem >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+          {brl(margem)}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {r.mrr > 0 ? `${((margem / r.mrr) * 100).toFixed(1)}% sobre receita` : "Sem receita"}
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+function DespesasTab() {
+  const list = useServerFn(listDespesas);
+  const create = useServerFn(createDespesa);
+  const remove = useServerFn(deleteDespesa);
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof listDespesas>>>([]);
+  const [form, setForm] = useState({
+    descricao: "",
+    categoria: "infra",
+    valor: "",
+    data: new Date().toISOString().slice(0, 10),
+    recorrente: false,
+  });
+  const refresh = useCallback(() => {
+    list({ data: undefined as never })
+      .then((x) => setRows(x as typeof rows))
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
+  }, [list]);
+  useEffect(refresh, [refresh]);
+
+  const add = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const valor = Number(form.valor.replace(",", "."));
+    if (!form.descricao || !(valor > 0)) {
+      toast.error("Preencha descrição e valor");
+      return;
+    }
+    try {
+      await create({
+        data: {
+          descricao: form.descricao,
+          categoria: form.categoria,
+          valor,
+          data: form.data,
+          recorrente: form.recorrente,
+          periodicidade: "mensal",
+        },
+      });
+      toast.success("Despesa registrada");
+      setForm({ ...form, descricao: "", valor: "" });
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-5">
+        <form onSubmit={add} className="grid md:grid-cols-6 gap-2 items-end">
+          <div className="md:col-span-2">
+            <Label className="text-xs">Descrição</Label>
+            <Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} required />
+          </div>
+          <div>
+            <Label className="text-xs">Categoria</Label>
+            <Input value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
+          </div>
+          <div>
+            <Label className="text-xs">Valor (R$)</Label>
+            <Input value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} inputMode="decimal" required />
+          </div>
+          <div>
+            <Label className="text-xs">Data</Label>
+            <Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} />
+          </div>
+          <Button type="submit"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
+        </form>
+      </Card>
+      <Card className="divide-y">
+        {rows.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">Nenhuma despesa registrada.</p>
+        ) : (
+          rows.map((d) => (
+            <div key={d.id} className="p-4 flex items-center gap-3 text-sm">
+              <div className="flex-1">
+                <p className="font-medium text-primary">{d.descricao}</p>
+                <p className="text-xs text-muted-foreground">
+                  {d.categoria} · {new Date(d.data).toLocaleDateString("pt-BR")}
+                  {d.recorrente ? ` · recorrente (${d.periodicidade})` : ""}
+                </p>
+              </div>
+              <span className="font-semibold text-primary">{brl(Number(d.valor))}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={async () => {
+                  if (!confirm("Excluir despesa?")) return;
+                  try {
+                    await remove({ data: { id: d.id } });
+                    refresh();
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Falha");
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4 text-red-400" />
+              </Button>
+            </div>
+          ))
+        )}
+      </Card>
+    </div>
+  );
+}
