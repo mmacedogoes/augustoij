@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
-import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -31,11 +30,6 @@ import { Route as AuthenticatedAppAdminAuditoriaRouteImport } from './routes/_au
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
@@ -130,7 +124,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
-  '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/api/chat': typeof ApiChatRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
@@ -149,7 +142,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
-  '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/api/chat': typeof ApiChatRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
@@ -169,7 +161,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
-  '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/api/chat': typeof ApiChatRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
@@ -190,7 +181,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/privacidade'
-    | '/signup'
     | '/termos'
     | '/api/chat'
     | '/app/admin'
@@ -209,7 +199,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/privacidade'
-    | '/signup'
     | '/termos'
     | '/api/chat'
     | '/app/conta'
@@ -228,7 +217,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/privacidade'
-    | '/signup'
     | '/termos'
     | '/api/chat'
     | '/_authenticated/app/admin'
@@ -249,7 +237,6 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
-  SignupRoute: typeof SignupRoute
   TermosRoute: typeof TermosRoute
   ApiChatRoute: typeof ApiChatRoute
 }
@@ -261,13 +248,6 @@ declare module '@tanstack/react-router' {
       path: '/termos'
       fullPath: '/termos'
       preLoaderRoute: typeof TermosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidade': {
@@ -432,7 +412,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   PrivacidadeRoute: PrivacidadeRoute,
-  SignupRoute: SignupRoute,
   TermosRoute: TermosRoute,
   ApiChatRoute: ApiChatRoute,
 }
