@@ -49,7 +49,9 @@ function AdminUsuariosPage() {
     const grant = !u.is_admin;
     if (!confirm(grant ? `Conceder admin a ${u.email}?` : `Remover admin de ${u.email}?`)) return;
     try {
-      await updateRole({ data: { userId: u.id, role: "admin", grant } });
+      await updateRole({
+        data: { userId: u.id, papel: grant ? "admin_operacional" : "cliente_pf" },
+      });
       toast.success("Perfil atualizado");
       refresh();
     } catch (e) {
@@ -60,7 +62,7 @@ function AdminUsuariosPage() {
   return (
     <AppShell>
       <div className="max-w-6xl">
-        <h1 className="text-3xl font-bold text-primary">Usuários</h1>
+        <h1 className="text-3xl font-bold text-primary">Clientes</h1>
         <p className="text-muted-foreground">Gerencie papéis e visualize atividade.</p>
         <div className="mt-6">
           <AdminNav />

@@ -1,11 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BarChart3, Users, Building2, GraduationCap, Megaphone, History } from "lucide-react";
+import { BarChart3, Users, Building2, GraduationCap, Megaphone, History, DollarSign, Newspaper } from "lucide-react";
 
 type AdminNavItem = {
   to:
     | "/app/admin"
     | "/app/admin/usuarios"
     | "/app/admin/condominios"
+    | "/app/admin/financeiro"
+    | "/app/admin/blog"
     | "/app/admin/treinamento"
     | "/app/admin/orientacoes"
     | "/app/admin/auditoria";
@@ -16,8 +18,10 @@ type AdminNavItem = {
 
 const items: AdminNavItem[] = [
   { to: "/app/admin", label: "Visão geral", icon: BarChart3, exact: true },
-  { to: "/app/admin/usuarios", label: "Usuários", icon: Users },
+  { to: "/app/admin/usuarios", label: "Clientes", icon: Users },
   { to: "/app/admin/condominios", label: "Condomínios", icon: Building2 },
+  { to: "/app/admin/financeiro", label: "Financeiro", icon: DollarSign },
+  { to: "/app/admin/blog", label: "Blog", icon: Newspaper },
   { to: "/app/admin/treinamento", label: "Treinar IA", icon: GraduationCap },
   { to: "/app/admin/orientacoes", label: "Orientações", icon: Megaphone },
   { to: "/app/admin/auditoria", label: "Auditoria", icon: History },

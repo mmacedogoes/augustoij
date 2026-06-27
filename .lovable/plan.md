@@ -1,42 +1,80 @@
-## Objetivo
-Corrigir as abas da área administrativa que não respondem (Usuários, Condomínios, Treinar IA, Orientações, Auditoria) e tornar o guard de acesso confiável.
+## Onda 3 — Blocos 7, 8 e 11
 
-## Causa raiz
-Cada sub-rota admin tem um `beforeLoad` com `try { ... } catch { throw redirect({ to: "/app" }) }`. Qualquer falha transitória da server function `isCurrentUserAdmin` (latência, race com a hidratação do bearer Supabase, erro temporário do gateway) é engolida e o usuário é mandado silenciosamente para `/app`. Não há feedback nem log visível, então clicar na aba parece "não fazer nada".
+Vou executar em três sub-ondas para manter foco e custo controlados. Cada uma termina entregando algo utilizável.
 
-## Mudanças
+---
 
-### 1. Transformar `/app/admin` em layout único com guard centralizado
-- Renomear `src/routes/_authenticated/app.admin.tsx` (dashboard atual) para `src/routes/_authenticated/app.admin.index.tsx`. Conteúdo da Visão geral fica intacto, mas sem o `beforeLoad`.
-- Criar um novo `src/routes/_authenticated/app.admin.tsx` que vira o **layout pai** de todas as rotas `/app/admin/*`:
-  - `component` retorna apenas `<Outlet />`.
-  - `beforeLoad` chama `isCurrentUserAdmin` UMA vez. Se falhar de verdade (não-admin), redireciona para `/app`. Se for erro transitório, propaga para o `errorComponent` em vez de redirecionar silenciosamente.
-  - Define `errorComponent` e `notFoundComponent` da rota.
+### Sub-onda 3A — Bloco 7 (cadastro + auth + onboarding)
 
-Resultado: o guard roda uma vez ao entrar em qualquer rota `/app/admin/*` e o resultado é compartilhado.
+Parte do Bloco 7 já existe (signup PF/PJ, onboarding 3 passos, planos). Vou completar o que ficou faltando:
 
-### 2. Remover `beforeLoad` duplicado nos arquivos-filho
-Em cada um destes arquivos, apagar o bloco `beforeLoad` (mantendo `component` e o resto):
-- `src/routes/_authenticated/app.admin.usuarios.tsx`
-- `src/routes/_authenticated/app.admin.condominios.tsx`
-- `src/routes/_authenticated/app.admin.treinamento.tsx`
-- `src/routes/_authenticated/app.admin.orientacoes.tsx`
-- `src/routes/_authenticated/app.admin.auditoria.tsx`
+1. **`/signup`**: remover qualquer vestígio do campo OAB; garantir validação visual da senha (8+ caracteres, 1 letra + 1 número) com checkmarks verdes em tempo real; campo "Confirmar senha"; manter Nome, Email, Telefone, Tipo (PF/PJ → CPF / CNPJ + Razão Social), checkbox LGPD.
+2. **Supabase Auth**:
+   - desativar confirmação de e-mail para a fase de testes (`auto_confirm_email: true`);
+   - `emailRedirectTo: ${window.location.origin}/onboarding` no `signUp`;
+   - personalizar template de e-mail "Confirm signup" com identidade condoIA (sem menção a Lovable/Supabase).
+3. **Redirect pós-signup**: ir direto para `/onboarding`, sem aguardar e-mail.
+4. **Onboarding**: validar 3 passos — Passo 1 dados pré-preenchidos editáveis (com CNPJ/Razão Social para PJ), Passo 2 cards de planos filtrados por `tipo_pessoa`, com banner "3 dias de teste grátis", card "PJ Ilimitado" (preço NULL) com botão "Falar com consultor" que abre modal de contato; Passo 3 primeiro condomínio (com opção "Pular por enquanto").
+5. **Trigger `handle_new_user`**: já está populando `tipo_pessoa`, `cpf_cnpj`, `razao_social` — só ajustar se faltar algo.
 
-O layout pai já protege todos.
+**Bloco 7 — área admin financeira:**
 
-### 3. Tornar `isCurrentUserAdmin` resiliente
-Em `src/lib/admin.functions.ts`, manter a assinatura, mas garantir que retorna `{ admin: false }` em caso de erro de RPC em vez de lançar — assim o guard distingue claramente "não é admin" de "falha de rede".
+6. **`/app/admin/financeiro`** com 4 sub-abas:
+   - **Receita**: MRR projetado (soma dos planos ativos), receita do mês, ticket médio, gráfico de evolução 6 meses.
+   - **Custos**: custos por cliente do mês (tabela `custos_cliente_mensal`), totalizadores OpenAI + storage + outros.
+   - **Margem**: receita − custos por cliente; lista de clientes deficitários.
+   - **Despesas**: CRUD da tabela `despesas` (criar, editar, listar, categoria, valor, fornecedor, data).
+7. **`/app/admin/clientes`**: CRUD completo — listar (já existe parcial em `app.admin.usuarios.tsx`), criar manualmente, editar (nome, telefone, tipo, plano, papel_sistema), conceder créditos avulsos, suspender/ativar.
 
-### 4. Limpeza do `AdminNav`
-Em `src/components/admin/AdminNav.tsx`, remover o cast `as "/app/admin"` no `Link` — usar tipagem real via `as const` no array de itens para que a tipagem do roteador valide os caminhos das abas.
+---
 
-## Fora de escopo
-- Sem mudanças em schema, RLS, server functions de KB, identidade visual, ou layout das páginas filhas.
-- A Visão geral continua exibindo as mesmas métricas, mesmos cards e mesmo gráfico.
+### Sub-onda 3B — Bloco 8 (Blog público + admin)
 
-## Validação
-1. Logar como `mmacedogoes@gmail.com`, abrir `/app/admin`.
-2. Clicar em cada aba: Usuários, Condomínios, Treinar IA, Orientações, Auditoria — cada uma deve renderizar sem rebote para `/app`.
-3. Atualizar (F5) em uma sub-rota como `/app/admin/orientacoes` — deve permanecer na página.
-4. Logar com um usuário não-admin e tentar `/app/admin/usuarios` direto pela URL — deve redirecionar para `/app`.
+1. **`/app/admin/blog`** com 3 abas:
+   - **Posts**: listar, filtrar por status/categoria, criar/editar com editor markdown simples (textarea + preview), campos: título, slug, resumo, capa (upload), categoria, conteúdo, tags, status (rascunho/publicado), SEO (meta title/description).
+   - **Categorias**: CRUD (`blog_categorias`).
+   - **Configurações**: autor padrão.
+2. **`/blog`** (público, dark):
+   - hero com título e busca;
+   - filtro lateral por categoria;
+   - grid 3 colunas com cards (capa, categoria, título, resumo, autor, "Ler mais");
+   - paginação 12 por página.
+3. **`/blog/$slug`**:
+   - breadcrumb;
+   - header: badge categoria, título, resumo, meta (autor, data, tempo de leitura);
+   - imagem de capa larga;
+   - conteúdo markdown via `react-markdown` com classes `prose prose-invert`;
+   - tags clicáveis;
+   - sidebar (desktop): autor + 3 posts relacionados;
+   - CTA final "Começar grátis".
+4. **Landing — seção "Últimas publicações"**: 2 posts mais recentes em cards + botão "Ver todas".
+5. **Seed**: inserir 2 posts de exemplo já publicados com os títulos sugeridos.
+
+Dependência nova: `react-markdown` + `remark-gfm` + `@tailwindcss/typography` (Tailwind v4 — usar utilitário `prose`).
+
+---
+
+### Sub-onda 3C — Bloco 11 (checklist + ajustes finais)
+
+Percorrer o checklist e ajustar pendências visuais/funcionais que aparecerem (ex.: logo no signup, banner trial, permissões dono vs operador, plano PJ Ilimitado com modal, trial sem bloqueio).
+
+---
+
+### Detalhes técnicos relevantes
+
+- Sem mudanças destrutivas no schema; todas as tabelas necessárias (`planos`, `despesas`, `custos_cliente_mensal`, `blog_categorias`, `blog_posts`, `creditos_avulsos`) já existem.
+- Novas server functions: `src/lib/admin-financeiro.functions.ts`, `src/lib/admin-clientes.functions.ts`, `src/lib/blog.functions.ts` (RPCs públicas para leitura via cliente publicável do servidor; mutações com `requireSupabaseAuth` + verificação `is_any_admin`).
+- Blog público: rotas top-level `src/routes/blog.index.tsx` e `src/routes/blog.$slug.tsx` (SSR ligado, com `head()` para OG/SEO derivado do loader).
+- Admin blog/financeiro: rotas sob `_authenticated/app.admin.*` reutilizando o guard de layout existente.
+- Para a confirmação de e-mail desligada: vou chamar `supabase--configure_auth` com `auto_confirm_email: true` (apenas dev). Em produção, basta reativar pela mesma tela.
+- Para o template de e-mail "Confirm signup": esse texto é editado no painel do projeto (não via SQL). Vou entregar o conteúdo pronto em copy para você colar — não há tool para escrever HTML do template programaticamente.
+
+---
+
+### Ordem de execução proposta
+
+1. Sub-onda 3A → confirmo build limpo e devolvo.
+2. Sub-onda 3B → blog completo, peço para publicar 2 posts reais ou aceitar o seed.
+3. Sub-onda 3C → varredura final do checklist e correções pontuais.
+
+Quer que eu siga nessa ordem ou prefere reordenar (ex.: blog antes do financeiro)?
