@@ -64,11 +64,10 @@ function HomePage() {
         <header className="flex flex-wrap items-end justify-between gap-3 pb-4">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">
-              Olá{nome ? `, ${nome}` : ""}
+              Olá{nome ? `, ${nome}` : ""}!
+              <br />
+              Como o CondoIA pode te ajudar hoje?
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Pergunte ao CondoIA sobre o condomínio selecionado.
-            </p>
           </div>
           <div className="flex items-center gap-2">
             {condos.length > 0 && (

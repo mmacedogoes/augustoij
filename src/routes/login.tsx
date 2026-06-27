@@ -51,9 +51,9 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-[420px]">
         <Link to="/" className="flex justify-center mb-8">
-          <Logo variant="default" size="lg" />
+          <Logo variant="default" height={300} />
         </Link>
-        <h1 className="text-3xl font-bold text-primary tracking-tight text-center">Entrar</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight text-center">Entrar</h1>
         <p className="mt-2 text-sm text-muted-foreground text-center">Acesse o painel do condoIA.</p>
         <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-1.5">

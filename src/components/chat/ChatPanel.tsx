@@ -170,8 +170,8 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
             <PromptInputSubmit status={status} disabled={!hasReadyDocs || isLoading} />
           </PromptInputFooter>
         </PromptInput>
-        <p className="text-[11px] text-muted-foreground text-center px-2">
-          ⚠️ Conteúdo informativo, não substitui parecer da OAB. Seus documentos são processados conforme a LGPD.
+        <p className="text-[11px] italic text-muted-foreground text-center px-2 leading-relaxed">
+          As respostas geradas pelo CondoIA têm caráter informativo e não substituem a orientação de profissional habilitado. Valide decisões formais com seu advogado.
         </p>
       </div>
     </div>

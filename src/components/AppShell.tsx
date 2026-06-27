@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 bg-sidebar text-sidebar-foreground flex-col">
         <div className="p-6">
-          <Logo variant="inverted" size="md" />
+          <Logo variant="inverted" height={150} />
         </div>
         <nav className="flex-1 px-3 space-y-1">
           {nav.map((n) => {
@@ -78,13 +78,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="md:ml-60 p-4 md:p-8">{children}</main>
-
-      <footer className="md:ml-60 border-t border-border bg-background/60 px-4 md:px-8 py-3">
-        <p className="text-[11px] italic leading-relaxed text-muted-foreground max-w-3xl">
-          As respostas geradas pelo CondoIA têm caráter informativo e não substituem a orientação
-          de profissional habilitado. Valide decisões formais com seu advogado e/ou contador.
-        </p>
-      </footer>
     </div>
   );
 }
