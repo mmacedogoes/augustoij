@@ -78,6 +78,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="md:ml-60 p-4 md:p-8">{children}</main>
+
+      <footer className="md:ml-60 border-t border-border bg-background/60 px-4 md:px-8 py-3">
+        <p className="text-[11px] italic leading-relaxed text-muted-foreground max-w-3xl">
+          As respostas geradas pelo CondoIA têm caráter informativo e não substituem a orientação
+          de profissional habilitado. Valide decisões formais com seu advogado e/ou contador.
+        </p>
+      </footer>
     </div>
   );
 }
