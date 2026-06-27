@@ -28,12 +28,20 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { ...data };
-    if (data.tipo_pessoa) {
-      // Ajusta papel_sistema se mudou de PF/PJ
-      patch.papel_sistema = data.tipo_pessoa === "pj" ? "cliente_pj_dono" : "cliente_pf";
-    }
-    const { error } = await context.supabase.from("profiles").update(patch).eq("id", context.userId);
+    const papel_sistema = data.tipo_pessoa
+      ? data.tipo_pessoa === "pj" ? ("cliente_pj_dono" as const) : ("cliente_pf" as const)
+      : undefined;
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({
+        nome: data.nome,
+        telefone: data.telefone ?? undefined,
+        tipo_pessoa: data.tipo_pessoa,
+        cpf_cnpj: data.cpf_cnpj ?? undefined,
+        razao_social: data.razao_social ?? undefined,
+        ...(papel_sistema ? { papel_sistema } : {}),
+      })
+      .eq("id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
