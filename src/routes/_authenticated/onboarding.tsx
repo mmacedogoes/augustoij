@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -385,6 +385,3 @@ function OnboardingPage() {
     </div>
   );
 }
-
-// Unused helper that satisfies imports if needed in future
-export const _meta = useMemo;

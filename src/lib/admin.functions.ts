@@ -7,18 +7,17 @@ export const isCurrentUserAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     try {
-      const { data, error } = await context.supabase.rpc("has_role", {
-        _user_id: context.userId,
-        _role: "admin",
-      });
-      if (error) {
-        console.error("[isCurrentUserAdmin] has_role error:", error);
-        return { admin: false };
-      }
-      return { admin: data === true };
+      const { data: prof } = await context.supabase
+        .from("profiles")
+        .select("papel_sistema")
+        .eq("id", context.userId)
+        .maybeSingle();
+      const papel = prof?.papel_sistema ?? null;
+      const admin = papel === "super_admin" || papel === "admin_operacional" || papel === "admin_suporte";
+      return { admin, papel };
     } catch (e) {
       console.error("[isCurrentUserAdmin] unexpected:", e);
-      return { admin: false };
+      return { admin: false, papel: null };
     }
   });
 
