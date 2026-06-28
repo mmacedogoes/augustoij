@@ -71,6 +71,20 @@ export const extractAttachmentForChat = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
 
     const { extractText, extractTextWithVision } = await import("./documentos.server");
+    const { humanizeIngestError, IngestError } = await import("./ingest-errors");
+
+    // Validação de tamanho ANTES de qualquer alocação pesada.
+    // base64 cresce ~33% sobre o binário → 14 MB de base64 ≈ 10 MB de arquivo.
+    const MAX_B64 = 14 * 1024 * 1024;
+    if (data.base64.length > MAX_B64) {
+      throw new Error(
+        new IngestError(
+          "tamanho",
+          "Anexo maior que o limite de 10 MB",
+          "Comprima ou divida o arquivo antes de enviar.",
+        ).toHuman(),
+      );
+    }
 
     // base64 -> Uint8Array
     const binStr = atob(data.base64);
@@ -83,15 +97,23 @@ export const extractAttachmentForChat = createServerFn({ method: "POST" })
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg === "__NEEDS_VISION__") {
-        text = await extractTextWithVision(apiKey, buffer, data.fileName);
+        try {
+          text = await extractTextWithVision(apiKey, buffer, data.fileName);
+        } catch (visErr) {
+          throw new Error(humanizeIngestError(visErr, "ocr").toHuman());
+        }
       } else {
-        throw err;
+        throw new Error(humanizeIngestError(err, "leitura").toHuman());
       }
     }
     text = text.trim();
     if (!text) {
       throw new Error(
-        "Não foi possível interpretar o conteúdo do documento. Verifique se o arquivo está legível e tente novamente.",
+        new IngestError(
+          "ocr",
+          "Não foi possível ler o conteúdo do documento",
+          "Verifique se o arquivo está legível e tente novamente.",
+        ).toHuman(),
       );
     }
 

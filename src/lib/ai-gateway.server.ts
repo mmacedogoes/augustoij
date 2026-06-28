@@ -77,3 +77,30 @@ export async function embedBatch(lovableApiKey: string, inputs: string[]): Promi
   }
   return out;
 }
+
+/**
+ * Gera embeddings com paralelismo controlado para evitar timeout do Worker
+ * em documentos longos. Concurrency=5 por padrão (≈ 5x mais rápido que
+ * sequencial, sem estourar rate-limit do provedor).
+ */
+export async function embedChunksParallel(
+  apiKey: string,
+  chunks: string[],
+  concurrency = 5,
+): Promise<number[][]> {
+  if (chunks.length === 0) return [];
+  const results: number[][] = new Array(chunks.length);
+  let cursor = 0;
+  const workers = Array.from(
+    { length: Math.min(concurrency, chunks.length) },
+    async () => {
+      while (true) {
+        const idx = cursor++;
+        if (idx >= chunks.length) return;
+        results[idx] = await embedText(apiKey, chunks[idx]);
+      }
+    },
+  );
+  await Promise.all(workers);
+  return results;
+}

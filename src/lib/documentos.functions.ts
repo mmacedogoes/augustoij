@@ -81,12 +81,16 @@ export const processDocumento = createServerFn({ method: "POST" })
     if (!doc) throw new Error("Documento não encontrado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { embedText } = await import("./ai-gateway.server");
+    const { embedChunksParallel } = await import("./ai-gateway.server");
     const { extractText, extractTextWithVision, chunkText } = await import("./documentos.server");
+    const { humanizeIngestError } = await import("./ingest-errors");
 
     try {
       const { data: file, error: dlErr } = await supabaseAdmin.storage.from(BUCKET).download(doc.storage_path);
-      if (dlErr || !file) throw new Error(dlErr?.message || "Falha ao baixar arquivo");
+      if (dlErr || !file) {
+        const { IngestError } = await import("./ingest-errors");
+        throw new IngestError("upload", "Falha ao baixar o arquivo do storage", "Reenvie o documento.", dlErr?.message ?? "");
+      }
       const buffer = new Uint8Array(await file.arrayBuffer());
 
       let text = "";
@@ -103,30 +107,33 @@ export const processDocumento = createServerFn({ method: "POST" })
         }
       }
       if (!text.trim()) {
-        throw new Error(
-          "Não foi possível interpretar o conteúdo do documento. Verifique se a imagem está legível e tente novamente.",
+        const { IngestError } = await import("./ingest-errors");
+        throw new IngestError(
+          "ocr",
+          "Não foi possível ler o conteúdo do documento",
+          "Verifique se a imagem está legível e tente novamente.",
         );
       }
 
       const chunks = chunkText(text, 1000, 150);
 
-      // Embeddings + insert in batches
-      const rows: Array<{ condominio_id: string; documento_id: string; conteudo: string; embedding: string }> = [];
-      for (const c of chunks) {
-        const emb = await embedText(apiKey, c);
-        rows.push({
-          condominio_id: doc.condominio_id,
-          documento_id: doc.id,
-          conteudo: c,
-          embedding: `[${emb.join(",")}]`,
-        });
-      }
+      // Embeddings em paralelo controlado (evita timeout do Worker em docs longos)
+      const embeddings = await embedChunksParallel(apiKey, chunks, 5);
+      const rows = chunks.map((c, i) => ({
+        condominio_id: doc.condominio_id,
+        documento_id: doc.id,
+        conteudo: c,
+        embedding: `[${embeddings[i].join(",")}]`,
+      }));
 
       // insert in batches of 50
       for (let i = 0; i < rows.length; i += 50) {
         const slice = rows.slice(i, i + 50);
         const { error: insErr } = await supabaseAdmin.from("document_chunks").insert(slice);
-        if (insErr) throw new Error(insErr.message);
+        if (insErr) {
+          const { IngestError } = await import("./ingest-errors");
+          throw new IngestError("indexacao", "Falha ao salvar os trechos indexados", "Tente reprocessar o documento.", insErr.message);
+        }
       }
 
       await supabaseAdmin
@@ -136,12 +143,12 @@ export const processDocumento = createServerFn({ method: "POST" })
 
       return { ok: true, chunks: chunks.length, mode: usedVision ? "vision" : "text" };
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const ing = humanizeIngestError(e, "leitura");
       await supabaseAdmin
         .from("documentos")
-        .update({ status_processamento: `erro: ${msg.slice(0, 200)}` })
+        .update({ status_processamento: ing.toStatus() })
         .eq("id", doc.id);
-      throw new Error(msg);
+      throw new Error(ing.toHuman());
     }
   });
 
