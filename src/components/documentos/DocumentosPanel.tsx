@@ -74,6 +74,8 @@ export function DocumentosPanel({ condominioId }: { condominioId: string }) {
       toast.error("Arquivo excede 10 MB");
       return;
     }
+    const isImage = /\.(jpe?g|png|webp|gif|bmp|tiff?)$/i.test(file.name);
+    const isPdf = /\.pdf$/i.test(file.name);
     setUploading(true);
     try {
       const { path, token } = (await getUrl({
@@ -93,12 +95,24 @@ export function DocumentosPanel({ condominioId }: { condominioId: string }) {
         },
       })) as { id: string };
 
-      toast.success("Arquivo enviado. Processando…");
+      if (isImage) {
+        toast.info(
+          "Documento escaneado detectado. Processando conteúdo visual, isso pode levar alguns instantes...",
+        );
+      } else {
+        toast.success("Arquivo enviado. Processando…");
+      }
       refresh();
 
       // fire-and-forget processing
       processDoc({ data: { id: created.id } })
-        .then(() => {
+        .then((res) => {
+          const mode = (res as { mode?: string } | undefined)?.mode;
+          if (mode === "vision" && isPdf) {
+            toast.info(
+              "PDF escaneado detectado. Conteúdo visual interpretado pela IA.",
+            );
+          }
           toast.success("Documento pronto para consultas");
           refresh();
         })
@@ -151,7 +165,10 @@ export function DocumentosPanel({ condominioId }: { condominioId: string }) {
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="flex-1">
             <p className="text-sm font-medium text-primary mb-2">Enviar novo documento</p>
-            <p className="text-xs text-muted-foreground">PDF, DOCX ou TXT, até 10 MB.</p>
+            <p className="text-xs text-muted-foreground">
+              PDF, DOCX, TXT ou imagem (JPG, PNG, WEBP), até 10 MB. PDFs escaneados e
+              imagens são lidos automaticamente pela IA.
+            </p>
           </div>
           <div className="w-full sm:w-44">
             <Select value={tipo} onValueChange={setTipo}>
@@ -171,7 +188,7 @@ export function DocumentosPanel({ condominioId }: { condominioId: string }) {
             <input
               ref={inputRef}
               type="file"
-              accept=".pdf,.docx,.txt"
+              accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp"
               className="hidden"
               onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
             />

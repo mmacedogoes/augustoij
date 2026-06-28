@@ -82,15 +82,31 @@ export const processDocumento = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { embedText } = await import("./ai-gateway.server");
-    const { extractText, chunkText } = await import("./documentos.server");
+    const { extractText, extractTextWithVision, chunkText } = await import("./documentos.server");
 
     try {
       const { data: file, error: dlErr } = await supabaseAdmin.storage.from(BUCKET).download(doc.storage_path);
       if (dlErr || !file) throw new Error(dlErr?.message || "Falha ao baixar arquivo");
       const buffer = new Uint8Array(await file.arrayBuffer());
 
-      const text = await extractText(buffer, doc.nome_arquivo);
-      if (!text.trim()) throw new Error("Não foi possível extrair texto do documento (PDF escaneado?)");
+      let text = "";
+      let usedVision = false;
+      try {
+        text = await extractText(buffer, doc.nome_arquivo);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg === "__NEEDS_VISION__") {
+          usedVision = true;
+          text = await extractTextWithVision(apiKey, buffer, doc.nome_arquivo);
+        } else {
+          throw err;
+        }
+      }
+      if (!text.trim()) {
+        throw new Error(
+          "Não foi possível interpretar o conteúdo do documento. Verifique se a imagem está legível e tente novamente.",
+        );
+      }
 
       const chunks = chunkText(text, 1000, 150);
 
@@ -118,7 +134,7 @@ export const processDocumento = createServerFn({ method: "POST" })
         .update({ status_processamento: "pronto" })
         .eq("id", doc.id);
 
-      return { ok: true, chunks: chunks.length };
+      return { ok: true, chunks: chunks.length, mode: usedVision ? "vision" : "text" };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       await supabaseAdmin
