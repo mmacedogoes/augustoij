@@ -245,7 +245,7 @@ function OrientacaoForm({
               Acima do limite — divida em múltiplas orientações
             </span>
           ) : conteudo.length > 90000 ? (
-            <span className="text-warning">Aproximando do limite</span>
+            <span className="text-amber-400">Aproximando do limite</span>
           ) : null}
         </div>
       </div>
