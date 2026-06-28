@@ -116,7 +116,13 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
   }
   try {
     if (lower.endsWith(".pdf")) {
-      const pdf = await getDocumentProxy(buffer);
+      // IMPORTANTE: pdfjs/unpdf TRANSFERE o ArrayBuffer subjacente
+      // (detach), o que zera `buffer.byteLength` após esta chamada.
+      // Passamos uma cópia para preservar o buffer original do caller,
+      // que ainda pode precisar dele para o fallback de visão/OCR.
+      const pdfCopy = new Uint8Array(buffer.byteLength);
+      pdfCopy.set(buffer);
+      const pdf = await getDocumentProxy(pdfCopy);
       const { text } = await unpdfExtract(pdf, { mergePages: true });
       const out = Array.isArray(text) ? text.join("\n\n") : text;
       if (!out || !out.trim()) {
