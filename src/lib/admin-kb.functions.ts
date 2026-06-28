@@ -39,7 +39,14 @@ export const createKbDocumento = createServerFn({ method: "POST" })
       fonte: z.string().max(240).optional().nullable(),
       url: z.string().url().max(500).optional().nullable(),
       storagePath: z.string().optional().nullable(),
-      conteudoBruto: z.string().optional().nullable(),
+      conteudoBruto: z
+        .string()
+        .max(
+          150000,
+          "Texto muito grande para processamento síncrono. Para documentos acima de 150.000 caracteres, faça upload do arquivo PDF/DOCX em vez de colar texto.",
+        )
+        .optional()
+        .nullable(),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
