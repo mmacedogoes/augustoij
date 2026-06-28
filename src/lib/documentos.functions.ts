@@ -93,6 +93,15 @@ export const processDocumento = createServerFn({ method: "POST" })
       }
       const buffer = new Uint8Array(await file.arrayBuffer());
 
+      if (buffer.byteLength === 0) {
+        const { IngestError } = await import("./ingest-errors");
+        throw new IngestError(
+          "upload",
+          "Arquivo armazenado está vazio (0 bytes)",
+          "O upload falhou ou o arquivo original está vazio. Reenvie o documento.",
+        );
+      }
+
       let text = "";
       let usedVision = false;
       try {
