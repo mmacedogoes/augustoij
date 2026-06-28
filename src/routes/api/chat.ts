@@ -10,6 +10,36 @@ type ChatBody = {
   conversaId?: string;
 };
 
+function sanitizarResposta(texto: string): string {
+  return texto
+    .replace(/\[(KB|DOC|CHUNK|DOCUMENTO|BASE)\s*\d+(?:\s*[—-][^\]]*)?\]/gi, "")
+    .replace(/\[(KB|DOC|CHUNK):\s*[^\]]+\]/gi, "")
+    .replace(/(Base jurídica|Documento do condomínio|Trecho|Chunk)\s*#?\s*\d+:?/gi, "")
+    .replace(/conforme\s*\[(KB|DOC)\s*\d+\]/gi, "conforme")
+    .replace(/de acordo com\s*\[(KB|DOC)\s*\d+\]/gi, "de acordo com")
+    .replace(/segundo\s*\[(KB|DOC)\s*\d+\]/gi, "segundo")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+\./g, ".")
+    .replace(/\s+,/g, ",")
+    .trim();
+}
+
+function sanitizarRespostaStream() {
+  return () =>
+    new TransformStream<
+      { type: string; text?: string; [k: string]: unknown },
+      { type: string; text?: string; [k: string]: unknown }
+    >({
+      transform(chunk, controller) {
+        if (chunk.type === "text-delta" && typeof chunk.text === "string") {
+          controller.enqueue({ ...chunk, text: sanitizarResposta(chunk.text) });
+        } else {
+          controller.enqueue(chunk);
+        }
+      },
+    });
+}
+
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
