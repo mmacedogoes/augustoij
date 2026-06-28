@@ -217,11 +217,13 @@ function OrientacaoForm({
         setSaving(true);
         try {
           await onSave({ titulo, conteudo, ativo, ordem });
+        } catch {
+          // toast já exibido no onSave
         } finally {
           setSaving(false);
         }
       }}
-      className="space-y-3"
+      className={`space-y-3 ${saving ? "opacity-60 pointer-events-none" : ""}`}
     >
       <div>
         <Label>Título</Label>
@@ -236,6 +238,16 @@ function OrientacaoForm({
           placeholder="Ex.: Sempre citar a fonte legal quando responder sobre cotas condominiais."
           required
         />
+        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+          <span>{conteudo.length.toLocaleString("pt-BR")} / 100.000 caracteres</span>
+          {conteudo.length > 100000 ? (
+            <span className="text-destructive">
+              Acima do limite — divida em múltiplas orientações
+            </span>
+          ) : conteudo.length > 90000 ? (
+            <span className="text-warning">Aproximando do limite</span>
+          ) : null}
+        </div>
       </div>
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
@@ -253,8 +265,14 @@ function OrientacaoForm({
         </div>
       </div>
       <Button type="submit" disabled={saving} className="w-full">
-        {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-        Salvar
+        {saving ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+            Salvando...
+          </>
+        ) : (
+          "Salvar"
+        )}
       </Button>
     </form>
   );
