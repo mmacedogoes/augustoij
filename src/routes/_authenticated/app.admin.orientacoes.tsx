@@ -165,11 +165,27 @@ function Page() {
                         ordem: vals.ordem,
                       },
                     });
-                    toast.success("Salvo");
+                    toast.success("Orientação salva com sucesso.");
                     setOpen(false);
                     refresh();
                   } catch (e) {
-                    toast.error(e instanceof Error ? e.message : "Falha");
+                    let mensagem = "Erro ao salvar orientação. Tente novamente.";
+                    const raw = e instanceof Error ? e.message : "";
+                    if (raw) {
+                      try {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed) && parsed[0]?.message) {
+                          mensagem = parsed[0].message;
+                        } else {
+                          mensagem = raw;
+                        }
+                      } catch {
+                        mensagem = raw;
+                      }
+                    }
+                    toast.error(mensagem);
+                    console.error("Erro detalhado ao salvar orientação:", e);
+                    throw e;
                   }
                 }}
               />
