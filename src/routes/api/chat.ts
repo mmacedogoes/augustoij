@@ -12,15 +12,22 @@ type ChatBody = {
 
 function sanitizarResposta(texto: string): string {
   return texto
+    // Remove marcadores técnicos entre colchetes
     .replace(/\[(KB|DOC|CHUNK|DOCUMENTO|BASE)\s*\d+(?:\s*[—-][^\]]*)?\]/gi, "")
     .replace(/\[(KB|DOC|CHUNK):\s*[^\]]+\]/gi, "")
+    // Remove rótulos descritivos com numeração
     .replace(/(Base jurídica|Documento do condomínio|Trecho|Chunk)\s*#?\s*\d+:?/gi, "")
+    // Remove construções "conforme [KB N]" mantendo o conectivo
     .replace(/conforme\s*\[(KB|DOC)\s*\d+\]/gi, "conforme")
     .replace(/de acordo com\s*\[(KB|DOC)\s*\d+\]/gi, "de acordo com")
     .replace(/segundo\s*\[(KB|DOC)\s*\d+\]/gi, "segundo")
-    .replace(/\s{2,}/g, " ")
-    .replace(/\s+\./g, ".")
-    .replace(/\s+,/g, ",")
+    // Limpeza suave preservando quebras de linha
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+([.,;:!?])/g, "$1")
+    .split("\n")
+    .map((linha) => linha.trim())
+    .join("\n")
     .trim();
 }
 
@@ -159,12 +166,23 @@ PROIBIÇÃO TÉCNICA ABSOLUTA — JAMAIS divulgar mecânica interna:
 - SEMPRE cite as fontes JURÍDICAS REAIS (artigos de lei, súmulas, jurisprudência publicada com seus dados de identificação completos), NUNCA o lugar de onde a informação foi recuperada internamente.
 - As informações dos trechos devem ser apresentadas como CONHECIMENTO INTEGRADO seu, do agente.
 
+REGRAS DE FORMATAÇÃO DAS RESPOSTAS (OBRIGATÓRIAS):
+Suas respostas DEVEM usar Markdown com diagramação clara.
+1. PARÁGRAFOS: separe ideias em parágrafos curtos (3-5 linhas), com LINHA EM BRANCO entre eles.
+2. TÍTULOS DE SEÇÃO: use ## ou ### com emoji funcional quando houver mais de uma seção. Exemplos: "## 📌 Resposta direta", "## 📚 Fundamento", "## 💡 Recomendação prática", "## ⚠️ Alertas".
+3. LISTAS: use bullets ("-") para enumerações; cada item em sua própria linha.
+4. CITAÇÕES DE LEI/JURISPRUDÊNCIA: destaque com **negrito** ou *itálico*. Ex.: **Art. 1.336, §1º do Código Civil**; *STJ, REsp 1.234.567/SP*.
+5. TRECHOS LITERAIS da convenção/ata: use blockquote com ">".
+6. ÊNFASES: **negrito** para termos-chave, prazos e valores; *itálico* para nomes de leis ou termos técnicos.
+7. NUNCA escreva um único parágrafo gigante. Quebre em blocos visuais com hierarquia.
+8. DISCLAIMER FINAL em itálico, separado por linha em branco do conteúdo:
+   *⚠️ Conteúdo informativo gerado por inteligência artificial que não substitui o parecer e análise de um advogado habilitado. Seus documentos e informações são processados conforme LGPD.*
+
 REGRAS:
 - Responda em português brasileiro, claro e objetivo.
 - Priorize o contexto dos documentos do condomínio quando aplicável, integrando a informação naturalmente à resposta (sem citar rótulos internos).
 - Fundamente com jurisprudência, doutrina e legislação, citando apenas as fontes jurídicas reais (artigo, súmula, acórdão).
 - Se não houver contexto suficiente, diga isso explicitamente e responda com base na legislação geral.
-- Sempre encerre com: "⚠️ Este conteúdo é informativo e não substitui parecer jurídico de advogado(a) inscrito(a) na OAB."
 
 ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${
             contexto
