@@ -8,6 +8,8 @@ type ChatBody = {
   messages?: UIMessage[];
   condominioId?: string;
   conversaId?: string;
+  attachmentContext?: string;
+  attachmentNome?: string;
 };
 
 function sanitizarResposta(texto: string): string {
@@ -62,7 +64,8 @@ export const Route = createFileRoute("/api/chat")({
           const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
           if (!token) return new Response("Não autenticado", { status: 401 });
 
-          const { messages, condominioId, conversaId } = (await request.json()) as ChatBody;
+          const { messages, condominioId, conversaId, attachmentContext, attachmentNome } =
+            (await request.json()) as ChatBody;
           if (!messages?.length || !condominioId || !conversaId) {
             return new Response("Parâmetros inválidos", { status: 400 });
           }
@@ -188,7 +191,13 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
             contexto
               ? `CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO:\n\n${contexto}\n\n`
               : "Nenhum documento relevante foi encontrado nos arquivos do condomínio para esta pergunta.\n\n"
-          }${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}` : ""}`;
+          }${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}\n\n` : ""}${
+            attachmentContext && attachmentContext.trim()
+              ? `DOCUMENTO ANEXADO PELO USUÁRIO NESTA CONVERSA (uso temporário${
+                  attachmentNome ? `, arquivo: ${attachmentNome}` : ""
+                }):\n\n${attachmentContext}\n\nUtilize este documento como contexto principal quando a pergunta do usuário se referir a ele.`
+              : ""
+          }`;
 
           // Persist user message
           await supabase.from("mensagens").insert({
