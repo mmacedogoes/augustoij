@@ -396,8 +396,16 @@ function FileForm({
         </div>
       </div>
       <div>
-        <Label>Arquivo (PDF, DOCX ou TXT, até 20 MB)</Label>
-        <Input ref={fileRef} type="file" accept=".pdf,.docx,.txt" required />
+        <Label>Arquivo (PDF, DOCX, TXT ou imagem JPG/PNG/WEBP, até 20 MB)</Label>
+        <Input
+          ref={fileRef}
+          type="file"
+          accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp"
+          required
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          PDFs escaneados e imagens são lidos automaticamente por OCR/visão.
+        </p>
       </div>
       <Button type="submit" disabled={uploading} className="w-full">
         {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}

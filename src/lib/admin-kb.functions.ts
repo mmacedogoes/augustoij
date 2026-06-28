@@ -122,36 +122,62 @@ export const processKbDocumento = createServerFn({ method: "POST" })
     if (!doc) throw new Error("Documento não encontrado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { embedText } = await import("./ai-gateway.server");
-    const { extractText, chunkText } = await import("./documentos.server");
+    const { embedChunksParallel } = await import("./ai-gateway.server");
+    const { extractText, extractTextWithVision, chunkText } = await import("./documentos.server");
+    const { humanizeIngestError, IngestError } = await import("./ingest-errors");
+
+    // Nome original (após o prefixo `<timestamp>_`) para diagnóstico e detecção
+    // de extensão. storage_path permanece como identificador interno.
+    const fileName = doc.storage_path
+      ? doc.storage_path.replace(/^\d+_/, "")
+      : doc.titulo;
 
     try {
       let texto = doc.conteudo_bruto ?? "";
       if (!texto && doc.storage_path) {
         const { data: file, error: dlErr } = await supabaseAdmin.storage.from(BUCKET).download(doc.storage_path);
-        if (dlErr || !file) throw new Error(dlErr?.message || "Falha ao baixar arquivo");
+        if (dlErr || !file) {
+          throw new IngestError("upload", "Falha ao baixar o arquivo do storage", "Reenvie o documento.", dlErr?.message ?? "");
+        }
         const buffer = new Uint8Array(await file.arrayBuffer());
-        texto = await extractText(buffer, doc.storage_path);
+        try {
+          texto = await extractText(buffer, fileName);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          // Mesmo fallback dos fluxos de Condomínio e Chat:
+          // PDF escaneado ou imagem -> OCR/visão automático.
+          if (msg === "__NEEDS_VISION__") {
+            texto = await extractTextWithVision(apiKey, buffer, fileName);
+          } else {
+            throw err;
+          }
+        }
       }
-      if (!texto.trim()) throw new Error("Sem conteúdo para processar.");
+      if (!texto.trim()) {
+        throw new IngestError(
+          "ocr",
+          "Não foi possível ler o conteúdo do documento",
+          "Verifique se a imagem está legível e tente novamente.",
+        );
+      }
 
       // Limpa chunks antigos
       await supabaseAdmin.from("kb_chunks").delete().eq("kb_documento_id", doc.id);
 
       const chunks = chunkText(texto, 1000, 150);
-      const rows: Array<{ kb_documento_id: string; conteudo: string; embedding: string }> = [];
-      for (const c of chunks) {
-        const emb = await embedText(apiKey, c);
-        rows.push({
-          kb_documento_id: doc.id,
-          conteudo: c,
-          embedding: `[${emb.join(",")}]`,
-        });
-      }
+      // Paralelismo controlado: evita timeout do Worker em documentos longos.
+      const embeddings = await embedChunksParallel(apiKey, chunks, 5);
+      const rows = chunks.map((c, i) => ({
+        kb_documento_id: doc.id,
+        conteudo: c,
+        embedding: `[${embeddings[i].join(",")}]`,
+      }));
       for (let i = 0; i < rows.length; i += 50) {
         const slice = rows.slice(i, i + 50);
         const { error: insErr } = await supabaseAdmin.from("kb_chunks").insert(slice);
-        if (insErr) throw new Error(insErr.message);
+        if (insErr) {
+          throw new IngestError("indexacao", "Falha ao salvar os trechos indexados", "Tente reprocessar o documento.", insErr.message);
+        }
       }
 
       await supabaseAdmin
@@ -161,12 +187,12 @@ export const processKbDocumento = createServerFn({ method: "POST" })
 
       return { ok: true, chunks: chunks.length };
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const ing = humanizeIngestError(e, "leitura");
       await supabaseAdmin
         .from("kb_documentos")
-        .update({ status_processamento: `erro: ${msg.slice(0, 200)}` })
+        .update({ status_processamento: ing.toStatus() })
         .eq("id", doc.id);
-      throw new Error(msg);
+      throw new Error(ing.toHuman());
     }
   });
 
