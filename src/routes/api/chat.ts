@@ -26,18 +26,17 @@ function sanitizarResposta(texto: string): string {
 
 function sanitizarRespostaStream() {
   return () =>
-    new TransformStream<
-      { type: string; text?: string; [k: string]: unknown },
-      { type: string; text?: string; [k: string]: unknown }
-    >({
-      transform(chunk, controller) {
-        if (chunk.type === "text-delta" && typeof chunk.text === "string") {
-          controller.enqueue({ ...chunk, text: sanitizarResposta(chunk.text) });
+    new TransformStream({
+      transform(chunk: unknown, controller) {
+        const c = chunk as { type?: string; text?: string };
+        if (c && c.type === "text-delta" && typeof c.text === "string") {
+          controller.enqueue({ ...(chunk as object), text: sanitizarResposta(c.text) });
         } else {
           controller.enqueue(chunk);
         }
       },
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
 }
 
 export const Route = createFileRoute("/api/chat")({
