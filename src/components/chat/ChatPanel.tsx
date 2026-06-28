@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useServerFn } from "@tanstack/react-start";
@@ -35,6 +35,21 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
   const [activeId, setActiveId] = useState<string | null>(conversaId);
   const [initial, setInitial] = useState<UIMessage[]>([]);
   const [token, setToken] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const lastSentRef = useRef<string>("");
+  const wasStreamingRef = useRef(false);
+
+  const restoreInput = (text: string) => {
+    const ta = formRef.current?.querySelector("textarea") as HTMLTextAreaElement | null;
+    if (!ta) return;
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      "value",
+    )?.set;
+    setter?.call(ta, text);
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+    ta.focus();
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setToken(data.session?.access_token ?? null));
@@ -75,10 +90,33 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
     id: activeId ?? "new",
     messages: initial,
     transport,
-    onError: (e) => toast.error(e.message || "Falha no chat"),
+    onError: (e) => {
+      toast.error(e?.message?.trim() ? e.message : "Falha na comunicação com a IA. Tente novamente.");
+      if (lastSentRef.current) restoreInput(lastSentRef.current);
+    },
   });
 
   const isLoading = status === "submitted" || status === "streaming";
+
+  // Detect empty assistant response after streaming completes
+  useEffect(() => {
+    if (isLoading) {
+      wasStreamingRef.current = true;
+      return;
+    }
+    if (!wasStreamingRef.current) return;
+    wasStreamingRef.current = false;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant") return;
+    const text = last.parts
+      .map((p) => (p.type === "text" ? p.text : ""))
+      .join("")
+      .trim();
+    if (!text) {
+      toast.error("Não foi possível obter uma resposta. Tente novamente.");
+      if (lastSentRef.current) restoreInput(lastSentRef.current);
+    }
+  }, [isLoading, messages]);
 
   const handleSubmit = async (message: { text?: string }) => {
     const text = message.text?.trim();
@@ -87,6 +125,7 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
       toast.error("Envie ao menos um documento processado para iniciar o chat.");
       return;
     }
+    lastSentRef.current = text;
     let id = activeId;
     if (!id) {
       try {
@@ -95,12 +134,28 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
         setActiveId(id);
         onConversaCreated(id);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Falha ao criar conversa");
+        const msg = e instanceof Error && e.message ? e.message : "Falha ao criar conversa";
+        toast.error(msg);
+        restoreInput(text);
         return;
       }
     }
-    await sendMessage({ text });
+    try {
+      await sendMessage({ text });
+    } catch (e) {
+      const msg = e instanceof Error && e.message ? e.message : "Falha ao enviar mensagem";
+      toast.error(msg);
+      restoreInput(text);
+    }
   };
+
+  // Index of the last assistant message (for single-disclaimer rendering)
+  const lastAssistantIdx = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") return i;
+    }
+    return -1;
+  })();
 
   return (
     <div className="flex flex-col h-[70vh] min-h-[500px] border border-border rounded-lg overflow-hidden bg-card">
@@ -117,11 +172,12 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
               }
             />
           ) : (
-            messages.map((m) => {
+            messages.map((m, idx) => {
               const text = m.parts
                 .map((p) => (p.type === "text" ? p.text : ""))
                 .join("");
               if (m.role === "assistant") {
+                const isLast = idx === lastAssistantIdx;
                 return (
                   <Message key={m.id} from={m.role} className="max-w-full">
                     <div className="flex gap-3 items-start">
@@ -130,9 +186,11 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
                         <MessageContent>
                           <MessageResponse>{text}</MessageResponse>
                         </MessageContent>
-                        <p className="mt-2 text-[12px] italic text-muted-foreground">
-                          ⚖️ Esta orientação tem caráter de apoio técnico e não substitui consulta jurídica formal.
-                        </p>
+                        {isLast && !isLoading && (
+                          <p className="mt-2 text-[12px] italic text-muted-foreground">
+                            ⚖️ Esta orientação tem caráter de apoio técnico e não substitui consulta jurídica formal.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </Message>
@@ -156,7 +214,7 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="border-t p-3 space-y-2">
+      <div className="border-t p-3 space-y-2" ref={formRef}>
         <PromptInput onSubmit={handleSubmit}>
           <PromptInputTextarea
             placeholder={
