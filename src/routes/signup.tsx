@@ -25,7 +25,7 @@ const schema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
   telefone: z.string().trim().min(8, "Informe um telefone válido").max(40),
   tipo_pessoa: z.enum(["pf", "pj"]),
-  cpf_cnpj: z.string().trim().min(11, "Informe CPF ou CNPJ").max(20),
+  cpf_cnpj: z.string().trim().min(11, "Informe CPF ou CNPJ").max(32),
   razao_social: z.string().trim().max(200).optional(),
   password: z
     .string()
@@ -58,6 +58,7 @@ function SignupPage() {
   });
   const [lgpd, setLgpd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const pwd = form.password;
   const checks = useMemo(
@@ -70,36 +71,78 @@ function SignupPage() {
     [pwd, form.confirmar],
   );
 
+  function translateAuthError(message: string): string {
+    const m = message.toLowerCase();
+    if (m.includes("already registered") || m.includes("already been registered") || m.includes("user already"))
+      return "E-mail já cadastrado. Tente fazer login.";
+    if (m.includes("password") && (m.includes("weak") || m.includes("short") || m.includes("at least")))
+      return "Senha fraca. Use ao menos 8 caracteres, com letras e números.";
+    if (m.includes("invalid email")) return "E-mail inválido.";
+    if (m.includes("rate limit") || m.includes("too many")) return "Muitas tentativas. Aguarde alguns minutos.";
+    if (m.includes("network") || m.includes("fetch")) return "Falha de conexão. Verifique sua internet.";
+    return message || "Não foi possível criar a conta. Tente novamente.";
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("[signup] submit iniciado", { email: form.email, tipo: form.tipo_pessoa });
+    setErrors({});
+
     const parsed = schema.safeParse({ ...form, lgpd });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = String(issue.path[0] ?? "form");
+        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      console.warn("[signup] validação falhou", fieldErrors);
+      toast.error(parsed.error.issues[0]?.message ?? "Revise os campos do formulário.");
       return;
     }
+
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/onboarding` : undefined,
-        data: {
-          nome: parsed.data.nome,
-          telefone: parsed.data.telefone,
-          tipo_pessoa: parsed.data.tipo_pessoa,
-          cpf_cnpj: parsed.data.cpf_cnpj,
-          razao_social: parsed.data.tipo_pessoa === "pj" ? parsed.data.razao_social ?? "" : "",
-          lgpd_aceite: true,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        options: {
+          emailRedirectTo:
+            typeof window !== "undefined" ? `${window.location.origin}/onboarding` : undefined,
+          data: {
+            nome: parsed.data.nome,
+            telefone: parsed.data.telefone,
+            tipo_pessoa: parsed.data.tipo_pessoa,
+            cpf_cnpj: parsed.data.cpf_cnpj,
+            razao_social: parsed.data.tipo_pessoa === "pj" ? parsed.data.razao_social ?? "" : "",
+            lgpd_aceite: true,
+          },
         },
-      },
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+      });
+      console.log("[signup] resposta signUp", { hasUser: !!data?.user, hasSession: !!data?.session, error });
+
+      if (error) {
+        const friendly = translateAuthError(error.message);
+        toast.error(friendly);
+        if (/email/i.test(error.message)) setErrors((prev) => ({ ...prev, email: friendly }));
+        if (/password|senha/i.test(error.message)) setErrors((prev) => ({ ...prev, password: friendly }));
+        return;
+      }
+
+      toast.success("Conta criada com sucesso! Bem-vindo(a).");
+      navigate({ to: "/onboarding" });
+    } catch (err) {
+      console.error("[signup] exceção inesperada", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(translateAuthError(msg));
+    } finally {
+      setLoading(false);
     }
-    toast.success("Conta criada! Vamos configurar seu acesso.");
-    navigate({ to: "/onboarding" });
+  }
+
+  function FieldError({ name }: { name: string }) {
+    if (!errors[name]) return null;
+    return <p className="text-xs text-red-400 mt-1">{errors[name]}</p>;
   }
 
   const tipo = form.tipo_pessoa;
@@ -118,17 +161,20 @@ function SignupPage() {
             <Label htmlFor="nome" className="text-xs uppercase tracking-wide text-slate-400">Nome completo</Label>
             <Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required
               className="bg-[#152033] border-[#1F2937] text-white" />
+            <FieldError name="nome" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-xs uppercase tracking-wide text-slate-400">E-mail</Label>
             <Input id="email" type="email" autoComplete="email" value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })} required
               className="bg-[#152033] border-[#1F2937] text-white" />
+            <FieldError name="email" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="tel" className="text-xs uppercase tracking-wide text-slate-400">Telefone</Label>
             <Input id="tel" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} required
               placeholder="(11) 99999-0000" className="bg-[#152033] border-[#1F2937] text-white" />
+            <FieldError name="telefone" />
           </div>
 
           <div className="space-y-2">
@@ -151,12 +197,14 @@ function SignupPage() {
             </Label>
             <Input id="doc" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })} required
               className="bg-[#152033] border-[#1F2937] text-white" />
+            <FieldError name="cpf_cnpj" />
           </div>
           {tipo === "pj" && (
             <div className="space-y-1.5">
               <Label htmlFor="rs" className="text-xs uppercase tracking-wide text-slate-400">Razão Social</Label>
               <Input id="rs" value={form.razao_social} onChange={(e) => setForm({ ...form, razao_social: e.target.value })} required
                 className="bg-[#152033] border-[#1F2937] text-white" />
+              <FieldError name="razao_social" />
             </div>
           )}
 
@@ -170,6 +218,7 @@ function SignupPage() {
               <ReqItem ok={checks.letter}>Contém uma letra</ReqItem>
               <ReqItem ok={checks.num}>Contém um número</ReqItem>
             </ul>
+            <FieldError name="password" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="conf" className="text-xs uppercase tracking-wide text-slate-400">Confirmar senha</Label>
@@ -179,6 +228,7 @@ function SignupPage() {
             {form.confirmar.length > 0 && (
               <ReqItem ok={checks.match}>Senhas coincidem</ReqItem>
             )}
+            <FieldError name="confirmar" />
           </div>
 
           <label className="flex items-start gap-2 text-sm">
@@ -188,9 +238,12 @@ function SignupPage() {
               <Link to="/privacidade" className="text-emerald-400 underline">Política de privacidade</Link>.
             </span>
           </label>
+          <FieldError name="lgpd" />
 
           <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
-            disabled={loading}>{loading ? "Criando..." : "Criar conta"}</Button>
+            disabled={loading} aria-busy={loading}>
+            {loading ? "Criando conta..." : "Criar conta"}
+          </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-400">
