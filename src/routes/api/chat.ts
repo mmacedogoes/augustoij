@@ -10,6 +10,35 @@ type ChatBody = {
   conversaId?: string;
 };
 
+function sanitizarResposta(texto: string): string {
+  return texto
+    .replace(/\[(KB|DOC|CHUNK|DOCUMENTO|BASE)\s*\d+(?:\s*[—-][^\]]*)?\]/gi, "")
+    .replace(/\[(KB|DOC|CHUNK):\s*[^\]]+\]/gi, "")
+    .replace(/(Base jurídica|Documento do condomínio|Trecho|Chunk)\s*#?\s*\d+:?/gi, "")
+    .replace(/conforme\s*\[(KB|DOC)\s*\d+\]/gi, "conforme")
+    .replace(/de acordo com\s*\[(KB|DOC)\s*\d+\]/gi, "de acordo com")
+    .replace(/segundo\s*\[(KB|DOC)\s*\d+\]/gi, "segundo")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+\./g, ".")
+    .replace(/\s+,/g, ",")
+    .trim();
+}
+
+function sanitizarRespostaStream() {
+  return () =>
+    new TransformStream({
+      transform(chunk: unknown, controller) {
+        const c = chunk as { type?: string; text?: string };
+        if (c && c.type === "text-delta" && typeof c.text === "string") {
+          controller.enqueue({ ...(chunk as object), text: sanitizarResposta(c.text) });
+        } else {
+          controller.enqueue(chunk);
+        }
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+}
+
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
@@ -68,8 +97,10 @@ export const Route = createFileRoute("/api/chat")({
               if (matches && Array.isArray(matches) && matches.length > 0) {
                 contexto = matches
                   .map(
-                    (m: { nome_arquivo: string; conteudo: string }, i: number) =>
-                      `[Trecho ${i + 1} — ${m.nome_arquivo}]\n${m.conteudo}`,
+                    (m: { nome_arquivo: string; conteudo: string }) => {
+                      const cabecalho = `(trecho de documento do condomínio${m.nome_arquivo ? `: ${m.nome_arquivo}` : ""})`;
+                      return `${cabecalho}\n${m.conteudo}`.trim();
+                    },
                   )
                   .join("\n\n---\n\n");
               }
@@ -85,9 +116,14 @@ export const Route = createFileRoute("/api/chat")({
                   .map(
                     (
                       m: { titulo: string; tipo: string; fonte: string | null; conteudo: string },
-                      i: number,
-                    ) =>
-                      `[KB ${i + 1} — ${m.tipo.toUpperCase()} • ${m.titulo}${m.fonte ? ` (${m.fonte})` : ""}]\n${m.conteudo}`,
+                    ) => {
+                      const meta: string[] = [];
+                      if (m.titulo) meta.push(m.titulo);
+                      if (m.tipo) meta.push(`tipo: ${m.tipo}`);
+                      if (m.fonte) meta.push(`fonte: ${m.fonte}`);
+                      const cabecalho = meta.length > 0 ? `(${meta.join(" — ")})` : "";
+                      return `${cabecalho}\n${m.conteudo}`.trim();
+                    },
                   )
                   .join("\n\n---\n\n");
               }
@@ -115,10 +151,18 @@ export const Route = createFileRoute("/api/chat")({
 
           const systemPrompt = `Você é o assistente jurídico do CondoIA, especialista em gestão de condomínios brasileiros (Código Civil, Lei 4.591/64, jurisprudência do STJ).
 
+PROIBIÇÃO TÉCNICA ABSOLUTA — JAMAIS divulgar mecânica interna:
+- Você está recebendo abaixo trechos de documentos e jurisprudência que foram recuperados automaticamente para te ajudar a responder.
+- JAMAIS mencione, sob qualquer forma, a existência desses trechos como entidades separadas.
+- JAMAIS use rótulos como [KB N], [DOC N], "documento 1", "trecho 2", "chunk", "base de dados", "knowledge base", "embedding", "RAG", "vetor" ou variações.
+- JAMAIS escreva "conforme o documento X" ou "segundo a base Y" referindo-se a esses trechos internos.
+- SEMPRE cite as fontes JURÍDICAS REAIS (artigos de lei, súmulas, jurisprudência publicada com seus dados de identificação completos), NUNCA o lugar de onde a informação foi recuperada internamente.
+- As informações dos trechos devem ser apresentadas como CONHECIMENTO INTEGRADO seu, do agente.
+
 REGRAS:
 - Responda em português brasileiro, claro e objetivo.
-- Priorize o contexto dos documentos do condomínio. Cite o trecho referenciando o nome do arquivo entre colchetes.
-- Use a base de conhecimento (KB) curada pelos administradores para fundamentar com jurisprudência, doutrina e legislação. Cite a fonte quando usar.
+- Priorize o contexto dos documentos do condomínio quando aplicável, integrando a informação naturalmente à resposta (sem citar rótulos internos).
+- Fundamente com jurisprudência, doutrina e legislação, citando apenas as fontes jurídicas reais (artigo, súmula, acórdão).
 - Se não houver contexto suficiente, diga isso explicitamente e responda com base na legislação geral.
 - Sempre encerre com: "⚠️ Este conteúdo é informativo e não substitui parecer jurídico de advogado(a) inscrito(a) na OAB."
 
@@ -142,12 +186,14 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
             model,
             system: systemPrompt,
             messages: await convertToModelMessages(messages),
+            experimental_transform: [sanitizarRespostaStream()],
             onFinish: async ({ text, usage }) => {
               try {
+                const textoLimpo = sanitizarResposta(text);
                 await supabase.from("mensagens").insert({
                   conversa_id: conversaId,
                   papel: "assistant",
-                  conteudo: text,
+                  conteudo: textoLimpo,
                   model_usado: "google/gemini-3-flash-preview",
                   tokens_usados: usage?.totalTokens ?? null,
                 });
