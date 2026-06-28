@@ -227,6 +227,10 @@ export function useHasReadyDocs(condominioId: string) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     let cancelled = false;
+    if (!condominioId) {
+      setReady(false);
+      return;
+    }
     const check = () =>
       fetchDocs({ data: { condominioId } })
         .then((rows) => {
