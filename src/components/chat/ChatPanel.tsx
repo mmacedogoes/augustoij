@@ -93,6 +93,7 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
 
   useEffect(() => {
     setActiveId(conversaId);
+    setAttachment(null);
     if (!conversaId) {
       setInitial([]);
       return;
