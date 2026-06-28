@@ -35,6 +35,7 @@ function CondominioDetail() {
   const [membros, setMembros] = useState<Array<{ id: string; user_id: string; papel: string; nome: string | null; email: string | null }>>([]);
   const [emailConvite, setEmailConvite] = useState("");
   const [isPJ, setIsPJ] = useState(false);
+  const [tab, setTab] = useState<string>("chat");
   const hasReadyDocs = useHasReadyDocs(id);
 
   useEffect(() => {
@@ -74,16 +75,13 @@ function CondominioDetail() {
           </div>
         </div>
 
-        <Tabs defaultValue="documentos" className="mt-6">
+        <Tabs value={tab} onValueChange={setTab} className="mt-6">
           <TabsList>
+            <TabsTrigger value="chat">Interação com a IA</TabsTrigger>
+            <TabsTrigger value="historico">Histórico de Conversas</TabsTrigger>
             <TabsTrigger value="documentos">Documentos</TabsTrigger>
-            <TabsTrigger value="chat">Chat com IA</TabsTrigger>
-            <TabsTrigger value="historico">Histórico</TabsTrigger>
             <TabsTrigger value="config">Configurações</TabsTrigger>
           </TabsList>
-          <TabsContent value="documentos">
-            <DocumentosPanel condominioId={id} />
-          </TabsContent>
           <TabsContent value="chat">
             <ChatPanel
               condominioId={id}
@@ -120,7 +118,10 @@ function CondominioDetail() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setConversaAtiva(c.id)}
+                      onClick={() => {
+                        setConversaAtiva(c.id);
+                        setTab("chat");
+                      }}
                     >
                       Abrir
                     </Button>
@@ -145,6 +146,9 @@ function CondominioDetail() {
                 ))}
               </Card>
             )}
+          </TabsContent>
+          <TabsContent value="documentos">
+            <DocumentosPanel condominioId={id} />
           </TabsContent>
           <TabsContent value="config">
             <div className="space-y-4">
