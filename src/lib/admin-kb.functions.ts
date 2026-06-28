@@ -189,8 +189,14 @@ export const upsertOrientacao = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({
       id: z.string().uuid().optional(),
-      titulo: z.string().min(2).max(180),
-      conteudo: z.string().min(5).max(8000),
+      titulo: z.string().min(2).max(250),
+      conteudo: z
+        .string()
+        .min(5, "Conteúdo muito curto. Use ao menos 5 caracteres.")
+        .max(
+          100000,
+          "Conteúdo muito grande. O limite é de 100.000 caracteres (≈ 20.000 palavras). Divida em múltiplas orientações.",
+        ),
       ativo: z.boolean().default(true),
       ordem: z.number().int().min(0).default(0),
     }).parse(input),
