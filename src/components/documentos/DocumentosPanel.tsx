@@ -70,6 +70,10 @@ export function DocumentosPanel({ condominioId }: { condominioId: string }) {
   }, [docs, refresh]);
 
   const onFile = async (file: File) => {
+    if (file.size === 0) {
+      toast.error("Arquivo vazio (0 bytes). Selecione outro arquivo.");
+      return;
+    }
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Arquivo excede 10 MB");
       return;

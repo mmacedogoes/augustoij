@@ -140,6 +140,13 @@ export const processKbDocumento = createServerFn({ method: "POST" })
           throw new IngestError("upload", "Falha ao baixar o arquivo do storage", "Reenvie o documento.", dlErr?.message ?? "");
         }
         const buffer = new Uint8Array(await file.arrayBuffer());
+        if (buffer.byteLength === 0) {
+          throw new IngestError(
+            "upload",
+            "Arquivo armazenado está vazio (0 bytes)",
+            "O upload falhou ou o arquivo original está vazio. Reenvie o documento.",
+          );
+        }
         try {
           texto = await extractText(buffer, fileName);
         } catch (err) {
