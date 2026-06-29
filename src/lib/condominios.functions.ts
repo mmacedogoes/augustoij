@@ -47,12 +47,47 @@ export const getCondominio = createServerFn({ method: "GET" })
     return row;
   });
 
+const updateSchema = z.object({
+  id: z.string().uuid(),
+  nome: z.string().trim().min(2).max(120),
+  cnpj: z.string().trim().max(20).optional().nullable(),
+  endereco: z.string().trim().max(255).optional().nullable(),
+  uf: z.string().trim().length(2).optional().nullable(),
+  qtd_unidades: z.number().int().min(0).max(100000).optional().nullable(),
+});
+
+export const updateCondominio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => updateSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    // Apenas o dono pode editar — verificação explícita
+    // (a RLS de UPDATE deve cobrir, mas a checagem dá mensagem clara).
+    const { data: condo } = await context.supabase
+      .from("condominios")
+      .select("owner_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!condo) throw new Error("Condomínio não encontrado.");
+    if (condo.owner_id !== context.userId) {
+      throw new Error("Apenas o dono do condomínio pode editar estes dados.");
+    }
+    const { id, ...patch } = data;
+    const { data: row, error } = await context.supabase
+      .from("condominios")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
 export const getProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("profiles")
-      .select("id, nome, email, telefone, oab, tipo_pessoa, cpf_cnpj, razao_social, papel_sistema, onboarding_completo, lgpd_aceite_em, created_at")
+      .select("id, nome, email, telefone, oab, tipo_pessoa, cpf_cnpj, razao_social, papel_sistema, perfil_atuacao, onboarding_completo, lgpd_aceite_em, created_at")
       .eq("id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
