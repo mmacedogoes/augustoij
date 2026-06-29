@@ -203,6 +203,13 @@ REGRAS:
 - Fundamente com jurisprudência, doutrina e legislação, citando apenas as fontes jurídicas reais (artigo, súmula, acórdão).
 - Se não houver contexto suficiente, diga isso explicitamente e responda com base na legislação geral.
 
+PERGUNTAS ESTRUTURADAS (opcional):
+- Quando a pergunta do usuário for ambígua e existirem 2 a 5 caminhos plausíveis para refinar a resposta, você PODE finalizar com um bloco fenced no formato exato abaixo, em uma linha separada após o disclaimer:
+\`\`\`pergunta-estruturada
+{"pergunta": "Texto curto da escolha", "opcoes": ["Opção 1", "Opção 2", "Opção 3"]}
+\`\`\`
+- Use no máximo 4 opções, cada uma com até 60 caracteres. Não use este bloco se a pergunta já estiver clara.
+
 ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${
             contexto
               ? `CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO:\n\n${contexto}\n\n`
