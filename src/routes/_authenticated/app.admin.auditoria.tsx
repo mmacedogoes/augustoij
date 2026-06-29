@@ -18,6 +18,8 @@ type Row = {
   target_condominio_id: string | null;
   target_kb_id: string | null;
   metadata: Record<string, unknown>;
+  ip_address: string | null;
+  user_agent: string | null;
   created_at: string;
 };
 
@@ -52,10 +54,18 @@ function Page() {
                 — <span className="text-accent">{r.action}</span> por {r.actor_user_id.slice(0, 8)}
                 {r.target_user_id && <> · alvo user {r.target_user_id.slice(0, 8)}</>}
                 {r.target_kb_id && <> · alvo kb {r.target_kb_id.slice(0, 8)}</>}
+                {r.ip_address && (
+                  <> · <span className="text-muted-foreground">IP {r.ip_address}</span></>
+                )}
                 {Object.keys(r.metadata || {}).length > 0 && (
                   <pre className="mt-1 text-muted-foreground whitespace-pre-wrap break-all">
                     {JSON.stringify(r.metadata)}
                   </pre>
+                )}
+                {r.user_agent && (
+                  <p className="mt-1 text-muted-foreground truncate" title={r.user_agent}>
+                    UA: {r.user_agent}
+                  </p>
                 )}
               </div>
             ))
