@@ -70,10 +70,26 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSentRef = useRef<string>("");
   const wasStreamingRef = useRef(false);
+  // Refs sincronizados com state — usados pelo transport para evitar
+  // race condition na PRIMEIRA mensagem (state ainda não propagou
+  // quando sendMessage roda no mesmo tick).
+  const activeIdRef = useRef<string | null>(conversaId);
+  const tokenRef = useRef<string | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [attachment, setAttachment] = useState<ChatAttachment | null>(null);
   const [attachLoading, setAttachLoading] = useState(false);
   const [classifyOpen, setClassifyOpen] = useState(false);
   const [savingAttachment, setSavingAttachment] = useState(false);
+
+  const attachmentRef = useRef<ChatAttachment | null>(null);
+  useEffect(() => {
+    attachmentRef.current = attachment;
+  }, [attachment]);
+
+  const focusInput = () => {
+    const ta = formRef.current?.querySelector("textarea") as HTMLTextAreaElement | null;
+    ta?.focus();
+  };
 
   const restoreInput = (text: string) => {
     const ta = formRef.current?.querySelector("textarea") as HTMLTextAreaElement | null;
@@ -88,11 +104,16 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setToken(data.session?.access_token ?? null));
+    supabase.auth.getSession().then(({ data }) => {
+      const t = data.session?.access_token ?? null;
+      setToken(t);
+      tokenRef.current = t;
+    });
   }, []);
 
   useEffect(() => {
     setActiveId(conversaId);
+    activeIdRef.current = conversaId;
     setAttachment(null);
     if (!conversaId) {
       setInitial([]);
@@ -112,33 +133,64 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
       .catch(() => setInitial([]));
   }, [conversaId, fetchMensagens]);
 
+  // Transport é estável — lê tudo via refs, eliminando race condition
+  // (state recém-setado ainda não propagou quando sendMessage roda).
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
         headers: (): Record<string, string> =>
-          token ? { Authorization: `Bearer ${token}` } : {},
+          tokenRef.current ? { Authorization: `Bearer ${tokenRef.current}` } : {},
         body: () => ({
           condominioId,
-          conversaId: activeId,
-          attachmentContext: attachment?.excerpt ?? null,
-          attachmentNome: attachment?.fileName ?? null,
+          conversaId: activeIdRef.current,
+          attachmentContext: attachmentRef.current?.excerpt ?? null,
+          attachmentNome: attachmentRef.current?.fileName ?? null,
         }),
       }),
-    [token, condominioId, activeId, attachment],
+    [condominioId],
   );
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, stop } = useChat({
     id: activeId ?? "new",
     messages: initial,
     transport,
     onError: (e) => {
+      console.error("[chat] erro na resposta da IA:", e);
       toast.error(e?.message?.trim() ? e.message : "Falha na comunicação com a IA. Tente novamente.");
       if (lastSentRef.current) restoreInput(lastSentRef.current);
     },
   });
 
   const isLoading = status === "submitted" || status === "streaming";
+
+  // Timeout de segurança: se a IA não terminar em 90s, aborta e
+  // libera o botão para o usuário tentar de novo.
+  useEffect(() => {
+    if (isLoading) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        try {
+          stop();
+        } catch (e) {
+          console.error("[chat] falha ao abortar timeout:", e);
+        }
+        toast.error("A IA demorou para responder. Tente novamente.");
+        if (lastSentRef.current) restoreInput(lastSentRef.current);
+      }, 90_000);
+    } else if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+      // Após terminar (sucesso ou abort), devolve o foco ao input.
+      focusInput();
+    }
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [isLoading, stop]);
 
   // Detect empty assistant response after streaming completes
   useEffect(() => {
@@ -167,15 +219,30 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
       toast.error("Envie ao menos um documento processado para iniciar o chat.");
       return;
     }
+    // Garante token disponível antes do envio (evita 1ª mensagem
+    // falhar quando supabase.auth.getSession ainda não retornou).
+    if (!tokenRef.current) {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const t = data.session?.access_token ?? null;
+        tokenRef.current = t;
+        setToken(t);
+      } catch (e) {
+        console.error("[chat] falha ao obter sessão:", e);
+      }
+    }
     lastSentRef.current = text;
-    let id = activeId;
+    let id = activeIdRef.current;
     if (!id) {
       try {
         const conv = await ensureConversa({ data: { condominioId } });
         id = (conv as { id: string }).id;
+        // Atualiza ref ANTES do sendMessage (transport lê de ref).
+        activeIdRef.current = id;
         setActiveId(id);
         onConversaCreated(id);
       } catch (e) {
+        console.error("[chat] falha ao criar conversa:", e);
         const msg = e instanceof Error && e.message ? e.message : "Falha ao criar conversa";
         toast.error(msg);
         restoreInput(text);
@@ -185,6 +252,7 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
     try {
       await sendMessage({ text });
     } catch (e) {
+      console.error("[chat] falha em sendMessage:", e);
       const msg = e instanceof Error && e.message ? e.message : "Falha ao enviar mensagem";
       toast.error(msg);
       restoreInput(text);
@@ -282,14 +350,6 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
     }
   };
 
-  // Index of the last assistant message (for single-disclaimer rendering)
-  const lastAssistantIdx = (() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "assistant") return i;
-    }
-    return -1;
-  })();
-
   const inputEnabled = hasReadyDocs || !!attachment;
 
   return (
@@ -312,7 +372,6 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
                 .map((p) => (p.type === "text" ? p.text : ""))
                 .join("");
               if (m.role === "assistant") {
-                const isLast = idx === lastAssistantIdx;
                 return (
                   <Message key={m.id} from={m.role} className="max-w-full">
                     <div className="flex gap-3 items-start">
@@ -321,11 +380,6 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
                         <MessageContent>
                           <MessageResponse>{text}</MessageResponse>
                         </MessageContent>
-                        {isLast && !isLoading && (
-                          <p className="mt-2 text-[12px] italic text-muted-foreground">
-                            ⚖️ Esta orientação tem caráter de apoio técnico e não substitui consulta jurídica formal.
-                          </p>
-                        )}
                       </div>
                     </div>
                   </Message>
@@ -378,6 +432,7 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
         />
         <PromptInput onSubmit={handleSubmit}>
           <PromptInputTextarea
+            autoFocus
             placeholder={
               inputEnabled
                 ? "Pergunte sobre a convenção, ata, contratos…"
@@ -405,8 +460,8 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
             <PromptInputSubmit status={status} disabled={!inputEnabled || isLoading} />
           </PromptInputFooter>
         </PromptInput>
-        <p className="text-[11px] italic text-muted-foreground text-center px-2 leading-relaxed">
-          As respostas geradas pelo CondoIA têm caráter informativo e não substituem a orientação de profissional habilitado. Valide decisões formais com seu advogado.
+        <p className="text-[11px] text-slate-400 text-center px-2 leading-relaxed">
+          As respostas são geradas por IA e devem ser verificadas para casos críticos.
         </p>
       </div>
 
