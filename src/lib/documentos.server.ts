@@ -55,11 +55,15 @@ export async function extractTextWithVision(
   const dataUrl = `data:${mime};base64,${base64}`;
 
   const promptTxt =
-    "Este documento é uma imagem escaneada. Leia o conteúdo visível e extraia " +
-    "todas as informações textuais para responder às perguntas do usuário. " +
-    "Transcreva fielmente todo o texto identificável, preservando títulos, listas, " +
-    "tabelas (em formato Markdown) e a ordem de leitura. Não resuma nem omita trechos. " +
-    "Retorne APENAS o texto extraído, sem comentários adicionais.";
+    "Este documento é uma imagem escaneada ou um PDF sem camada de texto. " +
+    "Faça OCR completo do conteúdo visível e devolva a transcrição fiel. " +
+    "REGRAS DE TRANSCRIÇÃO:\n" +
+    "1. Preserve a ordem de leitura, títulos, subtítulos e listas.\n" +
+    "2. Transcreva TABELAS em Markdown (| coluna | coluna |\\n|---|---|\\n| valor | valor |), uma linha por linha do original, sem inventar colunas.\n" +
+    "3. Mantenha numeração de artigos, parágrafos, incisos e cláusulas exatamente como aparecem.\n" +
+    "4. Reproduza assinaturas, datas, números de processo e valores monetários sem reformatar.\n" +
+    "5. Se houver carimbos ou anotações manuscritas legíveis, transcreva-as entre colchetes: [manuscrito: ...].\n" +
+    "6. NÃO resuma, NÃO interprete, NÃO adicione comentários — devolva APENAS o texto extraído.";
 
   const isPdf = mime === "application/pdf";
   const userContent: Array<Record<string, unknown>> = [{ type: "text", text: promptTxt }];
