@@ -2,13 +2,22 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ShieldCheck, ShieldOff, Search } from "lucide-react";
+import { ShieldCheck, ShieldOff, Search, UserPlus } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { listUsuariosAdmin, setUserRole } from "@/lib/admin.functions";
+import { listUsuariosAdmin, setUserRole, adminCreateUser } from "@/lib/admin.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios")({
   component: AdminUsuariosPage,
@@ -29,9 +38,25 @@ type UserRow = {
 function AdminUsuariosPage() {
   const fetchUsers = useServerFn(listUsuariosAdmin);
   const updateRole = useServerFn(setUserRole);
+  const createUserFn = useServerFn(adminCreateUser);
   const [rows, setRows] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [openCreate, setOpenCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser] = useState({
+    nome: "",
+    email: "",
+    password: "",
+    papel: "cliente_pf" as
+      | "super_admin"
+      | "admin_operacional"
+      | "admin_suporte"
+      | "cliente_pf"
+      | "cliente_pj_dono"
+      | "cliente_pj_operador",
+    perfil_atuacao: "" as "" | "sindico" | "advogado" | "administradora" | "conselheiro" | "outro",
+  });
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -62,8 +87,126 @@ function AdminUsuariosPage() {
   return (
     <AppShell>
       <div className="max-w-6xl">
-        <h1 className="text-3xl font-bold text-primary">Clientes</h1>
-        <p className="text-muted-foreground">Gerencie papéis e visualize atividade.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-primary">Clientes</h1>
+            <p className="text-muted-foreground">Gerencie papéis e visualize atividade.</p>
+          </div>
+          <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="h-4 w-4 mr-2" /> Criar usuário
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar usuário manualmente</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-3">
+                <div className="space-y-1.5">
+                  <Label>Nome</Label>
+                  <Input
+                    value={newUser.nome}
+                    onChange={(e) => setNewUser({ ...newUser, nome: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>E-mail</Label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Senha (mín. 8 caracteres com letras e números)</Label>
+                  <Input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Papel no sistema</Label>
+                  <select
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    value={newUser.papel}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, papel: e.target.value as typeof newUser.papel })
+                    }
+                  >
+                    <option value="cliente_pf">Cliente PF</option>
+                    <option value="cliente_pj_dono">Cliente PJ — Dono</option>
+                    <option value="cliente_pj_operador">Cliente PJ — Operador</option>
+                    <option value="admin_suporte">Admin — Suporte</option>
+                    <option value="admin_operacional">Admin — Operacional</option>
+                    <option value="super_admin">Super Admin</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Perfil de atuação</Label>
+                  <select
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    value={newUser.perfil_atuacao}
+                    onChange={(e) =>
+                      setNewUser({
+                        ...newUser,
+                        perfil_atuacao: e.target.value as typeof newUser.perfil_atuacao,
+                      })
+                    }
+                  >
+                    <option value="">— Não informar —</option>
+                    <option value="sindico">Síndico</option>
+                    <option value="advogado">Advogado(a)</option>
+                    <option value="administradora">Administradora</option>
+                    <option value="conselheiro">Conselheiro</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setOpenCreate(false)} disabled={creating}>
+                  Cancelar
+                </Button>
+                <Button
+                  disabled={creating}
+                  onClick={async () => {
+                    setCreating(true);
+                    try {
+                      await createUserFn({
+                        data: {
+                          nome: newUser.nome.trim(),
+                          email: newUser.email.trim(),
+                          password: newUser.password,
+                          papel: newUser.papel,
+                          ...(newUser.perfil_atuacao
+                            ? { perfil_atuacao: newUser.perfil_atuacao }
+                            : {}),
+                        },
+                      });
+                      toast.success("Usuário criado");
+                      setOpenCreate(false);
+                      setNewUser({
+                        nome: "",
+                        email: "",
+                        password: "",
+                        papel: "cliente_pf",
+                        perfil_atuacao: "",
+                      });
+                      refresh();
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Falha ao criar usuário");
+                    } finally {
+                      setCreating(false);
+                    }
+                  }}
+                >
+                  {creating ? "Criando…" : "Criar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
         <div className="mt-6">
           <AdminNav />
         </div>

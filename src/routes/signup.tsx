@@ -27,6 +27,9 @@ const schema = z.object({
   tipo_pessoa: z.enum(["pf", "pj"]),
   cpf_cnpj: z.string().trim().min(11, "Informe CPF ou CNPJ").max(32),
   razao_social: z.string().trim().max(200).optional(),
+  perfil_atuacao: z.enum(["sindico", "advogado", "administradora", "conselheiro", "outro"], {
+    errorMap: () => ({ message: "Selecione seu perfil de atuação." }),
+  }),
   password: z
     .string()
     .min(8, "Mínimo 8 caracteres")
@@ -53,6 +56,7 @@ function SignupPage() {
     tipo_pessoa: "pf" as "pf" | "pj",
     cpf_cnpj: "",
     razao_social: "",
+    perfil_atuacao: "" as "" | "sindico" | "advogado" | "administradora" | "conselheiro" | "outro",
     password: "",
     confirmar: "",
   });
@@ -115,6 +119,7 @@ function SignupPage() {
             tipo_pessoa: parsed.data.tipo_pessoa,
             cpf_cnpj: parsed.data.cpf_cnpj,
             razao_social: parsed.data.tipo_pessoa === "pj" ? parsed.data.razao_social ?? "" : "",
+            perfil_atuacao: parsed.data.perfil_atuacao,
             lgpd_aceite: true,
           },
         },
@@ -207,6 +212,29 @@ function SignupPage() {
               <FieldError name="razao_social" />
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="perfil" className="text-xs uppercase tracking-wide text-slate-400">
+              Perfil de atuação
+            </Label>
+            <select
+              id="perfil"
+              value={form.perfil_atuacao}
+              onChange={(e) =>
+                setForm({ ...form, perfil_atuacao: e.target.value as typeof form.perfil_atuacao })
+              }
+              required
+              className="w-full rounded-md border border-[#1F2937] bg-[#152033] px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
+            >
+              <option value="" disabled>Selecione…</option>
+              <option value="sindico">Síndico</option>
+              <option value="advogado">Advogado(a)</option>
+              <option value="administradora">Administradora de condomínios</option>
+              <option value="conselheiro">Conselheiro / membro do conselho</option>
+              <option value="outro">Outro</option>
+            </select>
+            <FieldError name="perfil_atuacao" />
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="password" className="text-xs uppercase tracking-wide text-slate-400">Senha</Label>

@@ -56,6 +56,37 @@ const TIPO_LABEL: Record<ChatAttachment["classificacao"], string> = {
   outro: "documento",
 };
 
+/**
+ * Bloco 10 — perguntas estruturadas.
+ * A IA pode emitir um bloco fenced ```pergunta-estruturada\n{json}\n```
+ * com { "pergunta": "...", "opcoes": ["...", "..."] }.
+ * Removemos o bloco do texto visível e renderizamos as opções como botões.
+ */
+function extractStructuredQuestion(text: string): {
+  visible: string;
+  pergunta: string | null;
+  opcoes: string[];
+} {
+  const fence = /```pergunta-estruturada\s*([\s\S]*?)```/i;
+  const m = text.match(fence);
+  if (!m) return { visible: text, pergunta: null, opcoes: [] };
+  let pergunta: string | null = null;
+  let opcoes: string[] = [];
+  try {
+    const parsed = JSON.parse(m[1].trim()) as {
+      pergunta?: string;
+      opcoes?: unknown;
+    };
+    pergunta = parsed.pergunta ?? null;
+    if (Array.isArray(parsed.opcoes)) {
+      opcoes = parsed.opcoes.filter((o): o is string => typeof o === "string").slice(0, 6);
+    }
+  } catch {
+    return { visible: text, pergunta: null, opcoes: [] };
+  }
+  return { visible: text.replace(fence, "").trim(), pergunta, opcoes };
+}
+
 export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCreated }: Props) {
   const ensureConversa = useServerFn(createConversa);
   const fetchMensagens = useServerFn(listMensagens);
@@ -372,14 +403,38 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
                 .map((p) => (p.type === "text" ? p.text : ""))
                 .join("");
               if (m.role === "assistant") {
+                const sq = extractStructuredQuestion(text);
+                const isLast = idx === messages.length - 1;
                 return (
                   <Message key={m.id} from={m.role} className="max-w-full">
                     <div className="flex gap-3 items-start">
                       <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <MessageContent>
-                          <MessageResponse>{text}</MessageResponse>
+                          <MessageResponse>{sq.visible}</MessageResponse>
                         </MessageContent>
+                        {isLast && !isLoading && sq.opcoes.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {sq.pergunta && (
+                              <p className="text-xs font-medium text-muted-foreground">
+                                {sq.pergunta}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                              {sq.opcoes.map((op) => (
+                                <Button
+                                  key={op}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSubmit({ text: op })}
+                                  disabled={isLoading}
+                                >
+                                  {op}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Message>
