@@ -20,30 +20,36 @@ export type Database = {
           actor_user_id: string
           created_at: string
           id: string
+          ip_address: string | null
           metadata: Json
           target_condominio_id: string | null
           target_kb_id: string | null
           target_user_id: string | null
+          user_agent: string | null
         }
         Insert: {
           action: string
           actor_user_id: string
           created_at?: string
           id?: string
+          ip_address?: string | null
           metadata?: Json
           target_condominio_id?: string | null
           target_kb_id?: string | null
           target_user_id?: string | null
+          user_agent?: string | null
         }
         Update: {
           action?: string
           actor_user_id?: string
           created_at?: string
           id?: string
+          ip_address?: string | null
           metadata?: Json
           target_condominio_id?: string | null
           target_kb_id?: string | null
           target_user_id?: string | null
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -660,6 +666,7 @@ export type Database = {
           oab: string | null
           onboarding_completo: boolean
           papel_sistema: Database["public"]["Enums"]["papel_sistema"]
+          perfil_atuacao: Database["public"]["Enums"]["perfil_atuacao"] | null
           razao_social: string | null
           telefone: string | null
           tipo_pessoa: Database["public"]["Enums"]["tipo_pessoa"] | null
@@ -677,6 +684,7 @@ export type Database = {
           oab?: string | null
           onboarding_completo?: boolean
           papel_sistema?: Database["public"]["Enums"]["papel_sistema"]
+          perfil_atuacao?: Database["public"]["Enums"]["perfil_atuacao"] | null
           razao_social?: string | null
           telefone?: string | null
           tipo_pessoa?: Database["public"]["Enums"]["tipo_pessoa"] | null
@@ -694,6 +702,7 @@ export type Database = {
           oab?: string | null
           onboarding_completo?: boolean
           papel_sistema?: Database["public"]["Enums"]["papel_sistema"]
+          perfil_atuacao?: Database["public"]["Enums"]["perfil_atuacao"] | null
           razao_social?: string | null
           telefone?: string | null
           tipo_pessoa?: Database["public"]["Enums"]["tipo_pessoa"] | null
@@ -899,6 +908,12 @@ export type Database = {
         | "cliente_pf"
         | "cliente_pj_dono"
         | "cliente_pj_operador"
+      perfil_atuacao:
+        | "sindico"
+        | "advogado"
+        | "administradora"
+        | "conselheiro"
+        | "outro"
       plano_assinatura: "solo" | "pro" | "administradora"
       tipo_documento: "convencao" | "regimento" | "ata" | "contrato" | "outro"
       tipo_pessoa: "pf" | "pj"
@@ -1049,6 +1064,13 @@ export const Constants = {
         "cliente_pf",
         "cliente_pj_dono",
         "cliente_pj_operador",
+      ],
+      perfil_atuacao: [
+        "sindico",
+        "advogado",
+        "administradora",
+        "conselheiro",
+        "outro",
       ],
       plano_assinatura: ["solo", "pro", "administradora"],
       tipo_documento: ["convencao", "regimento", "ata", "contrato", "outro"],
