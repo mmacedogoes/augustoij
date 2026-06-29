@@ -33,13 +33,29 @@ function sanitizarResposta(texto: string): string {
     .trim();
 }
 
+// Limpeza leve para chunks de stream — NUNCA toca em quebras de linha
+// ou espaços horizontais, para preservar a estrutura markdown
+// (cabeçalhos "## ", listas, parágrafos) durante a renderização incremental.
+function sanitizarChunk(texto: string): string {
+  return texto
+    .replace(/\[(KB|DOC|CHUNK|DOCUMENTO|BASE)\s*\d+(?:\s*[—-][^\]]*)?\]/gi, "")
+    .replace(/\[(KB|DOC|CHUNK):\s*[^\]]+\]/gi, "")
+    .replace(/(Base jurídica|Documento do condomínio|Trecho|Chunk)\s*#?\s*\d+:?/gi, "")
+    .replace(/conforme\s*\[(KB|DOC)\s*\d+\]/gi, "conforme")
+    .replace(/de acordo com\s*\[(KB|DOC)\s*\d+\]/gi, "de acordo com")
+    .replace(/segundo\s*\[(KB|DOC)\s*\d+\]/gi, "segundo");
+}
+
 function sanitizarRespostaStream() {
   return () =>
     new TransformStream({
       transform(chunk: unknown, controller) {
         const c = chunk as { type?: string; text?: string };
         if (c && c.type === "text-delta" && typeof c.text === "string") {
-          controller.enqueue({ ...(chunk as object), text: sanitizarResposta(c.text) });
+          // IMPORTANTE: usar sanitização leve em deltas — collapse de
+          // whitespace ou trim por linha corrompe ## / ** quando o
+          // delta cai no meio de um token markdown.
+          controller.enqueue({ ...(chunk as object), text: sanitizarChunk(c.text) });
         } else {
           controller.enqueue(chunk);
         }
