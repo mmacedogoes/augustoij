@@ -56,6 +56,37 @@ const TIPO_LABEL: Record<ChatAttachment["classificacao"], string> = {
   outro: "documento",
 };
 
+/**
+ * Bloco 10 — perguntas estruturadas.
+ * A IA pode emitir um bloco fenced ```pergunta-estruturada\n{json}\n```
+ * com { "pergunta": "...", "opcoes": ["...", "..."] }.
+ * Removemos o bloco do texto visível e renderizamos as opções como botões.
+ */
+function extractStructuredQuestion(text: string): {
+  visible: string;
+  pergunta: string | null;
+  opcoes: string[];
+} {
+  const fence = /```pergunta-estruturada\s*([\s\S]*?)```/i;
+  const m = text.match(fence);
+  if (!m) return { visible: text, pergunta: null, opcoes: [] };
+  let pergunta: string | null = null;
+  let opcoes: string[] = [];
+  try {
+    const parsed = JSON.parse(m[1].trim()) as {
+      pergunta?: string;
+      opcoes?: unknown;
+    };
+    pergunta = parsed.pergunta ?? null;
+    if (Array.isArray(parsed.opcoes)) {
+      opcoes = parsed.opcoes.filter((o): o is string => typeof o === "string").slice(0, 6);
+    }
+  } catch {
+    return { visible: text, pergunta: null, opcoes: [] };
+  }
+  return { visible: text.replace(fence, "").trim(), pergunta, opcoes };
+}
+
 export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCreated }: Props) {
   const ensureConversa = useServerFn(createConversa);
   const fetchMensagens = useServerFn(listMensagens);
