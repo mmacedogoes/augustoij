@@ -1,7 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
+
+/** Captura IP + UA da requisição atual para a trilha de auditoria. */
+function getAuditContext(): { ip: string | null; ua: string | null } {
+  let ip: string | null = null;
+  let ua: string | null = null;
+  try {
+    ip = getRequestIP({ xForwardedFor: true }) ?? null;
+  } catch {
+    ip = null;
+  }
+  try {
+    ua = getRequestHeader("user-agent") ?? null;
+  } catch {
+    ua = null;
+  }
+  return { ip, ua };
+}
 
 export const isCurrentUserAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -127,11 +145,14 @@ export const setUserRole = createServerFn({ method: "POST" })
       .eq("id", data.userId);
     if (error) throw new Error(error.message);
 
+    const { ip, ua } = getAuditContext();
     await supabaseAdmin.from("admin_audit_log").insert({
       actor_user_id: context.userId,
       action: "role.set",
       target_user_id: data.userId,
       metadata: { papel: data.papel },
+      ip_address: ip,
+      user_agent: ua,
     });
 
     return { ok: true };
@@ -144,9 +165,83 @@ export const listAuditLog = createServerFn({ method: "GET" })
     await ensureAdmin(context);
     const { data: rows, error } = await context.supabase
       .from("admin_audit_log")
-      .select("id, actor_user_id, action, target_user_id, target_condominio_id, target_kb_id, metadata, created_at")
+      .select("id, actor_user_id, action, target_user_id, target_condominio_id, target_kb_id, metadata, ip_address, user_agent, created_at")
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (error) throw new Error(error.message);
     return rows ?? [];
+  });
+
+/**
+ * Cria um usuário manualmente (somente admin). Útil para onboarding interno
+ * e para criar contas operacionais sem precisar do fluxo público.
+ */
+export const adminCreateUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      email: z.string().email().max(255),
+      nome: z.string().trim().min(2).max(120),
+      password: z
+        .string()
+        .min(8, "Senha deve ter no mínimo 8 caracteres")
+        .max(72)
+        .regex(/[A-Za-z]/, "Inclua ao menos uma letra")
+        .regex(/[0-9]/, "Inclua ao menos um número"),
+      papel: z
+        .enum([
+          "super_admin",
+          "admin_operacional",
+          "admin_suporte",
+          "cliente_pf",
+          "cliente_pj_dono",
+          "cliente_pj_operador",
+        ])
+        .default("cliente_pf"),
+      perfil_atuacao: z
+        .enum(["sindico", "advogado", "administradora", "conselheiro", "outro"])
+        .optional(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email.toLowerCase().trim(),
+      password: data.password,
+      email_confirm: true,
+      user_metadata: {
+        nome: data.nome,
+        perfil_atuacao: data.perfil_atuacao ?? null,
+      },
+    });
+    if (error) throw new Error(error.message);
+    const newUserId = created?.user?.id;
+    if (!newUserId) throw new Error("Falha ao criar usuário.");
+
+    // Upsert do perfil com papel + perfil_atuacao
+    const { error: upErr } = await supabaseAdmin
+      .from("profiles")
+      .upsert({
+        id: newUserId,
+        email: data.email.toLowerCase().trim(),
+        nome: data.nome,
+        papel_sistema: data.papel,
+        perfil_atuacao: data.perfil_atuacao ?? null,
+        onboarding_completo: true,
+      }, { onConflict: "id" });
+    if (upErr) throw new Error(upErr.message);
+
+    const { ip, ua } = getAuditContext();
+    await supabaseAdmin.from("admin_audit_log").insert({
+      actor_user_id: context.userId,
+      action: "user.create",
+      target_user_id: newUserId,
+      metadata: { email: data.email, papel: data.papel, perfil: data.perfil_atuacao ?? null },
+      ip_address: ip,
+      user_agent: ua,
+    });
+
+    return { ok: true, userId: newUserId };
   });
