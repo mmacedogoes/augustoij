@@ -403,14 +403,38 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
                 .map((p) => (p.type === "text" ? p.text : ""))
                 .join("");
               if (m.role === "assistant") {
+                const sq = extractStructuredQuestion(text);
+                const isLast = idx === messages.length - 1;
                 return (
                   <Message key={m.id} from={m.role} className="max-w-full">
                     <div className="flex gap-3 items-start">
                       <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <MessageContent>
-                          <MessageResponse>{text}</MessageResponse>
+                          <MessageResponse>{sq.visible}</MessageResponse>
                         </MessageContent>
+                        {isLast && !isLoading && sq.opcoes.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {sq.pergunta && (
+                              <p className="text-xs font-medium text-muted-foreground">
+                                {sq.pergunta}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                              {sq.opcoes.map((op) => (
+                                <Button
+                                  key={op}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSubmit({ text: op })}
+                                  disabled={isLoading}
+                                >
+                                  {op}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Message>
