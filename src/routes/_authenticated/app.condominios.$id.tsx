@@ -6,12 +6,13 @@ import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { getCondominio } from "@/lib/condominios.functions";
+import { getCondominio, updateCondominio } from "@/lib/condominios.functions";
 import { DocumentosPanel, useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { listConversas, deleteConversa } from "@/lib/chat.functions";
 import { listMembros, inviteMembro, removeMembro } from "@/lib/membros.functions";
 import { getProfile } from "@/lib/condominios.functions";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
@@ -23,13 +24,18 @@ export const Route = createFileRoute("/_authenticated/app/condominios/$id")({
 function CondominioDetail() {
   const { id } = Route.useParams();
   const fetchCondo = useServerFn(getCondominio);
+  const saveCondo = useServerFn(updateCondominio);
   const fetchConversas = useServerFn(listConversas);
   const removeConversa = useServerFn(deleteConversa);
   const fetchMembros = useServerFn(listMembros);
   const inviteFn = useServerFn(inviteMembro);
   const removeFn = useServerFn(removeMembro);
   const fetchProfile = useServerFn(getProfile);
-  const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null } | null>(null);
+  const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; owner_id?: string } | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [form, setForm] = useState({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: 0 });
   const [conversaAtiva, setConversaAtiva] = useState<string | null>(null);
   const [conversas, setConversas] = useState<Array<{ id: string; titulo: string | null; created_at: string }>>([]);
   const [membros, setMembros] = useState<Array<{ id: string; user_id: string; papel: string; nome: string | null; email: string | null }>>([]);
@@ -39,9 +45,30 @@ function CondominioDetail() {
   const hasReadyDocs = useHasReadyDocs(id);
 
   useEffect(() => {
-    fetchCondo({ data: { id } }).then((r) => setCondo(r as typeof condo)).catch(() => {});
-    fetchProfile().then((p) => setIsPJ(p?.tipo_pessoa === "pj")).catch(() => {});
+    fetchCondo({ data: { id } })
+      .then((r) => {
+        const row = r as typeof condo;
+        setCondo(row);
+        if (row) {
+          setForm({
+            nome: row.nome ?? "",
+            cnpj: row.cnpj ?? "",
+            endereco: row.endereco ?? "",
+            uf: row.uf ?? "",
+            qtd_unidades: row.qtd_unidades ?? 0,
+          });
+        }
+      })
+      .catch(() => {});
+    fetchProfile()
+      .then((p) => {
+        setIsPJ(p?.tipo_pessoa === "pj");
+        setProfileId(p?.id ?? null);
+      })
+      .catch(() => {});
   }, [fetchCondo, fetchProfile, id]);
+
+  const isOwner = !!profileId && !!condo?.owner_id && profileId === condo.owner_id;
 
   const refreshMembros = () => {
     fetchMembros({ data: { condominioId: id } })
@@ -152,10 +179,104 @@ function CondominioDetail() {
           </TabsContent>
           <TabsContent value="config">
             <div className="space-y-4">
-              <Card className="p-6 space-y-2">
-                <h3 className="font-semibold">Dados do condomínio</h3>
-                <p className="text-sm"><strong>CNPJ:</strong> {condo?.cnpj ?? "—"}</p>
-                <p className="text-sm"><strong>Endereço:</strong> {condo?.endereco ?? "—"}</p>
+              <Card className="p-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Dados do condomínio</h3>
+                  {isOwner && !editing && (
+                    <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                      Editar
+                    </Button>
+                  )}
+                </div>
+                {!isOwner && (
+                  <p className="text-xs text-muted-foreground">
+                    Apenas o dono do condomínio pode alterar estes dados.
+                  </p>
+                )}
+                {!editing ? (
+                  <div className="space-y-1.5 text-sm">
+                    <p><strong>Nome:</strong> {condo?.nome ?? "—"}</p>
+                    <p><strong>CNPJ:</strong> {condo?.cnpj ?? "—"}</p>
+                    <p><strong>Endereço:</strong> {condo?.endereco ?? "—"}</p>
+                    <p><strong>UF:</strong> {condo?.uf ?? "—"}</p>
+                    <p><strong>Unidades:</strong> {condo?.qtd_unidades ?? 0}</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <Label>Nome</Label>
+                      <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>CNPJ</Label>
+                      <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>UF</Label>
+                      <Input maxLength={2} value={form.uf} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} />
+                    </div>
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <Label>Endereço</Label>
+                      <Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Unidades</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={form.qtd_unidades}
+                        onChange={(e) => setForm({ ...form, qtd_unidades: Number(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="sm:col-span-2 flex gap-2 justify-end">
+                      <Button
+                        variant="ghost"
+                        disabled={savingEdit}
+                        onClick={() => {
+                          setEditing(false);
+                          if (condo) {
+                            setForm({
+                              nome: condo.nome ?? "",
+                              cnpj: condo.cnpj ?? "",
+                              endereco: condo.endereco ?? "",
+                              uf: condo.uf ?? "",
+                              qtd_unidades: condo.qtd_unidades ?? 0,
+                            });
+                          }
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        disabled={savingEdit}
+                        onClick={async () => {
+                          setSavingEdit(true);
+                          try {
+                            const saved = await saveCondo({
+                              data: {
+                                id,
+                                nome: form.nome.trim(),
+                                cnpj: form.cnpj.trim() || null,
+                                endereco: form.endereco.trim() || null,
+                                uf: form.uf.trim() ? form.uf.trim().toUpperCase() : null,
+                                qtd_unidades: form.qtd_unidades,
+                              },
+                            });
+                            setCondo(saved as typeof condo);
+                            setEditing(false);
+                            toast.success("Dados atualizados");
+                          } catch (e) {
+                            toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+                          } finally {
+                            setSavingEdit(false);
+                          }
+                        }}
+                      >
+                        {savingEdit ? "Salvando…" : "Salvar"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </Card>
 
               {isPJ && (
