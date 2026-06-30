@@ -61,10 +61,10 @@ function Landing() {
           Inteligência Jurídica para Condomínios
         </h1>
           <p className="mt-6 max-w-[600px] text-lg text-muted-foreground leading-relaxed">
-          Assistente de IA treinado em direito condominial brasileiro. Atas, notificações, contratos e pareceres em minutos.
+          Augusto responde, fundamenta e cita. Dois mil anos de Direito em forma de conversa.
         </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <Link to="/signup"><Button size="lg">Começar teste grátis de 7 dias <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+          <Link to="/signup"><Button size="lg">Pergunte ao Augusto <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
           <a href="#planos"><Button size="lg" variant="ghost">Ver planos</Button></a>
         </div>
           <p className="mt-4 text-xs text-muted-foreground">Sem cartão de crédito • Cancele quando quiser</p>
