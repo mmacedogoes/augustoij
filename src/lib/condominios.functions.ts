@@ -87,7 +87,7 @@ export const getProfile = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("profiles")
-      .select("id, nome, email, telefone, oab, tipo_pessoa, cpf_cnpj, razao_social, papel_sistema, perfil_atuacao, onboarding_completo, lgpd_aceite_em, created_at")
+      .select("id, nome, email, telefone, oab, tipo_pessoa, cpf_cnpj, razao_social, papel_sistema, perfil_atuacao, onboarding_completo, onboarding_tour_completo, dicas_ativas, lgpd_aceite_em, created_at")
       .eq("id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -106,4 +106,40 @@ export const getUsoMensal = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data ?? { total_mensagens: 0, total_tokens: 0 };
+  });
+
+export const setTourCompleto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ completo: z.boolean() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ onboarding_tour_completo: data.completo })
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const setDicasAtivas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ ativas: z.boolean() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ dicas_ativas: data.ativas })
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listDicas = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("dicas_sistema")
+      .select("id, texto, categoria, ordem")
+      .eq("ativo", true)
+      .order("ordem", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });
