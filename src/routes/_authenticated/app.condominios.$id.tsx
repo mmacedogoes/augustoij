@@ -203,6 +203,9 @@ function CondominioDetail() {
           <TabsContent value="documentos">
             <DocumentosPanel condominioId={id} />
           </TabsContent>
+          <TabsContent value="unidades">
+            <UnidadesPanel condominioId={id} isOwner={isOwner} />
+          </TabsContent>
           <TabsContent value="config">
             <div className="space-y-4">
               <Card className="p-6 space-y-3">
