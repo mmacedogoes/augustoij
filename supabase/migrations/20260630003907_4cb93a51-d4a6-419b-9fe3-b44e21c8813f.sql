@@ -1,0 +1,1 @@
+ALTER TABLE public.documentos ADD COLUMN IF NOT EXISTS titulo text;
