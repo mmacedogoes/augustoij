@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/Logo";
+import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Check, X } from "lucide-react";
 import { toast } from "sonner";
@@ -155,7 +155,7 @@ function SignupPage() {
   return (
     <div className="min-h-screen bg-[#0A1220] text-[#F4F5F7] flex flex-col items-center px-4 py-12">
       <Link to="/" className="flex justify-center mb-8">
-        <Logo variant="inverted" size="lg" />
+        <AugustoLogo variant="stacked" theme="dark" size={200} showTagline />
       </Link>
       <div className="w-full max-w-[440px] rounded-xl border border-[#1F2937] bg-[#0F1929] p-10 shadow-xl">
         <h1 className="text-2xl font-bold tracking-tight text-center">Criar conta</h1>

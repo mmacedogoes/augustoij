@@ -19,8 +19,7 @@ import {
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { Logo } from "@/components/Logo";
-import iconeAsset from "@/assets/condoia-icone.jpg.asset.json";
+import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { createConversa, listMensagens, extractAttachmentForChat } from "@/lib/chat.functions";
 import { getUploadUrl, createDocumento, processDocumento } from "@/lib/documentos.functions";
 import { Button } from "@/components/ui/button";
@@ -491,7 +490,7 @@ export function ChatPanel({
             </div>
           ) : messages.length === 0 ? (
             <ConversationEmptyState
-              icon={<Logo variant="principal" height={36} />}
+              icon={<AugustoLogo variant="icon-only" theme="light" size={64} />}
               title="Pergunte ao assistente"
               description={
                 inputEnabled
@@ -514,7 +513,7 @@ export function ChatPanel({
                   return (
                     <Message key={m.id} from={m.role} className="max-w-full">
                       <div className="flex gap-3 items-start">
-                        <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
+                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
                         <div className="flex-1 min-w-0">
                           <PerguntaEstruturada
                             dados={estruturada}
@@ -530,7 +529,7 @@ export function ChatPanel({
                   return (
                     <Message key={m.id} from={m.role} className="max-w-full">
                       <div className="flex gap-3 items-start">
-                        <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
+                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
                         <div className="flex-1 min-w-0 text-sm text-muted-foreground italic">
                           Preparando opções…
                         </div>
@@ -541,7 +540,7 @@ export function ChatPanel({
                 return (
                   <Message key={m.id} from={m.role} className="max-w-full">
                     <div className="flex gap-3 items-start">
-                      <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
+                      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
                       <div className="flex-1 min-w-0">
                         <MessageContent>
                           <MessageResponse>{sq!.visible}</MessageResponse>
