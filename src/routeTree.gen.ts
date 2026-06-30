@@ -27,6 +27,7 @@ import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_
 import { Route as AuthenticatedAppAjudaIndexRouteImport } from './routes/_authenticated/app.ajuda.index'
 import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authenticated/app.admin.index'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
+import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
 import { Route as AuthenticatedAppAjudaDicasIaRouteImport } from './routes/_authenticated/app.ajuda.dicas-ia'
 import { Route as AuthenticatedAppAdminUsuariosRouteImport } from './routes/_authenticated/app.admin.usuarios'
 import { Route as AuthenticatedAppAdminTreinamentoRouteImport } from './routes/_authenticated/app.admin.treinamento'
@@ -129,6 +130,12 @@ const AuthenticatedAppCondominiosIdRoute =
     path: '/app/condominios/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppAjudaFaqRoute =
+  AuthenticatedAppAjudaFaqRouteImport.update({
+    id: '/faq',
+    path: '/faq',
+    getParentRoute: () => AuthenticatedAppAjudaRoute,
+  } as any)
 const AuthenticatedAppAjudaDicasIaRoute =
   AuthenticatedAppAjudaDicasIaRouteImport.update({
     id: '/dicas-ia',
@@ -200,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/treinamento': typeof AuthenticatedAppAdminTreinamentoRoute
   '/app/admin/usuarios': typeof AuthenticatedAppAdminUsuariosRoute
   '/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
+  '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
@@ -225,6 +233,7 @@ export interface FileRoutesByTo {
   '/app/admin/treinamento': typeof AuthenticatedAppAdminTreinamentoRoute
   '/app/admin/usuarios': typeof AuthenticatedAppAdminUsuariosRoute
   '/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
+  '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/app/admin': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda': typeof AuthenticatedAppAjudaIndexRoute
@@ -254,6 +263,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/treinamento': typeof AuthenticatedAppAdminTreinamentoRoute
   '/_authenticated/app/admin/usuarios': typeof AuthenticatedAppAdminUsuariosRoute
   '/_authenticated/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
+  '/_authenticated/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/_authenticated/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/app/admin/treinamento'
     | '/app/admin/usuarios'
     | '/app/ajuda/dicas-ia'
+    | '/app/ajuda/faq'
     | '/app/condominios/$id'
     | '/app/admin/'
     | '/app/ajuda/'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/app/admin/treinamento'
     | '/app/admin/usuarios'
     | '/app/ajuda/dicas-ia'
+    | '/app/ajuda/faq'
     | '/app/condominios/$id'
     | '/app/admin'
     | '/app/ajuda'
@@ -336,6 +348,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/treinamento'
     | '/_authenticated/app/admin/usuarios'
     | '/_authenticated/app/ajuda/dicas-ia'
+    | '/_authenticated/app/ajuda/faq'
     | '/_authenticated/app/condominios/$id'
     | '/_authenticated/app/admin/'
     | '/_authenticated/app/ajuda/'
@@ -482,6 +495,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCondominiosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/ajuda/faq': {
+      id: '/_authenticated/app/ajuda/faq'
+      path: '/faq'
+      fullPath: '/app/ajuda/faq'
+      preLoaderRoute: typeof AuthenticatedAppAjudaFaqRouteImport
+      parentRoute: typeof AuthenticatedAppAjudaRoute
+    }
     '/_authenticated/app/ajuda/dicas-ia': {
       id: '/_authenticated/app/ajuda/dicas-ia'
       path: '/dicas-ia'
@@ -570,11 +590,13 @@ const AuthenticatedAppAdminRouteWithChildren =
 
 interface AuthenticatedAppAjudaRouteChildren {
   AuthenticatedAppAjudaDicasIaRoute: typeof AuthenticatedAppAjudaDicasIaRoute
+  AuthenticatedAppAjudaFaqRoute: typeof AuthenticatedAppAjudaFaqRoute
   AuthenticatedAppAjudaIndexRoute: typeof AuthenticatedAppAjudaIndexRoute
 }
 
 const AuthenticatedAppAjudaRouteChildren: AuthenticatedAppAjudaRouteChildren = {
   AuthenticatedAppAjudaDicasIaRoute: AuthenticatedAppAjudaDicasIaRoute,
+  AuthenticatedAppAjudaFaqRoute: AuthenticatedAppAjudaFaqRoute,
   AuthenticatedAppAjudaIndexRoute: AuthenticatedAppAjudaIndexRoute,
 }
 
