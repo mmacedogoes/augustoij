@@ -253,6 +253,66 @@ export type Database = {
         }
         Relationships: []
       }
+      condominos: {
+        Row: {
+          condominio_id: string
+          cpf: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          principal: boolean
+          telefone: string | null
+          tipo: Database["public"]["Enums"]["tipo_condomino"]
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          condominio_id: string
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          principal?: boolean
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_condomino"]
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          condominio_id?: string
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          principal?: boolean
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_condomino"]
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condominos_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "condominos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversas: {
         Row: {
           condominio_id: string
@@ -814,6 +874,56 @@ export type Database = {
           },
         ]
       }
+      unidades: {
+        Row: {
+          area_m2: number | null
+          bloco: string | null
+          condominio_id: string
+          created_at: string
+          fracao_ideal: number | null
+          id: string
+          numero: string
+          observacoes: string | null
+          tipo: Database["public"]["Enums"]["tipo_unidade"]
+          updated_at: string
+          vagas_garagem: number | null
+        }
+        Insert: {
+          area_m2?: number | null
+          bloco?: string | null
+          condominio_id: string
+          created_at?: string
+          fracao_ideal?: number | null
+          id?: string
+          numero: string
+          observacoes?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_unidade"]
+          updated_at?: string
+          vagas_garagem?: number | null
+        }
+        Update: {
+          area_m2?: number | null
+          bloco?: string | null
+          condominio_id?: string
+          created_at?: string
+          fracao_ideal?: number | null
+          id?: string
+          numero?: string
+          observacoes?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_unidade"]
+          updated_at?: string
+          vagas_garagem?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unidades_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       uso_mensal: {
         Row: {
           custo_estimado_brl: number
@@ -954,6 +1064,11 @@ export type Database = {
         | "conselheiro"
         | "outro"
       plano_assinatura: "solo" | "pro" | "administradora"
+      tipo_condomino:
+        | "proprietario"
+        | "inquilino"
+        | "morador"
+        | "responsavel_legal"
       tipo_documento:
         | "convencao"
         | "regimento"
@@ -965,6 +1080,13 @@ export type Database = {
         | "prestacao_contas"
         | "comunicado"
       tipo_pessoa: "pf" | "pj"
+      tipo_unidade:
+        | "apartamento"
+        | "casa"
+        | "sala_comercial"
+        | "loja"
+        | "vaga_avulsa"
+        | "outro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1121,6 +1243,12 @@ export const Constants = {
         "outro",
       ],
       plano_assinatura: ["solo", "pro", "administradora"],
+      tipo_condomino: [
+        "proprietario",
+        "inquilino",
+        "morador",
+        "responsavel_legal",
+      ],
       tipo_documento: [
         "convencao",
         "regimento",
@@ -1133,6 +1261,14 @@ export const Constants = {
         "comunicado",
       ],
       tipo_pessoa: ["pf", "pj"],
+      tipo_unidade: [
+        "apartamento",
+        "casa",
+        "sala_comercial",
+        "loja",
+        "vaga_avulsa",
+        "outro",
+      ],
     },
   },
 } as const
