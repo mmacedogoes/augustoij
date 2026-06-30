@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AjudaShell } from "@/components/ajuda/AjudaShell";
 
 export const Route = createFileRoute("/_authenticated/app/ajuda/$secao")({
   component: SecaoGenerica,
