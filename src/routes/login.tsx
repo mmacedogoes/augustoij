@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/Logo";
+import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -51,7 +51,7 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-[420px]">
         <Link to="/" className="flex justify-center mb-8">
-          <Logo variant="default" height={300} />
+          <AugustoLogo variant="stacked" theme="light" size={220} showTagline />
         </Link>
         <h1 className="text-3xl font-serif font-medium text-foreground tracking-tight text-center">Bem-vindo</h1>
         <p className="mt-2 text-sm text-muted-foreground text-center">Entre para conversar com o Augusto.</p>
