@@ -19,8 +19,7 @@ import {
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { Logo } from "@/components/Logo";
-import iconeAsset from "@/assets/condoia-icone.jpg.asset.json";
+import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { createConversa, listMensagens, extractAttachmentForChat } from "@/lib/chat.functions";
 import { getUploadUrl, createDocumento, processDocumento } from "@/lib/documentos.functions";
 import { Button } from "@/components/ui/button";
@@ -491,7 +490,7 @@ export function ChatPanel({
             </div>
           ) : messages.length === 0 ? (
             <ConversationEmptyState
-              icon={<Logo variant="principal" height={36} />}
+              icon={<AugustoLogo variant="icon-only" theme="light" size={64} />}
               title="Pergunte ao assistente"
               description={
                 inputEnabled
