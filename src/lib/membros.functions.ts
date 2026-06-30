@@ -70,3 +70,86 @@ export const removeMembro = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Cria um novo usuário operador (cliente_pj_operador) e o vincula como
+ * operador do condomínio informado. Disponível apenas para o dono do
+ * condomínio (tipicamente uma conta PJ).
+ */
+export const createOperadorPJ = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        condominioId: z.string().uuid(),
+        nome: z.string().trim().min(2).max(120),
+        email: z.string().email().max(255),
+        password: z
+          .string()
+          .min(8, "Senha deve ter no mínimo 8 caracteres")
+          .max(72)
+          .regex(/[A-Za-z]/, "Inclua ao menos uma letra")
+          .regex(/[0-9]/, "Inclua ao menos um número"),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: condo } = await context.supabase
+      .from("condominios")
+      .select("owner_id")
+      .eq("id", data.condominioId)
+      .maybeSingle();
+    if (!condo || condo.owner_id !== context.userId) {
+      throw new Error("Apenas o dono do condomínio pode criar operadores.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const emailNorm = data.email.toLowerCase().trim();
+
+    // Reaproveita conta se já existir
+    const { data: existing } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .ilike("email", emailNorm)
+      .maybeSingle();
+
+    let userId = existing?.id ?? null;
+    if (!userId) {
+      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+        email: emailNorm,
+        password: data.password,
+        email_confirm: true,
+        user_metadata: { nome: data.nome },
+      });
+      if (error) throw new Error(error.message);
+      userId = created?.user?.id ?? null;
+      if (!userId) throw new Error("Falha ao criar operador.");
+
+      await supabaseAdmin
+        .from("profiles")
+        .upsert(
+          {
+            id: userId,
+            email: emailNorm,
+            nome: data.nome,
+            papel_sistema: "cliente_pj_operador",
+            onboarding_completo: true,
+          },
+          { onConflict: "id" },
+        );
+    }
+
+    // Vincula como operador do condomínio (ignora se já é membro)
+    const { error: linkErr } = await supabaseAdmin
+      .from("condominio_members")
+      .insert({
+        condominio_id: data.condominioId,
+        user_id: userId,
+        papel: "operador_condominio",
+      });
+    if (linkErr && !/duplicate|unique/i.test(linkErr.message)) {
+      throw new Error(linkErr.message);
+    }
+
+    return { ok: true, userId, reused: !!existing };
+  });
