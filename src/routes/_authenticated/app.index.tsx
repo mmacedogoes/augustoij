@@ -74,7 +74,7 @@ function HomePage() {
           <div className="flex items-center gap-2">
             {condos.length > 0 && (
               <Select value={activeCondoId ?? undefined} onValueChange={(v) => setActiveCondoId(v)}>
-                <SelectTrigger className="w-[240px]">
+                <SelectTrigger className="w-[240px]" data-tour="seletor-condominio">
                   <SelectValue placeholder="Selecione um condomínio" />
                 </SelectTrigger>
                 <SelectContent>
@@ -105,7 +105,7 @@ function HomePage() {
             </Link>
           </Card>
         ) : (
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 flex flex-col" data-tour="chat-box">
             <ChatPanel
               key={chatKey}
               condominioId={activeCondo.id}
