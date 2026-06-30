@@ -12,10 +12,36 @@ export const listKbDocumentos = createServerFn({ method: "GET" })
     await ensureAdmin(context);
     const { data, error } = await context.supabase
       .from("kb_documentos")
-      .select("id, titulo, tipo, fonte, url, status_processamento, created_at")
+      .select("id, titulo, tipo, fonte, url, storage_path, status_processamento, created_at")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
+  });
+
+/**
+ * Gera uma URL assinada (curta duração) para visualizar o arquivo
+ * original de um item da Base de Conhecimento em uma nova aba.
+ */
+export const getKbFileUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { data: doc, error } = await context.supabase
+      .from("kb_documentos")
+      .select("id, url, storage_path")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!doc) throw new Error("Documento não encontrado");
+    if (doc.url) return { url: doc.url, kind: "external" as const };
+    if (!doc.storage_path) throw new Error("Este item não possui arquivo (somente texto).");
+    const { data: signed, error: sErr } = await context.supabase
+      .storage
+      .from(BUCKET)
+      .createSignedUrl(doc.storage_path, 60 * 10);
+    if (sErr || !signed) throw new Error(sErr?.message ?? "Falha ao gerar URL");
+    return { url: signed.signedUrl, kind: "signed" as const };
   });
 
 export const getKbUploadUrl = createServerFn({ method: "POST" })

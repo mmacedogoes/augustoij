@@ -171,8 +171,10 @@ function CondominioDetail() {
                       size="sm"
                       variant="outline"
                       onClick={() => {
+                        console.log("[historico] abrir conversa", c.id);
                         setConversaAtiva(c.id);
-                        setChatKey(c.id);
+                        // Sempre único: força remount mesmo se reabrindo a mesma.
+                        setChatKey(`${c.id}-${Date.now()}`);
                         setTab("chat");
                       }}
                     >
