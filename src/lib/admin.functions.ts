@@ -287,3 +287,74 @@ export const adminCreateUser = createServerFn({ method: "POST" })
 
     return { ok: true, userId: newUserId };
   });
+
+/**
+ * Bloco 6 — Desativa (ou reativa) um usuário.
+ * Mantém todos os dados; bloqueia o login via Supabase Auth (`ban_duration`)
+ * e marca `profiles.ativo = false`.
+ */
+export const setUserAtivo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      userId: z.string().uuid(),
+      ativo: z.boolean(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    if (data.userId === context.userId && !data.ativo) {
+      throw new Error("Você não pode desativar a própria conta.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Se for desativar um super_admin, garante que sobre pelo menos um ativo.
+    if (!data.ativo) {
+      const { data: alvo } = await supabaseAdmin
+        .from("profiles")
+        .select("papel_sistema")
+        .eq("id", data.userId)
+        .maybeSingle();
+      if (alvo?.papel_sistema === "super_admin") {
+        const { count } = await supabaseAdmin
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("papel_sistema", "super_admin")
+          .eq("ativo", true);
+        if ((count ?? 0) <= 1) {
+          throw new Error("Não é possível desativar o último super administrador ativo.");
+        }
+      }
+    }
+
+    // 1) Atualiza flag no perfil
+    const { error: upErr } = await supabaseAdmin
+      .from("profiles")
+      .update({ ativo: data.ativo })
+      .eq("id", data.userId);
+    if (upErr) throw new Error(upErr.message);
+
+    // 2) Bloqueia/desbloqueia o login via Auth admin
+    try {
+      // 100 anos ≈ desativação permanente; "none" reabilita.
+      const ban_duration = data.ativo ? "none" : "876000h";
+      await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+        // @ts-expect-error - ban_duration aceita string mesmo sem typings completos
+        ban_duration,
+      });
+    } catch (e) {
+      console.warn("[setUserAtivo] auth.updateUserById falhou:", e);
+    }
+
+    const { ip, ua } = getAuditContext();
+    await supabaseAdmin.from("admin_audit_log").insert({
+      actor_user_id: context.userId,
+      action: data.ativo ? "user.activate" : "user.deactivate",
+      target_user_id: data.userId,
+      metadata: { ativo: data.ativo },
+      ip_address: ip,
+      user_agent: ua,
+    });
+
+    return { ok: true };
+  });
