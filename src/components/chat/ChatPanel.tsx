@@ -34,6 +34,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  PerguntaEstruturada,
+  tryParsePerguntaEstruturada,
+} from "@/components/chat/PerguntaEstruturada";
 
 type Props = {
   condominioId: string;
@@ -478,25 +482,42 @@ export function ChatPanel({
                 .map((p) => (p.type === "text" ? p.text : ""))
                 .join("");
               if (m.role === "assistant") {
-                const sq = extractStructuredQuestion(text);
+                const estruturada = tryParsePerguntaEstruturada(text);
+                const sq = estruturada ? null : extractStructuredQuestion(text);
                 const isLast = idx === messages.length - 1;
+                if (estruturada) {
+                  return (
+                    <Message key={m.id} from={m.role} className="max-w-full">
+                      <div className="flex gap-3 items-start">
+                        <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <PerguntaEstruturada
+                            dados={estruturada}
+                            disabled={!isLast || isLoading}
+                            onResponder={(t) => handleSubmit({ text: t })}
+                          />
+                        </div>
+                      </div>
+                    </Message>
+                  );
+                }
                 return (
                   <Message key={m.id} from={m.role} className="max-w-full">
                     <div className="flex gap-3 items-start">
                       <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <MessageContent>
-                          <MessageResponse>{sq.visible}</MessageResponse>
+                          <MessageResponse>{sq!.visible}</MessageResponse>
                         </MessageContent>
-                        {isLast && !isLoading && sq.opcoes.length > 0 && (
+                        {isLast && !isLoading && sq!.opcoes.length > 0 && (
                           <div className="mt-3 space-y-2">
-                            {sq.pergunta && (
+                            {sq!.pergunta && (
                               <p className="text-xs font-medium text-muted-foreground">
-                                {sq.pergunta}
+                                {sq!.pergunta}
                               </p>
                             )}
                             <div className="flex flex-wrap gap-2">
-                              {sq.opcoes.map((op) => (
+                              {sq!.opcoes.map((op) => (
                                 <Button
                                   key={op}
                                   size="sm"
