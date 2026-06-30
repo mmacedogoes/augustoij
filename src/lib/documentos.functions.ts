@@ -10,14 +10,24 @@ export const listDocumentos = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("documentos")
-      .select("id, nome_arquivo, tipo, status_processamento, created_at")
+      .select("id, nome_arquivo, titulo, tipo, status_processamento, storage_path, created_at")
       .eq("condominio_id", data.condominioId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
 
-const tipoEnum = z.enum(["convencao", "regimento", "ata", "contrato", "outro"]);
+const tipoEnum = z.enum([
+  "convencao",
+  "regimento",
+  "ata",
+  "contrato",
+  "laudo_tecnico",
+  "previsao_orcamentaria",
+  "prestacao_contas",
+  "comunicado",
+  "outro",
+]);
 
 export const createDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -26,6 +36,7 @@ export const createDocumento = createServerFn({ method: "POST" })
       .object({
         condominioId: z.string().uuid(),
         nomeArquivo: z.string().min(1).max(255),
+        titulo: z.string().trim().min(1).max(120).optional().nullable(),
         tipo: tipoEnum,
         storagePath: z.string().min(1),
       })
@@ -37,6 +48,7 @@ export const createDocumento = createServerFn({ method: "POST" })
       .insert({
         condominio_id: data.condominioId,
         nome_arquivo: data.nomeArquivo,
+        titulo: data.titulo ?? null,
         tipo: data.tipo,
         storage_path: data.storagePath,
         status_processamento: "processando",
@@ -179,4 +191,22 @@ export const getUploadUrl = createServerFn({ method: "POST" })
       .createSignedUploadUrl(path);
     if (error) throw new Error(error.message);
     return { path, token: signed.token, signedUrl: signed.signedUrl };
+  });
+
+export const getDocumentoViewUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: doc, error } = await context.supabase
+      .from("documentos")
+      .select("id, storage_path, nome_arquivo")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!doc) throw new Error("Documento não encontrado");
+    const { data: signed, error: sErr } = await context.supabase.storage
+      .from(BUCKET)
+      .createSignedUrl(doc.storage_path, 3600);
+    if (sErr) throw new Error(sErr.message);
+    return { url: signed.signedUrl, nome: doc.nome_arquivo };
   });
