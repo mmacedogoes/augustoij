@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Brain, ShieldCheck, FileText, Scale, MessagesSquare, Gavel, Calculator, Check, ArrowRight } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -53,7 +54,7 @@ function Landing() {
       {/* Hero */}
       <section className="px-4 py-16 md:py-24 text-center">
         <div className="mx-auto max-w-[800px] flex flex-col items-center">
-          <Logo variant="default" height={300} className="mb-10" />
+          <AugustoLogo variant="stacked" theme="light" size={260} showTagline className="mb-10" />
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground tracking-wide uppercase">
             <Brain className="h-3.5 w-3.5" strokeWidth={1.5} /> Inteligência Jurídica para Condomínios
           </div>
@@ -168,7 +169,7 @@ function Landing() {
         <div className="mx-auto max-w-6xl px-4 flex flex-col gap-4 text-sm text-muted-foreground">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
-            <Logo variant="icon" size="sm" />
+            <AugustoLogo variant="icon-only" theme="light" size={64} />
             <span className="text-xs text-muted-foreground">© {new Date().getFullYear()} Augusto.IJ · Inteligência Jurídica para Condomínios</span>
           </div>
           <div className="flex gap-4">
