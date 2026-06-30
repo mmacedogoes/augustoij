@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, Pencil, Upload, Users, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Upload, Users, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import {
   listUnidades,
@@ -97,6 +97,7 @@ export function UnidadesPanel({
   const [saving, setSaving] = useState(false);
   const [openCond, setOpenCond] = useState<Unidade | null>(null);
   const [openImport, setOpenImport] = useState(false);
+  const [openView, setOpenView] = useState<Unidade | null>(null);
 
   function refresh() {
     setLoading(true);
@@ -208,8 +209,13 @@ export function UnidadesPanel({
         <Card className="divide-y">
           {unidades.map((u) => (
             <div key={u.id} className="p-4 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium">{formatLabel(u)}</p>
+              <button
+                type="button"
+                onClick={() => setOpenView(u)}
+                className="flex-1 min-w-0 text-left hover:bg-muted/30 -m-2 p-2 rounded transition-colors"
+                title="Ver detalhes da unidade"
+              >
+                <p className="font-medium text-primary hover:underline">{formatLabel(u)}</p>
                 <p className="text-xs text-muted-foreground">
                   {labelTipoUnidade(u.tipo)}
                   {u.area_m2 ? ` • ${u.area_m2} m²` : ""}
@@ -219,7 +225,10 @@ export function UnidadesPanel({
                 <p className="text-xs text-muted-foreground mt-1">
                   {(u.condominos?.length ?? 0)} condômino(s)
                 </p>
-              </div>
+              </button>
+              <Button size="sm" variant="ghost" onClick={() => setOpenView(u)}>
+                <Eye className="h-4 w-4 mr-1" /> Ver
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setOpenCond(u)}>
                 <Users className="h-4 w-4 mr-1" /> Condôminos
               </Button>
@@ -285,6 +294,24 @@ export function UnidadesPanel({
               condominosCriados: number;
               erros: { linha: number; mensagem: string }[];
             };
+          }}
+        />
+      )}
+
+      {openView && (
+        <VisualizarUnidadeDialog
+          unidade={openView}
+          isOwner={isOwner}
+          onClose={() => setOpenView(null)}
+          onEdit={() => {
+            const u = openView;
+            setOpenView(null);
+            openEdit(u);
+          }}
+          onGerenciarCondominos={() => {
+            const u = openView;
+            setOpenView(null);
+            setOpenCond(u);
           }}
         />
       )}
