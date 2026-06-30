@@ -160,16 +160,58 @@ export const setUserRole = createServerFn({ method: "POST" })
 
 export const listAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ limit: z.number().int().min(1).max(200).default(100) }).parse(input))
+  .inputValidator((input) =>
+    z
+      .object({
+        limit: z.number().int().min(1).max(500).default(100),
+        action: z.string().trim().max(80).default(""),
+        search: z.string().trim().max(120).default(""),
+        sinceDays: z.number().int().min(1).max(365).optional(),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
-    const { data: rows, error } = await context.supabase
+    let q = context.supabase
       .from("admin_audit_log")
       .select("id, actor_user_id, action, target_user_id, target_condominio_id, target_kb_id, metadata, ip_address, user_agent, created_at")
       .order("created_at", { ascending: false })
       .limit(data.limit);
+    if (data.action) q = q.eq("action", data.action);
+    if (data.sinceDays) {
+      const since = new Date(Date.now() - data.sinceDays * 86400_000).toISOString();
+      q = q.gte("created_at", since);
+    }
+    if (data.search) {
+      // busca em IP ou em metadados (texto)
+      q = q.or(`ip_address.ilike.%${data.search}%,metadata::text.ilike.%${data.search}%`);
+    }
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const list = rows ?? [];
+    const userIds = Array.from(
+      new Set(
+        list
+          .flatMap((r) => [r.actor_user_id, r.target_user_id])
+          .filter((x): x is string => !!x),
+      ),
+    );
+    let profiles: Record<string, { nome: string | null; email: string | null }> = {};
+    if (userIds.length > 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, nome, email")
+        .in("id", userIds);
+      profiles = Object.fromEntries(
+        (profs ?? []).map((p) => [p.id, { nome: p.nome ?? null, email: p.email ?? null }]),
+      );
+    }
+    return list.map((r) => ({
+      ...r,
+      actor: profiles[r.actor_user_id] ?? null,
+      target_user: r.target_user_id ? profiles[r.target_user_id] ?? null : null,
+    }));
   });
 
 /**
