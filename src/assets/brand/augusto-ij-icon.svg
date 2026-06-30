@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ============================================================
+  Augusto.IJ — Ícone Canônico
+  ============================================================
+  Identidade Visual Oficial — Inteligência Jurídica para Condomínios
+
+  Construção geométrica:
+  - 3 semicírculos justapostos (raio 30, centros em x=30, 90, 150)
+  - Linha superior alinhada à largura total dos arcos (x=0 a x=180)
+  - Distância da linha ao topo dos arcos: 3 unidades (respiro mínimo)
+  - Ponto dourado: raio 5, centrado no arco do meio
+
+  Cores oficiais:
+  - Verde Floresta:  #00512B (linework principal)
+  - Dourado Fosco:   #B8935A (ponto central)
+
+  Versão: 1.0 — Canônica
+  ============================================================
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 200 60"
+     width="200"
+     height="60"
+     fill="none"
+     role="img"
+     aria-label="Augusto.IJ — Inteligência Jurídica para Condomínios">
+
+  <title>Augusto.IJ</title>
+  <desc>Três semicírculos justapostos sob linha horizontal com ponto dourado central — símbolo do aqueduto romano reinterpretado para inteligência jurídica condominial.</desc>
+
+  <!-- ============================================================
+       LINHA SUPERIOR (canal do aqueduto)
+       De x=10 a x=190, em y=12 (respiro mínimo de 2 unidades acima do topo)
+       ============================================================ -->
+  <line x1="10" y1="12"
+        x2="190" y2="12"
+        stroke="#00512B"
+        stroke-width="1.5"
+        stroke-linecap="round"/>
+
+  <!-- ============================================================
+       TRÊS SEMICÍRCULOS JUSTAPOSTOS
+       Raio = 30, base em y=44, topo em y=14
+       Arco 1: centro x=40,  inicia em (10, 44),  termina em (70, 44)
+       Arco 2: centro x=100, inicia em (70, 44),  termina em (130, 44)
+       Arco 3: centro x=160, inicia em (130, 44), termina em (190, 44)
+
+       Endpoints compartilhados — zero espaçamento entre arcos
+       ============================================================ -->
+  <path d="M 10 44
+           A 30 30 0 0 1 70 44
+           A 30 30 0 0 1 130 44
+           A 30 30 0 0 1 190 44"
+        stroke="#00512B"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+
+  <!-- ============================================================
+       PONTO DOURADO CENTRAL
+       Posicionado no centro geométrico do arco do meio
+       Coordenadas: cx=100, cy=29 (centro vertical do espaço negativo do semicírculo)
+       Raio: 5
+       ============================================================ -->
+  <circle cx="100" cy="29"
+          r="5"
+          fill="#B8935A"/>
+
+</svg>

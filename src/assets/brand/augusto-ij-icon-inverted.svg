@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ============================================================
+  Augusto.IJ — Ícone Canônico (Versão Invertida)
+  ============================================================
+  Para uso em fundos escuros: dark mode, papelaria premium,
+  envelopes, capas, redes sociais com fundo verde.
+
+  Construção geométrica IDÊNTICA à versão principal:
+  - 3 semicírculos justapostos (raio 30, centros em x=40, 100, 160)
+  - Linha superior de x=10 a x=190, em y=11
+  - Ponto dourado: raio 5, centro em (100, 32)
+
+  Cores oficiais (invertidas):
+  - Off-white:      #F4F3F2 (linework principal)
+  - Dourado Fosco:  #B8935A (ponto central - mantém)
+  - Fundo:          #00512B (Verde Floresta)
+
+  Versão: 1.0 — Canônica Invertida
+  ============================================================
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 200 60"
+     width="200"
+     height="60"
+     fill="none"
+     role="img"
+     aria-label="Augusto.IJ — Inteligência Jurídica para Condomínios">
+
+  <title>Augusto.IJ (invertido)</title>
+  <desc>Versão invertida do ícone Augusto.IJ para fundos escuros — três semicírculos justapostos em off-white sob linha horizontal com ponto dourado central.</desc>
+
+  <!-- FUNDO VERDE FLORESTA -->
+  <rect x="0" y="0" width="200" height="60" fill="#00512B"/>
+
+  <!-- LINHA SUPERIOR -->
+  <line x1="10" y1="12"
+        x2="190" y2="12"
+        stroke="#F4F3F2"
+        stroke-width="1.5"
+        stroke-linecap="round"/>
+
+  <!-- TRÊS SEMICÍRCULOS JUSTAPOSTOS -->
+  <path d="M 10 44
+           A 30 30 0 0 1 70 44
+           A 30 30 0 0 1 130 44
+           A 30 30 0 0 1 190 44"
+        stroke="#F4F3F2"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+
+  <!-- PONTO DOURADO CENTRAL -->
+  <circle cx="100" cy="29"
+          r="5"
+          fill="#B8935A"/>
+
+</svg>
