@@ -66,9 +66,9 @@ function HomePage() {
         <header className="flex flex-wrap items-end justify-between gap-3 pb-4">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">
-              Olá{nome ? `, ${nome}` : ""}!
+              Bom dia{nome ? `, ${nome}` : ""}.
               <br />
-              Como o Augusto.IJ pode te ajudar hoje?
+              Em que o Augusto pode ajudar?
             </h1>
           </div>
           <div className="flex items-center gap-2">
