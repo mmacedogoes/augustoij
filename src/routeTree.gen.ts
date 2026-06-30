@@ -37,6 +37,7 @@ import { Route as AuthenticatedAppAdminFinanceiroRouteImport } from './routes/_a
 import { Route as AuthenticatedAppAdminCondominiosRouteImport } from './routes/_authenticated/app.admin.condominios'
 import { Route as AuthenticatedAppAdminBlogRouteImport } from './routes/_authenticated/app.admin.blog'
 import { Route as AuthenticatedAppAdminAuditoriaRouteImport } from './routes/_authenticated/app.admin.auditoria'
+import { Route as AuthenticatedAppAjudaPerfilPerfilRouteImport } from './routes/_authenticated/app.ajuda.perfil.$perfil'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -191,6 +192,12 @@ const AuthenticatedAppAdminAuditoriaRoute =
     path: '/auditoria',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
+const AuthenticatedAppAjudaPerfilPerfilRoute =
+  AuthenticatedAppAjudaPerfilPerfilRouteImport.update({
+    id: '/perfil/$perfil',
+    path: '/perfil/$perfil',
+    getParentRoute: () => AuthenticatedAppAjudaRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -220,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -247,6 +255,7 @@ export interface FileRoutesByTo {
   '/app/admin': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -278,6 +287,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/_authenticated/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/_authenticated/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/app/admin/'
     | '/app/ajuda/'
     | '/app/condominios/'
+    | '/app/ajuda/perfil/$perfil'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -336,6 +347,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/ajuda'
     | '/app/condominios'
+    | '/app/ajuda/perfil/$perfil'
   id:
     | '__root__'
     | '/'
@@ -366,6 +378,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/'
     | '/_authenticated/app/ajuda/'
     | '/_authenticated/app/condominios/'
+    | '/_authenticated/app/ajuda/perfil/$perfil'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -578,6 +591,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminAuditoriaRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
+    '/_authenticated/app/ajuda/perfil/$perfil': {
+      id: '/_authenticated/app/ajuda/perfil/$perfil'
+      path: '/perfil/$perfil'
+      fullPath: '/app/ajuda/perfil/$perfil'
+      preLoaderRoute: typeof AuthenticatedAppAjudaPerfilPerfilRouteImport
+      parentRoute: typeof AuthenticatedAppAjudaRoute
+    }
   }
 }
 
@@ -613,6 +633,7 @@ interface AuthenticatedAppAjudaRouteChildren {
   AuthenticatedAppAjudaDicasIaRoute: typeof AuthenticatedAppAjudaDicasIaRoute
   AuthenticatedAppAjudaFaqRoute: typeof AuthenticatedAppAjudaFaqRoute
   AuthenticatedAppAjudaIndexRoute: typeof AuthenticatedAppAjudaIndexRoute
+  AuthenticatedAppAjudaPerfilPerfilRoute: typeof AuthenticatedAppAjudaPerfilPerfilRoute
 }
 
 const AuthenticatedAppAjudaRouteChildren: AuthenticatedAppAjudaRouteChildren = {
@@ -620,6 +641,8 @@ const AuthenticatedAppAjudaRouteChildren: AuthenticatedAppAjudaRouteChildren = {
   AuthenticatedAppAjudaDicasIaRoute: AuthenticatedAppAjudaDicasIaRoute,
   AuthenticatedAppAjudaFaqRoute: AuthenticatedAppAjudaFaqRoute,
   AuthenticatedAppAjudaIndexRoute: AuthenticatedAppAjudaIndexRoute,
+  AuthenticatedAppAjudaPerfilPerfilRoute:
+    AuthenticatedAppAjudaPerfilPerfilRoute,
 }
 
 const AuthenticatedAppAjudaRouteWithChildren =
