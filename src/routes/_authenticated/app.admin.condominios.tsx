@@ -1,9 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 import { listCondominiosAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/condominios")({
@@ -55,6 +57,15 @@ function Page() {
                 <div className="text-xs text-muted-foreground">
                   Criado em {new Date(c.created_at).toLocaleDateString("pt-BR")}
                 </div>
+                <Link
+                  to="/app/condominios/$id"
+                  params={{ id: c.id }}
+                  search={{ admin_view: 1 }}
+                >
+                  <Button size="sm" variant="outline">
+                    <Eye className="h-4 w-4 mr-1" /> Visualizar
+                  </Button>
+                </Link>
               </div>
             ))
           )}

@@ -4,16 +4,55 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const listConversas = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ condominioId: z.string().uuid() }).parse(input))
+  .inputValidator((input) =>
+    z
+      .object({
+        condominioId: z.string().uuid(),
+        /** Quando true e o solicitante é admin, lista as conversas de TODOS
+         * os membros do condomínio (modo visualizador admin — Bloco 7). */
+        adminView: z.boolean().optional().default(false),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    let query = context.supabase
       .from("conversas")
-      .select("id, titulo, created_at")
+      .select("id, titulo, created_at, user_id")
       .eq("condominio_id", data.condominioId)
-      .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
+
+    let isAdmin = false;
+    if (data.adminView) {
+      const { data: hr } = await context.supabase.rpc("has_role", {
+        _user_id: context.userId,
+        _role: "admin",
+      });
+      isAdmin = !!hr;
+    }
+    if (!isAdmin) {
+      query = query.eq("user_id", context.userId);
+    }
+
+    const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    if (!rows || rows.length === 0) return [];
+
+    // Em modo admin, anexa nome/email do autor a cada conversa.
+    if (isAdmin) {
+      const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean)));
+      if (userIds.length === 0) return rows;
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, nome, email")
+        .in("id", userIds);
+      const byId = Object.fromEntries((profs ?? []).map((p) => [p.id, p]));
+      return rows.map((r) => ({
+        ...r,
+        autor: byId[r.user_id] ?? null,
+      }));
+    }
+    return rows;
   });
 
 export const createConversa = createServerFn({ method: "POST" })

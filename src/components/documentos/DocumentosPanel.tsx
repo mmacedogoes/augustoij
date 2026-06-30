@@ -116,7 +116,14 @@ type LinhaUpload = {
   erro?: string;
 };
 
-export function DocumentosPanel({ condominioId }: { condominioId: string }) {
+export function DocumentosPanel({
+  condominioId,
+  readOnly = false,
+}: {
+  condominioId: string;
+  /** Modo visualizador (admin): bloqueia upload e exclusão. */
+  readOnly?: boolean;
+}) {
   const fetchDocs = useServerFn(listDocumentos);
   const getUrl = useServerFn(getUploadUrl);
   const createDoc = useServerFn(createDocumento);
@@ -300,6 +307,11 @@ export function DocumentosPanel({ condominioId }: { condominioId: string }) {
 
   return (
     <div className="space-y-4">
+      {readOnly ? (
+        <Card className="p-4 text-xs text-amber-200 border-amber-500/30 bg-amber-500/5">
+          Modo visualizador (admin) — upload e exclusão desabilitados.
+        </Card>
+      ) : (
       <Card className="p-5">
         <div className="space-y-3">
           <div>
@@ -459,6 +471,7 @@ export function DocumentosPanel({ condominioId }: { condominioId: string }) {
           )}
         </div>
       </Card>
+      )}
 
       {docs.length === 0 ? (
         <Card className="p-8 text-center border-dashed">
@@ -492,14 +505,16 @@ export function DocumentosPanel({ condominioId }: { condominioId: string }) {
               >
                 <ExternalLink className="h-4 w-4" />
               </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => handleDelete(d.id)}
-                title="Excluir"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {!readOnly && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => handleDelete(d.id)}
+                  title="Excluir"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           ))}
         </Card>

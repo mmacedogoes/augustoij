@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ShieldCheck, ShieldOff, Search, UserPlus } from "lucide-react";
+import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { listUsuariosAdmin, setUserRole, adminCreateUser } from "@/lib/admin.functions";
+import { listUsuariosAdmin, setUserRole, adminCreateUser, setUserAtivo } from "@/lib/admin.functions";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,7 @@ type UserRow = {
   total_condominios: number;
   mensagens_mes: number;
   is_admin: boolean;
+  ativo: boolean;
   created_at: string;
 };
 
@@ -39,6 +40,7 @@ function AdminUsuariosPage() {
   const fetchUsers = useServerFn(listUsuariosAdmin);
   const updateRole = useServerFn(setUserRole);
   const createUserFn = useServerFn(adminCreateUser);
+  const toggleAtivoFn = useServerFn(setUserAtivo);
   const [rows, setRows] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -78,6 +80,21 @@ function AdminUsuariosPage() {
         data: { userId: u.id, papel: grant ? "admin_operacional" : "cliente_pf" },
       });
       toast.success("Perfil atualizado");
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const toggleAtivo = async (u: UserRow) => {
+    const novoAtivo = !u.ativo;
+    const msg = novoAtivo
+      ? `Reativar a conta de ${u.email}? O login voltará a ser permitido.`
+      : `Desativar a conta de ${u.email}? O usuário não conseguirá mais fazer login, mas os dados serão preservados.`;
+    if (!confirm(msg)) return;
+    try {
+      await toggleAtivoFn({ data: { userId: u.id, ativo: novoAtivo } });
+      toast.success(novoAtivo ? "Usuário reativado" : "Usuário desativado");
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha");
@@ -237,7 +254,10 @@ function AdminUsuariosPage() {
             <p className="p-6 text-sm text-muted-foreground">Nenhum usuário encontrado.</p>
           ) : (
             rows.map((u) => (
-              <div key={u.id} className="p-4 flex flex-wrap items-center gap-3">
+              <div
+                key={u.id}
+                className={`p-4 flex flex-wrap items-center gap-3 ${u.ativo ? "" : "opacity-70"}`}
+              >
                 <div className="flex-1 min-w-[220px]">
                   <p className="font-medium text-primary">{u.nome || "—"}</p>
                   <p className="text-xs text-muted-foreground">{u.email}</p>
@@ -247,7 +267,7 @@ function AdminUsuariosPage() {
                   <p>{u.total_condominios} condomínio(s)</p>
                   <p>{u.mensagens_mes} msg(s) no mês</p>
                 </div>
-                <div>
+                <div className="flex items-center gap-1.5">
                   {u.is_admin ? (
                     <span className="inline-flex items-center gap-1 rounded-md bg-accent/10 text-accent text-xs px-2 py-1">
                       <ShieldCheck className="h-3 w-3" /> Admin
@@ -255,6 +275,15 @@ function AdminUsuariosPage() {
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-md bg-muted text-muted-foreground text-xs px-2 py-1">
                       Usuário
+                    </span>
+                  )}
+                  {u.ativo ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 text-emerald-500 text-xs px-2 py-1">
+                      Ativo
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-destructive/10 text-destructive text-xs px-2 py-1">
+                      Inativo
                     </span>
                   )}
                 </div>
@@ -270,6 +299,21 @@ function AdminUsuariosPage() {
                   ) : (
                     <>
                       <ShieldCheck className="h-4 w-4 mr-1" /> Tornar admin
+                    </>
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={u.ativo ? "outline" : "default"}
+                  onClick={() => toggleAtivo(u)}
+                >
+                  {u.ativo ? (
+                    <>
+                      <UserX className="h-4 w-4 mr-1" /> Desativar
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="h-4 w-4 mr-1" /> Reativar
                     </>
                   )}
                 </Button>

@@ -46,6 +46,8 @@ type Props = {
    * Para trocar de conversa, o pai DEVE remontar este componente via `key`. */
   initialConversaId?: string | null;
   onConversaCreated?: (id: string) => void;
+  /** Modo visualizador (admin): exibe mensagens mas bloqueia envios/anexos. */
+  readOnly?: boolean;
 };
 
 type ChatAttachment = {
@@ -113,6 +115,7 @@ export function ChatPanel({
   hasReadyDocs,
   initialConversaId = null,
   onConversaCreated,
+  readOnly = false,
 }: Props) {
   const ensureConversa = useServerFn(createConversa);
   const fetchMensagens = useServerFn(listMensagens);
@@ -614,49 +617,57 @@ export function ChatPanel({
             ))}
           </div>
         )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept=".pdf,.docx,.jpg,.jpeg,.png,.webp"
-          className="hidden"
-          onChange={(e) =>
-            e.target.files?.length && handleAttachFiles(Array.from(e.target.files))
-          }
-        />
-        <PromptInput onSubmit={handleSubmit}>
-          <PromptInputTextarea
-            autoFocus
-            placeholder={
-              inputEnabled
-                ? "Pergunte sobre a convenção, ata, contratos…"
-                : "Envie documentos para habilitar o chat"
-            }
-            disabled={!inputEnabled}
-          />
-          <PromptInputFooter className="justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={attachLoading}
-              title="Anexar documento à conversa"
-            >
-              {attachLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Paperclip className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">Anexar</span>
-            </Button>
-            <PromptInputSubmit status={status} disabled={!inputEnabled || isLoading} />
-          </PromptInputFooter>
-        </PromptInput>
-        <p className="text-[11px] text-slate-400 text-center px-2 leading-relaxed">
-          As respostas são geradas por IA e devem ser verificadas para casos críticos.
-        </p>
+        {readOnly ? (
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-200 text-center">
+            Modo visualizador — envio de mensagens e anexos desabilitados.
+          </div>
+        ) : (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.docx,.jpg,.jpeg,.png,.webp"
+              className="hidden"
+              onChange={(e) =>
+                e.target.files?.length && handleAttachFiles(Array.from(e.target.files))
+              }
+            />
+            <PromptInput onSubmit={handleSubmit}>
+              <PromptInputTextarea
+                autoFocus
+                placeholder={
+                  inputEnabled
+                    ? "Pergunte sobre a convenção, ata, contratos…"
+                    : "Envie documentos para habilitar o chat"
+                }
+                disabled={!inputEnabled}
+              />
+              <PromptInputFooter className="justify-between">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={attachLoading}
+                  title="Anexar documento à conversa"
+                >
+                  {attachLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">Anexar</span>
+                </Button>
+                <PromptInputSubmit status={status} disabled={!inputEnabled || isLoading} />
+              </PromptInputFooter>
+            </PromptInput>
+            <p className="text-[11px] text-slate-400 text-center px-2 leading-relaxed">
+              As respostas são geradas por IA e devem ser verificadas para casos críticos.
+            </p>
+          </>
+        )}
       </div>
 
       <AlertDialog open={classifyOpen} onOpenChange={setClassifyOpen}>
