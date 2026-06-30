@@ -130,6 +130,15 @@ export function ChatPanel({
     attachmentRef.current = attachment;
   }, [attachment]);
 
+  // Lista adicional de anexos (multi-upload). O `attachment` acima
+  // permanece como "principal" para compatibilidade com o diálogo
+  // de classificação. Todos os anexos contribuem com `excerpt` ao body.
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const attachmentsRef = useRef<ChatAttachment[]>([]);
+  useEffect(() => {
+    attachmentsRef.current = attachments;
+  }, [attachments]);
+
   const focusInput = () => {
     const ta = formRef.current?.querySelector("textarea") as HTMLTextAreaElement | null;
     ta?.focus();
@@ -196,8 +205,16 @@ export function ChatPanel({
         body: () => ({
           condominioId,
           conversaId: activeIdRef.current,
-          attachmentContext: attachmentRef.current?.excerpt ?? null,
-          attachmentNome: attachmentRef.current?.fileName ?? null,
+          attachmentContext:
+            attachmentsRef.current.length > 0
+              ? attachmentsRef.current
+                  .map((a) => `# ${a.fileName}\n${a.excerpt}`)
+                  .join("\n\n---\n\n")
+              : null,
+          attachmentNome:
+            attachmentsRef.current.length > 0
+              ? attachmentsRef.current.map((a) => a.fileName).join(", ")
+              : null,
         }),
       }),
     [condominioId],
@@ -268,7 +285,7 @@ export function ChatPanel({
     const text = message.text?.trim();
     if (!text) return;
     if (!historyLoaded) return; // não enviar enquanto histórico carrega
-    if (!hasReadyDocs && !attachment) {
+    if (!hasReadyDocs && attachments.length === 0) {
       toast.error("Envie ao menos um documento processado para iniciar o chat.");
       return;
     }
@@ -325,7 +342,39 @@ export function ChatPanel({
       reader.readAsDataURL(file);
     });
 
-  const handleAttachFile = async (file: File) => {
+  const handleAttachFiles = async (files: File[]) => {
+    const MAX_ATT = 5;
+    const livres = MAX_ATT - attachments.length;
+    if (livres <= 0) {
+      toast.error(`Máximo de ${MAX_ATT} anexos por conversa.`);
+      return;
+    }
+    const lote = files.slice(0, livres);
+    setAttachLoading(true);
+    let primeiroRelevante: ChatAttachment | null = null;
+    for (const file of lote) {
+      try {
+        await handleAttachFile(file, (att) => {
+          if (!primeiroRelevante && att.classificacao !== "outro") {
+            primeiroRelevante = att;
+          }
+        });
+      } catch (e) {
+        console.error("[chat] falha em anexo:", e);
+      }
+    }
+    setAttachLoading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (primeiroRelevante) {
+      setAttachment(primeiroRelevante);
+      setClassifyOpen(true);
+    }
+  };
+
+  const handleAttachFile = async (
+    file: File,
+    onAdded?: (att: ChatAttachment) => void,
+  ) => {
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Arquivo excede 10 MB");
       return;
@@ -334,14 +383,13 @@ export function ChatPanel({
       toast.error("Formato não suportado. Use PDF, DOCX, JPG, PNG ou WEBP.");
       return;
     }
-    setAttachLoading(true);
     const isImage = /\.(jpe?g|png|webp)$/i.test(file.name);
     if (isImage) {
       toast.info(
-        "Documento escaneado detectado. Processando conteúdo visual, isso pode levar alguns instantes...",
+        `Lendo imagem "${file.name}" (visão da IA)…`,
       );
     } else {
-      toast.info("Lendo documento para esta conversa…");
+      toast.info(`Lendo "${file.name}"…`);
     }
     try {
       const base64 = await readAsBase64(file);
@@ -353,16 +401,11 @@ export function ChatPanel({
         fileName: string;
       };
       const att: ChatAttachment = { ...res, file };
-      setAttachment(att);
-      toast.success("Documento anexado à conversa");
-      if (res.classificacao !== "outro") {
-        setClassifyOpen(true);
-      }
+      setAttachments((prev) => [...prev, att]);
+      toast.success(`"${file.name}" anexado`);
+      onAdded?.(att);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao processar documento");
-    } finally {
-      setAttachLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -403,7 +446,7 @@ export function ChatPanel({
     }
   };
 
-  const inputEnabled = (hasReadyDocs || !!attachment) && historyLoaded;
+  const inputEnabled = (hasReadyDocs || attachments.length > 0) && historyLoaded;
 
   return (
     <div className="flex flex-col h-[70vh] min-h-[500px] border border-border rounded-lg overflow-hidden bg-card">
@@ -491,31 +534,43 @@ export function ChatPanel({
       </Conversation>
 
       <div className="border-t p-3 space-y-2" ref={formRef}>
-        {attachment && (
-          <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs">
-            <Paperclip className="h-3.5 w-3.5 text-accent shrink-0" />
-            <span className="flex-1 truncate">
-              <span className="font-medium">{attachment.fileName}</span>{" "}
-              <span className="text-muted-foreground">
-                — anexado a esta conversa ({TIPO_LABEL[attachment.classificacao]})
-              </span>
-            </span>
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => setAttachment(null)}
-              title="Remover anexo"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+        {attachments.length > 0 && (
+          <div className="space-y-1">
+            {attachments.map((att, i) => (
+              <div
+                key={`${att.fileName}-${i}`}
+                className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs"
+              >
+                <Paperclip className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span className="flex-1 truncate">
+                  <span className="font-medium">{att.fileName}</span>{" "}
+                  <span className="text-muted-foreground">
+                    — {TIPO_LABEL[att.classificacao]}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() =>
+                    setAttachments((prev) => prev.filter((_, idx) => idx !== i))
+                  }
+                  title="Remover anexo"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
         <input
           ref={fileInputRef}
           type="file"
+          multiple
           accept=".pdf,.docx,.jpg,.jpeg,.png,.webp"
           className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleAttachFile(e.target.files[0])}
+          onChange={(e) =>
+            e.target.files?.length && handleAttachFiles(Array.from(e.target.files))
+          }
         />
         <PromptInput onSubmit={handleSubmit}>
           <PromptInputTextarea
