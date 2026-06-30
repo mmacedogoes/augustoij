@@ -18,7 +18,7 @@ type AdminNavItem = {
 
 const items: AdminNavItem[] = [
   { to: "/app/admin", label: "Visão geral", icon: BarChart3, exact: true },
-  { to: "/app/admin/usuarios", label: "Clientes", icon: Users },
+  { to: "/app/admin/usuarios", label: "Usuários", icon: Users },
   { to: "/app/admin/condominios", label: "Condomínios", icon: Building2 },
   { to: "/app/admin/financeiro", label: "Financeiro", icon: DollarSign },
   { to: "/app/admin/blog", label: "Blog", icon: Newspaper },
