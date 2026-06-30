@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AjudaShell } from "@/components/ajuda/AjudaShell";
 
 export const Route = createFileRoute("/_authenticated/app/ajuda/")({
   component: AjudaHome,
@@ -6,7 +7,7 @@ export const Route = createFileRoute("/_authenticated/app/ajuda/")({
 
 function AjudaHome() {
   return (
-    <>
+    <AjudaShell>
       <h1 className="text-2xl font-semibold mb-3">Bem-vindo ao Manual do CondoIA</h1>
       <p>
         Este manual reúne tudo o que você precisa para tirar o máximo do CondoIA: desde os
@@ -24,6 +25,6 @@ function AjudaHome() {
         Quanto mais documentos relevantes você carregar, melhor a IA responde. Comece com
         Convenção, Regimento Interno e atas das últimas 3 assembleias.
       </p>
-    </>
+    </AjudaShell>
   );
 }

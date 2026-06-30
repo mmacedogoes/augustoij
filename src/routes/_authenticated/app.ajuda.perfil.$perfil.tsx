@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AjudaShell } from "@/components/ajuda/AjudaShell";
 import { PERFIS } from "./app.ajuda.$secao";
 
 export const Route = createFileRoute("/_authenticated/app/ajuda/perfil/$perfil")({
@@ -10,7 +11,7 @@ function PerfilPage() {
   const data = PERFIS[perfil];
   if (!data) {
     return (
-      <>
+      <AjudaShell>
         <h1 className="text-2xl font-semibold mb-3">Perfil não encontrado</h1>
         <p>
           Volte para o{" "}
@@ -19,11 +20,11 @@ function PerfilPage() {
           </Link>
           .
         </p>
-      </>
+      </AjudaShell>
     );
   }
   return (
-    <>
+    <AjudaShell>
       <h1 className="text-2xl font-semibold mb-3">{data.titulo}</h1>
       <p className="text-slate-600">{data.descricao}</p>
       <h2 className="text-lg font-semibold mt-6 mb-2">Recomendações</h2>
@@ -32,6 +33,6 @@ function PerfilPage() {
           <li key={b}>{b}</li>
         ))}
       </ul>
-    </>
+    </AjudaShell>
   );
 }
