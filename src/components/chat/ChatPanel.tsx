@@ -129,7 +129,6 @@ export function ChatPanel({
   const sessionKeyRef = useRef<string>(
     initialConversaId ?? `new-${Math.random().toString(36).slice(2)}`,
   );
-  const [initial, setInitial] = useState<UIMessage[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(!initialConversaId);
   const [historyError, setHistoryError] = useState(false);
   const [token, setToken] = useState<string | null>(null);
@@ -186,37 +185,6 @@ export function ChatPanel({
     });
   }, []);
 
-  // Carrega histórico APENAS no mount. Para abrir outra conversa, o pai
-  // troca o `key` deste componente forçando remount limpo.
-  useEffect(() => {
-    if (!initialConversaId) {
-      setInitial([]);
-      setHistoryLoaded(true);
-      return;
-    }
-    setHistoryLoaded(false);
-    setHistoryError(false);
-    console.log("[chat] carregando histórico da conversa:", initialConversaId);
-    fetchMensagens({ data: { conversaId: initialConversaId } })
-      .then((rows) => {
-        console.log("[chat] mensagens recebidas:", (rows as unknown[])?.length ?? 0);
-        const mapped: UIMessage[] = (
-          rows as Array<{ id: string; papel: "user" | "assistant"; conteudo: string }>
-        ).map((r) => ({
-          id: r.id,
-          role: r.papel,
-          parts: [{ type: "text", text: r.conteudo }],
-        }));
-        setInitial(mapped);
-      })
-      .catch((e) => {
-        console.error("[chat] falha ao carregar histórico:", e);
-        setHistoryError(true);
-        toast.error("Não foi possível carregar a conversa.");
-      })
-      .finally(() => setHistoryLoaded(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Transport é estável — lê tudo via refs, eliminando race condition
   // (state recém-setado ainda não propagou quando sendMessage roda).
@@ -244,9 +212,9 @@ export function ChatPanel({
     [condominioId],
   );
 
-  const { messages, sendMessage, status, stop } = useChat({
+  const { messages, sendMessage, status, stop, setMessages } = useChat({
     id: sessionKeyRef.current,
-    messages: initial,
+    messages: [],
     transport,
     onError: (e) => {
       console.error("[chat] erro na resposta da IA:", e);
@@ -254,6 +222,41 @@ export function ChatPanel({
       if (lastSentRef.current) restoreInput(lastSentRef.current);
     },
   });
+
+  // Carrega histórico via setMessages (useChat ignora prop `messages` após mount).
+  useEffect(() => {
+    if (!initialConversaId) {
+      setMessages([]);
+      setHistoryLoaded(true);
+      return;
+    }
+    setHistoryLoaded(false);
+    setHistoryError(false);
+    console.log("[chat] carregando histórico da conversa:", initialConversaId);
+    fetchMensagens({ data: { conversaId: initialConversaId } })
+      .then((rows) => {
+        console.log("[chat] mensagens recebidas:", (rows as unknown[])?.length ?? 0);
+        const mapped: UIMessage[] = (
+          rows as Array<{ id: string; papel: "user" | "assistant"; conteudo: string }>
+        ).map((r) => ({
+          id: r.id,
+          role: r.papel,
+          parts: [{ type: "text", text: r.conteudo }],
+        }));
+        setMessages(mapped);
+        setTimeout(() => {
+          const container = document.querySelector("[data-chat-scroll]") as HTMLElement | null;
+          if (container) container.scrollTop = container.scrollHeight;
+        }, 100);
+      })
+      .catch((e) => {
+        console.error("[chat] falha ao carregar histórico:", e);
+        setHistoryError(true);
+        toast.error("Não foi possível carregar a conversa.");
+      })
+      .finally(() => setHistoryLoaded(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialConversaId]);
 
   const isLoading = status === "submitted" || status === "streaming";
 
