@@ -170,9 +170,9 @@ function Page() {
                 <Upload className="h-4 w-4 mr-1" /> Enviar arquivo (PDF/DOCX/TXT)
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-4xl">
               <DialogHeader>
-                <DialogTitle>Novo documento — arquivo</DialogTitle>
+                <DialogTitle>Novos documentos — arquivos</DialogTitle>
               </DialogHeader>
               <FileForm
                 onDone={() => {
