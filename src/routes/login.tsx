@@ -53,8 +53,8 @@ function LoginPage() {
         <Link to="/" className="flex justify-center mb-8">
           <Logo variant="default" height={300} />
         </Link>
-        <h1 className="text-3xl font-bold text-white tracking-tight text-center">Entrar</h1>
-        <p className="mt-2 text-sm text-muted-foreground text-center">Acesse o painel do Augusto.IJ.</p>
+        <h1 className="text-3xl font-serif font-medium text-foreground tracking-tight text-center">Bem-vindo</h1>
+        <p className="mt-2 text-sm text-muted-foreground text-center">Entre para conversar com o Augusto.</p>
         <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">E-mail</Label>
