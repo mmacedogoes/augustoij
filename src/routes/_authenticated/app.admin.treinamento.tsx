@@ -11,6 +11,7 @@ import {
   Upload,
   AlertTriangle,
   Plus,
+  X as XIcon,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -26,6 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -357,121 +366,285 @@ function FileForm({
   createDoc: (a: { data: CreateInput }) => Promise<{ id: string }>;
   processDoc: (a: { data: { id: string } }) => Promise<unknown>;
 }) {
-  const [tipo, setTipo] = useState<CreateInput["tipo"]>("jurisprudencia");
-  const [fonte, setFonte] = useState("");
-  const [uploading, setUploading] = useState(false);
+  type TipoKb = CreateInput["tipo"];
+  type LinhaKb = {
+    uid: string;
+    file: File;
+    tipo: TipoKb;
+    titulo: string;
+    fonte: string;
+    status: "pendente" | "enviando" | "pronto" | "erro";
+    erro?: string;
+  };
+
+  const MAX_FILES = 10;
+  const MAX_MB = 20;
+  const ACCEPT = ".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp";
+
   const fileRef = useRef<HTMLInputElement>(null);
-  const [progresso, setProgresso] = useState<{ feito: number; total: number } | null>(null);
+  const dragCounter = useRef(0);
+  const [dragOver, setDragOver] = useState(false);
+  const [linhas, setLinhas] = useState<LinhaKb[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const tituloDeNome = (nome: string) =>
-    nome.replace(/\.[^.]+$/, "").replace(/[_\-]+/g, " ").trim().slice(0, 200);
+    nome.replace(/\.[^.]+$/, "").replace(/[_\-]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const lista = Array.from(fileRef.current?.files ?? []);
-    if (lista.length === 0) {
-      toast.error("Selecione ao menos um arquivo");
+  const sugerirTipo = (nome: string): TipoKb => {
+    const l = nome.toLowerCase();
+    if (/juris|ac[oó]rd[aã]o|stj|stf|tj/.test(l)) return "jurisprudencia";
+    if (/doutrina|artigo|autor/.test(l)) return "doutrina";
+    if (/\blei\b|c[oó]digo|norma|decreto|nbr/.test(l)) return "lei";
+    if (/pe[cç]a|peti[cç][aã]o|contesta|recurso/.test(l)) return "peca";
+    if (/orienta|guia|manual/.test(l)) return "orientacao";
+    return "outro";
+  };
+
+  const adicionarArquivos = (arquivos: FileList | File[]) => {
+    const lista = Array.from(arquivos);
+    const livres = MAX_FILES - linhas.length;
+    if (livres <= 0) {
+      toast.error(`Máximo de ${MAX_FILES} arquivos por vez.`);
       return;
     }
-    if (lista.length > 10) {
-      toast.error("Envie no máximo 10 arquivos por vez");
-      return;
-    }
-    for (const f of lista) {
-      if (f.size > 20 * 1024 * 1024) {
-        toast.error(`"${f.name}" excede 20 MB`);
-        return;
+    const aceitos: LinhaKb[] = [];
+    for (const file of lista.slice(0, livres)) {
+      if (file.size === 0) {
+        toast.error(`"${file.name}" está vazio.`);
+        continue;
       }
-      if (f.size === 0) {
-        toast.error(`"${f.name}" está vazio`);
-        return;
+      if (file.size > MAX_MB * 1024 * 1024) {
+        toast.error(`"${file.name}" excede ${MAX_MB} MB.`);
+        continue;
       }
+      if (!new RegExp(`(${ACCEPT.replace(/\./g, "\\.").replace(/,/g, "|")})$`, "i").test(file.name)) {
+        toast.error(`Formato não suportado: ${file.name}`);
+        continue;
+      }
+      aceitos.push({
+        uid: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        file,
+        tipo: sugerirTipo(file.name),
+        titulo: tituloDeNome(file.name),
+        fonte: "",
+        status: "pendente",
+      });
     }
+    if (aceitos.length) setLinhas((prev) => [...prev, ...aceitos]);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const removerLinha = (uid: string) =>
+    setLinhas((prev) => prev.filter((l) => l.uid !== uid));
+  const atualizarLinha = (uid: string, patch: Partial<LinhaKb>) =>
+    setLinhas((prev) => prev.map((l) => (l.uid === uid ? { ...l, ...patch } : l)));
+
+  const enviarTodos = async () => {
+    const pendentes = linhas.filter((l) => l.status === "pendente");
+    if (!pendentes.length) return;
     setUploading(true);
-    setProgresso({ feito: 0, total: lista.length });
     let sucesso = 0;
-    for (const file of lista) {
+    for (const linha of pendentes) {
+      atualizarLinha(linha.uid, { status: "enviando" });
       try {
-        const { path, token } = await getUrl({ data: { nomeArquivo: file.name } });
+        const { path, token } = await getUrl({ data: { nomeArquivo: linha.file.name } });
         const { error: upErr } = await supabase.storage
           .from("kb-documentos")
-          .uploadToSignedUrl(path, token, file);
+          .uploadToSignedUrl(path, token, linha.file);
         if (upErr) throw new Error(upErr.message);
         const created = await createDoc({
           data: {
-            titulo: tituloDeNome(file.name),
-            tipo,
-            fonte: fonte || null,
+            titulo: linha.titulo.trim() || tituloDeNome(linha.file.name),
+            tipo: linha.tipo,
+            fonte: linha.fonte.trim() || null,
             storagePath: path,
           },
         });
+        atualizarLinha(linha.uid, { status: "pronto" });
         processDoc({ data: { id: created.id } }).catch((e) =>
-          toast.error(
-            `${file.name}: ${e instanceof Error ? e.message : "falha ao processar"}`,
-          ),
+          toast.error(`${linha.file.name}: ${e instanceof Error ? e.message : "falha ao processar"}`),
         );
         sucesso += 1;
       } catch (e) {
-        toast.error(`${file.name}: ${e instanceof Error ? e.message : "falha"}`);
+        atualizarLinha(linha.uid, {
+          status: "erro",
+          erro: e instanceof Error ? e.message : "Falha no upload",
+        });
       }
-      setProgresso((p) => (p ? { ...p, feito: p.feito + 1 } : p));
     }
     setUploading(false);
-    setProgresso(null);
     if (sucesso > 0) {
-      toast.success(
-        `${sucesso} arquivo(s) enviado(s). Processamento em andamento.`,
-      );
+      toast.success(`${sucesso} arquivo(s) enviado(s). Indexação em andamento.`);
       onDone();
     }
+    // manter apenas erros visíveis
+    setLinhas((prev) => prev.filter((l) => l.status === "erro"));
   };
 
+  const totalMb = (linhas.reduce((s, l) => s + l.file.size, 0) / (1024 * 1024)).toFixed(2);
+
   return (
-    <form onSubmit={submit} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label>Tipo</Label>
-          <Select value={tipo} onValueChange={(v) => setTipo(v as CreateInput["tipo"])}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TIPOS.map((t) => (
-                <SelectItem key={t.v} value={t.v}>
-                  {t.l}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Fonte (opcional)</Label>
-          <Input value={fonte} onChange={(e) => setFonte(e.target.value)} />
-        </div>
-      </div>
-      <div>
-        <Label>Arquivos (PDF, DOCX, TXT, imagem JPG/PNG/WEBP — até 20 MB cada, máx. 10)</Label>
-        <Input
+    <div className="space-y-3">
+      <div
+        className={`rounded-md border-2 border-dashed p-6 text-center transition-colors ${
+          dragOver ? "border-accent bg-accent/5" : "border-border"
+        }`}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          dragCounter.current += 1;
+          setDragOver(true);
+        }}
+        onDragLeave={() => {
+          dragCounter.current -= 1;
+          if (dragCounter.current <= 0) setDragOver(false);
+        }}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          dragCounter.current = 0;
+          setDragOver(false);
+          if (e.dataTransfer.files.length) adicionarArquivos(e.dataTransfer.files);
+        }}
+      >
+        <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground mb-2">
+          Arraste arquivos aqui ou
+        </p>
+        <input
           ref={fileRef}
           type="file"
           multiple
-          accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp"
-          required
+          accept={ACCEPT}
+          className="hidden"
+          onChange={(e) => e.target.files?.length && adicionarArquivos(e.target.files)}
         />
-        <p className="text-xs text-muted-foreground mt-1">
-          O título de cada item será gerado a partir do nome do arquivo. PDFs escaneados e
-          imagens são lidos por OCR/visão.
+        <Button size="sm" variant="outline" type="button" onClick={() => fileRef.current?.click()}>
+          Selecionar arquivos
+        </Button>
+        <p className="text-[11px] text-muted-foreground mt-2">
+          PDF, DOCX, TXT ou imagens (JPG/PNG/WEBP). Até {MAX_FILES} arquivos, máx. {MAX_MB} MB
+          cada. PDFs escaneados são lidos por OCR.
         </p>
       </div>
-      {progresso && (
-        <p className="text-xs text-muted-foreground">
-          Enviando {progresso.feito}/{progresso.total}…
-        </p>
+
+      {linhas.length > 0 && (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[28%]">Arquivo</TableHead>
+                <TableHead className="w-[18%]">Tipo</TableHead>
+                <TableHead className="w-[24%]">Título</TableHead>
+                <TableHead className="w-[18%]">Fonte</TableHead>
+                <TableHead className="w-[8%]">Status</TableHead>
+                <TableHead className="w-[4%]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {linhas.map((l) => (
+                <TableRow key={l.uid}>
+                  <TableCell className="text-sm font-medium">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 text-accent shrink-0" />
+                      <span className="truncate" title={l.file.name}>
+                        {l.file.name}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={l.tipo}
+                      onValueChange={(v) => atualizarLinha(l.uid, { tipo: v as TipoKb })}
+                      disabled={uploading || l.status !== "pendente"}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIPOS.map((t) => (
+                          <SelectItem key={t.v} value={t.v}>
+                            {t.l}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      className="h-8 text-xs"
+                      value={l.titulo}
+                      onChange={(e) => atualizarLinha(l.uid, { titulo: e.target.value })}
+                      disabled={uploading || l.status !== "pendente"}
+                      maxLength={200}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      className="h-8 text-xs"
+                      value={l.fonte}
+                      onChange={(e) => atualizarLinha(l.uid, { fonte: e.target.value })}
+                      disabled={uploading || l.status !== "pendente"}
+                      placeholder="STJ, autor…"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {l.status === "pendente" && (
+                      <span className="text-xs text-muted-foreground">Pendente</span>
+                    )}
+                    {l.status === "enviando" && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Enviando
+                      </span>
+                    )}
+                    {l.status === "pronto" && (
+                      <span className="inline-flex items-center gap-1 text-xs text-accent">
+                        <CheckCircle2 className="h-3 w-3" /> Enviado
+                      </span>
+                    )}
+                    {l.status === "erro" && (
+                      <span
+                        className="inline-flex items-center gap-1 text-xs text-destructive"
+                        title={l.erro}
+                      >
+                        <AlertTriangle className="h-3 w-3" /> Erro
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      disabled={uploading}
+                      onClick={() => removerLinha(l.uid)}
+                      title="Remover da lista"
+                    >
+                      <XIcon className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-muted-foreground">
+              {linhas.length} arquivo(s) selecionado(s) · {totalMb} MB
+            </span>
+            <Button type="button" onClick={enviarTodos} disabled={uploading}>
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Enviando…
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" /> Enviar e indexar todos
+                </>
+              )}
+            </Button>
+          </div>
+        </>
       )}
-      <Button type="submit" disabled={uploading} className="w-full">
-        {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
-        Enviar e indexar todos
-      </Button>
-    </form>
+    </div>
   );
 }
