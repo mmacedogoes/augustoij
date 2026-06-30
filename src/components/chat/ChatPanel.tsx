@@ -93,6 +93,21 @@ function extractStructuredQuestion(text: string): {
   return { visible: text.replace(fence, "").trim(), pergunta, opcoes };
 }
 
+/**
+ * Detecta se o texto parece o INÍCIO de uma resposta estruturada
+ * (JSON em andamento, possivelmente dentro de fence ```json). Evita
+ * que o usuário veja JSON cru durante o streaming até ser parseável.
+ */
+function pareceJsonEstruturadoParcial(text: string): boolean {
+  const t = text.trim();
+  if (!t) return false;
+  // Pode vir como ```json{... ou direto como {...
+  const semFence = t.replace(/^```(?:json)?\s*/i, "");
+  if (!semFence.startsWith("{")) return false;
+  return /"\s*tipo\s*"\s*:\s*"\s*pergunta_estruturada/i.test(semFence)
+    || /pergunta_estruturada/i.test(semFence);
+}
+
 export function ChatPanel({
   condominioId,
   hasReadyDocs,
@@ -178,8 +193,10 @@ export function ChatPanel({
     }
     setHistoryLoaded(false);
     setHistoryError(false);
+    console.log("[chat] carregando histórico da conversa:", initialConversaId);
     fetchMensagens({ data: { conversaId: initialConversaId } })
       .then((rows) => {
+        console.log("[chat] mensagens recebidas:", (rows as unknown[])?.length ?? 0);
         const mapped: UIMessage[] = (
           rows as Array<{ id: string; papel: "user" | "assistant"; conteudo: string }>
         ).map((r) => ({
@@ -483,8 +500,10 @@ export function ChatPanel({
                 .join("");
               if (m.role === "assistant") {
                 const estruturada = tryParsePerguntaEstruturada(text);
-                const sq = estruturada ? null : extractStructuredQuestion(text);
                 const isLast = idx === messages.length - 1;
+                const parcialEstruturado =
+                  !estruturada && isLoading && isLast && pareceJsonEstruturadoParcial(text);
+                const sq = estruturada || parcialEstruturado ? null : extractStructuredQuestion(text);
                 if (estruturada) {
                   return (
                     <Message key={m.id} from={m.role} className="max-w-full">
@@ -496,6 +515,18 @@ export function ChatPanel({
                             disabled={!isLast || isLoading}
                             onResponder={(t) => handleSubmit({ text: t })}
                           />
+                        </div>
+                      </div>
+                    </Message>
+                  );
+                }
+                if (parcialEstruturado) {
+                  return (
+                    <Message key={m.id} from={m.role} className="max-w-full">
+                      <div className="flex gap-3 items-start">
+                        <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
+                        <div className="flex-1 min-w-0 text-sm text-muted-foreground italic">
+                          Preparando opções…
                         </div>
                       </div>
                     </Message>
