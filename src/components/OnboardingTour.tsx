@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Joyride, { type CallBackProps, type Step, STATUS } from "react-joyride";
+import { Joyride, STATUS, type EventData, type Step } from "react-joyride";
 import { useServerFn } from "@tanstack/react-start";
 import { setTourCompleto } from "@/lib/condominios.functions";
 
@@ -20,7 +20,6 @@ function buildSteps(perfil: PerfilAtuacao): Step[] {
       title: "Bem-vindo ao CondoIA",
       content:
         "Seu assistente inteligente para gestão de condomínios. Vamos te mostrar rapidamente como aproveitar ao máximo.",
-      disableBeacon: true,
     },
     {
       target: "[data-tour='seletor-condominio']",
@@ -104,10 +103,9 @@ export function OnboardingTour({ perfil, forceRun = false, onClose }: Props) {
     }
   }, [forceRun]);
 
-  function handleCallback(data: CallBackProps) {
-    const { status } = data;
+  function handleEvent(data: EventData) {
     const finished: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
-    if (finished.includes(status)) {
+    if (finished.includes(data.status)) {
       setRun(false);
       persist({ data: { completo: true } }).catch(() => {});
       onClose?.();
@@ -119,26 +117,23 @@ export function OnboardingTour({ perfil, forceRun = false, onClose }: Props) {
       steps={buildSteps(perfil)}
       run={run}
       continuous
-      showSkipButton
-      showProgress
-      disableScrolling={false}
-      callback={handleCallback}
+      onEvent={handleEvent}
+      options={{
+        primaryColor: "#10B981",
+        zIndex: 10000,
+        textColor: "#0B1426",
+        backgroundColor: "#FFFFFF",
+        arrowColor: "#FFFFFF",
+        overlayColor: "rgba(11, 20, 38, 0.55)",
+        showProgress: true,
+        skipBeacon: true,
+      }}
       locale={{
         back: "Voltar",
         close: "Fechar",
         last: "Finalizar",
         next: "Próximo",
         skip: "Pular tour",
-      }}
-      styles={{
-        options: {
-          primaryColor: "#10B981",
-          zIndex: 10000,
-          textColor: "#0B1426",
-          backgroundColor: "#FFFFFF",
-          arrowColor: "#FFFFFF",
-          overlayColor: "rgba(11, 20, 38, 0.55)",
-        },
       }}
     />
   );
