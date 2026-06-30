@@ -339,9 +339,8 @@ export const setUserAtivo = createServerFn({ method: "POST" })
       // 100 anos ≈ desativação permanente; "none" reabilita.
       const ban_duration = data.ativo ? "none" : "876000h";
       await supabaseAdmin.auth.admin.updateUserById(data.userId, {
-        // @ts-expect-error - ban_duration aceita string mesmo sem typings completos
         ban_duration,
-      });
+      } as unknown as Parameters<typeof supabaseAdmin.auth.admin.updateUserById>[1]);
     } catch (e) {
       console.warn("[setUserAtivo] auth.updateUserById falhou:", e);
     }
