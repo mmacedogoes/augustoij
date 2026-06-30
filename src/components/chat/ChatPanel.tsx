@@ -115,6 +115,7 @@ export function ChatPanel({
   hasReadyDocs,
   initialConversaId = null,
   onConversaCreated,
+  readOnly = false,
 }: Props) {
   const ensureConversa = useServerFn(createConversa);
   const fetchMensagens = useServerFn(listMensagens);
