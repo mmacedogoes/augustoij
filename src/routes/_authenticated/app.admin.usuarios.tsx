@@ -107,7 +107,7 @@ function AdminUsuariosPage() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-primary">Usuários</h1>
-            <p className="text-muted-foreground">Gerencie papéis, perfis e atividade dos usuários do CondoIA.</p>
+            <p className="text-muted-foreground">Gerencie papéis, perfis e atividade dos usuários do Augusto.IJ.</p>
           </div>
           <Dialog open={openCreate} onOpenChange={setOpenCreate}>
             <DialogTrigger asChild>

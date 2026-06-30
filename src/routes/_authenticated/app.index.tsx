@@ -66,9 +66,9 @@ function HomePage() {
         <header className="flex flex-wrap items-end justify-between gap-3 pb-4">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">
-              Olá{nome ? `, ${nome}` : ""}!
+              Bom dia{nome ? `, ${nome}` : ""}.
               <br />
-              Como o CondoIA pode te ajudar hoje?
+              Em que o Augusto pode ajudar?
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -98,7 +98,7 @@ function HomePage() {
           <Card className="flex-1 flex flex-col items-center justify-center text-center p-10 border-dashed">
             <Building className="h-10 w-10 text-muted-foreground" />
             <p className="mt-3 text-sm text-muted-foreground">
-              Cadastre seu primeiro condomínio para começar a conversar com o CondoIA.
+              Cadastre seu primeiro condomínio para começar a conversar com o Augusto.IJ.
             </p>
             <Link to="/app/condominios" className="mt-4">
               <Button>Cadastrar condomínio</Button>

@@ -10,7 +10,7 @@ import { listPostsPublicos, listCategoriasPublicas } from "@/lib/blog.functions"
 export const Route = createFileRoute("/blog/")({
   head: () => ({
     meta: [
-      { title: "Blog do CondoIA — gestão condominial inteligente" },
+      { title: "Blog do Augusto.IJ — gestão condominial inteligente" },
       { name: "description", content: "Artigos sobre gestão de condomínios, jurisprudência e direito condominial." },
     ],
   }),
@@ -58,7 +58,7 @@ function BlogIndex() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 py-12">
-        <h1 className="text-4xl font-bold text-primary tracking-tight">Blog do CondoIA</h1>
+        <h1 className="text-4xl font-bold text-primary tracking-tight">Blog do Augusto.IJ</h1>
         <p className="mt-2 text-muted-foreground">Conhecimento prático sobre gestão condominial.</p>
 
         <form
@@ -129,7 +129,7 @@ function BlogIndex() {
         <div className="mx-auto max-w-6xl px-4 flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <Logo variant="icon" size="sm" />
-            <span>© {new Date().getFullYear()} CondoIA</span>
+            <span>© {new Date().getFullYear()} Augusto.IJ</span>
           </div>
           <Link to="/" className="hover:text-primary">Voltar ao site</Link>
         </div>

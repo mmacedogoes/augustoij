@@ -8,9 +8,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "CondoIA — IA para síndicos e administradoras de condomínios" },
+      { title: "Augusto.IJ — IA para síndicos e administradoras de condomínios" },
       { name: "description", content: "Plataforma de IA com apoio jurídico, gestão de documentos e respostas instantâneas para o dia a dia do seu condomínio. Teste grátis por 7 dias." },
-      { property: "og:title", content: "CondoIA — IA para condomínios" },
+      { property: "og:title", content: "Augusto.IJ — IA para condomínios" },
       { property: "og:description", content: "Apoio inteligente para síndicos e administradoras." },
     ],
   }),
@@ -55,16 +55,16 @@ function Landing() {
         <div className="mx-auto max-w-[800px] flex flex-col items-center">
           <Logo variant="default" height={300} className="mb-10" />
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground tracking-wide uppercase">
-            <Brain className="h-3.5 w-3.5" strokeWidth={1.5} /> Inteligência para condomínios
+            <Brain className="h-3.5 w-3.5" strokeWidth={1.5} /> Inteligência Jurídica para Condomínios
           </div>
           <h1 className="mt-6 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-primary leading-[1.1]">
-          O copiloto jurídico e operacional<br/>do seu condomínio
+          Inteligência Jurídica para Condomínios
         </h1>
           <p className="mt-6 max-w-[600px] text-lg text-muted-foreground leading-relaxed">
-          Assistente de IA treinado em direito condominial brasileiro. Atas, notificações, contratos e pareceres em minutos.
+          Augusto responde, fundamenta e cita. Dois mil anos de Direito em forma de conversa.
         </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <Link to="/signup"><Button size="lg">Começar teste grátis de 7 dias <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+          <Link to="/signup"><Button size="lg">Pergunte ao Augusto <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
           <a href="#planos"><Button size="lg" variant="ghost">Ver planos</Button></a>
         </div>
           <p className="mt-4 text-xs text-muted-foreground">Sem cartão de crédito • Cancele quando quiser</p>
@@ -136,7 +136,7 @@ function Landing() {
         <h2 className="text-3xl font-bold text-center text-primary">Perguntas frequentes</h2>
         <Accordion type="single" collapsible className="mt-8">
           <AccordionItem value="1">
-            <AccordionTrigger>O CondoIA substitui o advogado do condomínio?</AccordionTrigger>
+            <AccordionTrigger>O Augusto.IJ substitui o advogado do condomínio?</AccordionTrigger>
             <AccordionContent>Não. As respostas são apoio técnico e devem ser validadas por um profissional habilitado antes de qualquer decisão formal.</AccordionContent>
           </AccordionItem>
           <AccordionItem value="2">
@@ -149,7 +149,7 @@ function Landing() {
           </AccordionItem>
           <AccordionItem value="4">
             <AccordionTrigger>Preciso instalar algo?</AccordionTrigger>
-            <AccordionContent>Não. O CondoIA roda no navegador, no computador ou no celular.</AccordionContent>
+            <AccordionContent>Não. O Augusto.IJ roda no navegador, no computador ou no celular.</AccordionContent>
           </AccordionItem>
         </Accordion>
       </section>
@@ -169,7 +169,7 @@ function Landing() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
             <Logo variant="icon" size="sm" />
-            <span className="text-xs text-muted-foreground">© {new Date().getFullYear()} condoIA · Inteligência para Condomínios</span>
+            <span className="text-xs text-muted-foreground">© {new Date().getFullYear()} Augusto.IJ · Inteligência Jurídica para Condomínios</span>
           </div>
           <div className="flex gap-4">
             <Link to="/termos" className="hover:text-primary transition-colors">Termos de uso</Link>
@@ -178,7 +178,7 @@ function Landing() {
           </div>
           </div>
           <p className="text-[11px] italic leading-relaxed text-muted-foreground/80 max-w-3xl">
-            As respostas geradas pelo CondoIA têm caráter informativo e não substituem a orientação
+            As respostas geradas pelo Augusto.IJ têm caráter informativo e não substituem a orientação
             de profissional habilitado. Valide decisões formais com seu advogado e/ou contador.
           </p>
         </div>

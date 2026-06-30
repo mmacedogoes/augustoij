@@ -373,7 +373,7 @@ function CondominioDetail() {
                   <div>
                     <h3 className="font-semibold">Operadores do condomínio</h3>
                     <p className="text-xs text-muted-foreground">
-                      Convide quem já tem conta no CondoIA ou crie um novo operador diretamente.
+                      Convide quem já tem conta no Augusto.IJ ou crie um novo operador diretamente.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">

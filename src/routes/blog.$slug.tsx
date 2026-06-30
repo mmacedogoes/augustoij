@@ -69,7 +69,7 @@ function BlogPostPage() {
         <div className="mx-auto max-w-6xl px-4 flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <Logo variant="icon" size="sm" />
-            <span>© {new Date().getFullYear()} CondoIA</span>
+            <span>© {new Date().getFullYear()} Augusto.IJ</span>
           </div>
           <Link to="/blog" className="hover:text-primary">Mais artigos</Link>
         </div>

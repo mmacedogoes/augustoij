@@ -8,9 +8,9 @@ export const Route = createFileRoute("/_authenticated/app/ajuda/")({
 function AjudaHome() {
   return (
     <AjudaShell>
-      <h1 className="text-2xl font-semibold mb-3">Bem-vindo ao Manual do CondoIA</h1>
+      <h1 className="text-2xl font-semibold mb-3">Bem-vindo ao Manual do Augusto.IJ</h1>
       <p>
-        Este manual reúne tudo o que você precisa para tirar o máximo do CondoIA: desde os
+        Este manual reúne tudo o que você precisa para tirar o máximo do Augusto.IJ: desde os
         primeiros passos até como interagir com a IA para gerar notificações, atas, pareceres e
         análises contratuais.
       </p>
