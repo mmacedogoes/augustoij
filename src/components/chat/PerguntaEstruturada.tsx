@@ -183,20 +183,84 @@ export function PerguntaEstruturada({
 }
 
 export function tryParsePerguntaEstruturada(text: string): PerguntaEstruturadaDados | null {
+  if (!text || typeof text !== "string") return null;
   const trimmed = text.trim();
   if (!trimmed) return null;
-  // Suporta JSON puro ou dentro de fence ```json ... ```
-  let candidato = trimmed;
-  const fence = candidato.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) candidato = fence[1].trim();
-  if (!candidato.startsWith("{")) return null;
-  if (!candidato.includes('"pergunta_estruturada"')) return null;
+
+  // ESTRATÉGIA 1: parse direto se começa com {
+  if (trimmed.startsWith("{")) {
+    const result = tentarParse(trimmed);
+    if (result) return result;
+  }
+
+  // ESTRATÉGIA 2: bloco fenced ```json ... ``` ou ``` ... ```
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch) {
+    const candidato = fenceMatch[1].trim();
+    if (candidato.startsWith("{")) {
+      const result = tentarParse(candidato);
+      if (result) return result;
+    }
+  }
+
+  // ESTRATÉGIA 3: JSON em qualquer posição, prosa antes/depois
+  if (trimmed.includes('"pergunta_estruturada"')) {
+    const jsonStart = trimmed.indexOf("{");
+    if (jsonStart === -1) return null;
+    const jsonBlock = extrairJsonBalanceado(trimmed, jsonStart);
+    if (jsonBlock) {
+      const result = tentarParse(jsonBlock);
+      if (result) return result;
+    }
+  }
+
+  return null;
+}
+
+function tentarParse(candidato: string): PerguntaEstruturadaDados | null {
   try {
-    const parsed = JSON.parse(candidato) as PerguntaEstruturadaDados;
+    const parsed = JSON.parse(candidato);
     if (parsed?.tipo !== "pergunta_estruturada") return null;
     if (!Array.isArray(parsed.perguntas)) return null;
-    return parsed;
+    if (parsed.perguntas.length === 0) return null;
+    const perguntasValidas = parsed.perguntas.every((p: PerguntaItem) =>
+      p
+      && (typeof p.pergunta === "string" || typeof p.label === "string")
+      && (p.modo === undefined || p.modo === "unica" || p.modo === "multipla")
+      && Array.isArray(p.opcoes)
+      && p.opcoes.length > 0,
+    );
+    if (!perguntasValidas) return null;
+    return parsed as PerguntaEstruturadaDados;
   } catch {
     return null;
   }
+}
+
+function extrairJsonBalanceado(text: string, startIndex: number): string | null {
+  let depth = 0;
+  let inString = false;
+  let escapeNext = false;
+  for (let i = startIndex; i < text.length; i++) {
+    const char = text[i];
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    if (char === "\\") {
+      escapeNext = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (char === "{") depth++;
+    if (char === "}") {
+      depth--;
+      if (depth === 0) return text.substring(startIndex, i + 1);
+    }
+  }
+  return null;
 }
