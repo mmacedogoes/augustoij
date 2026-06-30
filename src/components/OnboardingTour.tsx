@@ -17,7 +17,7 @@ function buildSteps(perfil: PerfilAtuacao): Step[] {
     {
       target: "body",
       placement: "center",
-      title: "Bem-vindo ao CondoIA",
+      title: "Bem-vindo ao Augusto.IJ",
       content:
         "Seu assistente inteligente para gestão de condomínios. Vamos te mostrar rapidamente como aproveitar ao máximo.",
     },

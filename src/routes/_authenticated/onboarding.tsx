@@ -171,7 +171,7 @@ function OnboardingPage() {
         } });
       }
       await concluir({});
-      toast.success("Tudo pronto! Bem-vindo ao condoIA.");
+      toast.success("Tudo pronto! Bem-vindo ao Augusto.IJ.");
       navigate({ to: "/app" });
     } catch (e) {
       toast.error((e as Error).message);

@@ -48,7 +48,7 @@ export function AjudaShell({ children }: { children: ReactNode }) {
       <div className="max-w-6xl mx-auto bg-white text-slate-900 rounded-lg border border-border shadow-sm overflow-hidden">
         <div className="grid md:grid-cols-[260px_1fr]">
           <aside className="bg-slate-50 border-r border-border p-5 text-sm">
-            <h2 className="text-base font-semibold mb-4 text-slate-900">Manual do CondoIA</h2>
+            <h2 className="text-base font-semibold mb-4 text-slate-900">Manual do Augusto.IJ</h2>
             <nav className="space-y-5">
               {SECOES.map((sec) => (
                 <div key={sec.titulo}>

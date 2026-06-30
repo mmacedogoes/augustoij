@@ -11,8 +11,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Entrar — CondoIA" },
-      { name: "description", content: "Acesse sua conta do CondoIA." },
+      { title: "Entrar — Augusto.IJ" },
+      { name: "description", content: "Acesse sua conta do Augusto.IJ." },
     ],
   }),
   component: LoginPage,
@@ -54,7 +54,7 @@ function LoginPage() {
           <Logo variant="default" height={300} />
         </Link>
         <h1 className="text-3xl font-bold text-white tracking-tight text-center">Entrar</h1>
-        <p className="mt-2 text-sm text-muted-foreground text-center">Acesse o painel do condoIA.</p>
+        <p className="mt-2 text-sm text-muted-foreground text-center">Acesse o painel do Augusto.IJ.</p>
         <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">E-mail</Label>

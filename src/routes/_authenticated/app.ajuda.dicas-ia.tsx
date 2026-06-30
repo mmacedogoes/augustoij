@@ -11,7 +11,7 @@ function DicasIA() {
       <h1 className="text-2xl font-semibold mb-3">Dicas de interação com a IA</h1>
       <p>
         A qualidade das respostas depende de quanto contexto você fornece. Use as orientações
-        abaixo para extrair o máximo do CondoIA.
+        abaixo para extrair o máximo do Augusto.IJ.
       </p>
       <h2 className="text-lg font-semibold mt-6 mb-2">Como pedir notificações</h2>
       <ul className="list-disc pl-6 space-y-1">

@@ -175,7 +175,7 @@ export const Route = createFileRoute("/api/chat")({
             console.error("Orientações fetch failed:", e);
           }
 
-          const systemPrompt = `Você é o assistente jurídico do CondoIA, especialista em gestão de condomínios brasileiros (Código Civil, Lei 4.591/64, jurisprudência do STJ).
+          const systemPrompt = `Você é o assistente jurídico do Augusto.IJ, especialista em gestão de condomínios brasileiros (Código Civil, Lei 4.591/64, jurisprudência do STJ).
 
 PROIBIÇÃO TÉCNICA ABSOLUTA — JAMAIS divulgar mecânica interna:
 - Você está recebendo abaixo trechos de documentos e jurisprudência que foram recuperados automaticamente para te ajudar a responder.

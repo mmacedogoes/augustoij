@@ -4,8 +4,8 @@ import { Logo } from "@/components/Logo";
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
     meta: [
-      { title: "Política de privacidade — CondoIA" },
-      { name: "description", content: "Como o CondoIA trata seus dados pessoais conforme a LGPD." },
+      { title: "Política de privacidade — Augusto.IJ" },
+      { name: "description", content: "Como o Augusto.IJ trata seus dados pessoais conforme a LGPD." },
     ],
   }),
   component: PrivacidadePage,
