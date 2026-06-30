@@ -325,55 +325,77 @@ function FileForm({
   createDoc: (a: { data: CreateInput }) => Promise<{ id: string }>;
   processDoc: (a: { data: { id: string } }) => Promise<unknown>;
 }) {
-  const [titulo, setTitulo] = useState("");
   const [tipo, setTipo] = useState<CreateInput["tipo"]>("jurisprudencia");
   const [fonte, setFonte] = useState("");
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [progresso, setProgresso] = useState<{ feito: number; total: number } | null>(null);
+
+  const tituloDeNome = (nome: string) =>
+    nome.replace(/\.[^.]+$/, "").replace(/[_\-]+/g, " ").trim().slice(0, 200);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const file = fileRef.current?.files?.[0];
-    if (!file) {
-      toast.error("Selecione um arquivo");
+    const lista = Array.from(fileRef.current?.files ?? []);
+    if (lista.length === 0) {
+      toast.error("Selecione ao menos um arquivo");
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error("Arquivo excede 20 MB");
+    if (lista.length > 10) {
+      toast.error("Envie no máximo 10 arquivos por vez");
       return;
     }
-    if (titulo.trim().length < 2) {
-      toast.error("Informe um título");
-      return;
+    for (const f of lista) {
+      if (f.size > 20 * 1024 * 1024) {
+        toast.error(`"${f.name}" excede 20 MB`);
+        return;
+      }
+      if (f.size === 0) {
+        toast.error(`"${f.name}" está vazio`);
+        return;
+      }
     }
     setUploading(true);
-    try {
-      const { path, token } = await getUrl({ data: { nomeArquivo: file.name } });
-      const { error: upErr } = await supabase.storage
-        .from("kb-documentos")
-        .uploadToSignedUrl(path, token, file);
-      if (upErr) throw new Error(upErr.message);
-      const created = await createDoc({
-        data: { titulo, tipo, fonte: fonte || null, storagePath: path },
-      });
-      toast.success("Arquivo enviado. Processando…");
-      processDoc({ data: { id: created.id } })
-        .then(() => toast.success("Conteúdo pronto para uso"))
-        .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao processar"));
+    setProgresso({ feito: 0, total: lista.length });
+    let sucesso = 0;
+    for (const file of lista) {
+      try {
+        const { path, token } = await getUrl({ data: { nomeArquivo: file.name } });
+        const { error: upErr } = await supabase.storage
+          .from("kb-documentos")
+          .uploadToSignedUrl(path, token, file);
+        if (upErr) throw new Error(upErr.message);
+        const created = await createDoc({
+          data: {
+            titulo: tituloDeNome(file.name),
+            tipo,
+            fonte: fonte || null,
+            storagePath: path,
+          },
+        });
+        processDoc({ data: { id: created.id } }).catch((e) =>
+          toast.error(
+            `${file.name}: ${e instanceof Error ? e.message : "falha ao processar"}`,
+          ),
+        );
+        sucesso += 1;
+      } catch (e) {
+        toast.error(`${file.name}: ${e instanceof Error ? e.message : "falha"}`);
+      }
+      setProgresso((p) => (p ? { ...p, feito: p.feito + 1 } : p));
+    }
+    setUploading(false);
+    setProgresso(null);
+    if (sucesso > 0) {
+      toast.success(
+        `${sucesso} arquivo(s) enviado(s). Processamento em andamento.`,
+      );
       onDone();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha");
-    } finally {
-      setUploading(false);
     }
   };
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div>
-        <Label>Título</Label>
-        <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
-      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>Tipo</Label>
@@ -396,20 +418,27 @@ function FileForm({
         </div>
       </div>
       <div>
-        <Label>Arquivo (PDF, DOCX, TXT ou imagem JPG/PNG/WEBP, até 20 MB)</Label>
+        <Label>Arquivos (PDF, DOCX, TXT, imagem JPG/PNG/WEBP — até 20 MB cada, máx. 10)</Label>
         <Input
           ref={fileRef}
           type="file"
+          multiple
           accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp"
           required
         />
         <p className="text-xs text-muted-foreground mt-1">
-          PDFs escaneados e imagens são lidos automaticamente por OCR/visão.
+          O título de cada item será gerado a partir do nome do arquivo. PDFs escaneados e
+          imagens são lidos por OCR/visão.
         </p>
       </div>
+      {progresso && (
+        <p className="text-xs text-muted-foreground">
+          Enviando {progresso.feito}/{progresso.total}…
+        </p>
+      )}
       <Button type="submit" disabled={uploading} className="w-full">
         {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
-        Enviar e indexar
+        Enviar e indexar todos
       </Button>
     </form>
   );
