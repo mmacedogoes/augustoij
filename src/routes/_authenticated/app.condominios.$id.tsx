@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { getCondominio, updateCondominio } from "@/lib/condominios.functions";
 import { DocumentosPanel, useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 import { ChatPanel } from "@/components/chat/ChatPanel";
+import { UnidadesPanel } from "@/components/unidades/UnidadesPanel";
 import { listConversas, deleteConversa } from "@/lib/chat.functions";
 import { listMembros, inviteMembro, removeMembro, createOperadorPJ } from "@/lib/membros.functions";
 import {
@@ -122,6 +123,7 @@ function CondominioDetail() {
             <TabsTrigger value="chat">Interação com a IA</TabsTrigger>
             <TabsTrigger value="historico">Histórico de Conversas</TabsTrigger>
             <TabsTrigger value="documentos">Documentos</TabsTrigger>
+            <TabsTrigger value="unidades">Unidades</TabsTrigger>
             <TabsTrigger value="config">Configurações</TabsTrigger>
           </TabsList>
           <TabsContent value="chat">
@@ -200,6 +202,9 @@ function CondominioDetail() {
           </TabsContent>
           <TabsContent value="documentos">
             <DocumentosPanel condominioId={id} />
+          </TabsContent>
+          <TabsContent value="unidades">
+            <UnidadesPanel condominioId={id} isOwner={isOwner} />
           </TabsContent>
           <TabsContent value="config">
             <div className="space-y-4">
