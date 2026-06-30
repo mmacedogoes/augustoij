@@ -116,7 +116,14 @@ type LinhaUpload = {
   erro?: string;
 };
 
-export function DocumentosPanel({ condominioId }: { condominioId: string }) {
+export function DocumentosPanel({
+  condominioId,
+  readOnly = false,
+}: {
+  condominioId: string;
+  /** Modo visualizador (admin): bloqueia upload e exclusão. */
+  readOnly?: boolean;
+}) {
   const fetchDocs = useServerFn(listDocumentos);
   const getUrl = useServerFn(getUploadUrl);
   const createDoc = useServerFn(createDocumento);
