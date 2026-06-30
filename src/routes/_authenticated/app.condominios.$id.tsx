@@ -10,7 +10,15 @@ import { getCondominio, updateCondominio } from "@/lib/condominios.functions";
 import { DocumentosPanel, useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { listConversas, deleteConversa } from "@/lib/chat.functions";
-import { listMembros, inviteMembro, removeMembro } from "@/lib/membros.functions";
+import { listMembros, inviteMembro, removeMembro, createOperadorPJ } from "@/lib/membros.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { getProfile } from "@/lib/condominios.functions";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -30,6 +38,7 @@ function CondominioDetail() {
   const fetchMembros = useServerFn(listMembros);
   const inviteFn = useServerFn(inviteMembro);
   const removeFn = useServerFn(removeMembro);
+  const createOperFn = useServerFn(createOperadorPJ);
   const fetchProfile = useServerFn(getProfile);
   const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; owner_id?: string } | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
@@ -43,6 +52,9 @@ function CondominioDetail() {
   const [conversas, setConversas] = useState<Array<{ id: string; titulo: string | null; created_at: string }>>([]);
   const [membros, setMembros] = useState<Array<{ id: string; user_id: string; papel: string; nome: string | null; email: string | null }>>([]);
   const [emailConvite, setEmailConvite] = useState("");
+  const [openCreateOper, setOpenCreateOper] = useState(false);
+  const [creatingOper, setCreatingOper] = useState(false);
+  const [novoOper, setNovoOper] = useState({ nome: "", email: "", password: "" });
   const [isPJ, setIsPJ] = useState(false);
   const [tab, setTab] = useState<string>("chat");
   const hasReadyDocs = useHasReadyDocs(id);
@@ -296,15 +308,16 @@ function CondominioDetail() {
                   <div>
                     <h3 className="font-semibold">Operadores do condomínio</h3>
                     <p className="text-xs text-muted-foreground">
-                      Convide membros da sua equipe para acessar este condomínio. O usuário precisa já ter conta no CondoIA.
+                      Convide quem já tem conta no CondoIA ou crie um novo operador diretamente.
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Input
                       type="email"
                       placeholder="email@empresa.com"
                       value={emailConvite}
                       onChange={(e) => setEmailConvite(e.target.value)}
+                      className="flex-1 min-w-[220px]"
                     />
                     <Button
                       onClick={async () => {
@@ -321,6 +334,83 @@ function CondominioDetail() {
                     >
                       Convidar
                     </Button>
+                    <Dialog open={openCreateOper} onOpenChange={setOpenCreateOper}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">Criar operador</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Criar novo operador</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-3">
+                          <div className="space-y-1.5">
+                            <Label>Nome</Label>
+                            <Input
+                              value={novoOper.nome}
+                              onChange={(e) => setNovoOper({ ...novoOper, nome: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>E-mail</Label>
+                            <Input
+                              type="email"
+                              value={novoOper.email}
+                              onChange={(e) => setNovoOper({ ...novoOper, email: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Senha (mín. 8 caracteres com letras e números)</Label>
+                            <Input
+                              type="password"
+                              value={novoOper.password}
+                              onChange={(e) => setNovoOper({ ...novoOper, password: e.target.value })}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              O operador poderá acessar este condomínio com essas credenciais.
+                            </p>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            variant="ghost"
+                            disabled={creatingOper}
+                            onClick={() => setOpenCreateOper(false)}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            disabled={creatingOper}
+                            onClick={async () => {
+                              setCreatingOper(true);
+                              try {
+                                const r = await createOperFn({
+                                  data: {
+                                    condominioId: id,
+                                    nome: novoOper.nome.trim(),
+                                    email: novoOper.email.trim(),
+                                    password: novoOper.password,
+                                  },
+                                });
+                                toast.success(
+                                  r.reused
+                                    ? "Conta já existia — vinculada ao condomínio."
+                                    : "Operador criado e vinculado.",
+                                );
+                                setOpenCreateOper(false);
+                                setNovoOper({ nome: "", email: "", password: "" });
+                                refreshMembros();
+                              } catch (e) {
+                                toast.error(e instanceof Error ? e.message : "Falha ao criar operador");
+                              } finally {
+                                setCreatingOper(false);
+                              }
+                            }}
+                          >
+                            {creatingOper ? "Criando…" : "Criar"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                   {membros.length > 0 && (
                     <div className="divide-y border rounded-md">
