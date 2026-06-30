@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Building, User, LogOut, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Logo } from "@/components/Logo";
+import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -53,10 +53,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 bg-sidebar text-sidebar-foreground flex-col">
-        <div className="p-6">
-          <Logo variant="inverted" height={150} />
-        </div>
+      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 bg-sidebar text-sidebar-foreground flex-col overflow-hidden">
+        <Link to="/app" className="p-4 border-b border-sidebar-border/40 flex items-center overflow-hidden">
+          <AugustoLogo variant="horizontal" theme="dark" size={180} />
+        </Link>
         <nav className="flex-1 px-3 space-y-1">
           {nav.map((n) => {
             const active = pathname === n.to || (n.to !== "/app" && pathname.startsWith(n.to));
@@ -75,7 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="md:hidden border-b border-border bg-card sticky top-0 z-40">
         <div className="px-4 py-3 flex items-center justify-between">
           <Link to="/app" className="flex items-center">
-            <Logo variant="default" size="sm" />
+            <AugustoLogo variant="horizontal" theme="light" size={140} />
           </Link>
           <div className="flex items-center gap-1">
             <HelpMenu onStartTour={() => setForceTour(true)} />
