@@ -3,7 +3,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Paperclip, X, Loader2 } from "lucide-react";
+import { Paperclip, X, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Conversation,
@@ -416,7 +416,7 @@ export function ChatPanel({
             </div>
           ) : historyError ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
-              <AlertTriangleIcon />
+              <AlertTriangle className="h-6 w-6" />
               <p className="text-sm">Não foi possível carregar esta conversa.</p>
             </div>
           ) : messages.length === 0 ? (
