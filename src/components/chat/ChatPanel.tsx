@@ -46,6 +46,8 @@ type Props = {
    * Para trocar de conversa, o pai DEVE remontar este componente via `key`. */
   initialConversaId?: string | null;
   onConversaCreated?: (id: string) => void;
+  /** Modo visualizador (admin): exibe mensagens mas bloqueia envios/anexos. */
+  readOnly?: boolean;
 };
 
 type ChatAttachment = {
