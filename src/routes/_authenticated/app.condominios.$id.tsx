@@ -37,6 +37,9 @@ function CondominioDetail() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [form, setForm] = useState({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: 0 });
   const [conversaAtiva, setConversaAtiva] = useState<string | null>(null);
+  // chave usada como `key` do ChatPanel para forçar remount limpo
+  // ao trocar entre "nova conversa" e abrir uma conversa do histórico.
+  const [chatKey, setChatKey] = useState<string>(() => `new-${Date.now()}`);
   const [conversas, setConversas] = useState<Array<{ id: string; titulo: string | null; created_at: string }>>([]);
   const [membros, setMembros] = useState<Array<{ id: string; user_id: string; papel: string; nome: string | null; email: string | null }>>([]);
   const [emailConvite, setEmailConvite] = useState("");
@@ -111,16 +114,24 @@ function CondominioDetail() {
           </TabsList>
           <TabsContent value="chat">
             <ChatPanel
+              key={chatKey}
               condominioId={id}
               hasReadyDocs={hasReadyDocs}
-              conversaId={conversaAtiva}
+              initialConversaId={conversaAtiva}
               onConversaCreated={(cid) => {
                 setConversaAtiva(cid);
                 refreshConversas();
               }}
             />
             <div className="mt-3 flex justify-end">
-              <Button size="sm" variant="outline" onClick={() => setConversaAtiva(null)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setConversaAtiva(null);
+                  setChatKey(`new-${Date.now()}`);
+                }}
+              >
                 Nova conversa
               </Button>
             </div>
@@ -147,6 +158,7 @@ function CondominioDetail() {
                       variant="outline"
                       onClick={() => {
                         setConversaAtiva(c.id);
+                        setChatKey(c.id);
                         setTab("chat");
                       }}
                     >

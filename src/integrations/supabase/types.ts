@@ -459,6 +459,7 @@ export type Database = {
           status_processamento: string
           storage_path: string
           tipo: Database["public"]["Enums"]["tipo_documento"]
+          titulo: string | null
         }
         Insert: {
           condominio_id: string
@@ -468,6 +469,7 @@ export type Database = {
           status_processamento?: string
           storage_path: string
           tipo?: Database["public"]["Enums"]["tipo_documento"]
+          titulo?: string | null
         }
         Update: {
           condominio_id?: string
@@ -477,6 +479,7 @@ export type Database = {
           status_processamento?: string
           storage_path?: string
           tipo?: Database["public"]["Enums"]["tipo_documento"]
+          titulo?: string | null
         }
         Relationships: [
           {
@@ -915,7 +918,16 @@ export type Database = {
         | "conselheiro"
         | "outro"
       plano_assinatura: "solo" | "pro" | "administradora"
-      tipo_documento: "convencao" | "regimento" | "ata" | "contrato" | "outro"
+      tipo_documento:
+        | "convencao"
+        | "regimento"
+        | "ata"
+        | "contrato"
+        | "outro"
+        | "laudo_tecnico"
+        | "previsao_orcamentaria"
+        | "prestacao_contas"
+        | "comunicado"
       tipo_pessoa: "pf" | "pj"
     }
     CompositeTypes: {
@@ -1073,7 +1085,17 @@ export const Constants = {
         "outro",
       ],
       plano_assinatura: ["solo", "pro", "administradora"],
-      tipo_documento: ["convencao", "regimento", "ata", "contrato", "outro"],
+      tipo_documento: [
+        "convencao",
+        "regimento",
+        "ata",
+        "contrato",
+        "outro",
+        "laudo_tecnico",
+        "previsao_orcamentaria",
+        "prestacao_contas",
+        "comunicado",
+      ],
       tipo_pessoa: ["pf", "pj"],
     },
   },

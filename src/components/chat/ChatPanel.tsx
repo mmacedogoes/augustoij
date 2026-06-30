@@ -3,7 +3,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Paperclip, X, Loader2 } from "lucide-react";
+import { Paperclip, X, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Conversation,
@@ -38,8 +38,10 @@ import {
 type Props = {
   condominioId: string;
   hasReadyDocs: boolean;
-  conversaId: string | null;
-  onConversaCreated: (id: string) => void;
+  /** ID de conversa para carregar do histórico. Lido apenas no mount.
+   * Para trocar de conversa, o pai DEVE remontar este componente via `key`. */
+  initialConversaId?: string | null;
+  onConversaCreated?: (id: string) => void;
 };
 
 type ChatAttachment = {
@@ -87,24 +89,35 @@ function extractStructuredQuestion(text: string): {
   return { visible: text.replace(fence, "").trim(), pergunta, opcoes };
 }
 
-export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCreated }: Props) {
+export function ChatPanel({
+  condominioId,
+  hasReadyDocs,
+  initialConversaId = null,
+  onConversaCreated,
+}: Props) {
   const ensureConversa = useServerFn(createConversa);
   const fetchMensagens = useServerFn(listMensagens);
   const extractAttachment = useServerFn(extractAttachmentForChat);
   const getUrl = useServerFn(getUploadUrl);
   const createDoc = useServerFn(createDocumento);
   const processDoc = useServerFn(processDocumento);
-  const [activeId, setActiveId] = useState<string | null>(conversaId);
+  // useChat `id` deve ser ESTÁVEL pela vida do componente.
+  // Trocar `id` reseta o store interno do hook e descarta a mensagem
+  // recém-enviada (raiz do bug "primeira mensagem some").
+  const sessionKeyRef = useRef<string>(
+    initialConversaId ?? `new-${Math.random().toString(36).slice(2)}`,
+  );
   const [initial, setInitial] = useState<UIMessage[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(!initialConversaId);
+  const [historyError, setHistoryError] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSentRef = useRef<string>("");
   const wasStreamingRef = useRef(false);
-  // Refs sincronizados com state — usados pelo transport para evitar
-  // race condition na PRIMEIRA mensagem (state ainda não propagou
-  // quando sendMessage roda no mesmo tick).
-  const activeIdRef = useRef<string | null>(conversaId);
+  // ID da conversa "em curso". Atualizado por ref para que o transport
+  // leia o valor mais recente sem disparar reset do useChat.
+  const activeIdRef = useRef<string | null>(initialConversaId);
   const tokenRef = useRef<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [attachment, setAttachment] = useState<ChatAttachment | null>(null);
@@ -142,27 +155,35 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
     });
   }, []);
 
+  // Carrega histórico APENAS no mount. Para abrir outra conversa, o pai
+  // troca o `key` deste componente forçando remount limpo.
   useEffect(() => {
-    setActiveId(conversaId);
-    activeIdRef.current = conversaId;
-    setAttachment(null);
-    if (!conversaId) {
+    if (!initialConversaId) {
       setInitial([]);
+      setHistoryLoaded(true);
       return;
     }
-    fetchMensagens({ data: { conversaId } })
+    setHistoryLoaded(false);
+    setHistoryError(false);
+    fetchMensagens({ data: { conversaId: initialConversaId } })
       .then((rows) => {
-        const mapped: UIMessage[] = (rows as Array<{ id: string; papel: "user" | "assistant"; conteudo: string }>).map(
-          (r) => ({
-            id: r.id,
-            role: r.papel,
-            parts: [{ type: "text", text: r.conteudo }],
-          }),
-        );
+        const mapped: UIMessage[] = (
+          rows as Array<{ id: string; papel: "user" | "assistant"; conteudo: string }>
+        ).map((r) => ({
+          id: r.id,
+          role: r.papel,
+          parts: [{ type: "text", text: r.conteudo }],
+        }));
         setInitial(mapped);
       })
-      .catch(() => setInitial([]));
-  }, [conversaId, fetchMensagens]);
+      .catch((e) => {
+        console.error("[chat] falha ao carregar histórico:", e);
+        setHistoryError(true);
+        toast.error("Não foi possível carregar a conversa.");
+      })
+      .finally(() => setHistoryLoaded(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Transport é estável — lê tudo via refs, eliminando race condition
   // (state recém-setado ainda não propagou quando sendMessage roda).
@@ -183,7 +204,7 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
   );
 
   const { messages, sendMessage, status, stop } = useChat({
-    id: activeId ?? "new",
+    id: sessionKeyRef.current,
     messages: initial,
     transport,
     onError: (e) => {
@@ -246,6 +267,7 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
   const handleSubmit = async (message: { text?: string }) => {
     const text = message.text?.trim();
     if (!text) return;
+    if (!historyLoaded) return; // não enviar enquanto histórico carrega
     if (!hasReadyDocs && !attachment) {
       toast.error("Envie ao menos um documento processado para iniciar o chat.");
       return;
@@ -269,9 +291,9 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
         const conv = await ensureConversa({ data: { condominioId } });
         id = (conv as { id: string }).id;
         // Atualiza ref ANTES do sendMessage (transport lê de ref).
+        // NÃO mexer no `id` do useChat — isso causaria reset e perda da msg.
         activeIdRef.current = id;
-        setActiveId(id);
-        onConversaCreated(id);
+        onConversaCreated?.(id);
       } catch (e) {
         console.error("[chat] falha ao criar conversa:", e);
         const msg = e instanceof Error && e.message ? e.message : "Falha ao criar conversa";
@@ -381,13 +403,23 @@ export function ChatPanel({ condominioId, hasReadyDocs, conversaId, onConversaCr
     }
   };
 
-  const inputEnabled = hasReadyDocs || !!attachment;
+  const inputEnabled = (hasReadyDocs || !!attachment) && historyLoaded;
 
   return (
     <div className="flex flex-col h-[70vh] min-h-[500px] border border-border rounded-lg overflow-hidden bg-card">
       <Conversation className="flex-1">
         <ConversationContent>
-          {messages.length === 0 ? (
+          {!historyLoaded ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <p className="text-sm">Carregando conversa…</p>
+            </div>
+          ) : historyError ? (
+            <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+              <AlertTriangle className="h-6 w-6" />
+              <p className="text-sm">Não foi possível carregar esta conversa.</p>
+            </div>
+          ) : messages.length === 0 ? (
             <ConversationEmptyState
               icon={<Logo variant="principal" height={36} />}
               title="Pergunte ao assistente"

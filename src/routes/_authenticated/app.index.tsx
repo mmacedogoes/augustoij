@@ -33,6 +33,7 @@ function HomePage() {
     typeof window === "undefined" ? null : window.localStorage.getItem("condoia.activeCondo"),
   );
   const [conversaId, setConversaId] = useState<string | null>(null);
+  const [chatKey, setChatKey] = useState<string>(() => `new-${Date.now()}`);
 
   useEffect(() => {
     fetchCondos()
@@ -50,6 +51,7 @@ function HomePage() {
   useEffect(() => {
     if (activeCondoId) window.localStorage.setItem("condoia.activeCondo", activeCondoId);
     setConversaId(null);
+    setChatKey(`cond-${activeCondoId}-${Date.now()}`);
   }, [activeCondoId]);
 
   const activeCondo = useMemo(
@@ -105,9 +107,10 @@ function HomePage() {
         ) : (
           <div className="flex-1 min-h-0 flex flex-col">
             <ChatPanel
+              key={chatKey}
               condominioId={activeCondo.id}
               hasReadyDocs={hasReadyDocs}
-              conversaId={conversaId}
+              initialConversaId={conversaId}
               onConversaCreated={(cid) => setConversaId(cid)}
             />
             <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
