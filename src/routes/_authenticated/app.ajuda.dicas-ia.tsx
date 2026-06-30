@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AjudaShell } from "@/components/ajuda/AjudaShell";
 
 export const Route = createFileRoute("/_authenticated/app/ajuda/dicas-ia")({
   component: DicasIA,
@@ -6,7 +7,7 @@ export const Route = createFileRoute("/_authenticated/app/ajuda/dicas-ia")({
 
 function DicasIA() {
   return (
-    <>
+    <AjudaShell>
       <h1 className="text-2xl font-semibold mb-3">Dicas de interação com a IA</h1>
       <p>
         A qualidade das respostas depende de quanto contexto você fornece. Use as orientações
@@ -29,6 +30,6 @@ function DicasIA() {
         Quando a IA cita artigos, leis ou jurisprudência, valide os trechos com a fonte original.
         As respostas são informativas e não substituem aconselhamento de profissional habilitado.
       </p>
-    </>
+    </AjudaShell>
   );
 }
