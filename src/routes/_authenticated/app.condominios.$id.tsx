@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { z } from "zod";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Building } from "lucide-react";
+import { ArrowLeft, Building, Eye } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { ChatPanel } from "@/components/chat/ChatPanel";
 import { UnidadesPanel } from "@/components/unidades/UnidadesPanel";
 import { listConversas, deleteConversa } from "@/lib/chat.functions";
 import { listMembros, inviteMembro, removeMembro, createOperadorPJ } from "@/lib/membros.functions";
+import { isCurrentUserAdmin } from "@/lib/admin.functions";
 import {
   Dialog,
   DialogContent,
@@ -28,10 +30,22 @@ import { Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/condominios/$id")({
   component: CondominioDetail,
+  validateSearch: (s) =>
+    z
+      .object({
+        admin_view: z
+          .union([z.literal(1), z.literal("1"), z.boolean()])
+          .optional()
+          .transform((v) => v === 1 || v === "1" || v === true)
+          .default(false),
+      })
+      .parse(s),
 });
 
 function CondominioDetail() {
   const { id } = Route.useParams();
+  const search = Route.useSearch();
+  const wantsAdminView = !!search.admin_view;
   const fetchCondo = useServerFn(getCondominio);
   const saveCondo = useServerFn(updateCondominio);
   const fetchConversas = useServerFn(listConversas);
@@ -41,6 +55,8 @@ function CondominioDetail() {
   const removeFn = useServerFn(removeMembro);
   const createOperFn = useServerFn(createOperadorPJ);
   const fetchProfile = useServerFn(getProfile);
+  const checkAdmin = useServerFn(isCurrentUserAdmin);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; owner_id?: string } | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -50,7 +66,14 @@ function CondominioDetail() {
   // chave usada como `key` do ChatPanel para forçar remount limpo
   // ao trocar entre "nova conversa" e abrir uma conversa do histórico.
   const [chatKey, setChatKey] = useState<string>(() => `new-${Date.now()}`);
-  const [conversas, setConversas] = useState<Array<{ id: string; titulo: string | null; created_at: string }>>([]);
+  const [conversas, setConversas] = useState<
+    Array<{
+      id: string;
+      titulo: string | null;
+      created_at: string;
+      autor?: { nome: string | null; email: string | null } | null;
+    }>
+  >([]);
   const [membros, setMembros] = useState<Array<{ id: string; user_id: string; papel: string; nome: string | null; email: string | null }>>([]);
   const [emailConvite, setEmailConvite] = useState("");
   const [openCreateOper, setOpenCreateOper] = useState(false);
@@ -59,6 +82,20 @@ function CondominioDetail() {
   const [isPJ, setIsPJ] = useState(false);
   const [tab, setTab] = useState<string>("chat");
   const hasReadyDocs = useHasReadyDocs(id);
+
+  // Quando o admin pede ?admin_view=1, validamos o papel no servidor;
+  // só ativa o modo visualizador se realmente for admin.
+  const adminView = wantsAdminView && isAdmin === true;
+
+  useEffect(() => {
+    if (!wantsAdminView) {
+      setIsAdmin(false);
+      return;
+    }
+    checkAdmin()
+      .then((r) => setIsAdmin(!!r.admin))
+      .catch(() => setIsAdmin(false));
+  }, [wantsAdminView, checkAdmin]);
 
   useEffect(() => {
     fetchCondo({ data: { id } })
@@ -85,6 +122,7 @@ function CondominioDetail() {
   }, [fetchCondo, fetchProfile, id]);
 
   const isOwner = !!profileId && !!condo?.owner_id && profileId === condo.owner_id;
+  const canEdit = isOwner && !adminView;
 
   const refreshMembros = () => {
     fetchMembros({ data: { condominioId: id } })
@@ -93,7 +131,7 @@ function CondominioDetail() {
   };
 
   const refreshConversas = () => {
-    fetchConversas({ data: { condominioId: id } })
+    fetchConversas({ data: { condominioId: id, adminView } })
       .then((rows) => setConversas(rows as typeof conversas))
       .catch(() => {});
   };
@@ -102,7 +140,7 @@ function CondominioDetail() {
     refreshConversas();
     refreshMembros();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, adminView]);
 
   return (
     <AppShell>
@@ -110,6 +148,16 @@ function CondominioDetail() {
         <Link to="/app/condominios" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
         </Link>
+        {adminView && (
+          <div className="mt-3 flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-200">
+            <Eye className="h-4 w-4" />
+            <p className="text-xs">
+              Modo <strong>visualizador (admin)</strong> — somente leitura. Você vê documentos,
+              unidades e o histórico de conversas de todos os membros, mas não pode escrever, anexar
+              ou excluir nada.
+            </p>
+          </div>
+        )}
         <div className="mt-3 flex items-center gap-3">
           <div className="rounded-md bg-accent/10 p-3"><Building className="h-6 w-6 text-accent" /></div>
           <div>
@@ -132,12 +180,14 @@ function CondominioDetail() {
               condominioId={id}
               hasReadyDocs={hasReadyDocs}
               initialConversaId={conversaAtiva}
+              readOnly={adminView}
               onConversaCreated={(cid) => {
                 setConversaAtiva(cid);
                 refreshConversas();
               }}
             />
             <div className="mt-3 flex justify-end">
+              {!adminView && (
               <Button
                 size="sm"
                 variant="outline"
@@ -148,6 +198,7 @@ function CondominioDetail() {
               >
                 Nova conversa
               </Button>
+              )}
             </div>
           </TabsContent>
           <TabsContent value="historico">
@@ -165,6 +216,9 @@ function CondominioDetail() {
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(c.created_at).toLocaleString("pt-BR")}
+                        {adminView && c.autor && (
+                          <span className="ml-2">· por {c.autor.nome || c.autor.email || "—"}</span>
+                        )}
                       </p>
                     </div>
                     <Button
@@ -180,6 +234,7 @@ function CondominioDetail() {
                     >
                       Abrir
                     </Button>
+                    {!adminView && (
                     <Button
                       size="icon"
                       variant="ghost"
@@ -197,31 +252,34 @@ function CondominioDetail() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                    )}
                   </div>
                 ))}
               </Card>
             )}
           </TabsContent>
           <TabsContent value="documentos">
-            <DocumentosPanel condominioId={id} />
+            <DocumentosPanel condominioId={id} readOnly={adminView} />
           </TabsContent>
           <TabsContent value="unidades">
-            <UnidadesPanel condominioId={id} isOwner={isOwner} />
+            <UnidadesPanel condominioId={id} isOwner={canEdit} />
           </TabsContent>
           <TabsContent value="config">
             <div className="space-y-4">
               <Card className="p-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">Dados do condomínio</h3>
-                  {isOwner && !editing && (
+                  {canEdit && !editing && (
                     <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                       Editar
                     </Button>
                   )}
                 </div>
-                {!isOwner && (
+                {!canEdit && (
                   <p className="text-xs text-muted-foreground">
-                    Apenas o dono do condomínio pode alterar estes dados.
+                    {adminView
+                      ? "Modo visualizador: edição desabilitada."
+                      : "Apenas o dono do condomínio pode alterar estes dados."}
                   </p>
                 )}
                 {!editing ? (
