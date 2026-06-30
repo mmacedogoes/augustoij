@@ -10,7 +10,15 @@ import { getCondominio, updateCondominio } from "@/lib/condominios.functions";
 import { DocumentosPanel, useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { listConversas, deleteConversa } from "@/lib/chat.functions";
-import { listMembros, inviteMembro, removeMembro } from "@/lib/membros.functions";
+import { listMembros, inviteMembro, removeMembro, createOperadorPJ } from "@/lib/membros.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { getProfile } from "@/lib/condominios.functions";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -30,6 +38,7 @@ function CondominioDetail() {
   const fetchMembros = useServerFn(listMembros);
   const inviteFn = useServerFn(inviteMembro);
   const removeFn = useServerFn(removeMembro);
+  const createOperFn = useServerFn(createOperadorPJ);
   const fetchProfile = useServerFn(getProfile);
   const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; owner_id?: string } | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
@@ -43,6 +52,9 @@ function CondominioDetail() {
   const [conversas, setConversas] = useState<Array<{ id: string; titulo: string | null; created_at: string }>>([]);
   const [membros, setMembros] = useState<Array<{ id: string; user_id: string; papel: string; nome: string | null; email: string | null }>>([]);
   const [emailConvite, setEmailConvite] = useState("");
+  const [openCreateOper, setOpenCreateOper] = useState(false);
+  const [creatingOper, setCreatingOper] = useState(false);
+  const [novoOper, setNovoOper] = useState({ nome: "", email: "", password: "" });
   const [isPJ, setIsPJ] = useState(false);
   const [tab, setTab] = useState<string>("chat");
   const hasReadyDocs = useHasReadyDocs(id);
