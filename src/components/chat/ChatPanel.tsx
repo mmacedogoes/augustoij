@@ -513,7 +513,7 @@ export function ChatPanel({
                   return (
                     <Message key={m.id} from={m.role} className="max-w-full">
                       <div className="flex gap-3 items-start">
-                        <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
+                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
                         <div className="flex-1 min-w-0">
                           <PerguntaEstruturada
                             dados={estruturada}
@@ -529,7 +529,7 @@ export function ChatPanel({
                   return (
                     <Message key={m.id} from={m.role} className="max-w-full">
                       <div className="flex gap-3 items-start">
-                        <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
+                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
                         <div className="flex-1 min-w-0 text-sm text-muted-foreground italic">
                           Preparando opções…
                         </div>
@@ -540,7 +540,7 @@ export function ChatPanel({
                 return (
                   <Message key={m.id} from={m.role} className="max-w-full">
                     <div className="flex gap-3 items-start">
-                      <img src={iconeAsset.url} alt="" className="h-7 w-7 rounded-md border border-border bg-card flex-shrink-0" />
+                      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
                       <div className="flex-1 min-w-0">
                         <MessageContent>
                           <MessageResponse>{sq!.visible}</MessageResponse>
