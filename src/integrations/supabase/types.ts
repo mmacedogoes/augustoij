@@ -749,6 +749,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ativo: boolean
           convidado_por: string | null
           cpf_cnpj: string | null
           created_at: string
@@ -769,6 +770,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ativo?: boolean
           convidado_por?: string | null
           cpf_cnpj?: string | null
           created_at?: string
@@ -789,6 +791,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ativo?: boolean
           convidado_por?: string | null
           cpf_cnpj?: string | null
           created_at?: string
@@ -963,6 +966,7 @@ export type Database = {
       admin_list_users: {
         Args: { _limit?: number; _offset?: number; _search?: string }
         Returns: {
+          ativo: boolean
           created_at: string
           email: string
           id: string
