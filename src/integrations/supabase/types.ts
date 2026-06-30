@@ -405,6 +405,36 @@ export type Database = {
         }
         Relationships: []
       }
+      dicas_sistema: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          id: string
+          ordem: number
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          id?: string
+          ordem?: number
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          id?: string
+          ordem?: number
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_chunks: {
         Row: {
           condominio_id: string
@@ -662,12 +692,14 @@ export type Database = {
           convidado_por: string | null
           cpf_cnpj: string | null
           created_at: string
+          dicas_ativas: boolean
           email: string | null
           id: string
           lgpd_aceite_em: string | null
           nome: string | null
           oab: string | null
           onboarding_completo: boolean
+          onboarding_tour_completo: boolean
           papel_sistema: Database["public"]["Enums"]["papel_sistema"]
           perfil_atuacao: Database["public"]["Enums"]["perfil_atuacao"] | null
           razao_social: string | null
@@ -680,12 +712,14 @@ export type Database = {
           convidado_por?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          dicas_ativas?: boolean
           email?: string | null
           id: string
           lgpd_aceite_em?: string | null
           nome?: string | null
           oab?: string | null
           onboarding_completo?: boolean
+          onboarding_tour_completo?: boolean
           papel_sistema?: Database["public"]["Enums"]["papel_sistema"]
           perfil_atuacao?: Database["public"]["Enums"]["perfil_atuacao"] | null
           razao_social?: string | null
@@ -698,12 +732,14 @@ export type Database = {
           convidado_por?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          dicas_ativas?: boolean
           email?: string | null
           id?: string
           lgpd_aceite_em?: string | null
           nome?: string | null
           oab?: string | null
           onboarding_completo?: boolean
+          onboarding_tour_completo?: boolean
           papel_sistema?: Database["public"]["Enums"]["papel_sistema"]
           perfil_atuacao?: Database["public"]["Enums"]["perfil_atuacao"] | null
           razao_social?: string | null
