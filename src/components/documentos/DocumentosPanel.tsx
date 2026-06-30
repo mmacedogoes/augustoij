@@ -307,6 +307,11 @@ export function DocumentosPanel({
 
   return (
     <div className="space-y-4">
+      {readOnly ? (
+        <Card className="p-4 text-xs text-amber-200 border-amber-500/30 bg-amber-500/5">
+          Modo visualizador (admin) — upload e exclusão desabilitados.
+        </Card>
+      ) : (
       <Card className="p-5">
         <div className="space-y-3">
           <div>
@@ -466,6 +471,7 @@ export function DocumentosPanel({
           )}
         </div>
       </Card>
+      )}
 
       {docs.length === 0 ? (
         <Card className="p-8 text-center border-dashed">
@@ -499,14 +505,16 @@ export function DocumentosPanel({
               >
                 <ExternalLink className="h-4 w-4" />
               </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => handleDelete(d.id)}
-                title="Excluir"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {!readOnly && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => handleDelete(d.id)}
+                  title="Excluir"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           ))}
         </Card>
