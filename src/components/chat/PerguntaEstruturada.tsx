@@ -7,7 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export type PerguntaItem = {
   id?: string;
-  label: string;
+  /** Texto da pergunta. Aceita `label` (formato antigo) ou `pergunta` (formato novo). */
+  label?: string;
+  pergunta?: string;
   modo?: "unica" | "multipla";
   opcoes?: string[];
   permite_outro?: boolean;
@@ -27,6 +29,10 @@ type RespostaState = {
 
 function keyFor(p: PerguntaItem, i: number) {
   return p.id || `p${i}`;
+}
+
+function labelDe(p: PerguntaItem, i: number): string {
+  return (p.pergunta ?? p.label ?? `Pergunta ${i + 1}`).toString();
 }
 
 export function PerguntaEstruturada({
@@ -59,7 +65,7 @@ export function PerguntaEstruturada({
       const valores = [...r.selecionadas];
       if (r.outroAtivo && r.outroTexto.trim()) valores.push(r.outroTexto.trim());
       if (valores.length === 0) return;
-      linhas.push(`${p.label}: ${valores.join(", ")}`);
+      linhas.push(`${labelDe(p, i)}: ${valores.join(", ")}`);
     });
     linhas.push("[/Respostas estruturadas]");
     setEnviado(true);
@@ -80,7 +86,7 @@ export function PerguntaEstruturada({
         const opcoes = p.opcoes ?? [];
         return (
           <div key={k} className="space-y-2">
-            <Label className="text-sm font-medium">{p.label}</Label>
+            <Label className="text-sm font-medium">{labelDe(p, i)}</Label>
             {modo === "unica" ? (
               <RadioGroup
                 value={r.selecionadas[0] ?? ""}
