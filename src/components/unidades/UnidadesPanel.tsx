@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, Pencil, Upload, Users, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Upload, Users, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import {
   listUnidades,
@@ -97,6 +97,7 @@ export function UnidadesPanel({
   const [saving, setSaving] = useState(false);
   const [openCond, setOpenCond] = useState<Unidade | null>(null);
   const [openImport, setOpenImport] = useState(false);
+  const [openView, setOpenView] = useState<Unidade | null>(null);
 
   function refresh() {
     setLoading(true);
@@ -208,8 +209,13 @@ export function UnidadesPanel({
         <Card className="divide-y">
           {unidades.map((u) => (
             <div key={u.id} className="p-4 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium">{formatLabel(u)}</p>
+              <button
+                type="button"
+                onClick={() => setOpenView(u)}
+                className="flex-1 min-w-0 text-left hover:bg-muted/30 -m-2 p-2 rounded transition-colors"
+                title="Ver detalhes da unidade"
+              >
+                <p className="font-medium text-primary hover:underline">{formatLabel(u)}</p>
                 <p className="text-xs text-muted-foreground">
                   {labelTipoUnidade(u.tipo)}
                   {u.area_m2 ? ` • ${u.area_m2} m²` : ""}
@@ -219,7 +225,10 @@ export function UnidadesPanel({
                 <p className="text-xs text-muted-foreground mt-1">
                   {(u.condominos?.length ?? 0)} condômino(s)
                 </p>
-              </div>
+              </button>
+              <Button size="sm" variant="ghost" onClick={() => setOpenView(u)}>
+                <Eye className="h-4 w-4 mr-1" /> Ver
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setOpenCond(u)}>
                 <Users className="h-4 w-4 mr-1" /> Condôminos
               </Button>
@@ -288,6 +297,24 @@ export function UnidadesPanel({
           }}
         />
       )}
+
+      {openView && (
+        <VisualizarUnidadeDialog
+          unidade={openView}
+          isOwner={isOwner}
+          onClose={() => setOpenView(null)}
+          onEdit={() => {
+            const u = openView;
+            setOpenView(null);
+            openEdit(u);
+          }}
+          onGerenciarCondominos={() => {
+            const u = openView;
+            setOpenView(null);
+            setOpenCond(u);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -295,6 +322,132 @@ export function UnidadesPanel({
 function formatLabel(u: Unidade) {
   return u.bloco ? `Bloco ${u.bloco} • ${u.numero}` : u.numero;
 }
+
+function VisualizarUnidadeDialog({
+  unidade,
+  isOwner,
+  onClose,
+  onEdit,
+  onGerenciarCondominos,
+}: {
+  unidade: Unidade;
+  isOwner: boolean;
+  onClose: () => void;
+  onEdit: () => void;
+  onGerenciarCondominos: () => void;
+}) {
+  const condominos = unidade.condominos ?? [];
+  const principal = condominos.find((c) => c.principal);
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Unidade {formatLabel(unidade)}</DialogTitle>
+          <DialogDescription>
+            Ficha completa com dados da unidade e condôminos vinculados.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <section className="grid grid-cols-2 gap-3 text-sm">
+            <Campo label="Bloco" valor={unidade.bloco ?? "—"} />
+            <Campo label="Número" valor={unidade.numero} />
+            <Campo label="Tipo" valor={labelTipoUnidade(unidade.tipo)} />
+            <Campo
+              label="Área"
+              valor={unidade.area_m2 != null ? `${unidade.area_m2} m²` : "—"}
+            />
+            <Campo
+              label="Fração ideal"
+              valor={unidade.fracao_ideal != null ? String(unidade.fracao_ideal) : "—"}
+            />
+            <Campo
+              label="Vagas de garagem"
+              valor={unidade.vagas_garagem != null ? String(unidade.vagas_garagem) : "0"}
+            />
+            <Campo
+              label="Condômino principal"
+              valor={principal ? principal.nome : "Não definido"}
+              colSpan
+            />
+          </section>
+
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold">
+                Condôminos ({condominos.length})
+              </h3>
+              {isOwner && (
+                <Button size="sm" variant="outline" onClick={onGerenciarCondominos}>
+                  <Users className="h-4 w-4 mr-1" /> Gerenciar
+                </Button>
+              )}
+            </div>
+            {condominos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum condômino cadastrado nesta unidade.
+              </p>
+            ) : (
+              <div className="divide-y border rounded">
+                {condominos.map((c) => (
+                  <div key={c.id} className="p-3">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm">{c.nome}</p>
+                      {c.principal && (
+                        <span className="text-[10px] uppercase tracking-wide bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">
+                          Principal
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {labelTipoCondomino(c.tipo)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 grid grid-cols-2 gap-1">
+                      <span>CPF: {c.cpf || "—"}</span>
+                      <span>Tel.: {c.telefone || "—"}</span>
+                      <span className="col-span-2 truncate">
+                        E-mail: {c.email || "—"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <DialogFooter>
+          {isOwner && (
+            <Button variant="outline" onClick={onEdit}>
+              <Pencil className="h-4 w-4 mr-1" /> Editar unidade
+            </Button>
+          )}
+          <Button onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Campo({
+  label,
+  valor,
+  colSpan,
+}: {
+  label: string;
+  valor: string;
+  colSpan?: boolean;
+}) {
+  return (
+    <div className={colSpan ? "col-span-2" : ""}>
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="text-sm text-foreground">{valor}</p>
+    </div>
+  );
+}
+
 function labelTipoUnidade(t: TipoUnidade) {
   const map: Record<TipoUnidade, string> = {
     apartamento: "Apartamento",
