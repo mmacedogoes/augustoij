@@ -40,6 +40,7 @@ import {
   createKbDocumento,
   processKbDocumento,
   deleteKbDocumento,
+  getKbFileUrl,
 } from "@/lib/admin-kb.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/treinamento")({
@@ -52,6 +53,7 @@ type KbDoc = {
   tipo: string;
   fonte: string | null;
   url: string | null;
+  storage_path?: string | null;
   status_processamento: string;
   created_at: string;
 };
@@ -71,6 +73,7 @@ function Page() {
   const createDoc = useServerFn(createKbDocumento);
   const processDoc = useServerFn(processKbDocumento);
   const removeDoc = useServerFn(deleteKbDocumento);
+  const fetchFileUrl = useServerFn(getKbFileUrl);
 
   const [docs, setDocs] = useState<KbDoc[]>([]);
   const [openText, setOpenText] = useState(false);
@@ -103,6 +106,19 @@ function Page() {
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const handleOpen = async (d: KbDoc) => {
+    // Abre janela imediatamente para não ser bloqueado por pop-up blocker.
+    const win = window.open("about:blank", "_blank");
+    try {
+      const { url } = (await fetchFileUrl({ data: { id: d.id } })) as { url: string };
+      if (win) win.location.href = url;
+      else window.location.href = url;
+    } catch (e) {
+      win?.close();
+      toast.error(e instanceof Error ? e.message : "Não foi possível abrir o arquivo");
     }
   };
 
@@ -196,7 +212,23 @@ function Page() {
               <div key={d.id} className="flex items-center gap-3 p-4">
                 <FileText className="h-5 w-5 text-accent shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate text-primary">{d.titulo}</p>
+                  {d.storage_path || d.url ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpen(d)}
+                      className="text-sm font-medium truncate text-primary text-left hover:underline w-full"
+                      title="Abrir arquivo em nova aba"
+                    >
+                      {d.titulo}
+                    </button>
+                  ) : (
+                    <p
+                      className="text-sm font-medium truncate text-primary"
+                      title="Item criado por texto colado (sem arquivo)"
+                    >
+                      {d.titulo}
+                    </p>
+                  )}
                   <div className="flex flex-wrap items-center gap-3 mt-0.5">
                     <span className="text-xs text-muted-foreground capitalize">{d.tipo}</span>
                     {d.fonte && (
