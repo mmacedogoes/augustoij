@@ -368,7 +368,7 @@ function CondominioDetail() {
                 )}
               </Card>
 
-              {isPJ && (
+              {isPJ && !adminView && (
                 <Card className="p-6 space-y-4">
                   <div>
                     <h3 className="font-semibold">Operadores do condomínio</h3>
