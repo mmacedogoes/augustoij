@@ -62,11 +62,12 @@ function Wordmark({ fontSize, color }: { fontSize: number; color: string }) {
         fontSize: `${fontSize}px`,
         fontWeight: 500,
         color,
-        lineHeight: 1,
+        lineHeight: 1.15,
         letterSpacing: "-0.01em",
         display: "inline-flex",
         alignItems: "baseline",
         whiteSpace: "nowrap",
+        paddingBottom: "0.12em",
       }}
     >
       <span>Augusto</span>
@@ -137,12 +138,12 @@ export const AugustoLogo: React.FC<AugustoLogoProps> = ({
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: `${finalSize * 0.05}px`,
+          gap: `${finalSize * 0.07}px`,
           maxWidth: "100%",
-          overflow: "hidden",
+          overflow: "visible",
         }}
       >
-        <Symbol width={finalSize * 0.32} color={lineColor} gold={GOLD} />
+        <Symbol width={finalSize * 0.55} color={lineColor} gold={GOLD} />
         <Wordmark fontSize={finalSize * 0.16} color={textColor} />
       </span>
     );
@@ -161,7 +162,7 @@ export const AugustoLogo: React.FC<AugustoLogoProps> = ({
         }}
       >
         <Symbol width={finalSize} color={lineColor} gold={GOLD} />
-        <Wordmark fontSize={finalSize * 0.2} color={textColor} />
+        <Wordmark fontSize={finalSize * 0.22} color={textColor} />
         {showTagline && <Tagline fontSize={finalSize * 0.058} color={GOLD} />}
       </span>
     );
