@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HistoriaRouteImport } from './routes/historia'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -53,6 +54,11 @@ const SignupRoute = SignupRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManifestoRoute = ManifestoRouteImport.update({
+  id: '/manifesto',
+  path: '/manifesto',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -209,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
+  '/manifesto': typeof ManifestoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
@@ -240,6 +247,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
+  '/manifesto': typeof ManifestoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
@@ -271,6 +279,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
+  '/manifesto': typeof ManifestoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
@@ -304,6 +313,7 @@ export interface FileRouteTypes {
     | '/'
     | '/historia'
     | '/login'
+    | '/manifesto'
     | '/privacidade'
     | '/signup'
     | '/termos'
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/'
     | '/historia'
     | '/login'
+    | '/manifesto'
     | '/privacidade'
     | '/signup'
     | '/termos'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/historia'
     | '/login'
+    | '/manifesto'
     | '/privacidade'
     | '/signup'
     | '/termos'
@@ -398,6 +410,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   HistoriaRoute: typeof HistoriaRoute
   LoginRoute: typeof LoginRoute
+  ManifestoRoute: typeof ManifestoRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   SignupRoute: typeof SignupRoute
   TermosRoute: typeof TermosRoute
@@ -427,6 +440,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manifesto': {
+      id: '/manifesto'
+      path: '/manifesto'
+      fullPath: '/manifesto'
+      preLoaderRoute: typeof ManifestoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -698,6 +718,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   HistoriaRoute: HistoriaRoute,
   LoginRoute: LoginRoute,
+  ManifestoRoute: ManifestoRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   SignupRoute: SignupRoute,
   TermosRoute: TermosRoute,
