@@ -1,15 +1,36 @@
 import { Link } from "@tanstack/react-router";
-import { AtSign, Globe, Send } from "lucide-react";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
+
+function InstagramGlyph({ className }: { className?: string }) {
+  // Minimalist Instagram silhouette (inline SVG, currentColor)
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+const INSTAGRAM_URL = "https://www.instagram.com/augusto.ij?igsh=aHloYWZtaWQycGtw";
 
 export function ManifestoFooter() {
   return (
     <>
       {/* Manifesto block */}
       <section className="bg-augusto-green py-28 px-6 text-center">
-        <div className="mx-auto max-w-3xl flex flex-col items-center">
-          <AugustoLogo variant="icon-only" theme="dark" size={100} />
-          <h2 className="mt-10 font-serif italic text-augusto-cream text-5xl md:text-7xl lg:text-[96px] leading-[1.1]">
+        <div className="mx-auto max-w-4xl flex flex-col items-center">
+          <AugustoLogo variant="stacked" theme="dark" size={220} />
+          <h2 className="mt-12 font-serif italic text-augusto-cream text-5xl md:text-7xl lg:text-[96px] leading-[1.05] whitespace-nowrap">
             Dura lex, sed Augusto.
           </h2>
           <div className="mt-6 text-[13px] font-medium uppercase tracking-[0.24em] text-augusto-gold">
@@ -22,7 +43,7 @@ export function ManifestoFooter() {
           </blockquote>
           <Link
             to="/manifesto"
-            className="mt-12 inline-flex items-center gap-2 rounded-md border border-augusto-gold px-6 py-3 text-sm font-medium text-augusto-gold hover:bg-augusto-gold hover:text-augusto-green transition-colors"
+            className="mt-12 inline-flex items-center gap-2 rounded-md border border-augusto-gold px-6 py-3 text-sm font-medium text-augusto-gold hover:bg-augusto-gold hover:text-augusto-green active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-cream"
           >
             Ler o manifesto completo →
           </Link>
@@ -31,15 +52,26 @@ export function ManifestoFooter() {
 
       {/* Footer */}
       <footer className="bg-augusto-cream py-16 px-6 border-t border-augusto-gold/20">
-        <div className="mx-auto max-w-6xl grid gap-12 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto max-w-6xl grid gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
-            <AugustoLogo variant="horizontal" size={160} />
+            <AugustoLogo variant="horizontal" size={220} />
             <div className="mt-4 text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
               Inteligência Jurídica para Condomínios
             </div>
             <p className="mt-3 font-serif italic text-augusto-slate text-sm">
               Dois mil anos de Direito, em forma de conversa.
             </p>
+            <div className="mt-6 flex items-center gap-3">
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram do Augusto.IJ"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-augusto-gold/50 text-augusto-gold hover:bg-augusto-gold hover:text-augusto-cream active:scale-[0.96] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold"
+              >
+                <InstagramGlyph className="h-[18px] w-[18px]" />
+              </a>
+            </div>
           </div>
 
           <FooterCol
@@ -57,17 +89,16 @@ export function ManifestoFooter() {
             items={[
               { label: "A História", to: "/historia" },
               { label: "Manifesto", to: "/manifesto" },
-              { label: "Blog", to: "/blog" },
               { label: "Contato", href: "mailto:contato@augusto.ij" },
             ]}
           />
           <FooterCol
             title="Jurídico"
             items={[
-              { label: "Termos de Uso", to: "/termos" },
-              { label: "Política de Privacidade", to: "/privacidade" },
-              { label: "LGPD", to: "/privacidade" },
-              { label: "Sigilo Profissional", to: "/privacidade" },
+              { label: "Termos de Uso", href: "#" },
+              { label: "Política de Privacidade", href: "#" },
+              { label: "LGPD", href: "#" },
+              { label: "Sigilo Profissional", href: "#" },
             ]}
           />
         </div>
@@ -76,10 +107,16 @@ export function ManifestoFooter() {
           <div className="h-px bg-augusto-gold/30" />
           <div className="mt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-[13px] text-augusto-slate">
             <div>© {new Date().getFullYear()} Augusto.IJ — Todos os direitos reservados.</div>
-            <div className="flex items-center gap-4 text-augusto-gold">
-              <a href="#" aria-label="Instagram" className="hover:brightness-110"><AtSign className="h-4 w-4" /></a>
-              <a href="#" aria-label="LinkedIn" className="hover:brightness-110"><Globe className="h-4 w-4" /></a>
-              <a href="#" aria-label="YouTube" className="hover:brightness-110"><Send className="h-4 w-4" /></a>
+            <div className="flex items-center gap-4">
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="text-augusto-gold hover:text-augusto-green transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold rounded-sm"
+              >
+                <InstagramGlyph className="h-4 w-4" />
+              </a>
             </div>
           </div>
         </div>
