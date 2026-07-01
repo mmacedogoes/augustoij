@@ -22,6 +22,7 @@ import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
 import { Route as AuthenticatedAppAjudaRouteImport } from './routes/_authenticated/app.ajuda'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
@@ -104,6 +105,11 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiPublicDemoChatRoute = ApiPublicDemoChatRouteImport.update({
+  id: '/api/public/demo-chat',
+  path: '/api/public/demo-chat',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
   id: '/app/conta',
@@ -226,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
   '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/blog': typeof BlogIndexRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
   '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
@@ -290,6 +298,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
   '/_authenticated/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/ajuda'
     | '/app/conta'
+    | '/api/public/demo-chat'
     | '/app/'
     | '/app/admin/auditoria'
     | '/app/admin/blog'
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/blog'
     | '/app/conta'
+    | '/api/public/demo-chat'
     | '/app'
     | '/app/admin/auditoria'
     | '/app/admin/blog'
@@ -387,6 +398,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin'
     | '/_authenticated/app/ajuda'
     | '/_authenticated/app/conta'
+    | '/api/public/demo-chat'
     | '/_authenticated/app/'
     | '/_authenticated/app/admin/auditoria'
     | '/_authenticated/app/admin/blog'
@@ -417,6 +429,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -511,6 +524,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/demo-chat': {
+      id: '/api/public/demo-chat'
+      path: '/api/public/demo-chat'
+      fullPath: '/api/public/demo-chat'
+      preLoaderRoute: typeof ApiPublicDemoChatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/conta': {
       id: '/_authenticated/app/conta'
@@ -725,6 +745,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   BlogSlugRoute: BlogSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

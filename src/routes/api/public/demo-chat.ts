@@ -41,12 +41,26 @@ export const Route = createFileRoute("/api/public/demo-chat")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const ip = getIp(request);
+        // Types are not regenerated for this table yet — use a loose client for it.
+        const db = supabaseAdmin as unknown as {
+          from: (t: string) => {
+            select: (c: string) => {
+              eq: (col: string, v: string) => {
+                maybeSingle: () => Promise<{ data: { count: number } | null }>;
+              };
+            };
+            upsert: (
+              row: Record<string, unknown>,
+              opts: { onConflict: string },
+            ) => Promise<{ error: unknown }>;
+          };
+        };
 
-        const { data: usage } = await supabaseAdmin
-          .from("demo_chat_usage" as never)
+        const { data: usage } = await db
+          .from("demo_chat_usage")
           .select("count")
           .eq("ip", ip)
-          .maybeSingle<{ count: number }>();
+          .maybeSingle();
 
         const currentCount = usage?.count ?? 0;
         if (currentCount >= MAX_QUESTIONS) {
@@ -128,8 +142,8 @@ export const Route = createFileRoute("/api/public/demo-chat")({
 
         // Increment usage (upsert)
         const nextCount = currentCount + 1;
-        await supabaseAdmin
-          .from("demo_chat_usage" as never)
+        await db
+          .from("demo_chat_usage")
           .upsert(
             { ip, count: nextCount, last_at: new Date().toISOString() },
             { onConflict: "ip" },
