@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Linkedin, Youtube } from "lucide-react";
+import { AtSign, Globe, Send } from "lucide-react";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 
 export function ManifestoFooter() {
@@ -77,9 +77,9 @@ export function ManifestoFooter() {
           <div className="mt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-[13px] text-augusto-slate">
             <div>© {new Date().getFullYear()} Augusto.IJ — Todos os direitos reservados.</div>
             <div className="flex items-center gap-4 text-augusto-gold">
-              <a href="#" aria-label="Instagram" className="hover:brightness-110"><Instagram className="h-4 w-4" /></a>
-              <a href="#" aria-label="LinkedIn" className="hover:brightness-110"><Linkedin className="h-4 w-4" /></a>
-              <a href="#" aria-label="YouTube" className="hover:brightness-110"><Youtube className="h-4 w-4" /></a>
+              <a href="#" aria-label="Instagram" className="hover:brightness-110"><AtSign className="h-4 w-4" /></a>
+              <a href="#" aria-label="LinkedIn" className="hover:brightness-110"><Globe className="h-4 w-4" /></a>
+              <a href="#" aria-label="YouTube" className="hover:brightness-110"><Send className="h-4 w-4" /></a>
             </div>
           </div>
         </div>
