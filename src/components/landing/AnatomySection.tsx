@@ -11,6 +11,15 @@ const CALLOUTS: Record<PartId, string> = {
   atencao: "Ressalvas e exceções",
 };
 
+const PART_SIDE: Record<PartId, "left" | "right"> = {
+  pergunta: "left",
+  resposta: "right",
+  fundamento: "left",
+  jurisprudencia: "right",
+  pratica: "left",
+  atencao: "right",
+};
+
 export function AnatomySection() {
   return (
     <section
@@ -24,82 +33,67 @@ export function AnatomySection() {
           subtitle="Cada resposta de Augusto segue um método jurídico estruturado — claro, fundamentado e citável."
         />
 
-        <div className="mt-20 relative lg:grid lg:grid-cols-[220px_minmax(0,720px)_220px] lg:gap-10 lg:items-start">
-          {/* Callouts esquerdos — desktop */}
-          <div className="hidden lg:flex flex-col gap-16 pt-6 text-right">
-            <Callout label={CALLOUTS.pergunta} side="left" />
-            <Callout label={CALLOUTS.fundamento} side="left" />
-            <Callout label={CALLOUTS.pratica} side="left" />
-          </div>
+        <div className="mt-20 mx-auto w-full max-w-[1240px] rounded-2xl bg-white border border-augusto-gold/30 shadow-[0_30px_80px_-30px_rgba(0,81,43,0.35)] p-6 md:p-10 lg:p-12 space-y-8">
+          <PartRow id="pergunta">
+            <div className="rounded-md bg-augusto-cream/70 px-5 py-4 text-[16px] text-augusto-slate">
+              <span className="font-semibold text-augusto-slate-dark">Pergunta:</span>{" "}
+              O fundo de reserva pode ser usado para pintura externa do prédio?
+            </div>
+          </PartRow>
 
-          {/* Card central */}
-          <div className="mx-auto w-full max-w-[720px] rounded-2xl bg-white border border-augusto-gold/30 shadow-[0_30px_80px_-30px_rgba(0,81,43,0.35)] p-8 md:p-12 space-y-6">
-            {/* Pergunta */}
-            <Part id="pergunta">
-              <div className="rounded-md bg-augusto-cream/70 px-4 py-3 text-[15px] text-augusto-slate">
-                <span className="font-semibold text-augusto-slate-dark">Pergunta:</span>{" "}
-                O fundo de reserva pode ser usado para pintura externa do prédio?
+          <PartRow id="resposta">
+            <div className="rounded-r-md bg-augusto-gold/10 border-l-4 border-augusto-gold px-5 py-4">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-augusto-gold mb-1">
+                Resposta direta
               </div>
-            </Part>
+              <p className="text-augusto-slate-dark text-[16px] leading-[1.65]">
+                <strong>Não, como regra.</strong> A pintura externa é despesa ordinária de
+                manutenção predial. O fundo de reserva destina-se a despesas extraordinárias.
+              </p>
+            </div>
+          </PartRow>
 
-            {/* Resposta direta */}
-            <Part id="resposta">
-              <div className="rounded-r-md bg-augusto-gold/10 border-l-4 border-augusto-gold px-4 py-4">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-augusto-gold mb-1">
-                  Resposta direta
-                </div>
-                <p className="text-augusto-slate-dark text-[15px]">
-                  <strong>Não, como regra.</strong> A pintura externa é despesa ordinária de
-                  manutenção predial. O fundo de reserva destina-se a despesas extraordinárias.
-                </p>
-              </div>
-            </Part>
-
-            {/* Fundamentação */}
-            <Part id="fundamento">
-              <h3 className="font-serif text-augusto-green text-[20px]">Fundamentação</h3>
-              <p className="mt-2 text-[15px] text-augusto-slate leading-[1.65]">
+          <PartRow id="fundamento">
+            <div>
+              <h3 className="font-serif text-augusto-green text-[22px]">Fundamentação</h3>
+              <p className="mt-2 text-[16px] text-augusto-slate leading-[1.7]">
                 Conforme a Lei 4.591/64, art. 22, §1º, &ldquo;g&rdquo;, o fundo de reserva
                 visa cobrir gastos extraordinários do condomínio. Pintura periódica é despesa
                 ordinária — prevista no orçamento anual.
               </p>
-            </Part>
+            </div>
+          </PartRow>
 
-            {/* Jurisprudência */}
-            <Part id="jurisprudencia">
-              <h3 className="font-serif text-augusto-green text-[20px]">Jurisprudência</h3>
-              <div className="mt-2 rounded-r-md bg-augusto-gold/5 border-l-4 border-augusto-gold px-3 py-2.5 text-[14px] text-augusto-slate-dark">
+          <PartRow id="jurisprudencia">
+            <div>
+              <h3 className="font-serif text-augusto-green text-[22px]">Jurisprudência</h3>
+              <div className="mt-2 rounded-r-md bg-augusto-gold/5 border-l-4 border-augusto-gold px-4 py-3 text-[16px] text-augusto-slate-dark leading-[1.65]">
                 STJ, REsp 1.704.498/SP, Rel. Min. Nancy Andrighi, Terceira Turma, julgado em
                 17/04/2018.
               </div>
-            </Part>
+            </div>
+          </PartRow>
 
-            {/* Na prática */}
-            <Part id="pratica">
-              <h3 className="font-serif text-augusto-green text-[20px]">Na prática</h3>
-              <p className="mt-2 text-[15px] text-augusto-slate leading-[1.65]">
+          <PartRow id="pratica">
+            <div>
+              <h3 className="font-serif text-augusto-green text-[22px]">Na prática</h3>
+              <p className="mt-2 text-[16px] text-augusto-slate leading-[1.7]">
                 Inclua a pintura no orçamento ordinário do próximo exercício. Se for
                 restauração urgente decorrente de evento extraordinário, aí sim cabe o fundo
                 de reserva.
               </p>
-            </Part>
+            </div>
+          </PartRow>
 
-            {/* Atenção a */}
-            <Part id="atencao">
-              <h3 className="font-serif text-augusto-green text-[20px]">Atenção a</h3>
-              <p className="mt-2 text-[15px] text-augusto-slate leading-[1.65]">
+          <PartRow id="atencao">
+            <div>
+              <h3 className="font-serif text-augusto-green text-[22px]">Atenção a</h3>
+              <p className="mt-2 text-[16px] text-augusto-slate leading-[1.7]">
                 A assembleia pode autorizar uso excepcional do fundo, desde que ratificado
                 pelo quórum exigido na convenção.
               </p>
-            </Part>
-          </div>
-
-          {/* Callouts direitos — desktop */}
-          <div className="hidden lg:flex flex-col gap-16 pt-32 text-left">
-            <Callout label={CALLOUTS.resposta} side="right" />
-            <Callout label={CALLOUTS.jurisprudencia} side="right" />
-            <Callout label={CALLOUTS.atencao} side="right" />
-          </div>
+            </div>
+          </PartRow>
         </div>
 
         <p className="mt-16 text-center font-serif italic text-augusto-slate text-[15px]">
@@ -110,30 +104,47 @@ export function AnatomySection() {
   );
 }
 
-function Part({ id, children }: { id: PartId; children: React.ReactNode }) {
+function PartRow({ id, children }: { id: PartId; children: React.ReactNode }) {
+  const side = PART_SIDE[id];
+  const label = CALLOUTS[id];
   return (
-    <div id={`anatomia-${id}`} className="relative">
+    <div
+      id={`anatomia-${id}`}
+      className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)_240px] lg:gap-8 lg:items-center"
+    >
       {/* Mobile inline label */}
       <div className="lg:hidden mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-augusto-gold">
-        {CALLOUTS[id]}
+        {label}
       </div>
-      {children}
+
+      {/* Left callout slot */}
+      <div className="hidden lg:flex justify-end">
+        {side === "left" ? <Callout label={label} side="left" /> : null}
+      </div>
+
+      {/* Content */}
+      <div>{children}</div>
+
+      {/* Right callout slot */}
+      <div className="hidden lg:flex justify-start">
+        {side === "right" ? <Callout label={label} side="right" /> : null}
+      </div>
     </div>
   );
 }
 
 function Callout({ label, side }: { label: string; side: "left" | "right" }) {
   return (
-    <div className="relative flex items-center gap-3 text-[13px] font-serif italic text-augusto-gold">
+    <div className="relative flex items-center gap-3 text-[15px] font-serif italic text-augusto-gold max-w-[240px]">
       {side === "left" ? (
         <>
-          <span className="flex-1 leading-snug">{label}</span>
+          <span className="flex-1 leading-snug text-right">{label}</span>
           <Arrow direction="right" />
         </>
       ) : (
         <>
           <Arrow direction="left" />
-          <span className="flex-1 leading-snug">{label}</span>
+          <span className="flex-1 leading-snug text-left">{label}</span>
         </>
       )}
     </div>
