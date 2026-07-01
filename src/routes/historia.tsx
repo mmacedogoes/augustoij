@@ -93,7 +93,7 @@ function HistoriaPage() {
         </Section>
 
         <div className="mt-16 font-serif italic text-augusto-slate text-base">
-          Augusto Macêdo Góes
+          Matheus Macêdo Góes
           <div className="not-italic text-[13px] uppercase tracking-[0.18em] text-augusto-gold mt-2 font-sans font-medium">
             Fundador — Augusto.IJ
           </div>
