@@ -1,10 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Brain, ShieldCheck, FileText, Scale, MessagesSquare, Gavel, Calculator, Check, ArrowRight } from "lucide-react";
-import { Logo } from "@/components/Logo";
-import { AugustoLogo } from "@/components/brand/AugustoLogo";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { createFileRoute } from "@tanstack/react-router";
+import { Nav } from "@/components/landing/Nav";
+import { HeroSection } from "@/components/landing/HeroSection";
+import { ProblemSection } from "@/components/landing/ProblemSection";
+import { FounderStorySection } from "@/components/landing/FounderStorySection";
+import { ForWhomSection } from "@/components/landing/ForWhomSection";
+import { AnatomySection } from "@/components/landing/AnatomySection";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { PricingSection } from "@/components/landing/PricingSection";
+import { ManifestoFooter } from "@/components/landing/ManifestoFooter";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,24 +21,21 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const skills = [
-  { icon: Scale, title: "Apoio Jurídico", desc: "Interprete a convenção e o regimento com base na legislação brasileira." },
-  { icon: Gavel, title: "Assembleias", desc: "Monte pautas, redija atas e analise quóruns automaticamente." },
-  { icon: FileText, title: "Documentos", desc: "Resuma contratos, atas e laudos em segundos." },
-  { icon: Calculator, title: "Finanças", desc: "Tire dúvidas sobre rateios, inadimplência e prestação de contas." },
-  { icon: MessagesSquare, title: "Comunicação", desc: "Gere comunicados, circulares e respostas a condôminos." },
-  { icon: ShieldCheck, title: "Compliance & LGPD", desc: "Orientações sobre obrigações legais e proteção de dados." },
-];
-
-const planos = [
-  { nome: "Solo", preco: "297", desc: "Para síndicos de 1 condomínio", features: ["1 condomínio", "200 mensagens/mês", "50 MB de documentos", "Exportar respostas em PDF"] },
-  { nome: "Pro", preco: "597", desc: "Para síndicos profissionais", features: ["Até 5 condomínios", "1.000 mensagens/mês", "500 MB de documentos", "Histórico ilimitado", "Suporte prioritário"], destaque: true },
-  { nome: "Administradora", preco: "1.997", desc: "Para administradoras", features: ["Condomínios ilimitados", "Mensagens ilimitadas", "5 GB de documentos", "Multiusuário", "Onboarding dedicado"] },
-];
-
 function Landing() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-augusto-cream text-augusto-slate-dark">
+      <Nav />
+      <HeroSection />
+      <ProblemSection />
+      <FounderStorySection />
+      <ForWhomSection />
+      <AnatomySection />
+      <FeaturesSection />
+      <PricingSection />
+      <ManifestoFooter />
+    </div>
+  );
+}
       {/* Header */}
       <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-50">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
