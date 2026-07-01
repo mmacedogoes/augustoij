@@ -420,6 +420,27 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_chat_usage: {
+        Row: {
+          count: number
+          first_at: string
+          ip: string
+          last_at: string
+        }
+        Insert: {
+          count?: number
+          first_at?: string
+          ip: string
+          last_at?: string
+        }
+        Update: {
+          count?: number
+          first_at?: string
+          ip?: string
+          last_at?: string
+        }
+        Relationships: []
+      }
       despesas: {
         Row: {
           automatica: boolean
