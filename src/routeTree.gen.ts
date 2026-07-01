@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HistoriaRouteImport } from './routes/historia'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
@@ -54,9 +56,19 @@ const PrivacidadeRoute = PrivacidadeRouteImport.update({
   path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManifestoRoute = ManifestoRouteImport.update({
+  id: '/manifesto',
+  path: '/manifesto',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoriaRoute = HistoriaRouteImport.update({
+  id: '/historia',
+  path: '/historia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -201,7 +213,9 @@ const AuthenticatedAppAjudaPerfilPerfilRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
+  '/manifesto': typeof ManifestoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
@@ -231,7 +245,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
+  '/manifesto': typeof ManifestoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
@@ -261,7 +277,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
+  '/manifesto': typeof ManifestoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
@@ -293,7 +311,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/historia'
     | '/login'
+    | '/manifesto'
     | '/privacidade'
     | '/signup'
     | '/termos'
@@ -323,7 +343,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/historia'
     | '/login'
+    | '/manifesto'
     | '/privacidade'
     | '/signup'
     | '/termos'
@@ -352,7 +374,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/historia'
     | '/login'
+    | '/manifesto'
     | '/privacidade'
     | '/signup'
     | '/termos'
@@ -384,7 +408,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  HistoriaRoute: typeof HistoriaRoute
   LoginRoute: typeof LoginRoute
+  ManifestoRoute: typeof ManifestoRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   SignupRoute: typeof SignupRoute
   TermosRoute: typeof TermosRoute
@@ -416,11 +442,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manifesto': {
+      id: '/manifesto'
+      path: '/manifesto'
+      fullPath: '/manifesto'
+      preLoaderRoute: typeof ManifestoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/historia': {
+      id: '/historia'
+      path: '/historia'
+      fullPath: '/historia'
+      preLoaderRoute: typeof HistoriaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -676,7 +716,9 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  HistoriaRoute: HistoriaRoute,
   LoginRoute: LoginRoute,
+  ManifestoRoute: ManifestoRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   SignupRoute: SignupRoute,
   TermosRoute: TermosRoute,
