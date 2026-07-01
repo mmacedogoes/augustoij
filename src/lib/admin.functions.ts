@@ -50,7 +50,8 @@ export const getAdminMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureAdmin(context);
-    const { data, error } = await context.supabase.rpc("admin_dashboard_metrics");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc("admin_dashboard_metrics");
     if (error) throw new Error(error.message);
     return data as Record<string, number>;
   });
@@ -60,7 +61,8 @@ export const getUsageTimeseries = createServerFn({ method: "GET" })
   .inputValidator((input) => z.object({ days: z.number().int().min(1).max(180).default(30) }).parse(input))
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
-    const { data: rows, error } = await context.supabase.rpc("admin_usage_timeseries", { _days: data.days });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin.rpc("admin_usage_timeseries", { _days: data.days });
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
@@ -76,7 +78,8 @@ export const listUsuariosAdmin = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
-    const { data: rows, error } = await context.supabase.rpc("admin_list_users", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin.rpc("admin_list_users", {
       _search: data.search,
       _limit: data.limit,
       _offset: data.offset,
