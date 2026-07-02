@@ -8,6 +8,7 @@ export const listCondominios = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("condominios")
       .select("id, nome, cnpj, uf, qtd_unidades, created_at")
+      .eq("owner_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
