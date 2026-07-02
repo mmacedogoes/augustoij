@@ -5,8 +5,8 @@ import { ManifestoFooter } from "@/components/landing/ManifestoFooter";
 export const Route = createFileRoute("/historia")({
   head: () => ({
     meta: [
-      { title: "A História — Augusto.IJ" },
-      { name: "description", content: "A história fundadora do Augusto.IJ — inteligência jurídica para condomínios." },
+      { title: "A História, Augusto.IJ" },
+      { name: "description", content: "A história fundadora do Augusto.IJ, inteligência jurídica para condomínios." },
     ],
   }),
   component: HistoriaPage,
@@ -40,7 +40,7 @@ function HistoriaPage() {
             </span>
             oda grande marca nasce de uma inquietação. Por anos, atendendo síndicos,
             administradoras e clientes em consultas condominiais, percebi que dúvidas
-            aparentemente simples exigiam interpretação técnica jurídica de documentos —
+            aparentemente simples exigiam interpretação técnica jurídica de documentos,
             algo que um leigo dificilmente poderia responder com segurança.
           </p>
         </Section>
@@ -54,7 +54,7 @@ function HistoriaPage() {
             Consultar a convenção e o regimento nunca é suficiente. Há determinações legais,
             infralegais, jurisprudência, doutrina e toda a técnica hermenêutica necessária
             para transformar informação em resposta utilizável. Cada condomínio tem sua
-            própria realidade documental — impossível memorizar tudo, ter ao alcance de um
+            própria realidade documental, impossível memorizar tudo, ter ao alcance de um
             piscar de olhos.
           </p>
           <p className="mt-6 text-[17px] leading-[1.75] text-augusto-slate-dark text-justify">
@@ -67,7 +67,7 @@ function HistoriaPage() {
         <Section title="O nascimento do nome">
           <p className="text-[17px] leading-[1.75] text-augusto-slate-dark text-justify">
             O nome veio de dois lugares. De <em>Augustus</em>, título romano que evocava
-            solidez, ordem e legado — a herança de dois mil anos de Direito. E do meu filho,
+            solidez, ordem e legado, a herança de dois mil anos de Direito. E do meu filho,
             Augusto, que ainda não fala, mas já me lembra todos os dias por que construir
             algo que dure importa.
           </p>
@@ -84,7 +84,7 @@ function HistoriaPage() {
         <Section title="A promessa">
           <p className="text-[17px] leading-[1.75] text-augusto-slate-dark text-justify">
             Augusto responde, fundamenta e cita. Trabalha 24 horas por dia, sete dias por
-            semana. Não substitui o profissional — potencializa cada decisão condominial
+            semana. Não substitui o profissional, potencializa cada decisão condominial
             com base em lei, doutrina e jurisprudência.
           </p>
           <p className="mt-8 font-serif italic text-augusto-green text-[28px]">
@@ -95,7 +95,7 @@ function HistoriaPage() {
         <div className="mt-16 font-serif italic text-augusto-slate text-base">
           Matheus Macêdo Góes
           <div className="not-italic text-[13px] uppercase tracking-[0.18em] text-augusto-gold mt-2 font-sans font-medium">
-            Fundador — Augusto.IJ
+            Fundador, Augusto.IJ
           </div>
         </div>
 

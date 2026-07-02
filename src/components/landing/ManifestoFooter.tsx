@@ -34,7 +34,7 @@ export function ManifestoFooter() {
             Dura lex, sed Augusto.
           </h2>
           <div className="mt-6 text-[13px] font-medium uppercase tracking-[0.24em] text-augusto-gold">
-            A lei é dura — mas você tem Augusto.
+            A lei é dura, mas você tem Augusto.
           </div>
           <blockquote className="mt-12 max-w-[700px] font-serif italic text-augusto-cream text-[22px] leading-[1.5]">
             &ldquo;Acreditamos que toda decisão condominial merece um bom conselho jurídico.
@@ -106,7 +106,7 @@ export function ManifestoFooter() {
         <div className="mx-auto max-w-6xl mt-12">
           <div className="h-px bg-augusto-gold/30" />
           <div className="mt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-[13px] text-augusto-slate">
-            <div>© {new Date().getFullYear()} Augusto.IJ — Todos os direitos reservados.</div>
+            <div>© {new Date().getFullYear()} Augusto.IJ, Todos os direitos reservados.</div>
             <div className="flex items-center gap-4">
               <a
                 href={INSTAGRAM_URL}

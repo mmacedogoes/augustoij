@@ -15,7 +15,7 @@ const CONVERSAS: Record<Persona, {
   sindico: {
     question: "O síndico pode votar em assembleia?",
     answer:
-      "Pode — desde que seja condômino e esteja adimplente. Fundamento: art. 1.335, III, do Código Civil. Se o síndico for profissional contratado (não condômino), ele preside ou conduz, mas não vota.",
+      "Pode, desde que seja condômino e esteja adimplente. Fundamento: art. 1.335, III, do Código Civil. Se o síndico for profissional contratado (não condômino), ele preside ou conduz, mas não vota.",
     citation: { label: "Citação", source: "CC, art. 1.335, III" },
   },
   adm: {
@@ -31,7 +31,7 @@ const CONVERSAS: Record<Persona, {
     citation: {
       label: "Precedente",
       source:
-        "STJ, REsp 1.483.930/DF, Rel. Min. Luis Felipe Salomão, 2ª Seção, j. 23/11/2016 — Tema 949 dos repetitivos",
+        "STJ, REsp 1.483.930/DF, Rel. Min. Luis Felipe Salomão, 2ª Seção, j. 23/11/2016, Tema 949 dos repetitivos",
     },
   },
 };
@@ -133,7 +133,7 @@ export function HeroSection() {
           </h1>
           <p className="mt-6 max-w-[520px] text-lg text-augusto-slate leading-relaxed">
             Não substitui o síndico. Não substitui o administrador. Não substitui o advogado.
-            Augusto potencializa cada um deles — com fundamentação, jurisprudência e clareza jurídica.
+            Augusto potencializa cada um deles, com fundamentação, jurisprudência e clareza jurídica.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-2">
@@ -170,7 +170,7 @@ export function HeroSection() {
           </p>
         </div>
 
-        {/* Coluna direita — chat card */}
+        {/* Coluna direita, chat card */}
         <div>
           <div
             className="rounded-xl bg-white border border-augusto-gold/30 shadow-[0_20px_60px_-20px_rgba(0,81,43,0.25)] p-7 md:p-8 min-h-[560px] flex flex-col"
@@ -221,7 +221,7 @@ export function HeroSection() {
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-augusto-slate italic pt-2">
                     <Sparkles className="h-3 w-3 text-augusto-gold" />
-                    Exemplo. Faça sua própria pergunta abaixo — 3 grátis por visitante.
+                    Exemplo. Faça sua própria pergunta abaixo, 3 grátis por visitante.
                   </div>
                 </div>
               ) : (

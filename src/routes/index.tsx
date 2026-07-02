@@ -12,9 +12,9 @@ import { ManifestoFooter } from "@/components/landing/ManifestoFooter";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Augusto.IJ — IA para síndicos e administradoras de condomínios" },
+      { title: "Augusto.IJ, IA para síndicos e administradoras de condomínios" },
       { name: "description", content: "Plataforma de IA com apoio jurídico, gestão de documentos e respostas instantâneas para o dia a dia do seu condomínio. Teste grátis por 7 dias." },
-      { property: "og:title", content: "Augusto.IJ — IA para condomínios" },
+      { property: "og:title", content: "Augusto.IJ, IA para condomínios" },
       { property: "og:description", content: "Apoio inteligente para síndicos e administradoras." },
     ],
   }),
