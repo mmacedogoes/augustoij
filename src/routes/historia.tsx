@@ -40,7 +40,7 @@ function HistoriaPage() {
             </span>
             oda grande marca nasce de uma inquietação. Por anos, atendendo síndicos,
             administradoras e clientes em consultas condominiais, percebi que dúvidas
-            aparentemente simples exigiam interpretação técnica jurídica de documentos —
+            aparentemente simples exigiam interpretação técnica jurídica de documentos,
             algo que um leigo dificilmente poderia responder com segurança.
           </p>
         </Section>
