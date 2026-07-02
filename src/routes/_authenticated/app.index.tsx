@@ -60,13 +60,20 @@ function HomePage() {
   );
   const hasReadyDocs = useHasReadyDocs(activeCondoId ?? "");
 
+  const saudacao = useMemo(() => {
+    const h = new Date().getHours();
+    if (h >= 18) return "Boa noite";
+    if (h >= 12) return "Boa tarde";
+    return "Bom dia";
+  }, []);
+
   return (
     <AppShell>
       <div className="max-w-5xl mx-auto flex flex-col h-[calc(100vh-9rem)]">
         <header className="flex flex-wrap items-end justify-between gap-3 pb-4">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">
-              Bom dia{nome ? `, ${nome}` : ""}.
+              {saudacao}{nome ? `, ${nome}` : ""}.
               <br />
               Em que o Augusto pode ajudar?
             </h1>
