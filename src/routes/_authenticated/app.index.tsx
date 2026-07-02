@@ -74,9 +74,10 @@ function HomePage() {
           <div>
             <h1 className="text-2xl font-semibold text-foreground">
               {saudacao}{nome ? `, ${nome}` : ""}.
-              <br />
-              Em que o Augusto pode ajudar?
             </h1>
+            <p className="font-sans text-base md:text-lg font-normal text-muted-foreground mt-1">
+              Em que o Augusto pode ajudar?
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {condos.length > 0 && (
