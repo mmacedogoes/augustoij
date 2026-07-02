@@ -6,7 +6,7 @@ import { AugustoLogo } from "@/components/brand/AugustoLogo";
 export const Route = createFileRoute("/manifesto")({
   head: () => ({
     meta: [
-      { title: "Manifesto — Augusto.IJ" },
+      { title: "Manifesto, Augusto.IJ" },
       { name: "description", content: "Manifesto institucional do Augusto.IJ. Missão, visão e valores." },
     ],
   }),
@@ -18,17 +18,17 @@ const MANIFESTO = [
   "Acreditamos que a lei não pode ser privilégio de quem tem orçamento alto.",
   "Acreditamos que síndicos não deveriam decidir sozinhos, que administradores não deveriam escalar no improviso, que advogados não deveriam gastar suas melhores horas respondendo às mesmas perguntas.",
   "Acreditamos na solidez dos direitos. Na proteção dos investimentos. Na dignidade da convivência. Na boa relação entre pessoas e propriedades.",
-  "Por isso construímos Augusto.IJ — para que, em cada condomínio do Brasil, exista alguém pronto a responder, fundamentar e orientar. Vinte e quatro horas por dia. Sete dias por semana. Dois mil anos de Direito ao alcance de uma pergunta.",
+  "Por isso construímos Augusto.IJ, para que, em cada condomínio do Brasil, exista alguém pronto a responder, fundamentar e orientar. Vinte e quatro horas por dia. Sete dias por semana. Dois mil anos de Direito ao alcance de uma pergunta.",
 ];
 
 const VALORES = [
   { nome: "Solidez Técnica", desc: "Toda resposta ancorada em lei, doutrina e jurisprudência." },
   { nome: "Atualização Permanente", desc: "A legislação muda. Augusto acompanha, sem exceção." },
-  { nome: "Dignidade da Convivência", desc: "Respeito às pessoas antes das regras — sempre." },
+  { nome: "Dignidade da Convivência", desc: "Respeito às pessoas antes das regras, sempre." },
   { nome: "Sigilo Absoluto", desc: "Dados de condomínios e partes jamais são divulgados." },
   { nome: "Acessibilidade", desc: "Inteligência jurídica ao alcance de qualquer profissional." },
   { nome: "Verdade Antes da Conveniência", desc: "Augusto responde o certo, não o que soa melhor." },
-  { nome: "Legado", desc: "Construímos para durar dois mil anos — como o Direito." },
+  { nome: "Legado", desc: "Construímos para durar dois mil anos, como o Direito." },
 ];
 
 function ManifestoPage() {
@@ -36,7 +36,7 @@ function ManifestoPage() {
     <div className="min-h-screen bg-augusto-cream text-augusto-slate-dark">
       <Nav />
 
-      {/* Hero — banda verde */}
+      {/* Hero, banda verde */}
       <section className="bg-augusto-green px-6 py-24 md:py-28 text-center">
         <div className="mx-auto max-w-[800px]">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
@@ -46,12 +46,12 @@ function ManifestoPage() {
             Dura lex, sed Augusto.
           </h1>
           <div className="mt-5 text-[13px] font-medium uppercase tracking-[0.24em] text-augusto-gold">
-            A lei é dura — mas você tem Augusto.
+            A lei é dura, mas você tem Augusto.
           </div>
         </div>
       </section>
 
-      {/* Credo — card branco sobre creme */}
+      {/* Credo, card branco sobre creme */}
       <section className="bg-augusto-cream px-6 py-24">
         <div className="mx-auto max-w-[760px] rounded-2xl bg-white border border-augusto-gold/30 shadow-[0_30px_80px_-30px_rgba(0,81,43,0.25)] p-8 md:p-14 space-y-6">
           {MANIFESTO.map((linha, i) => (
@@ -69,7 +69,7 @@ function ManifestoPage() {
         </div>
       </section>
 
-      {/* Missão / Visão — banda creme-dark */}
+      {/* Missão / Visão, banda creme-dark */}
       <section className="bg-augusto-cream-dark px-6 py-24 border-y border-augusto-gold/20">
         <div className="mx-auto max-w-[800px]">
           <Bloco label="Missão">
@@ -80,13 +80,13 @@ function ManifestoPage() {
           <div className="h-10" />
           <Bloco label="Visão">
             Ser, até 2030, a principal referência em inteligência jurídica condominial no
-            Brasil — reconhecida por síndicos, administradores e advogados como o padrão de
+            Brasil, reconhecida por síndicos, administradores e advogados como o padrão de
             confiança em decisões condominiais.
           </Bloco>
         </div>
       </section>
 
-      {/* Valores — cards brancos sobre creme */}
+      {/* Valores, cards brancos sobre creme */}
       <section className="bg-augusto-cream px-6 py-24">
         <div className="mx-auto max-w-[900px]">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
@@ -108,7 +108,7 @@ function ManifestoPage() {
         </div>
       </section>
 
-      {/* O símbolo — banda creme-dark */}
+      {/* O símbolo, banda creme-dark */}
       <section className="bg-augusto-cream-dark px-6 py-24 border-y border-augusto-gold/20">
         <div className="mx-auto max-w-[1000px]">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold text-center">
@@ -133,7 +133,7 @@ function ManifestoPage() {
                 estrutura jurídica.
               </p>
               <p className="pl-5 text-[16px] text-augusto-slate leading-[1.7]">
-                Engenharia civil romana — os aquedutos eram a obra-prima da infraestrutura
+                Engenharia civil romana, os aquedutos eram a obra-prima da infraestrutura
                 imperial, levando recursos vitais a comunidades inteiras que antes não
                 tinham.
               </p>
@@ -146,7 +146,7 @@ function ManifestoPage() {
         </div>
       </section>
 
-      {/* CTA final — banda verde */}
+      {/* CTA final, banda verde */}
       <section className="bg-augusto-green px-6 py-24 text-center">
         <p className="font-serif italic text-augusto-cream text-3xl md:text-4xl">
           Pergunte ao Augusto.

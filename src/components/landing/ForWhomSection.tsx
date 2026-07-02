@@ -6,7 +6,7 @@ const CARDS = [
     label: "Síndicos",
     title: "Para quem decide sozinho às 22h.",
     body:
-      "Você assumiu a responsabilidade de administrar. Não a obrigação de ser advogado. Augusto responde com clareza, traduz o juridiquês, antecipa riscos — sem que você precise ligar para alguém no fim de semana.",
+      "Você assumiu a responsabilidade de administrar. Não a obrigação de ser advogado. Augusto responde com clareza, traduz o juridiquês, antecipa riscos, sem que você precise ligar para alguém no fim de semana.",
     bullets: [
       "Respostas fundamentadas em minutos",
       "Modelos de notificação prontos",
@@ -18,7 +18,7 @@ const CARDS = [
     label: "Administradoras",
     title: "Escala sem perder qualidade.",
     body:
-      "Dezenas de condomínios na carteira. Dúvidas repetitivas todos os dias. Augusto absorve a primeira camada de consulta — sua equipe foca no que exige raciocínio humano. Um diferencial real no contrato de administração.",
+      "Dezenas de condomínios na carteira. Dúvidas repetitivas todos os dias. Augusto absorve a primeira camada de consulta, sua equipe foca no que exige raciocínio humano. Um diferencial real no contrato de administração.",
     bullets: [
       "Padronização de documentos",
       "Respaldo técnico para orientações",
@@ -30,7 +30,7 @@ const CARDS = [
     label: "Advogados",
     title: "O parecerista que cabe no seu dia.",
     body:
-      "Gasta suas melhores horas respondendo dúvidas repetitivas? Augusto trabalha como estagiário sênior — cita acórdãos, fundamenta com doutrina, prepara minutas. Você foca na estratégia. Augusto faz o resto.",
+      "Gasta suas melhores horas respondendo dúvidas repetitivas? Augusto trabalha como estagiário sênior, cita acórdãos, fundamenta com doutrina, prepara minutas. Você foca na estratégia. Augusto faz o resto.",
     bullets: [
       "Citação completa de jurisprudência",
       "Comparação contratual automatizada",
@@ -47,7 +47,7 @@ export function ForWhomSection() {
         <SectionHeader
           eyebrow="Para quem Augusto existe"
           title="Três públicos. Três realidades. Uma inteligência."
-          subtitle="Augusto adapta o tom e a profundidade técnica ao seu interlocutor — síndico, administrador ou advogado."
+          subtitle="Augusto adapta o tom e a profundidade técnica ao seu interlocutor, síndico, administrador ou advogado."
         />
 
         <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">

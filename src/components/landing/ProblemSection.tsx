@@ -17,7 +17,7 @@ export function ProblemSection() {
         </h2>
         <p className="mt-5 mx-auto max-w-[600px] text-lg text-augusto-slate leading-relaxed">
           O Brasil tem leis condominiais robustas. O que falta é acesso à inteligência jurídica
-          que as compreenda — e esteja disponível quando você precisa.
+          que as compreenda, e esteja disponível quando você precisa.
         </p>
 
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -53,7 +53,7 @@ export function ProblemSection() {
             mesmo, todos os dias.
           </blockquote>
           <div className="mt-6 text-[11px] font-medium uppercase tracking-[0.24em] text-augusto-gold">
-            — Do manifesto Augusto.IJ
+            Do manifesto Augusto.IJ
           </div>
         </div>
       </div>

@@ -30,7 +30,7 @@ export function AnatomySection() {
         <SectionHeader
           eyebrow="Como Augusto trabalha"
           title="Anatomia de uma resposta."
-          subtitle="Cada resposta de Augusto segue um método jurídico estruturado — claro, fundamentado e citável."
+          subtitle="Cada resposta de Augusto segue um método jurídico estruturado, claro, fundamentado e citável."
         />
 
         <div className="mt-20 mx-auto w-full max-w-[1240px] rounded-2xl bg-white border border-augusto-gold/30 shadow-[0_30px_80px_-30px_rgba(0,81,43,0.35)] p-6 md:p-10 lg:p-12 space-y-8">
@@ -59,7 +59,7 @@ export function AnatomySection() {
               <p className="mt-2 text-[16px] text-augusto-slate leading-[1.7]">
                 Conforme a Lei 4.591/64, art. 22, §1º, &ldquo;g&rdquo;, o fundo de reserva
                 visa cobrir gastos extraordinários do condomínio. Pintura periódica é despesa
-                ordinária — prevista no orçamento anual.
+                ordinária, prevista no orçamento anual.
               </p>
             </div>
           </PartRow>
@@ -97,7 +97,7 @@ export function AnatomySection() {
         </div>
 
         <p className="mt-16 text-center font-serif italic text-augusto-slate text-[15px]">
-          Toda resposta é estruturada assim — para que você possa confiar, verificar e agir.
+          Toda resposta é estruturada assim, para que você possa confiar, verificar e agir.
         </p>
       </div>
     </section>

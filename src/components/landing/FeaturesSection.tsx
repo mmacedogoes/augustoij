@@ -41,7 +41,7 @@ export function FeaturesSection() {
         <SectionHeader
           eyebrow="O que Augusto faz"
           title="Seis capacidades. Uma especialidade."
-          subtitle="Direito Condominial brasileiro — nada mais. Faz uma coisa só e faz com excelência."
+          subtitle="Direito Condominial brasileiro, nada mais. Faz uma coisa só e faz com excelência."
         />
 
         <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">

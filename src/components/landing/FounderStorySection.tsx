@@ -9,7 +9,7 @@ export function FounderStorySection() {
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-augusto-gold/60 to-transparent"
       />
       <div className="mx-auto max-w-6xl grid gap-16 lg:grid-cols-5 items-start">
-        {/* Coluna esquerda (2/5) — retrato tipográfico */}
+        {/* Coluna esquerda (2/5), retrato tipográfico */}
         <div className="lg:col-span-2">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
             A história fundadora
@@ -28,7 +28,7 @@ export function FounderStorySection() {
               Matheus Macêdo Góes
             </div>
             <div className="mt-2 text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
-              Fundador — Augusto.IJ
+              Fundador, Augusto.IJ
             </div>
             <span
               className="mt-4 block h-px w-[48px] bg-augusto-gold"
@@ -47,7 +47,7 @@ export function FounderStorySection() {
               T
             </span>
             oda grande marca nasce de uma inquietação. Por anos, recebi ligações de síndicos,
-            administradoras e clientes sobre dúvidas aparentemente simples — mas que a
+            administradoras e clientes sobre dúvidas aparentemente simples, mas que a
             interpretação técnica jurídica de documentos condominiais não permitia a um leigo
             responder com segurança.
           </p>
@@ -55,7 +55,7 @@ export function FounderStorySection() {
             Não basta consultar a convenção e o regimento. Há determinações legais,
             infralegais, jurisprudência, doutrina e toda a técnica hermenêutica necessária
             para transformar isso em uma resposta utilizável. E cada condomínio tem sua
-            própria realidade documental — impossível memorizar tudo, ter ao alcance de um
+            própria realidade documental, impossível memorizar tudo, ter ao alcance de um
             piscar de olhos.
           </p>
           <p className="mt-6 text-[17px] leading-[1.75] text-augusto-slate-dark">
