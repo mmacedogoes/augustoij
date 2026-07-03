@@ -103,12 +103,14 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function pctColor(pct: number | null) {
-  if (pct == null) return "bg-muted";
-  if (pct >= 100) return "bg-red-500";
-  if (pct >= 80) return "bg-orange-500";
-  if (pct >= 50) return "bg-yellow-500";
-  return "bg-emerald-500";
+  if (pct == null) return "bg-muted-foreground/30";
+  if (pct >= 100) return "bg-destructive";
+  if (pct >= 80) return "bg-accent";
+  if (pct >= 50) return "bg-accent/70";
+  return "bg-primary";
 }
+
+const creditFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
 function UsuariosTab() {
   const list = useServerFn(listUsoPorUsuario);
@@ -126,7 +128,10 @@ function UsuariosTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          Créditos Lovable estimados a partir do custo IA (≈ R$ 0,05 / crédito).
+        </p>
         <Button
           variant="outline"
           size="sm"
@@ -140,57 +145,108 @@ function UsuariosTab() {
               toast.error(e instanceof Error ? e.message : "Falha");
             }
           }}
+          className="transition-colors duration-200"
         >
-          <RefreshCw className="h-4 w-4 mr-1" /> Recalcular mês
+          <RefreshCw className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
+          Recalcular mês
         </Button>
       </div>
-      <Card className="divide-y">
-        <div className="p-3 text-xs uppercase text-muted-foreground grid grid-cols-12 gap-2">
-          <div className="col-span-3">Usuário / Plano</div>
+      <Card className="overflow-hidden border-border/70">
+        <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground bg-muted/40 border-b border-border/60">
+          <div className="col-span-3">Usuário</div>
           <div className="col-span-3">Mensagens</div>
           <div className="col-span-3">Storage</div>
-          <div className="col-span-3 text-right">Custo total</div>
+          <div className="col-span-1 text-right">Créditos</div>
+          <div className="col-span-2 text-right">Custo total</div>
         </div>
-        {rows.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">Sem dados.</p>
-        ) : (
-          rows.map((r) => (
-            <div key={r.user_id} className="p-3 grid grid-cols-12 gap-2 items-center text-sm">
-              <div className="col-span-3">
-                <p className="font-medium text-primary truncate">{r.nome ?? "—"}</p>
-                <p className="text-xs text-muted-foreground truncate">{r.email}</p>
-                <p className="text-xs text-muted-foreground">
-                  {r.plano_nome} · {r.status}
-                </p>
-              </div>
-              <div className="col-span-3">
-                <p className="text-xs text-muted-foreground">
-                  {r.mensagens.toLocaleString("pt-BR")} {r.limite_mensagens ? `/ ${r.limite_mensagens}` : ""}
-                </p>
-                {r.pct_mensagens != null && (
-                  <div className="mt-1 h-2 w-full bg-muted rounded overflow-hidden">
-                    <div className={`h-full ${pctColor(r.pct_mensagens)}`} style={{ width: `${Math.min(100, r.pct_mensagens)}%` }} />
+        <div className="divide-y divide-border/60">
+          {rows.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground text-center">
+              {loading ? "Carregando…" : "Sem dados no período."}
+            </p>
+          ) : (
+            rows.map((r) => (
+              <div
+                key={r.user_id}
+                className="grid grid-cols-1 md:grid-cols-12 gap-4 px-5 py-4 items-center text-sm transition-colors duration-150 hover:bg-muted/30 focus-within:bg-muted/40"
+              >
+                <div className="md:col-span-3 min-w-0">
+                  <p className="font-medium text-foreground truncate leading-tight">
+                    {r.nome ?? "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{r.email}</p>
+                  <div className="mt-1.5 inline-flex items-center gap-1.5">
+                    <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                      {r.plano_nome}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{r.status}</span>
                   </div>
-                )}
-                <p className="text-[10px] text-muted-foreground mt-1">{brl(r.custo_ia_brl)} IA</p>
-              </div>
-              <div className="col-span-3">
-                <p className="text-xs text-muted-foreground">
-                  {r.storage_mb.toFixed(1)} MB {r.limite_storage_mb ? `/ ${r.limite_storage_mb} MB` : ""}
-                </p>
-                {r.pct_storage != null && (
-                  <div className="mt-1 h-2 w-full bg-muted rounded overflow-hidden">
-                    <div className={`h-full ${pctColor(r.pct_storage)}`} style={{ width: `${Math.min(100, r.pct_storage)}%` }} />
+                </div>
+
+                <div className="md:col-span-3">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm tabular-nums text-foreground font-medium">
+                      {r.mensagens.toLocaleString("pt-BR")}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                      {r.limite_mensagens ? `de ${r.limite_mensagens.toLocaleString("pt-BR")}` : "sem limite"}
+                    </span>
                   </div>
-                )}
-                <p className="text-[10px] text-muted-foreground mt-1">{brl(r.custo_storage_brl)} storage</p>
+                  <div className="mt-1.5 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-[width] duration-300 ease-out ${pctColor(r.pct_mensagens)}`}
+                      style={{ width: `${Math.min(100, r.pct_mensagens ?? 0)}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">
+                    {brl(r.custo_ia_brl)} <span className="opacity-60">IA</span>
+                  </p>
+                </div>
+
+                <div className="md:col-span-3">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm tabular-nums text-foreground font-medium">
+                      {r.storage_mb.toFixed(1)} MB
+                    </span>
+                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                      {r.limite_storage_mb ? `de ${r.limite_storage_mb} MB` : "sem limite"}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-[width] duration-300 ease-out ${pctColor(r.pct_storage)}`}
+                      style={{ width: `${Math.min(100, r.pct_storage ?? 0)}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">
+                    {brl(r.custo_storage_brl)} <span className="opacity-60">storage</span>
+                  </p>
+                </div>
+
+                <div className="md:col-span-1 flex md:block items-baseline justify-between md:text-right">
+                  <span className="md:hidden text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Créditos
+                  </span>
+                  <div className="md:text-right">
+                    <p className="text-sm font-semibold text-accent-foreground bg-accent/15 rounded-md px-2 py-0.5 inline-block tabular-nums">
+                      {creditFmt.format(r.creditos_lovable)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 hidden md:block">Lovable</p>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 flex md:block items-baseline justify-between md:text-right border-t md:border-t-0 border-border/40 pt-2 md:pt-0">
+                  <span className="md:hidden text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Custo total
+                  </span>
+                  <p className="text-base font-semibold text-primary tabular-nums leading-tight">
+                    {brl(r.custo_total_brl)}
+                  </p>
+                </div>
               </div>
-              <div className="col-span-3 text-right">
-                <p className="font-semibold text-primary">{brl(r.custo_total_brl)}</p>
-              </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </Card>
     </div>
   );
