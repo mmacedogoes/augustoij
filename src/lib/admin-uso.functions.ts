@@ -100,6 +100,9 @@ export const listUsoPorUsuario = createServerFn({ method: "GET" })
       const msgs = u?.total_mensagens ?? 0;
       const limMsgs = plano?.limite_mensagens_mes ?? null;
       const limMb = plano?.limite_storage_mb ?? null;
+      // Estimativa de créditos Lovable AI Gateway (~R$ 0,05 / crédito).
+      const CREDITO_BRL = 0.05;
+      const creditosLovable = custoIA / CREDITO_BRL;
       rows.push({
         user_id: p.id,
         nome: p.nome,
@@ -113,6 +116,7 @@ export const listUsoPorUsuario = createServerFn({ method: "GET" })
         custo_ia_brl: custoIA,
         custo_storage_brl: custoStorage,
         custo_total_brl: custoIA + custoStorage,
+        creditos_lovable: creditosLovable,
         limite_mensagens: limMsgs,
         limite_storage_mb: limMb,
         pct_mensagens: limMsgs ? (msgs / limMsgs) * 100 : null,
