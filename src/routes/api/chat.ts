@@ -161,9 +161,79 @@ export const Route = createFileRoute("/api/chat")({
               .join(" ")
               .trim() ?? "";
 
+          // ============================================================
+          // 1) CACHE LOOKUP — mesma pergunta neste condomínio em <48h
+          // ============================================================
+          const perguntaNorm = normalizarPergunta(userText);
+          const perguntaHash = perguntaNorm ? hashPergunta(perguntaNorm) : "";
+          const temAnexoTemporario = !!(attachmentContext && attachmentContext.trim());
+          if (perguntaHash && !temAnexoTemporario) {
+            const { data: cacheHit } = await supabase
+              .from("chat_cache")
+              .select("id, resposta, hit_count")
+              .eq("condominio_id", condominioId)
+              .eq("pergunta_hash", perguntaHash)
+              .gt("expires_at", new Date().toISOString())
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (cacheHit) {
+              const resposta = cacheHit.resposta;
+              return respostaEstatica(resposta, async () => {
+                try {
+                  await supabase.from("mensagens").insert({
+                    conversa_id: conversaId,
+                    papel: "user",
+                    conteudo: userText,
+                  });
+                  await supabase.from("mensagens").insert({
+                    conversa_id: conversaId,
+                    papel: "assistant",
+                    conteudo: resposta,
+                    model_usado: "cache",
+                    tokens_usados: 0,
+                  });
+                  await supabase
+                    .from("chat_cache")
+                    .update({
+                      hit_count: (cacheHit.hit_count ?? 0) + 1,
+                      last_hit_at: new Date().toISOString(),
+                    })
+                    .eq("id", cacheHit.id);
+                  const { data: existing } = await supabase
+                    .from("conversas")
+                    .select("titulo")
+                    .eq("id", conversaId)
+                    .maybeSingle();
+                  if (existing && !existing.titulo) {
+                    const titulo =
+                      userText.slice(0, 60) + (userText.length > 60 ? "…" : "");
+                    await supabase.from("conversas").update({ titulo }).eq("id", conversaId);
+                  }
+                } catch (err) {
+                  console.error("Cache hit persist failed:", err);
+                }
+              });
+            }
+          }
+
+          // ============================================================
+          // 2) CHECAGEM: convenção / regimento presentes no condomínio?
+          // ============================================================
+          const { data: docsBase } = await supabase
+            .from("documentos")
+            .select("tipo")
+            .eq("condominio_id", condominioId)
+            .eq("status_processamento", "concluido")
+            .in("tipo", ["convencao", "regimento"]);
+          const temConvencao = !!docsBase?.some((d) => d.tipo === "convencao");
+          const temRegimento = !!docsBase?.some((d) => d.tipo === "regimento");
+          const temBaseCondominial = temConvencao || temRegimento;
+
           // RAG retrieval
           let contexto = "";
           let contextoKb = "";
+          let temMatchDocumento = false;
           if (userText) {
             try {
               const queryEmbedding = await embedText(apiKey, userText);
@@ -174,6 +244,7 @@ export const Route = createFileRoute("/api/chat")({
                 _min_similarity: 0.3,
               });
               if (matches && Array.isArray(matches) && matches.length > 0) {
+                temMatchDocumento = true;
                 contexto = matches
                   .map(
                     (m: { nome_arquivo: string; conteudo: string }) => {
@@ -209,6 +280,41 @@ export const Route = createFileRoute("/api/chat")({
             } catch (e) {
               console.error("RAG retrieval failed:", e);
             }
+          }
+
+          // ============================================================
+          // 3) SHORT-CIRCUIT: pergunta jurídica sem convenção/regimento
+          //    (Sem gastar créditos com o modelo.)
+          // ============================================================
+          if (
+            !temBaseCondominial &&
+            !temMatchDocumento &&
+            !temAnexoTemporario &&
+            perguntaNorm.length > 0
+          ) {
+            const faltantes: string[] = [];
+            if (!temConvencao) faltantes.push("**Convenção**");
+            if (!temRegimento) faltantes.push("**Regimento Interno**");
+            const listaFaltantes = faltantes.join(" e ");
+            const aviso = `## 📎 Preciso dos documentos base deste condomínio\n\nPara responder com precisão — e não em bases genéricas — eu **sempre** consulto primeiro a Convenção, o Regimento Interno e as atas do condomínio.\n\nAinda não encontrei ${listaFaltantes} nos arquivos deste condomínio.\n\n### O que fazer agora\n\n- Abra a aba **Documentos** e envie a ${listaFaltantes.toLowerCase()}.\n- Assim que o processamento terminar, refaça a pergunta e eu responderei com base nas regras específicas do seu condomínio.\n\n*⚠️ Conteúdo informativo gerado por inteligência artificial que não substitui o parecer e análise de um advogado habilitado. Seus documentos e informações são processados conforme LGPD.*`;
+            return respostaEstatica(aviso, async () => {
+              try {
+                await supabase.from("mensagens").insert({
+                  conversa_id: conversaId,
+                  papel: "user",
+                  conteudo: userText,
+                });
+                await supabase.from("mensagens").insert({
+                  conversa_id: conversaId,
+                  papel: "assistant",
+                  conteudo: aviso,
+                  model_usado: "sistema",
+                  tokens_usados: 0,
+                });
+              } catch (err) {
+                console.error("Short-circuit persist failed:", err);
+              }
+            });
           }
 
           // Orientações globais do administrador
