@@ -336,6 +336,17 @@ export const Route = createFileRoute("/api/chat")({
 
           const systemPrompt = `Você é o assistente jurídico do Augusto.IJ, especialista em gestão de condomínios brasileiros (Código Civil, Lei 4.591/64, jurisprudência do STJ).
 
+HIERARQUIA DE FONTES — OBRIGATÓRIA e nesta ordem:
+1. DOCUMENTOS DO CONDOMÍNIO (convenção, regimento interno, atas e demais arquivos anexados pelo síndico/gestor).
+2. BASE DE CONHECIMENTO JURÍDICO curada (leis, súmulas e precedentes já treinados).
+3. Conhecimento geral seu (legislação nacional pública).
+
+REGRAS INEGOCIÁVEIS SOBRE OS DOCUMENTOS DO CONDOMÍNIO:
+- Se abaixo houver "CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO", você DEVE analisá-lo antes de qualquer outra fonte e ancorar a resposta nele.
+- É PROIBIDO devolver resposta genérica ("de forma geral", "normalmente a convenção prevê…") quando existir contexto do condomínio disponível: leia o trecho, cite a regra específica encontrada (com o nome do arquivo apenas se o usuário perguntar de onde veio) e só então complemente com legislação.
+- Se o contexto do condomínio não cobrir totalmente a pergunta, diga com transparência "a convenção/regimento do seu condomínio não trata deste ponto" e então avance para a base jurídica geral.
+- Nunca invente cláusulas: se algo não estiver no contexto, não afirme que está.
+
 PROIBIÇÃO TÉCNICA ABSOLUTA — JAMAIS divulgar mecânica interna:
 - Você está recebendo abaixo trechos de documentos e jurisprudência que foram recuperados automaticamente para te ajudar a responder.
 - JAMAIS mencione, sob qualquer forma, a existência desses trechos como entidades separadas.
@@ -372,7 +383,9 @@ PERGUNTAS ESTRUTURADAS (opcional):
 ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${
             contexto
               ? `CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO:\n\n${contexto}\n\n`
-              : "Nenhum documento relevante foi encontrado nos arquivos do condomínio para esta pergunta.\n\n"
+              : temBaseCondominial
+                ? "Nenhum trecho da convenção/regimento deste condomínio bateu com a pergunta — se a dúvida envolver regras internas específicas, avise o usuário e sugira revisar a redação da pergunta.\n\n"
+                : "AVISO INTERNO: este condomínio ainda não possui convenção nem regimento interno anexados. Ao final da resposta jurídica geral, peça de forma clara e cordial que o usuário anexe esses documentos na aba Documentos para respostas específicas ao caso concreto dele.\n\n"
           }${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}\n\n` : ""}${
             attachmentContext && attachmentContext.trim()
               ? `DOCUMENTO ANEXADO PELO USUÁRIO NESTA CONVERSA (uso temporário${
@@ -406,6 +419,21 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
                   model_usado: "google/gemini-3-flash-preview",
                   tokens_usados: usage?.totalTokens ?? null,
                 });
+                // Salva no cache (chave: condominio + pergunta normalizada).
+                // Não cacheia se o usuário anexou documento temporário
+                // (a resposta depende daquele anexo pontual).
+                if (perguntaHash && !temAnexoTemporario && textoLimpo.length > 40) {
+                  try {
+                    await supabase.from("chat_cache").insert({
+                      condominio_id: condominioId,
+                      pergunta_hash: perguntaHash,
+                      pergunta: userText.slice(0, 1000),
+                      resposta: textoLimpo,
+                    });
+                  } catch (cacheErr) {
+                    console.error("Cache insert failed:", cacheErr);
+                  }
+                }
                 // Set conversa title from first user msg if blank
                 const { data: existing } = await supabase
                   .from("conversas")
