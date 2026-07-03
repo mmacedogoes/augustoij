@@ -218,6 +218,50 @@ export type Database = {
           },
         ]
       }
+      chat_cache: {
+        Row: {
+          condominio_id: string
+          created_at: string
+          expires_at: string
+          hit_count: number
+          id: string
+          last_hit_at: string | null
+          pergunta: string
+          pergunta_hash: string
+          resposta: string
+        }
+        Insert: {
+          condominio_id: string
+          created_at?: string
+          expires_at?: string
+          hit_count?: number
+          id?: string
+          last_hit_at?: string | null
+          pergunta: string
+          pergunta_hash: string
+          resposta: string
+        }
+        Update: {
+          condominio_id?: string
+          created_at?: string
+          expires_at?: string
+          hit_count?: number
+          id?: string
+          last_hit_at?: string | null
+          pergunta?: string
+          pergunta_hash?: string
+          resposta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_cache_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       condominio_members: {
         Row: {
           condominio_id: string

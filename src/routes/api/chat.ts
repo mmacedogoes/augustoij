@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  type UIMessage,
+} from "ai";
 import { createClient } from "@supabase/supabase-js";
+import { createHash, randomUUID } from "crypto";
 import { createLovableAiGatewayProvider, embedText } from "@/lib/ai-gateway.server";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -31,6 +38,52 @@ function sanitizarResposta(texto: string): string {
     .map((linha) => linha.trim())
     .join("\n")
     .trim();
+}
+
+function normalizarPergunta(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s?]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hashPergunta(texto: string): string {
+  return createHash("sha256").update(texto).digest("hex");
+}
+
+/**
+ * Emite uma resposta pronta (do cache ou short-circuit) como um
+ * UIMessageStream compatível com o cliente do AI SDK.
+ */
+function respostaEstatica(
+  texto: string,
+  onFinish?: () => Promise<void> | void,
+) {
+  const stream = createUIMessageStream<UIMessage>({
+    execute: async ({ writer }) => {
+      const id = randomUUID();
+      writer.write({ type: "start" } as never);
+      writer.write({ type: "text-start", id } as never);
+      // Emite em pequenos pedaços para dar sensação de streaming
+      const CHUNK = 120;
+      for (let i = 0; i < texto.length; i += CHUNK) {
+        writer.write({
+          type: "text-delta",
+          id,
+          delta: texto.slice(i, i + CHUNK),
+        } as never);
+      }
+      writer.write({ type: "text-end", id } as never);
+      writer.write({ type: "finish" } as never);
+    },
+    onFinish: async () => {
+      if (onFinish) await onFinish();
+    },
+  });
+  return createUIMessageStreamResponse({ stream });
 }
 
 // Limpeza leve para chunks de stream — NUNCA toca em quebras de linha
@@ -108,9 +161,79 @@ export const Route = createFileRoute("/api/chat")({
               .join(" ")
               .trim() ?? "";
 
+          // ============================================================
+          // 1) CACHE LOOKUP — mesma pergunta neste condomínio em <48h
+          // ============================================================
+          const perguntaNorm = normalizarPergunta(userText);
+          const perguntaHash = perguntaNorm ? hashPergunta(perguntaNorm) : "";
+          const temAnexoTemporario = !!(attachmentContext && attachmentContext.trim());
+          if (perguntaHash && !temAnexoTemporario) {
+            const { data: cacheHit } = await supabase
+              .from("chat_cache")
+              .select("id, resposta, hit_count")
+              .eq("condominio_id", condominioId)
+              .eq("pergunta_hash", perguntaHash)
+              .gt("expires_at", new Date().toISOString())
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (cacheHit) {
+              const resposta = cacheHit.resposta;
+              return respostaEstatica(resposta, async () => {
+                try {
+                  await supabase.from("mensagens").insert({
+                    conversa_id: conversaId,
+                    papel: "user",
+                    conteudo: userText,
+                  });
+                  await supabase.from("mensagens").insert({
+                    conversa_id: conversaId,
+                    papel: "assistant",
+                    conteudo: resposta,
+                    model_usado: "cache",
+                    tokens_usados: 0,
+                  });
+                  await supabase
+                    .from("chat_cache")
+                    .update({
+                      hit_count: (cacheHit.hit_count ?? 0) + 1,
+                      last_hit_at: new Date().toISOString(),
+                    })
+                    .eq("id", cacheHit.id);
+                  const { data: existing } = await supabase
+                    .from("conversas")
+                    .select("titulo")
+                    .eq("id", conversaId)
+                    .maybeSingle();
+                  if (existing && !existing.titulo) {
+                    const titulo =
+                      userText.slice(0, 60) + (userText.length > 60 ? "…" : "");
+                    await supabase.from("conversas").update({ titulo }).eq("id", conversaId);
+                  }
+                } catch (err) {
+                  console.error("Cache hit persist failed:", err);
+                }
+              });
+            }
+          }
+
+          // ============================================================
+          // 2) CHECAGEM: convenção / regimento presentes no condomínio?
+          // ============================================================
+          const { data: docsBase } = await supabase
+            .from("documentos")
+            .select("tipo")
+            .eq("condominio_id", condominioId)
+            .eq("status_processamento", "concluido")
+            .in("tipo", ["convencao", "regimento"]);
+          const temConvencao = !!docsBase?.some((d) => d.tipo === "convencao");
+          const temRegimento = !!docsBase?.some((d) => d.tipo === "regimento");
+          const temBaseCondominial = temConvencao || temRegimento;
+
           // RAG retrieval
           let contexto = "";
           let contextoKb = "";
+          let temMatchDocumento = false;
           if (userText) {
             try {
               const queryEmbedding = await embedText(apiKey, userText);
@@ -121,6 +244,7 @@ export const Route = createFileRoute("/api/chat")({
                 _min_similarity: 0.3,
               });
               if (matches && Array.isArray(matches) && matches.length > 0) {
+                temMatchDocumento = true;
                 contexto = matches
                   .map(
                     (m: { nome_arquivo: string; conteudo: string }) => {
@@ -158,6 +282,41 @@ export const Route = createFileRoute("/api/chat")({
             }
           }
 
+          // ============================================================
+          // 3) SHORT-CIRCUIT: pergunta jurídica sem convenção/regimento
+          //    (Sem gastar créditos com o modelo.)
+          // ============================================================
+          if (
+            !temBaseCondominial &&
+            !temMatchDocumento &&
+            !temAnexoTemporario &&
+            perguntaNorm.length > 0
+          ) {
+            const faltantes: string[] = [];
+            if (!temConvencao) faltantes.push("**Convenção**");
+            if (!temRegimento) faltantes.push("**Regimento Interno**");
+            const listaFaltantes = faltantes.join(" e ");
+            const aviso = `## 📎 Preciso dos documentos base deste condomínio\n\nPara responder com precisão — e não em bases genéricas — eu **sempre** consulto primeiro a Convenção, o Regimento Interno e as atas do condomínio.\n\nAinda não encontrei ${listaFaltantes} nos arquivos deste condomínio.\n\n### O que fazer agora\n\n- Abra a aba **Documentos** e envie a ${listaFaltantes.toLowerCase()}.\n- Assim que o processamento terminar, refaça a pergunta e eu responderei com base nas regras específicas do seu condomínio.\n\n*⚠️ Conteúdo informativo gerado por inteligência artificial que não substitui o parecer e análise de um advogado habilitado. Seus documentos e informações são processados conforme LGPD.*`;
+            return respostaEstatica(aviso, async () => {
+              try {
+                await supabase.from("mensagens").insert({
+                  conversa_id: conversaId,
+                  papel: "user",
+                  conteudo: userText,
+                });
+                await supabase.from("mensagens").insert({
+                  conversa_id: conversaId,
+                  papel: "assistant",
+                  conteudo: aviso,
+                  model_usado: "sistema",
+                  tokens_usados: 0,
+                });
+              } catch (err) {
+                console.error("Short-circuit persist failed:", err);
+              }
+            });
+          }
+
           // Orientações globais do administrador
           let orientacoesBlock = "";
           try {
@@ -176,6 +335,17 @@ export const Route = createFileRoute("/api/chat")({
           }
 
           const systemPrompt = `Você é o assistente jurídico do Augusto.IJ, especialista em gestão de condomínios brasileiros (Código Civil, Lei 4.591/64, jurisprudência do STJ).
+
+HIERARQUIA DE FONTES — OBRIGATÓRIA e nesta ordem:
+1. DOCUMENTOS DO CONDOMÍNIO (convenção, regimento interno, atas e demais arquivos anexados pelo síndico/gestor).
+2. BASE DE CONHECIMENTO JURÍDICO curada (leis, súmulas e precedentes já treinados).
+3. Conhecimento geral seu (legislação nacional pública).
+
+REGRAS INEGOCIÁVEIS SOBRE OS DOCUMENTOS DO CONDOMÍNIO:
+- Se abaixo houver "CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO", você DEVE analisá-lo antes de qualquer outra fonte e ancorar a resposta nele.
+- É PROIBIDO devolver resposta genérica ("de forma geral", "normalmente a convenção prevê…") quando existir contexto do condomínio disponível: leia o trecho, cite a regra específica encontrada (com o nome do arquivo apenas se o usuário perguntar de onde veio) e só então complemente com legislação.
+- Se o contexto do condomínio não cobrir totalmente a pergunta, diga com transparência "a convenção/regimento do seu condomínio não trata deste ponto" e então avance para a base jurídica geral.
+- Nunca invente cláusulas: se algo não estiver no contexto, não afirme que está.
 
 PROIBIÇÃO TÉCNICA ABSOLUTA — JAMAIS divulgar mecânica interna:
 - Você está recebendo abaixo trechos de documentos e jurisprudência que foram recuperados automaticamente para te ajudar a responder.
@@ -213,7 +383,9 @@ PERGUNTAS ESTRUTURADAS (opcional):
 ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${
             contexto
               ? `CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO:\n\n${contexto}\n\n`
-              : "Nenhum documento relevante foi encontrado nos arquivos do condomínio para esta pergunta.\n\n"
+              : temBaseCondominial
+                ? "Nenhum trecho da convenção/regimento deste condomínio bateu com a pergunta — se a dúvida envolver regras internas específicas, avise o usuário e sugira revisar a redação da pergunta.\n\n"
+                : "AVISO INTERNO: este condomínio ainda não possui convenção nem regimento interno anexados. Ao final da resposta jurídica geral, peça de forma clara e cordial que o usuário anexe esses documentos na aba Documentos para respostas específicas ao caso concreto dele.\n\n"
           }${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}\n\n` : ""}${
             attachmentContext && attachmentContext.trim()
               ? `DOCUMENTO ANEXADO PELO USUÁRIO NESTA CONVERSA (uso temporário${
@@ -247,6 +419,21 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
                   model_usado: "google/gemini-3-flash-preview",
                   tokens_usados: usage?.totalTokens ?? null,
                 });
+                // Salva no cache (chave: condominio + pergunta normalizada).
+                // Não cacheia se o usuário anexou documento temporário
+                // (a resposta depende daquele anexo pontual).
+                if (perguntaHash && !temAnexoTemporario && textoLimpo.length > 40) {
+                  try {
+                    await supabase.from("chat_cache").insert({
+                      condominio_id: condominioId,
+                      pergunta_hash: perguntaHash,
+                      pergunta: userText.slice(0, 1000),
+                      resposta: textoLimpo,
+                    });
+                  } catch (cacheErr) {
+                    console.error("Cache insert failed:", cacheErr);
+                  }
+                }
                 // Set conversa title from first user msg if blank
                 const { data: existing } = await supabase
                   .from("conversas")
