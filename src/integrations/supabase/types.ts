@@ -86,6 +86,42 @@ export type Database = {
         }
         Relationships: []
       }
+      alertas_uso: {
+        Row: {
+          disparado_em: string
+          id: string
+          mes_ano: string
+          notificou_admin: boolean
+          notificou_usuario: boolean
+          percentual_atingido: number
+          threshold_pct: number
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          disparado_em?: string
+          id?: string
+          mes_ano: string
+          notificou_admin?: boolean
+          notificou_usuario?: boolean
+          percentual_atingido: number
+          threshold_pct: number
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          disparado_em?: string
+          id?: string
+          mes_ano?: string
+          notificou_admin?: boolean
+          notificou_usuario?: boolean
+          percentual_atingido?: number
+          threshold_pct?: number
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       blog_categorias: {
         Row: {
           created_at: string
@@ -312,6 +348,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      config_alertas: {
+        Row: {
+          custo_storage_mb_brl: number
+          id: number
+          notificar_admin: boolean
+          notificar_usuarios: boolean
+          thresholds: number[]
+          updated_at: string
+        }
+        Insert: {
+          custo_storage_mb_brl?: number
+          id?: number
+          notificar_admin?: boolean
+          notificar_usuarios?: boolean
+          thresholds?: number[]
+          updated_at?: string
+        }
+        Update: {
+          custo_storage_mb_brl?: number
+          id?: number
+          notificar_admin?: boolean
+          notificar_usuarios?: boolean
+          thresholds?: number[]
+          updated_at?: string
+        }
+        Relationships: []
       }
       conversas: {
         Row: {
@@ -1010,6 +1073,7 @@ export type Database = {
         Args: { _mes_ano: string; _user_id: string }
         Returns: Json
       }
+      check_alertas_uso: { Args: { _user_id: string }; Returns: undefined }
       has_papel_sistema: {
         Args: {
           _papeis: Database["public"]["Enums"]["papel_sistema"][]
@@ -1061,6 +1125,11 @@ export type Database = {
           titulo: string
         }[]
       }
+      refresh_custos_cliente_mensal: {
+        Args: { _mes_ano: string; _user_id: string }
+        Returns: undefined
+      }
+      storage_bytes_by_user: { Args: { _user_id: string }; Returns: number }
     }
     Enums: {
       app_role: "owner" | "admin" | "sindico" | "administradora"
