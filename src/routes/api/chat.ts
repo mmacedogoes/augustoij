@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  type UIMessage,
+} from "ai";
 import { createClient } from "@supabase/supabase-js";
+import { createHash, randomUUID } from "crypto";
 import { createLovableAiGatewayProvider, embedText } from "@/lib/ai-gateway.server";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -31,6 +38,52 @@ function sanitizarResposta(texto: string): string {
     .map((linha) => linha.trim())
     .join("\n")
     .trim();
+}
+
+function normalizarPergunta(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s?]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hashPergunta(texto: string): string {
+  return createHash("sha256").update(texto).digest("hex");
+}
+
+/**
+ * Emite uma resposta pronta (do cache ou short-circuit) como um
+ * UIMessageStream compatível com o cliente do AI SDK.
+ */
+function respostaEstatica(
+  texto: string,
+  onFinish?: () => Promise<void> | void,
+) {
+  const stream = createUIMessageStream<UIMessage>({
+    execute: async ({ writer }) => {
+      const id = randomUUID();
+      writer.write({ type: "start" } as never);
+      writer.write({ type: "text-start", id } as never);
+      // Emite em pequenos pedaços para dar sensação de streaming
+      const CHUNK = 120;
+      for (let i = 0; i < texto.length; i += CHUNK) {
+        writer.write({
+          type: "text-delta",
+          id,
+          delta: texto.slice(i, i + CHUNK),
+        } as never);
+      }
+      writer.write({ type: "text-end", id } as never);
+      writer.write({ type: "finish" } as never);
+    },
+    onFinish: async () => {
+      if (onFinish) await onFinish();
+    },
+  });
+  return createUIMessageStreamResponse({ stream });
 }
 
 // Limpeza leve para chunks de stream — NUNCA toca em quebras de linha
