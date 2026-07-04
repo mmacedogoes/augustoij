@@ -395,6 +395,7 @@ export type Database = {
       }
       config_alertas: {
         Row: {
+          credito_brl: number | null
           custo_storage_mb_brl: number
           id: number
           notificar_admin: boolean
@@ -403,6 +404,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          credito_brl?: number | null
           custo_storage_mb_brl?: number
           id?: number
           notificar_admin?: boolean
@@ -411,6 +413,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          credito_brl?: number | null
           custo_storage_mb_brl?: number
           id?: number
           notificar_admin?: boolean
@@ -791,27 +794,36 @@ export type Database = {
           conteudo: string
           conversa_id: string
           created_at: string
+          creditos_lovable: number | null
           id: string
           model_usado: string | null
           papel: Database["public"]["Enums"]["papel_mensagem"]
+          tokens_input: number | null
+          tokens_output: number | null
           tokens_usados: number | null
         }
         Insert: {
           conteudo: string
           conversa_id: string
           created_at?: string
+          creditos_lovable?: number | null
           id?: string
           model_usado?: string | null
           papel: Database["public"]["Enums"]["papel_mensagem"]
+          tokens_input?: number | null
+          tokens_output?: number | null
           tokens_usados?: number | null
         }
         Update: {
           conteudo?: string
           conversa_id?: string
           created_at?: string
+          creditos_lovable?: number | null
           id?: string
           model_usado?: string | null
           papel?: Database["public"]["Enums"]["papel_mensagem"]
+          tokens_input?: number | null
+          tokens_output?: number | null
           tokens_usados?: number | null
         }
         Relationships: [
@@ -823,6 +835,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      model_pricing: {
+        Row: {
+          ativo: boolean
+          credits_per_input_token: number
+          credits_per_output_token: number
+          model: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          credits_per_input_token?: number
+          credits_per_output_token?: number
+          model: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          credits_per_input_token?: number
+          credits_per_output_token?: number
+          model?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       planos: {
         Row: {
@@ -1060,6 +1096,7 @@ export type Database = {
           custo_estimado_brl: number
           id: string
           mes_ano: string
+          total_credits: number | null
           total_mensagens: number
           total_tokens: number
           updated_at: string
@@ -1069,6 +1106,7 @@ export type Database = {
           custo_estimado_brl?: number
           id?: string
           mes_ano: string
+          total_credits?: number | null
           total_mensagens?: number
           total_tokens?: number
           updated_at?: string
@@ -1078,6 +1116,7 @@ export type Database = {
           custo_estimado_brl?: number
           id?: string
           mes_ano?: string
+          total_credits?: number | null
           total_mensagens?: number
           total_tokens?: number
           updated_at?: string
