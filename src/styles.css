@@ -68,6 +68,9 @@
   --color-augusto-cream-dark: var(--augusto-cream-dark);
   --color-augusto-slate: var(--augusto-slate);
   --color-augusto-slate-dark: var(--augusto-slate-dark);
+  --color-usage-ok: var(--usage-ok);
+  --color-usage-warn: var(--usage-warn);
+  --color-usage-alert: var(--usage-alert);
 }
 
 :root {
