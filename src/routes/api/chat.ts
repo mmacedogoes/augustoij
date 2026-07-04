@@ -10,6 +10,8 @@ import { createClient } from "@supabase/supabase-js";
 import { createHash, randomUUID } from "crypto";
 import { createLovableAiGatewayProvider, embedText } from "@/lib/ai-gateway.server";
 import type { Database } from "@/integrations/supabase/types";
+import { PLANS, type PlanId } from "@/config/plans";
+import { avaliarLimite, modeloParaPlano, type UsoAtual } from "@/lib/uso-limits";
 
 type ChatBody = {
   messages?: UIMessage[];
@@ -152,6 +154,70 @@ export const Route = createFileRoute("/api/chat")({
             .maybeSingle();
           if (!conv || conv.condominio_id !== condominioId) {
             return new Response("Conversa inválida", { status: 403 });
+          }
+
+          // ============================================================
+          // 0) CHECAGEM DE LIMITE DE MENSAGENS (por plano)
+          //    Espelha getUsoAtual() e uso-limits para bloquear no servidor.
+          // ============================================================
+          const nowSp = new Date(
+            new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
+          );
+          const mesAno = `${nowSp.getFullYear()}-${String(nowSp.getMonth() + 1).padStart(2, "0")}`;
+          const dia = `${mesAno}-${String(nowSp.getDate()).padStart(2, "0")}`;
+          const proximoMes = new Date(
+            Date.UTC(nowSp.getFullYear(), nowSp.getMonth() + 1, 1, 3, 0, 0),
+          );
+          const [subRes, mensalRes, diarioRes] = await Promise.all([
+            supabase
+              .from("subscriptions")
+              .select("plano_config_id, trial_end, user_id")
+              .eq("user_id", conv.user_id)
+              .maybeSingle(),
+            supabase
+              .from("uso_mensal")
+              .select("total_mensagens")
+              .eq("user_id", conv.user_id)
+              .eq("mes_ano", mesAno)
+              .maybeSingle(),
+            supabase
+              .from("uso_diario")
+              .select("total_mensagens")
+              .eq("user_id", conv.user_id)
+              .eq("dia", dia)
+              .maybeSingle(),
+          ]);
+          const rawPlano = (subRes.data?.plano_config_id ?? "gratuito") as string;
+          const planoId = (rawPlano in PLANS ? rawPlano : "gratuito") as PlanId;
+          const plano = PLANS[planoId];
+          const trialFimIso = subRes.data?.trial_end ?? null;
+          const trialExpirado =
+            planoId === "gratuito" &&
+            !!trialFimIso &&
+            new Date(trialFimIso).getTime() <= Date.now();
+          const uso: UsoAtual = {
+            planoId,
+            planoNome: plano.nome,
+            mensagensMes: mensalRes.data?.total_mensagens ?? 0,
+            mensagensDia: diarioRes.data?.total_mensagens ?? 0,
+            limiteMes: plano.mensagensPorMes,
+            limiteDia: plano.mensagensPorDia,
+            resetMesIso: proximoMes.toISOString(),
+            trialFimIso,
+            diasRestantesTrial: null,
+            trialExpirado,
+          };
+          const status = avaliarLimite(uso);
+          if (status.bloqueado) {
+            return new Response(
+              JSON.stringify({
+                error: "limit_reached",
+                motivo: status.motivo,
+                message: status.mensagem,
+                planoId,
+              }),
+              { status: 429, headers: { "Content-Type": "application/json" } },
+            );
           }
 
           const lastUser = [...messages].reverse().find((m) => m.role === "user");
@@ -402,7 +468,7 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
           });
 
           const gateway = createLovableAiGatewayProvider(apiKey);
-          const modelName = "google/gemini-3-flash-preview";
+          const modelName = modeloParaPlano(planoId);
           const model = gateway(modelName);
 
           // Preço do modelo em créditos Lovable por token (fallback caso a
