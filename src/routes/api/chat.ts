@@ -12,6 +12,7 @@ import { createLovableAiGatewayProvider, embedText } from "@/lib/ai-gateway.serv
 import type { Database } from "@/integrations/supabase/types";
 import { PLANS, type PlanId } from "@/config/plans";
 import { avaliarLimite, modeloParaPlano, type UsoAtual } from "@/lib/uso-limits";
+import { jurisprudenciaDirective } from "@/lib/plan-gates";
 
 type ChatBody = {
   messages?: UIMessage[];
