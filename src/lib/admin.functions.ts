@@ -3,6 +3,9 @@ import { z } from "zod";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
+import { PLAN_IDS, PLANS, type PlanId } from "@/config/plans";
+
+const PlanoConfigEnum = z.enum(PLAN_IDS as [PlanId, ...PlanId[]]);
 
 /** Captura IP + UA da requisição atual para a trilha de auditoria. */
 function getAuditContext(): { ip: string | null; ua: string | null } {
@@ -278,12 +281,36 @@ export const adminCreateUser = createServerFn({ method: "POST" })
       }, { onConflict: "id" });
     if (upErr) throw new Error(upErr.message);
 
+    // Assinatura: por padrão CORTESIA (sem limites). Se o admin escolheu um
+    // plano específico, gravamos com status 'aguardando_pagamento' para o
+    // usuário ser redirecionado ao checkout no primeiro login.
+    const planoConfigId: PlanId = data.plano_config_id ?? "personalizado";
+    const cortesia = data.cortesia ?? true;
+    await supabaseAdmin.from("subscriptions").upsert(
+      {
+        user_id: newUserId,
+        plano_config_id: planoConfigId,
+        cortesia,
+        cortesia_concedida_por: cortesia ? context.userId : null,
+        cortesia_observacao: cortesia ? (data.observacao ?? "Conta criada pelo admin") : null,
+        status: cortesia ? "active" : "aguardando_pagamento",
+        trial_end: cortesia ? null : new Date(Date.now() + 7 * 86400_000).toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
     const { ip, ua } = getAuditContext();
     await supabaseAdmin.from("admin_audit_log").insert({
       actor_user_id: context.userId,
       action: "user.create",
       target_user_id: newUserId,
-      metadata: { email: data.email, papel: data.papel, perfil: data.perfil_atuacao ?? null },
+      metadata: {
+        email: data.email,
+        papel: data.papel,
+        perfil: data.perfil_atuacao ?? null,
+        plano_config_id: planoConfigId,
+        cortesia,
+      },
       ip_address: ip,
       user_agent: ua,
     });
