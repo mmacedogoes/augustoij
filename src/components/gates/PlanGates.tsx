@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Lock, Sparkles, AlertTriangle } from "lucide-react";
+import { Lock, Sparkles, AlertTriangle, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePlanContext } from "@/hooks/usePlanContext";
@@ -13,6 +13,29 @@ import type { FeatureKey } from "@/lib/plan-gates";
  */
 export function TrialExpiredBanner() {
   const { data } = usePlanContext();
+  if (data?.status === "aguardando_pagamento") {
+    return (
+      <div
+        role="alert"
+        className={cn(
+          "sticky top-0 z-50 flex flex-col gap-2 border-b border-primary/20",
+          "bg-primary text-primary-foreground",
+          "px-4 py-2.5 text-sm shadow-sm",
+          "sm:flex-row sm:items-center sm:justify-between",
+        )}
+      >
+        <div className="flex items-start gap-2 sm:items-center">
+          <CreditCard className="h-4 w-4 mt-0.5 shrink-0 sm:mt-0" strokeWidth={2} />
+          <p className="font-medium leading-snug">
+            Sua assinatura do plano {data.planoNome} está aguardando pagamento.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="secondary" className="self-start sm:self-auto shrink-0">
+          <Link to="/app/conta">Concluir pagamento</Link>
+        </Button>
+      </div>
+    );
+  }
   if (!data?.trialExpirado) return null;
   return (
     <div
