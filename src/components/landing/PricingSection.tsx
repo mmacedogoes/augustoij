@@ -1,160 +1,342 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { SectionHeader } from "./SectionHeader";
-import { PricingCard } from "./PricingCard";
+import { PricingCard, type PricingBadge, type PricingFeature } from "./PricingCard";
 import { cn } from "@/lib/utils";
 
-type Mode = "pf" | "pj";
+type Billing = "monthly" | "annual";
+
+type PlanId =
+  | "gratuito"
+  | "essencial"
+  | "profissional"
+  | "gestao"
+  | "administradora"
+  | "personalizado";
+
+type Plan = {
+  id: PlanId;
+  name: string;
+  sublabel: string;
+  monthly: number | null;
+  annualPerMonth: number | null;
+  annualTotal: number | null;
+  features: PricingFeature[];
+  ctaLabel: string;
+  ctaVariant?: "solid" | "outline";
+  ctaKind: "signup" | "contact";
+  featured?: boolean;
+  badge?: PricingBadge;
+  fixedPrice?: string;
+};
+
+const CONTACT_HREF = "mailto:contato@augusto.ij?subject=Plano%20Augusto.IJ";
+
+const fmtBRL = (v: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(v);
+
+const PLANS: Plan[] = [
+  {
+    id: "gratuito",
+    name: "Gratuito",
+    sublabel: "Teste por 30 dias, sem cartão de crédito",
+    monthly: null,
+    annualPerMonth: null,
+    annualTotal: null,
+    fixedPrice: "R$ 0",
+    features: [
+      { label: "10 mensagens por dia", state: "included" },
+      { label: "1 condomínio", state: "included" },
+      { label: "Base jurídica pública", state: "included" },
+      { label: "Upload de documentos", state: "excluded" },
+      { label: "Análise de contratos", state: "excluded" },
+      { label: "Modelos de documentos", state: "excluded" },
+      { label: "Histórico além de 7 dias", state: "excluded" },
+    ],
+    ctaLabel: "Experimentar grátis",
+    ctaVariant: "outline",
+    ctaKind: "signup",
+    badge: { label: "30 dias grátis", tone: "success" },
+  },
+  {
+    id: "essencial",
+    name: "Essencial",
+    sublabel: "Para síndicos moradores",
+    monthly: 89,
+    annualPerMonth: 74,
+    annualTotal: 888,
+    features: [
+      { label: "100 mensagens por mês", state: "included" },
+      { label: "Até 2 condomínios", state: "included" },
+      { label: "Upload de até 10 documentos", state: "included" },
+      { label: "Análise de contratos e documentos", state: "included" },
+      { label: "Modelos básicos de notificação", state: "included" },
+      { label: "Histórico de 30 dias", state: "included" },
+      { label: "Jurisprudência completa", state: "strikethrough" },
+      { label: "Minutas de ata e convenção", state: "excluded" },
+      { label: "Múltiplos usuários", state: "excluded" },
+    ],
+    ctaLabel: "Assinar Essencial",
+    ctaVariant: "outline",
+    ctaKind: "signup",
+  },
+  {
+    id: "profissional",
+    name: "Profissional",
+    sublabel: "Para síndicos profissionais e advogados",
+    monthly: 197,
+    annualPerMonth: 164,
+    annualTotal: 1968,
+    features: [
+      { label: "400 mensagens por mês", state: "included" },
+      { label: "Até 8 condomínios", state: "included" },
+      { label: "Documentos ilimitados", state: "included" },
+      { label: "Análise de contratos e documentos", state: "included" },
+      { label: "Todos os modelos + minutas de ata e convenção", state: "included" },
+      { label: "Jurisprudência completa", state: "included" },
+      { label: "Histórico ilimitado", state: "included" },
+      { label: "1 usuário adicional incluso", state: "included" },
+    ],
+    ctaLabel: "Assinar Profissional",
+    ctaVariant: "solid",
+    ctaKind: "signup",
+    featured: true,
+    badge: { label: "Mais escolhido", tone: "primary" },
+  },
+  {
+    id: "gestao",
+    name: "Gestão",
+    sublabel: "Para síndicos com carteira ampla",
+    monthly: 347,
+    annualPerMonth: 289,
+    annualTotal: 3468,
+    features: [
+      { label: "900 mensagens por mês", state: "included" },
+      { label: "Até 20 condomínios", state: "included" },
+      { label: "Documentos ilimitados", state: "included" },
+      { label: "Análise de contratos e documentos", state: "included" },
+      { label: "Todos os modelos + minutas", state: "included" },
+      { label: "Jurisprudência completa", state: "included" },
+      { label: "Histórico ilimitado", state: "included" },
+      { label: "Até 3 usuários inclusos", state: "included" },
+      { label: "Relatórios por condomínio", state: "included" },
+      { label: "Suporte prioritário por e-mail", state: "included" },
+    ],
+    ctaLabel: "Assinar Gestão",
+    ctaVariant: "outline",
+    ctaKind: "signup",
+  },
+  {
+    id: "administradora",
+    name: "Administradora",
+    sublabel: "Para administradoras de condomínios",
+    monthly: 697,
+    annualPerMonth: 580,
+    annualTotal: 6960,
+    features: [
+      { label: "Mensagens ilimitadas (uso razoável)", state: "included" },
+      { label: "Até 50 condomínios", state: "included" },
+      { label: "Documentos ilimitados", state: "included" },
+      { label: "Análise de contratos e documentos", state: "included" },
+      { label: "Todos os modelos + minutas", state: "included" },
+      { label: "Jurisprudência completa", state: "included" },
+      { label: "Histórico ilimitado", state: "included" },
+      { label: "Usuários ilimitados", state: "included" },
+      { label: "Relatórios por condomínio", state: "included" },
+    ],
+    ctaLabel: "Assinar Administradora",
+    ctaVariant: "outline",
+    ctaKind: "signup",
+  },
+  {
+    id: "personalizado",
+    name: "Personalizado",
+    sublabel: "Para operações que precisam de mais",
+    monthly: null,
+    annualPerMonth: null,
+    annualTotal: null,
+    fixedPrice: "Sob consulta",
+    features: [
+      { label: "Tudo do plano Administradora", state: "included" },
+      { label: "Condomínios ilimitados", state: "included" },
+      { label: "White-label disponível", state: "included" },
+      { label: "Treinamento da equipe incluso", state: "included" },
+      { label: "Suporte dedicado com gerente de conta", state: "included" },
+      { label: "Integrações personalizadas", state: "included" },
+      { label: "Contrato e SLA negociados", state: "included" },
+    ],
+    ctaLabel: "Falar com nossa equipe",
+    ctaVariant: "outline",
+    ctaKind: "contact",
+    badge: { label: "Sob medida", tone: "neutral" },
+  },
+];
 
 export function PricingSection() {
-  const [mode, setMode] = useState<Mode>("pf");
+  const [billing, setBilling] = useState<Billing>("monthly");
   const navigate = useNavigate();
-  const toSignup = () => navigate({ to: "/signup" });
-  const toContact = () => navigate({ to: "/signup" });
 
-  const pf = [
-    {
-      name: "Conhecer",
-      price: "Grátis",
-      sublabel: "para experimentar Augusto",
-      bullets: ["10 consultas/mês", "1 condomínio", "Acesso à base pública"],
-      cta: { label: "Começar grátis", onClick: toSignup, variant: "outline" as const },
-    },
-    {
-      name: "Básico",
-      price: "R$ 79",
+  const handleCta = (plan: Plan) => {
+    if (plan.ctaKind === "contact") {
+      window.location.href = CONTACT_HREF;
+      return;
+    }
+    navigate({
+      to: "/signup",
+      search: { plano: plan.id, ciclo: billing === "annual" ? "anual" : "mensal" },
+    } as never);
+  };
+
+  const resolvePrice = (plan: Plan) => {
+    if (plan.fixedPrice) {
+      return { price: plan.fixedPrice, priceSuffix: undefined, priceNote: undefined };
+    }
+    if (billing === "annual" && plan.annualPerMonth && plan.annualTotal) {
+      return {
+        price: fmtBRL(plan.annualPerMonth),
+        priceSuffix: "/mês",
+        priceNote: `cobrado ${fmtBRL(plan.annualTotal)}/ano`,
+      };
+    }
+    return {
+      price: plan.monthly != null ? fmtBRL(plan.monthly) : "—",
       priceSuffix: "/mês",
-      sublabel: "para síndicos e profissionais",
-      bullets: [
-        "100 consultas/mês",
-        "Até 3 condomínios",
-        "Modelos jurídicos",
-        "Análise contratual básica",
-      ],
-      cta: { label: "Assinar Básico", onClick: toSignup },
-      featured: true,
-    },
-    {
-      name: "Pro",
-      price: "R$ 189",
-      priceSuffix: "/mês",
-      sublabel: "para profissionais ativos",
-      bullets: [
-        "Consultas ilimitadas",
-        "Até 10 condomínios",
-        "Análise contratual avançada",
-        "Citação completa de jurisprudência",
-        "Suporte prioritário",
-      ],
-      cta: { label: "Assinar Pro", onClick: toSignup },
-    },
-    {
-      name: "Empresarial",
-      price: "Fale conosco",
-      sublabel: "para administradoras e escritórios",
-      bullets: [
-        "Tudo do Pro",
-        "Condomínios ilimitados",
-        "Equipe multiusuário",
-        "API + integrações",
-        "Treinamento dedicado",
-      ],
-      cta: { label: "Agendar conversa →", onClick: toContact, variant: "outline" as const },
-    },
-  ];
-
-  const pj = [
-    {
-      name: "Starter",
-      price: "Fale conosco",
-      sublabel: "para administradoras iniciantes",
-      bullets: [
-        "Até 20 condomínios",
-        "Equipe até 3 usuários",
-        "Modelos jurídicos",
-        "Onboarding assistido",
-      ],
-      cta: { label: "Agendar conversa →", onClick: toContact, variant: "outline" as const },
-    },
-    {
-      name: "Enterprise",
-      price: "Fale conosco",
-      sublabel: "para administradoras estabelecidas",
-      bullets: [
-        "Até 100 condomínios",
-        "Equipe até 10 usuários",
-        "API + webhooks",
-        "Treinamento personalizado",
-        "SLA garantido",
-      ],
-      cta: { label: "Agendar conversa →", onClick: toContact },
-      featured: true,
-    },
-    {
-      name: "Ilimitado",
-      price: "Fale conosco",
-      sublabel: "para grandes operações e escritórios",
-      bullets: [
-        "Condomínios ilimitados",
-        "Usuários ilimitados",
-        "White label opcional",
-        "Consultor jurídico dedicado",
-        "Suporte 24/7",
-      ],
-      cta: { label: "Agendar conversa →", onClick: toContact, variant: "outline" as const },
-    },
-  ];
-
-  const cards = mode === "pf" ? pf : pj;
+      priceNote: undefined,
+    };
+  };
 
   return (
     <section id="pricing" className="bg-augusto-cream border-t border-augusto-gold/15 py-24 px-6">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-7xl">
         <SectionHeader
           eyebrow="Planos"
           title="Inteligência jurídica ao alcance."
-          subtitle="Para profissionais individuais ou empresas com escala. Comece grátis. Cresça quando precisar."
+          subtitle="Do síndico morador à administradora com carteira ampla. Comece grátis por 30 dias."
         />
 
-        {/* Toggle PF/PJ */}
-        <div className="mt-10 flex justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/60 p-1">
-            {(["pf", "pj"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setMode(v)}
+        {/* Billing toggle */}
+        <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <div
+            role="tablist"
+            aria-label="Ciclo de cobrança"
+            className="inline-flex items-center gap-1 rounded-full border border-augusto-gold/25 bg-white p-1 shadow-sm"
+          >
+            {(["monthly", "annual"] as const).map((v) => {
+              const active = billing === v;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setBilling(v)}
+                  className={cn(
+                    "rounded-full px-5 py-2 text-sm font-medium transition-all duration-200",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-green/60",
+                    active
+                      ? "bg-augusto-green text-augusto-cream shadow-sm"
+                      : "text-augusto-green hover:bg-augusto-green/5",
+                  )}
+                >
+                  {v === "monthly" ? "Mensal" : "Anual"}
+                </button>
+              );
+            })}
+          </div>
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full bg-augusto-green-light/15 px-3 py-1 text-xs font-semibold text-augusto-green-dark ring-1 ring-augusto-green-light/30 transition-opacity duration-200",
+              billing === "annual" ? "opacity-100" : "opacity-0 sm:opacity-50",
+            )}
+            aria-hidden={billing !== "annual"}
+          >
+            2 meses grátis
+          </span>
+        </div>
+
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {PLANS.map((plan) => {
+            const priced = resolvePrice(plan);
+            return (
+              <PricingCard
+                key={plan.id}
+                name={plan.name}
+                price={priced.price}
+                priceSuffix={priced.priceSuffix}
+                priceNote={priced.priceNote}
+                sublabel={plan.sublabel}
+                features={plan.features}
+                featured={plan.featured}
+                badge={plan.badge}
+                cta={{
+                  label: plan.ctaLabel,
+                  variant: plan.ctaVariant,
+                  onClick: () => handleCta(plan),
+                }}
+              />
+            );
+          })}
+        </div>
+
+        <p className="mt-10 text-center text-[13px] text-augusto-slate">
+          Todos os planos incluem acesso seguro via HTTPS, dados armazenados no Brasil e suporte por
+          e-mail. Preços em reais. Plano anual cobrado à vista.
+        </p>
+
+        {/* Personalizado — detailed section */}
+        <div className="mt-16 overflow-hidden rounded-2xl border border-augusto-green/15 bg-white shadow-sm">
+          <div className="grid gap-8 p-8 md:grid-cols-[1.2fr_1fr] md:p-12">
+            <div>
+              <span className="inline-flex items-center rounded-full bg-augusto-slate/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-augusto-slate-dark ring-1 ring-augusto-slate/20">
+                Sob medida
+              </span>
+              <h3 className="mt-4 font-serif text-augusto-green text-3xl md:text-4xl leading-[1.1]">
+                Precisa de uma solução sob medida?
+              </h3>
+              <p className="mt-4 max-w-xl text-augusto-slate text-[15px] leading-relaxed">
+                Converse com a gente e montamos um plano para o seu volume e necessidades
+                específicas.
+              </p>
+              <a
+                href={CONTACT_HREF}
                 className={cn(
-                  "relative rounded-full px-5 py-2 text-sm font-medium transition-colors",
-                  mode === v
-                    ? "bg-augusto-green text-augusto-cream"
-                    : "text-augusto-green hover:bg-augusto-green/5",
+                  "mt-6 inline-flex items-center justify-center rounded-md bg-augusto-green px-5 py-2.5 text-sm font-medium text-augusto-cream shadow-sm transition-all duration-200",
+                  "hover:bg-augusto-green-dark hover:shadow",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-green/60 focus-visible:ring-offset-2",
+                  "active:scale-[0.98]",
                 )}
               >
-                {v === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}
-                {mode === v && (
-                  <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-px w-8 bg-augusto-gold" />
-                )}
-              </button>
-            ))}
+                Agendar conversa
+              </a>
+            </div>
+            <ul className="grid grid-cols-1 gap-2 self-center rounded-xl bg-augusto-cream/60 p-6 sm:grid-cols-2">
+              {[
+                "Tudo do Administradora",
+                "Condomínios ilimitados",
+                "White-label disponível",
+                "Treinamento da equipe incluso",
+                "Gerente de conta dedicado",
+                "Integrações personalizadas",
+                "Contrato e SLA negociados",
+              ].map((f) => (
+                <li
+                  key={f}
+                  className="flex gap-2 text-[13px] text-augusto-slate-dark"
+                >
+                  <span
+                    className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-augusto-gold"
+                    aria-hidden="true"
+                  />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-
-        <div
-          key={mode}
-          className={cn(
-            "mt-12 grid gap-6 animate-in fade-in duration-300",
-            mode === "pf" ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-3",
-          )}
-        >
-          {cards.map((c) => (
-            <PricingCard key={c.name} {...c} />
-          ))}
-        </div>
-
-        <p className="mt-12 text-center font-serif italic text-augusto-slate text-[15px]">
-          Sem fidelidade. Cancele quando quiser. Suporte sempre humano.
-        </p>
       </div>
     </section>
   );
