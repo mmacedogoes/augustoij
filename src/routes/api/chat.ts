@@ -294,7 +294,7 @@ export const Route = createFileRoute("/api/chat")({
             .from("documentos")
             .select("tipo")
             .eq("condominio_id", condominioId)
-            .eq("status_processamento", "concluido")
+            .eq("status_processamento", "pronto")
             .in("tipo", ["convencao", "regimento"]);
           const temConvencao = !!docsBase?.some((d) => d.tipo === "convencao");
           const temRegimento = !!docsBase?.some((d) => d.tipo === "regimento");
