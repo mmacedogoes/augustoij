@@ -56,16 +56,7 @@ function AdminUsuarioDetalhePage() {
   if (isLoading || !data) {
     return (
       <AppShell>
-        <div className="max-w-5xl">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 w-32 bg-muted rounded" />
-            <div className="h-24 bg-muted/60 rounded-xl" />
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="h-64 bg-muted/60 rounded-xl" />
-              <div className="h-64 bg-muted/60 rounded-xl" />
-            </div>
-          </div>
-        </div>
+        <DetalheSkeleton />
       </AppShell>
     );
   }
@@ -217,6 +208,56 @@ function Row({ label, value }: { label: string; value: string }) {
       <dt className="col-span-1 text-muted-foreground">{label}</dt>
       <dd className="col-span-2 font-medium text-foreground truncate">{value}</dd>
     </>
+  );
+}
+
+function DetalheSkeleton() {
+  return (
+    <div
+      className="max-w-5xl space-y-6 motion-safe:animate-in motion-safe:fade-in-50 motion-safe:duration-200"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <span className="sr-only">Carregando detalhes do usuário…</span>
+      <div className="h-8 w-40 rounded-md bg-muted/60 animate-pulse" />
+      <div className="space-y-3">
+        <div className="h-8 w-2/3 sm:w-1/2 rounded-md bg-muted/70 animate-pulse" />
+        <div className="h-4 w-1/2 sm:w-1/3 rounded bg-muted/50 animate-pulse" />
+        <div className="flex gap-2 pt-1">
+          <div className="h-6 w-16 rounded-full bg-muted/60 animate-pulse" />
+          <div className="h-6 w-24 rounded-full bg-muted/50 animate-pulse" />
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-border/60 bg-card p-4 space-y-2.5">
+            <div className="h-3 w-20 rounded bg-muted/60 animate-pulse" />
+            <div className="h-6 w-16 rounded bg-muted/70 animate-pulse" />
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+            <div className="h-5 w-32 rounded bg-muted/60 animate-pulse" />
+            <div className="space-y-2 pt-1">
+              {Array.from({ length: 5 }).map((__, j) => (
+                <div key={j} className="h-3.5 w-full rounded bg-muted/40 animate-pulse" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-xl border border-border/60 bg-card p-5 space-y-4">
+        <div className="h-5 w-44 rounded bg-muted/60 animate-pulse" />
+        <div className="h-20 w-full rounded-lg bg-muted/40 animate-pulse" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="h-16 rounded bg-muted/40 animate-pulse" />
+          <div className="h-16 rounded bg-muted/40 animate-pulse" />
+        </div>
+      </div>
+    </div>
   );
 }
 
