@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX } from "lucide-react";
+import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX, ChevronRight, Sparkles } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
@@ -58,6 +59,10 @@ function AdminUsuariosPage() {
       | "cliente_pj_dono"
       | "cliente_pj_operador",
     perfil_atuacao: "" as "" | "sindico" | "advogado" | "administradora" | "conselheiro" | "outro",
+    tipo_acesso: "cortesia" as "cortesia" | "plano_pago",
+    plano_pago:
+      "essencial" as "essencial" | "profissional" | "gestao" | "administradora" | "personalizado",
+    observacao: "",
   });
 
   const refresh = useCallback(() => {
@@ -180,6 +185,61 @@ function AdminUsuariosPage() {
                     <option value="outro">Outro</option>
                   </select>
                 </div>
+                <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
+                  <Label className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" /> Tipo de acesso
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {[
+                      { v: "cortesia", label: "Cortesia", hint: "Sem limites de IA, uploads ou condomínios" },
+                      { v: "plano_pago", label: "Plano pago", hint: "Redireciona ao pagamento no 1º login" },
+                    ].map((o) => {
+                      const active = newUser.tipo_acesso === o.v;
+                      return (
+                        <button
+                          type="button"
+                          key={o.v}
+                          onClick={() => setNewUser({ ...newUser, tipo_acesso: o.v as typeof newUser.tipo_acesso })}
+                          className={`text-left rounded-md border px-3 py-2 text-xs transition-all duration-200 ${
+                            active
+                              ? "border-primary bg-primary/5 text-foreground shadow-sm"
+                              : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                          }`}
+                        >
+                          <p className="font-medium">{o.label}</p>
+                          <p className="mt-0.5 text-[11px] opacity-80">{o.hint}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {newUser.tipo_acesso === "plano_pago" && (
+                    <div className="pt-2">
+                      <Label className="text-xs">Plano a cobrar</Label>
+                      <select
+                        className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        value={newUser.plano_pago}
+                        onChange={(e) => setNewUser({ ...newUser, plano_pago: e.target.value as typeof newUser.plano_pago })}
+                      >
+                        <option value="essencial">Essencial</option>
+                        <option value="profissional">Profissional</option>
+                        <option value="gestao">Gestão</option>
+                        <option value="administradora">Administradora</option>
+                        <option value="personalizado">Personalizado</option>
+                      </select>
+                    </div>
+                  )}
+                  {newUser.tipo_acesso === "cortesia" && (
+                    <div className="pt-2">
+                      <Label className="text-xs">Observação (opcional)</Label>
+                      <Input
+                        className="mt-1"
+                        placeholder="Ex.: parceiro estratégico, cliente teste…"
+                        value={newUser.observacao}
+                        onChange={(e) => setNewUser({ ...newUser, observacao: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpenCreate(false)} disabled={creating}>
@@ -199,6 +259,13 @@ function AdminUsuariosPage() {
                           ...(newUser.perfil_atuacao
                             ? { perfil_atuacao: newUser.perfil_atuacao }
                             : {}),
+                          cortesia: newUser.tipo_acesso === "cortesia",
+                          ...(newUser.tipo_acesso === "plano_pago"
+                            ? { plano_config_id: newUser.plano_pago }
+                            : { plano_config_id: "personalizado" as const }),
+                          ...(newUser.tipo_acesso === "cortesia" && newUser.observacao.trim()
+                            ? { observacao: newUser.observacao.trim() }
+                            : {}),
                         },
                       });
                       toast.success("Usuário criado");
@@ -209,6 +276,9 @@ function AdminUsuariosPage() {
                         password: "",
                         papel: "cliente_pf",
                         perfil_atuacao: "",
+                        tipo_acesso: "cortesia",
+                        plano_pago: "essencial",
+                        observacao: "",
                       });
                       refresh();
                     } catch (e) {
@@ -316,6 +386,16 @@ function AdminUsuariosPage() {
                       <UserCheck className="h-4 w-4 mr-1" /> Reativar
                     </>
                   )}
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  <Link to="/app/admin/usuarios/$userId" params={{ userId: u.id }}>
+                    Detalhes <ChevronRight className="h-4 w-4 ml-0.5" />
+                  </Link>
                 </Button>
               </div>
             ))
