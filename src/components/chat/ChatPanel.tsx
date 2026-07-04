@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Paperclip, X, Loader2, AlertTriangle } from "lucide-react";
+import { Paperclip, X, Loader2, AlertTriangle, Lock, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Conversation,
@@ -22,6 +23,10 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { createConversa, listMensagens, extractAttachmentForChat } from "@/lib/chat.functions";
 import { getUploadUrl, createDocumento, processDocumento } from "@/lib/documentos.functions";
+import { getUsoAtual } from "@/lib/uso.functions";
+import { avaliarLimite } from "@/lib/uso-limits";
+import { UsageFooter } from "@/components/chat/UsageFooter";
+import { UpgradeDialog } from "@/components/chat/UpgradeDialog";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -150,6 +155,31 @@ export function ChatPanel({
     attachmentRef.current = attachment;
   }, [attachment]);
 
+  // Uso atual de mensagens (mês/dia) — usado para bloqueio + rodapé
+  const fetchUso = useServerFn(getUsoAtual);
+  const usoQuery = useQuery({
+    queryKey: ["uso-atual"],
+    queryFn: () => fetchUso(),
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+  });
+  const uso = usoQuery.data;
+  const limiteStatus = uso ? avaliarLimite(uso) : { bloqueado: false as const };
+  const bloqueadoPorLimite = limiteStatus.bloqueado;
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  // Ao ficar bloqueado, abre o modal automaticamente uma vez
+  const openedForBlockRef = useRef(false);
+  useEffect(() => {
+    if (bloqueadoPorLimite && !openedForBlockRef.current) {
+      openedForBlockRef.current = true;
+      setUpgradeOpen(true);
+    }
+    if (!bloqueadoPorLimite) {
+      openedForBlockRef.current = false;
+    }
+  }, [bloqueadoPorLimite]);
+
   // Lista adicional de anexos (multi-upload). O `attachment` acima
   // permanece como "principal" para compatibilidade com o diálogo
   // de classificação. Todos os anexos contribuem com `excerpt` ao body.
@@ -217,10 +247,35 @@ export function ChatPanel({
     transport,
     onError: (e) => {
       console.error("[chat] erro na resposta da IA:", e);
-      toast.error(e?.message?.trim() ? e.message : "Falha na comunicação com a IA. Tente novamente.");
+      // Se o servidor devolveu 429 com JSON { error: "limit_reached", ... },
+      // o AI SDK propaga a mensagem crua. Detecta e força o modal em vez de toast.
+      const raw = e?.message ?? "";
+      let handledLimit = false;
+      try {
+        const parsed = JSON.parse(raw) as { error?: string; message?: string };
+        if (parsed?.error === "limit_reached") {
+          usoQuery.refetch();
+          setUpgradeOpen(true);
+          toast.error(parsed.message ?? "Limite de mensagens atingido.");
+          handledLimit = true;
+        }
+      } catch {
+        /* not JSON */
+      }
+      if (!handledLimit) {
+        toast.error(raw.trim() ? raw : "Falha na comunicação com a IA. Tente novamente.");
+      }
       if (lastSentRef.current) restoreInput(lastSentRef.current);
     },
   });
+
+  // Atualiza o contador de uso ao terminar cada resposta da IA
+  useEffect(() => {
+    if (status === "ready" || status === "error") {
+      usoQuery.refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   // Carrega histórico via setMessages (useChat ignora prop `messages` após mount).
   useEffect(() => {
@@ -472,7 +527,8 @@ export function ChatPanel({
     }
   };
 
-  const inputEnabled = (hasReadyDocs || attachments.length > 0) && historyLoaded;
+  const inputEnabled =
+    (hasReadyDocs || attachments.length > 0) && historyLoaded && !bloqueadoPorLimite;
 
   return (
     <div className="flex flex-col h-[70vh] min-h-[500px] border border-border rounded-lg overflow-hidden bg-card">
@@ -625,6 +681,22 @@ export function ChatPanel({
           </div>
         ) : (
           <>
+            {bloqueadoPorLimite && uso && (
+              <div className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-2 text-xs leading-relaxed text-foreground/90">
+                  <Lock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-destructive" />
+                  <span>{limiteStatus.bloqueado ? limiteStatus.mensagem : ""}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-full gap-1 transition-transform duration-200 active:scale-[0.98] sm:w-auto"
+                  onClick={() => setUpgradeOpen(true)}
+                >
+                  Ver planos <ArrowUpRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -652,7 +724,7 @@ export function ChatPanel({
                   size="sm"
                   className="gap-1.5"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={attachLoading}
+                  disabled={attachLoading || bloqueadoPorLimite}
                   title="Anexar documento à conversa"
                 >
                   {attachLoading ? (
@@ -665,9 +737,12 @@ export function ChatPanel({
                 <PromptInputSubmit status={status} disabled={!inputEnabled || isLoading} />
               </PromptInputFooter>
             </PromptInput>
-            <p className="text-[11px] text-slate-400 text-center px-2 leading-relaxed">
-              As respostas são geradas por IA e devem ser verificadas para casos críticos.
-            </p>
+            <div className="space-y-1.5 px-2">
+              {uso && <UsageFooter uso={uso} />}
+              <p className="text-center text-[11px] leading-relaxed text-muted-foreground/80">
+                As respostas são geradas por IA e devem ser verificadas para casos críticos.
+              </p>
+            </div>
           </>
         )}
       </div>
@@ -704,6 +779,15 @@ export function ChatPanel({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {uso && (
+        <UpgradeDialog
+          open={upgradeOpen}
+          onOpenChange={setUpgradeOpen}
+          planoAtual={uso.planoId}
+          motivo={limiteStatus.bloqueado ? limiteStatus.motivo : "mensal"}
+        />
+      )}
     </div>
   );
 }
