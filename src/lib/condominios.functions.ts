@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { PLANS } from "@/config/plans";
+import { resolvePlanId, isTrialExpired, gateMessages } from "@/lib/plan-gates";
 
 export const listCondominios = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -26,6 +28,28 @@ export const createCondominio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
+    // ---- Gate por plano (bloqueio no servidor) ----
+    const [subRes, countRes] = await Promise.all([
+      context.supabase
+        .from("subscriptions")
+        .select("plano_config_id, trial_end")
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+      context.supabase
+        .from("condominios")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", context.userId),
+    ]);
+    const planoId = resolvePlanId(subRes.data?.plano_config_id ?? null);
+    const plano = PLANS[planoId];
+    if (isTrialExpired(planoId, subRes.data?.trial_end ?? null)) {
+      throw new Error(gateMessages.trialExpirado());
+    }
+    const atual = countRes.count ?? 0;
+    if (plano.condomíniosMax !== null && atual >= plano.condomíniosMax) {
+      throw new Error(gateMessages.condominiosMax(plano.nome, plano.condomíniosMax));
+    }
+
     const { data: row, error } = await context.supabase
       .from("condominios")
       .insert({ ...data, owner_id: context.userId })
