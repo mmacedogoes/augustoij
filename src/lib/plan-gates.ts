@@ -23,6 +23,36 @@ export function hasFeature(planoId: PlanId, key: FeatureKey): boolean {
   return PLANS[planoId].recursos[key] === true;
 }
 
+/** Ordem canônica dos planos pagos (mais barato → mais completo). */
+export const PLANOS_ORDEM: PlanId[] = [
+  "gratuito",
+  "essencial",
+  "profissional",
+  "gestao",
+  "administradora",
+  "personalizado",
+];
+
+/** Retorna o primeiro plano na ordem que desbloqueia a feature (ou null). */
+export function primeiroPlanoComFeature(feature: FeatureKey): Plan | null {
+  for (const id of PLANOS_ORDEM) {
+    if (PLANS[id].recursos[feature]) return PLANS[id];
+  }
+  return null;
+}
+
+/** Lista de planos (após o atual, na ordem) que desbloqueiam a feature. */
+export function planosQueDesbloqueiam(
+  planoAtual: PlanId,
+  feature: FeatureKey,
+): Plan[] {
+  const idxAtual = PLANOS_ORDEM.indexOf(planoAtual);
+  return PLANOS_ORDEM
+    .slice(idxAtual + 1)
+    .filter((id) => PLANS[id].recursos[feature])
+    .map((id) => PLANS[id]);
+}
+
 /** Mensagens padrão de upgrade — reaproveitadas em UI e erros de API. */
 export const gateMessages = {
   uploadDesabilitado: (planoNome: string) =>
