@@ -12,6 +12,7 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 import { DicasPopup } from "@/components/DicasPopup";
 import { HelpMenu } from "@/components/HelpMenu";
 import { TrialExpiredBanner } from "@/components/gates/PlanGates";
+import { UsageThresholdBanner } from "@/components/gates/UsageThresholdBanner";
 
 const baseNav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard, tour: "nav-dashboard" },
@@ -97,6 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="md:ml-60 flex flex-col min-h-screen">
         <TrialExpiredBanner />
+        <UsageThresholdBanner />
         <div className="hidden md:flex h-12 items-center justify-end border-b border-border bg-card px-4">
           <HelpMenu onStartTour={() => setForceTour(true)} />
         </div>

@@ -1,7 +1,9 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { getProfile } from "@/lib/condominios.functions";
 import { updateMyProfile } from "@/lib/onboarding.functions";
+import { getUsoAtual } from "@/lib/uso.functions";
+import { UsageMeter } from "@/components/gates/UsageMeter";
+import type { UsoAtual } from "@/lib/uso-limits";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/app/conta")({
@@ -31,11 +36,18 @@ function ContaPage() {
   const router = useRouter();
   const fetchProfile = useServerFn(getProfile);
   const saveProfile = useServerFn(updateMyProfile);
+  const fetchUso = useServerFn(getUsoAtual);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [form, setForm] = useState({ nome: "", telefone: "", razao_social: "", cpf_cnpj: "" });
   const [saving, setSaving] = useState(false);
   const [plano, setPlano] = useState<{ nome: string; status: string; trial_end: string | null } | null>(null);
   const [novaSenha, setNovaSenha] = useState("");
+
+  const { data: uso } = useQuery<UsoAtual>({
+    queryKey: ["uso-atual"],
+    queryFn: () => fetchUso() as unknown as Promise<UsoAtual>,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     fetchProfile()
@@ -145,26 +157,87 @@ function ContaPage() {
           </div>
         </Card>
 
-        <Card className="p-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Plano atual</h2>
-            {plano && (
-              <Badge variant={plano.status === "trialing" ? "secondary" : "default"} className="uppercase">
-                {plano.status === "trialing" ? "Trial" : plano.status}
-              </Badge>
-            )}
+        <Card className="p-6 space-y-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Plano atual</p>
+              <div className="mt-1 flex items-center gap-2">
+                <h2 className="text-xl font-semibold leading-tight text-foreground">
+                  {uso?.planoNome ?? plano?.nome ?? "—"}
+                </h2>
+                {uso && (
+                  <Badge
+                    variant={uso.planoId === "gratuito" ? "secondary" : "default"}
+                    className="uppercase tracking-wide"
+                  >
+                    {uso.planoId === "gratuito" ? "Trial" : "Ativo"}
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {uso?.planoId === "gratuito" && uso.trialFimIso ? (
+                  uso.trialExpirado ? (
+                    <span className="text-destructive">
+                      Período gratuito expirado em{" "}
+                      {new Date(uso.trialFimIso).toLocaleDateString("pt-BR")}
+                    </span>
+                  ) : (
+                    <>
+                      Expira em{" "}
+                      <span className="font-medium text-foreground">
+                        {new Date(uso.trialFimIso).toLocaleDateString("pt-BR")}
+                      </span>
+                      {uso.diasRestantesTrial !== null && (
+                        <>
+                          {" "}
+                          · {uso.diasRestantesTrial}{" "}
+                          {uso.diasRestantesTrial === 1 ? "dia restante" : "dias restantes"}
+                        </>
+                      )}
+                    </>
+                  )
+                ) : uso ? (
+                  <>
+                    Renova em{" "}
+                    <span className="font-medium text-foreground">
+                      {new Date(uso.resetMesIso).toLocaleDateString("pt-BR")}
+                    </span>
+                  </>
+                ) : null}
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <Link to="/" hash="planos">
+                <Sparkles className="h-3.5 w-3.5" /> Fazer upgrade
+              </Link>
+            </Button>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Plano: <strong className="text-foreground">{plano?.nome ?? "—"}</strong>
-            {plano?.trial_end && plano.status === "trialing" && (
-              <> · expira em {new Date(plano.trial_end).toLocaleDateString("pt-BR")}</>
-            )}
-          </p>
-          <div className="flex gap-2">
-            <Button disabled>Gerenciar assinatura</Button>
-            <Button variant="outline" disabled>Cancelar</Button>
-          </div>
-          <p className="text-xs text-muted-foreground">A integração de pagamento será habilitada em breve.</p>
+
+          {uso && (uso.limiteMes !== null || uso.limiteDia !== null) && (
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+              {uso.limiteMes !== null ? (
+                <UsageMeter
+                  used={uso.mensagensMes}
+                  limit={uso.limiteMes}
+                  label="Mensagens deste mês"
+                  unit="mensagens"
+                />
+              ) : uso.limiteDia !== null ? (
+                <UsageMeter
+                  used={uso.mensagensDia}
+                  limit={uso.limiteDia}
+                  label="Mensagens de hoje"
+                  unit="mensagens"
+                />
+              ) : null}
+            </div>
+          )}
+
+          {uso && uso.limiteMes === null && uso.limiteDia === null && (
+            <p className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              Seu plano inclui mensagens ilimitadas.
+            </p>
+          )}
         </Card>
 
         <Card className="p-6 space-y-3">
