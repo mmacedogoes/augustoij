@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-export const Route = createFileRoute("/_authenticated/app/admin/usuarios")({
+export const Route = createFileRoute("/_authenticated/app/admin/usuarios/")({
   component: AdminUsuariosPage,
 });
 
