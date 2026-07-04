@@ -79,6 +79,7 @@ export const createDocumento = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await assertUploadPermitido(context.supabase, context.userId, data.condominioId);
     const { data: row, error } = await context.supabase
       .from("documentos")
       .insert({
