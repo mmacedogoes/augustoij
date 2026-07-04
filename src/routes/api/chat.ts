@@ -405,10 +405,11 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
           const modelName = "google/gemini-3-flash-preview";
           const model = gateway(modelName);
 
-          // Preço do modelo em créditos Lovable por token (fallback se a
-          // linha em model_pricing for removida).
-          let pricePerInput = 0.0000075;
-          let pricePerOutput = 0.00003;
+          // Preço do modelo em créditos Lovable por token (fallback caso a
+          // linha em model_pricing seja removida). Valores medidos direto
+          // no AI Gateway em jul/26 para gemini-3-flash-preview.
+          let pricePerInput = 0.000002;
+          let pricePerOutput = 0.000012;
           try {
             const { data: pricing } = await supabase
               .from("model_pricing")
