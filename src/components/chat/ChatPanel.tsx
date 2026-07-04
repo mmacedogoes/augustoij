@@ -27,6 +27,8 @@ import { getUsoAtual } from "@/lib/uso.functions";
 import { avaliarLimite } from "@/lib/uso-limits";
 import { UsageFooter } from "@/components/chat/UsageFooter";
 import { UpgradeDialog } from "@/components/chat/UpgradeDialog";
+import { usePlanContext } from "@/hooks/usePlanContext";
+import { gateMessages } from "@/lib/plan-gates";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
