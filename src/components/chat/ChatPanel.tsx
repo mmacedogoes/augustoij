@@ -27,6 +27,8 @@ import { getUsoAtual } from "@/lib/uso.functions";
 import { avaliarLimite } from "@/lib/uso-limits";
 import { UsageFooter } from "@/components/chat/UsageFooter";
 import { UpgradeDialog } from "@/components/chat/UpgradeDialog";
+import { usePlanContext } from "@/hooks/usePlanContext";
+import { gateMessages } from "@/lib/plan-gates";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -166,6 +168,8 @@ export function ChatPanel({
   const uso = usoQuery.data;
   const limiteStatus = uso ? avaliarLimite(uso) : { bloqueado: false as const };
   const bloqueadoPorLimite = limiteStatus.bloqueado;
+  const { data: planCtx } = usePlanContext();
+  const uploadPermitidoPeloPlano = planCtx?.recursos.uploadDocumentos ?? true;
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Ao ficar bloqueado, abre o modal automaticamente uma vez
@@ -724,8 +728,12 @@ export function ChatPanel({
                   size="sm"
                   className="gap-1.5"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={attachLoading || bloqueadoPorLimite}
-                  title="Anexar documento à conversa"
+                  disabled={attachLoading || bloqueadoPorLimite || !uploadPermitidoPeloPlano}
+                  title={
+                    !uploadPermitidoPeloPlano && planCtx
+                      ? gateMessages.uploadDesabilitado(planCtx.planoNome)
+                      : "Anexar documento à conversa"
+                  }
                 >
                   {attachLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

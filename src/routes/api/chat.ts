@@ -12,6 +12,7 @@ import { createLovableAiGatewayProvider, embedText } from "@/lib/ai-gateway.serv
 import type { Database } from "@/integrations/supabase/types";
 import { PLANS, type PlanId } from "@/config/plans";
 import { avaliarLimite, modeloParaPlano, type UsoAtual } from "@/lib/uso-limits";
+import { jurisprudenciaDirective } from "@/lib/plan-gates";
 
 type ChatBody = {
   messages?: UIMessage[];
@@ -460,6 +461,14 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
               : ""
           }`;
 
+          // Diretiva de plano: quando o plano NÃO inclui jurisprudência
+          // completa, adicionamos ao system prompt a restrição de não
+          // citar acórdãos. A IA continua respondendo normalmente.
+          const jurisDirective = jurisprudenciaDirective(planoId);
+          const systemPromptFinal = jurisDirective
+            ? `${systemPrompt}\n${jurisDirective}`
+            : systemPrompt;
+
           // Persist user message
           await supabase.from("mensagens").insert({
             conversa_id: conversaId,
@@ -492,7 +501,7 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
 
           const result = streamText({
             model,
-            system: systemPrompt,
+            system: systemPromptFinal,
             messages: await convertToModelMessages(messages),
             experimental_transform: [sanitizarRespostaStream()],
             onFinish: async ({ text, usage }) => {

@@ -11,6 +11,7 @@ import { getProfile } from "@/lib/condominios.functions";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DicasPopup } from "@/components/DicasPopup";
 import { HelpMenu } from "@/components/HelpMenu";
+import { TrialExpiredBanner } from "@/components/gates/PlanGates";
 
 const baseNav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard, tour: "nav-dashboard" },
@@ -95,6 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <div className="md:ml-60 flex flex-col min-h-screen">
+        <TrialExpiredBanner />
         <div className="hidden md:flex h-12 items-center justify-end border-b border-border bg-card px-4">
           <HelpMenu onStartTour={() => setForceTour(true)} />
         </div>

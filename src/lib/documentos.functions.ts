@@ -1,6 +1,42 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { PLANS } from "@/config/plans";
+import { resolvePlanId, isTrialExpired, gateMessages } from "@/lib/plan-gates";
+
+/**
+ * Verifica se o usuário logado pode enviar mais um documento no condomínio
+ * (aplicado tanto em getUploadUrl quanto em createDocumento).
+ */
+async function assertUploadPermitido(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  userId: string,
+  condominioId: string,
+) {
+  const [subRes, docsRes] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("plano_config_id, trial_end")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("documentos")
+      .select("id", { count: "exact", head: true })
+      .eq("condominio_id", condominioId),
+  ]);
+  const planoId = resolvePlanId(subRes.data?.plano_config_id ?? null);
+  const plano = PLANS[planoId];
+  if (isTrialExpired(planoId, subRes.data?.trial_end ?? null)) {
+    throw new Error(gateMessages.trialExpirado());
+  }
+  if (!plano.recursos.uploadDocumentos) {
+    throw new Error(gateMessages.uploadDesabilitado(plano.nome));
+  }
+  const atual = docsRes.count ?? 0;
+  if (plano.documentosMax !== null && atual >= plano.documentosMax) {
+    throw new Error(gateMessages.documentosMax(plano.nome, plano.documentosMax));
+  }
+}
 
 const BUCKET = "documentos";
 
@@ -43,6 +79,7 @@ export const createDocumento = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await assertUploadPermitido(context.supabase, context.userId, data.condominioId);
     const { data: row, error } = await context.supabase
       .from("documentos")
       .insert({
@@ -184,6 +221,7 @@ export const getUploadUrl = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await assertUploadPermitido(context.supabase, context.userId, data.condominioId);
     const safeName = data.nomeArquivo.replace(/[^\w.\-]+/g, "_");
     const path = `${data.condominioId}/${Date.now()}_${safeName}`;
     const { data: signed, error } = await context.supabase.storage
