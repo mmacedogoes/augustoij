@@ -728,8 +728,12 @@ export function ChatPanel({
                   size="sm"
                   className="gap-1.5"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={attachLoading || bloqueadoPorLimite}
-                  title="Anexar documento à conversa"
+                  disabled={attachLoading || bloqueadoPorLimite || !uploadPermitidoPeloPlano}
+                  title={
+                    !uploadPermitidoPeloPlano && planCtx
+                      ? gateMessages.uploadDesabilitado(planCtx.planoNome)
+                      : "Anexar documento à conversa"
+                  }
                 >
                   {attachLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
