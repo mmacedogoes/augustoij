@@ -194,7 +194,7 @@ export const adminUpdateSubscription = createServerFn({ method: "POST" })
       actor_user_id: context.userId,
       action: "subscription.update",
       target_user_id: data.userId,
-      metadata: patch,
+      metadata: patch as Record<string, unknown> as never,
       ip_address: ip,
       user_agent: ua,
     });
