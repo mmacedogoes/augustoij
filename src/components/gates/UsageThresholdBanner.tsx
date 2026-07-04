@@ -105,7 +105,7 @@ function computarThreshold(uso: UsoAtual | undefined): {
   mesAno: string;
   planoId: string;
 } | null {
-  if (!uso || uso.limiteMes === null) return null;
+  if (!uso || uso.cortesia || uso.limiteMes === null) return null;
   const pct = (uso.mensagensMes / Math.max(1, uso.limiteMes)) * 100;
   if (pct < 80) return null;
   const threshold: Threshold = pct >= 95 ? 95 : 80;
