@@ -1,7 +1,9 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { getProfile } from "@/lib/condominios.functions";
 import { updateMyProfile } from "@/lib/onboarding.functions";
+import { getUsoAtual } from "@/lib/uso.functions";
+import { UsageMeter } from "@/components/gates/UsageMeter";
+import type { UsoAtual } from "@/lib/uso-limits";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/app/conta")({
@@ -31,11 +36,18 @@ function ContaPage() {
   const router = useRouter();
   const fetchProfile = useServerFn(getProfile);
   const saveProfile = useServerFn(updateMyProfile);
+  const fetchUso = useServerFn(getUsoAtual);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [form, setForm] = useState({ nome: "", telefone: "", razao_social: "", cpf_cnpj: "" });
   const [saving, setSaving] = useState(false);
   const [plano, setPlano] = useState<{ nome: string; status: string; trial_end: string | null } | null>(null);
   const [novaSenha, setNovaSenha] = useState("");
+
+  const { data: uso } = useQuery<UsoAtual>({
+    queryKey: ["uso-atual"],
+    queryFn: () => fetchUso() as unknown as Promise<UsoAtual>,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     fetchProfile()
