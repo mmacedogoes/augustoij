@@ -25,14 +25,14 @@ export function UsageMeter({ used, limit, label, unit, className }: UsageMeterPr
     pct > 90 ? "danger" : pct >= 70 ? "warning" : "success";
 
   const barColor = {
-    success: "bg-[hsl(var(--usage-ok))]",
-    warning: "bg-[hsl(var(--usage-warn))]",
-    danger: "bg-[hsl(var(--usage-alert))]",
+    success: "bg-usage-ok",
+    warning: "bg-usage-warn",
+    danger: "bg-usage-alert",
   }[tone];
 
   const textColor = {
     success: "text-foreground",
-    warning: "text-[hsl(var(--usage-warn-fg))]",
+    warning: "text-usage-warn",
     danger: "text-destructive",
   }[tone];
 
