@@ -268,6 +268,7 @@ function AlertasTab() {
     notificar_admin: boolean;
     notificar_usuarios: boolean;
     custo_storage_mb_brl: number;
+    credito_brl: number;
   } | null>(null);
   const [rows, setRows] = useState<Awaited<ReturnType<typeof listAlertas>>>([]);
   const [thresholdsStr, setThresholdsStr] = useState("50,80,100");
@@ -279,6 +280,7 @@ function AlertasTab() {
         notificar_admin: c.notificar_admin ?? true,
         notificar_usuarios: c.notificar_usuarios ?? false,
         custo_storage_mb_brl: Number(c.custo_storage_mb_brl ?? 0.0001),
+        credito_brl: Number((c as { credito_brl?: number }).credito_brl ?? 0.05),
       };
       setCfg(parsed);
       setThresholdsStr(parsed.thresholds.join(","));
@@ -298,6 +300,7 @@ function AlertasTab() {
           notificar_admin: cfg.notificar_admin,
           notificar_usuarios: cfg.notificar_usuarios,
           custo_storage_mb_brl: cfg.custo_storage_mb_brl,
+          credito_brl: cfg.credito_brl,
         },
       });
       toast.success("Configuração salva");
@@ -324,6 +327,19 @@ function AlertasTab() {
               value={cfg.custo_storage_mb_brl}
               onChange={(e) => setCfg({ ...cfg, custo_storage_mb_brl: Number(e.target.value) })}
             />
+          </div>
+          <div>
+            <Label className="text-xs">R$ por crédito Lovable</Label>
+            <Input
+              type="number"
+              step="0.0001"
+              value={cfg.credito_brl}
+              onChange={(e) => setCfg({ ...cfg, credito_brl: Number(e.target.value) })}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Câmbio usado para converter créditos em BRL. Preços por token vivem
+              na tabela <code className="font-mono">model_pricing</code>.
+            </p>
           </div>
         </div>
         <div className="flex items-center justify-between border-t border-border pt-4">
