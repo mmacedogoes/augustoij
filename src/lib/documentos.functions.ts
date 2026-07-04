@@ -221,6 +221,7 @@ export const getUploadUrl = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await assertUploadPermitido(context.supabase, context.userId, data.condominioId);
     const safeName = data.nomeArquivo.replace(/[^\w.\-]+/g, "_");
     const path = `${data.condominioId}/${Date.now()}_${safeName}`;
     const { data: signed, error } = await context.supabase.storage
