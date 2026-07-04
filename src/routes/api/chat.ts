@@ -467,7 +467,8 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
           // Diretiva de plano: quando o plano NÃO inclui jurisprudência
           // completa, adicionamos ao system prompt a restrição de não
           // citar acórdãos. A IA continua respondendo normalmente.
-          const jurisDirective = jurisprudenciaDirective(planoId);
+          const planoIdEfetivo = efetivoPlanoId(planoId, cortesia);
+          const jurisDirective = jurisprudenciaDirective(planoIdEfetivo);
           const systemPromptFinal = jurisDirective
             ? `${systemPrompt}\n${jurisDirective}`
             : systemPrompt;
@@ -480,7 +481,7 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
           });
 
           const gateway = createLovableAiGatewayProvider(apiKey);
-          const modelName = modeloParaPlano(planoId);
+          const modelName = modeloParaPlano(planoIdEfetivo);
           const model = gateway(modelName);
 
           // Preço do modelo em créditos Lovable por token (fallback caso a
