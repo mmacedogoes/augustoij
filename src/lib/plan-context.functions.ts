@@ -1,12 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PLANS } from "@/config/plans";
-import { resolvePlanId, isTrialExpired } from "@/lib/plan-gates";
+import { resolvePlanId, isTrialExpired, efetivoPlanoId } from "@/lib/plan-gates";
 import type { PlanId, PlanRecursos } from "@/config/plans";
 
 export type PlanContext = {
   planoId: PlanId;
   planoNome: string;
+  cortesia: boolean;
   recursos: PlanRecursos;
   condominiosMax: number | null;
   documentosMax: number | null;
@@ -28,7 +29,7 @@ export const getPlanContext = createServerFn({ method: "GET" })
     const [subRes, condosRes] = await Promise.all([
       supabase
         .from("subscriptions")
-        .select("plano_config_id, trial_end")
+        .select("plano_config_id, trial_end, cortesia")
         .eq("user_id", userId)
         .maybeSingle(),
       supabase
@@ -38,19 +39,22 @@ export const getPlanContext = createServerFn({ method: "GET" })
     ]);
 
     const planoId = resolvePlanId(subRes.data?.plano_config_id ?? null);
+    const cortesia = subRes.data?.cortesia === true;
+    const planoEfetivo = PLANS[efetivoPlanoId(planoId, cortesia)];
     const plano = PLANS[planoId];
     const trialEndIso = subRes.data?.trial_end ?? null;
 
     return {
       planoId,
       planoNome: plano.nome,
-      recursos: plano.recursos,
-      condominiosMax: plano.condomíniosMax,
-      documentosMax: plano.documentosMax,
-      usuariosMax: plano.usuariosMax,
-      historicosDias: plano.historicosDias,
+      cortesia,
+      recursos: planoEfetivo.recursos,
+      condominiosMax: planoEfetivo.condomíniosMax,
+      documentosMax: planoEfetivo.documentosMax,
+      usuariosMax: planoEfetivo.usuariosMax,
+      historicosDias: planoEfetivo.historicosDias,
       condominiosCount: condosRes.count ?? 0,
       trialEndIso,
-      trialExpirado: isTrialExpired(planoId, trialEndIso),
+      trialExpirado: cortesia ? false : isTrialExpired(planoId, trialEndIso),
     };
   });
