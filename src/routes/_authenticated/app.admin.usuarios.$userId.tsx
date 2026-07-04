@@ -14,6 +14,8 @@ import {
   Unlock,
   Save,
   Loader2,
+  Users,
+  Link2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -29,7 +31,7 @@ import {
   adminUpdateSubscription,
   type UsuarioDetalhe,
 } from "@/lib/admin.functions";
-import { PLANS, PLAN_IDS, type PlanId } from "@/config/plans";
+import { PLANS, PLAN_IDS, CLASSIFICACAO_VINCULADO, type PlanId } from "@/config/plans";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios/$userId")({
   component: AdminUsuarioDetalhePage,
@@ -91,7 +93,24 @@ function AdminUsuarioDetalhePage() {
                   <Sparkles className="h-3 w-3 mr-1" /> Cortesia
                 </Badge>
               )}
+              {data.vinculadoA && (
+                <Badge
+                  className="bg-primary/10 text-primary hover:bg-primary/15 border-0"
+                  title={CLASSIFICACAO_VINCULADO.descricao}
+                >
+                  <Link2 className="h-3 w-3 mr-1" /> {CLASSIFICACAO_VINCULADO.nome}
+                </Badge>
+              )}
             </div>
+            {data.vinculadoA && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Vinculado a{" "}
+                <span className="font-medium text-foreground">
+                  {data.vinculadoA.nome || data.vinculadoA.email || "titular"}
+                </span>{" "}
+                · {data.vinculadoA.condominio_nome}
+              </p>
+            )}
           </div>
         </div>
 
@@ -177,6 +196,9 @@ function AdminUsuarioDetalhePage() {
             </ul>
           )}
         </Card>
+
+        {/* Usuários vinculados a este titular */}
+        <MembrosVinculadosCard membros={data.membrosVinculados} />
       </div>
     </AppShell>
   );
