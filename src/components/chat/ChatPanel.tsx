@@ -168,6 +168,8 @@ export function ChatPanel({
   const uso = usoQuery.data;
   const limiteStatus = uso ? avaliarLimite(uso) : { bloqueado: false as const };
   const bloqueadoPorLimite = limiteStatus.bloqueado;
+  const { data: planCtx } = usePlanContext();
+  const uploadPermitidoPeloPlano = planCtx?.recursos.uploadDocumentos ?? true;
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Ao ficar bloqueado, abre o modal automaticamente uma vez
