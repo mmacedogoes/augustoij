@@ -8,6 +8,7 @@ export type PlanContext = {
   planoId: PlanId;
   planoNome: string;
   cortesia: boolean;
+  status: string;
   recursos: PlanRecursos;
   condominiosMax: number | null;
   documentosMax: number | null;
@@ -29,7 +30,7 @@ export const getPlanContext = createServerFn({ method: "GET" })
     const [subRes, condosRes] = await Promise.all([
       supabase
         .from("subscriptions")
-        .select("plano_config_id, trial_end, cortesia")
+        .select("plano_config_id, trial_end, cortesia, status")
         .eq("user_id", userId)
         .maybeSingle(),
       supabase
@@ -48,6 +49,7 @@ export const getPlanContext = createServerFn({ method: "GET" })
       planoId,
       planoNome: plano.nome,
       cortesia,
+      status: subRes.data?.status ?? "active",
       recursos: planoEfetivo.recursos,
       condominiosMax: planoEfetivo.condomíniosMax,
       documentosMax: planoEfetivo.documentosMax,
