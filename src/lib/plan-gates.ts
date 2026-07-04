@@ -15,6 +15,15 @@ export function resolvePlanId(raw: string | null | undefined): PlanId {
   return "gratuito";
 }
 
+/**
+ * Retorna o plano "efetivo" — quando `cortesia = true`, o usuário
+ * é tratado como Personalizado (sem qualquer limite), independentemente
+ * do plano marcado. O plano cru continua disponível para exibição.
+ */
+export function efetivoPlanoId(planoId: PlanId, cortesia: boolean): PlanId {
+  return cortesia ? "personalizado" : planoId;
+}
+
 export function getPlan(planoId: PlanId): Plan {
   return PLANS[planoId];
 }
