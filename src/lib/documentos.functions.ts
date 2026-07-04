@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PLANS } from "@/config/plans";
-import { resolvePlanId, isTrialExpired, gateMessages } from "@/lib/plan-gates";
+import { resolvePlanId, isTrialExpired, gateMessages, efetivoPlanoId } from "@/lib/plan-gates";
 
 /**
  * Verifica se o usuário logado pode enviar mais um documento no condomínio
@@ -16,7 +16,7 @@ async function assertUploadPermitido(
   const [subRes, docsRes] = await Promise.all([
     supabase
       .from("subscriptions")
-      .select("plano_config_id, trial_end")
+      .select("plano_config_id, trial_end, cortesia")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
@@ -24,9 +24,11 @@ async function assertUploadPermitido(
       .select("id", { count: "exact", head: true })
       .eq("condominio_id", condominioId),
   ]);
-  const planoId = resolvePlanId(subRes.data?.plano_config_id ?? null);
+  const planoBruto = resolvePlanId(subRes.data?.plano_config_id ?? null);
+  const cortesia = subRes.data?.cortesia === true;
+  const planoId = efetivoPlanoId(planoBruto, cortesia);
   const plano = PLANS[planoId];
-  if (isTrialExpired(planoId, subRes.data?.trial_end ?? null)) {
+  if (!cortesia && isTrialExpired(planoBruto, subRes.data?.trial_end ?? null)) {
     throw new Error(gateMessages.trialExpirado());
   }
   if (!plano.recursos.uploadDocumentos) {

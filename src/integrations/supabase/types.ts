@@ -987,6 +987,9 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          cortesia: boolean
+          cortesia_concedida_por: string | null
+          cortesia_observacao: string | null
           created_at: string
           creditos_mensagens_extras: number
           current_period_end: string | null
@@ -1003,6 +1006,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cortesia?: boolean
+          cortesia_concedida_por?: string | null
+          cortesia_observacao?: string | null
           created_at?: string
           creditos_mensagens_extras?: number
           current_period_end?: string | null
@@ -1019,6 +1025,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cortesia?: boolean
+          cortesia_concedida_por?: string | null
+          cortesia_observacao?: string | null
           created_at?: string
           creditos_mensagens_extras?: number
           current_period_end?: string | null
@@ -1035,6 +1044,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_cortesia_concedida_por_fkey"
+            columns: ["cortesia_concedida_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscriptions_plano_id_fkey"
             columns: ["plano_id"]

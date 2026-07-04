@@ -3,6 +3,9 @@ import { z } from "zod";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
+import { PLAN_IDS, PLANS, type PlanId } from "@/config/plans";
+
+const PlanoConfigEnum = z.enum(PLAN_IDS as [PlanId, ...PlanId[]]);
 
 /** Captura IP + UA da requisição atual para a trilha de auditoria. */
 function getAuditContext(): { ip: string | null; ua: string | null } {
@@ -43,6 +46,159 @@ export const assertAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureAdmin(context);
+    return { ok: true };
+  });
+
+// ============================================================
+// Detalhe do usuário (Bloco admin — página /app/admin/usuarios/:id)
+// ============================================================
+
+export type UsuarioDetalhe = {
+  profile: {
+    id: string;
+    nome: string | null;
+    email: string | null;
+    telefone: string | null;
+    oab: string | null;
+    tipo_pessoa: string | null;
+    cpf_cnpj: string | null;
+    razao_social: string | null;
+    papel_sistema: string;
+    perfil_atuacao: string | null;
+    ativo: boolean;
+    created_at: string;
+    ultimo_acesso: string | null;
+  };
+  subscription: {
+    plano_config_id: PlanId;
+    cortesia: boolean;
+    cortesia_observacao: string | null;
+    status: string;
+    trial_end: string | null;
+    current_period_end: string | null;
+    creditos_mensagens_extras: number;
+  };
+  condominios: Array<{ id: string; nome: string; uf: string | null; qtd_unidades: number | null; created_at: string }>;
+  usoMes: { mensagens: number; tokens: number; custo_brl: number; mes_ano: string };
+  financeiro: { total_mensagens_historico: number; custo_estimado_total_brl: number };
+};
+
+export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ userId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<UsuarioDetalhe> => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date();
+    const mesAno = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+
+    const [profRes, subRes, condosRes, usoMesRes, historicoRes] = await Promise.all([
+      supabaseAdmin.from("profiles").select(
+        "id, nome, email, telefone, oab, tipo_pessoa, cpf_cnpj, razao_social, papel_sistema, perfil_atuacao, ativo, created_at, ultimo_acesso",
+      ).eq("id", data.userId).maybeSingle(),
+      supabaseAdmin.from("subscriptions").select(
+        "plano_config_id, cortesia, cortesia_observacao, status, trial_end, current_period_end, creditos_mensagens_extras",
+      ).eq("user_id", data.userId).maybeSingle(),
+      supabaseAdmin.from("condominios").select("id, nome, uf, qtd_unidades, created_at").eq("owner_id", data.userId).order("created_at", { ascending: false }),
+      supabaseAdmin.from("uso_mensal").select("total_mensagens, total_tokens, custo_estimado_brl").eq("user_id", data.userId).eq("mes_ano", mesAno).maybeSingle(),
+      supabaseAdmin.from("uso_mensal").select("total_mensagens, custo_estimado_brl").eq("user_id", data.userId),
+    ]);
+
+    if (profRes.error || !profRes.data) throw new Error("Usuário não encontrado");
+
+    const rawPlano = (subRes.data?.plano_config_id ?? "personalizado") as string;
+    const planoConfigId = (rawPlano in PLANS ? rawPlano : "personalizado") as PlanId;
+    const historico = historicoRes.data ?? [];
+
+    return {
+      profile: profRes.data,
+      subscription: {
+        plano_config_id: planoConfigId,
+        cortesia: subRes.data?.cortesia ?? true,
+        cortesia_observacao: subRes.data?.cortesia_observacao ?? null,
+        status: subRes.data?.status ?? "active",
+        trial_end: subRes.data?.trial_end ?? null,
+        current_period_end: subRes.data?.current_period_end ?? null,
+        creditos_mensagens_extras: subRes.data?.creditos_mensagens_extras ?? 0,
+      },
+      condominios: condosRes.data ?? [],
+      usoMes: {
+        mensagens: usoMesRes.data?.total_mensagens ?? 0,
+        tokens: usoMesRes.data?.total_tokens ?? 0,
+        custo_brl: Number(usoMesRes.data?.custo_estimado_brl ?? 0),
+        mes_ano: mesAno,
+      },
+      financeiro: {
+        total_mensagens_historico: historico.reduce((s, r) => s + (r.total_mensagens ?? 0), 0),
+        custo_estimado_total_brl: historico.reduce((s, r) => s + Number(r.custo_estimado_brl ?? 0), 0),
+      },
+    };
+  });
+
+export const adminUpdateSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      userId: z.string().uuid(),
+      plano_config_id: PlanoConfigEnum.optional(),
+      cortesia: z.boolean().optional(),
+      cortesia_observacao: z.string().trim().max(500).nullable().optional(),
+      // Adicionar N dias ao trial (positivo estende, negativo encurta).
+      diasExtras: z.number().int().min(-3650).max(3650).optional(),
+      // Definir data específica de fim de trial (ISO).
+      trial_end: z.string().datetime().nullable().optional(),
+      // Créditos avulsos de mensagens (override absoluto).
+      creditos_mensagens_extras: z.number().int().min(0).max(1_000_000).optional(),
+      status: z.enum(["active", "aguardando_pagamento", "trialing", "canceled", "past_due"]).optional(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Carrega estado atual para calcular diasExtras
+    const { data: current } = await supabaseAdmin
+      .from("subscriptions")
+      .select("trial_end, cortesia")
+      .eq("user_id", data.userId)
+      .maybeSingle();
+
+    const patch: Record<string, unknown> = {};
+    if (data.plano_config_id !== undefined) patch.plano_config_id = data.plano_config_id;
+    if (data.cortesia !== undefined) {
+      patch.cortesia = data.cortesia;
+      patch.cortesia_concedida_por = data.cortesia ? context.userId : null;
+    }
+    if (data.cortesia_observacao !== undefined) patch.cortesia_observacao = data.cortesia_observacao;
+    if (data.status !== undefined) patch.status = data.status;
+    if (data.creditos_mensagens_extras !== undefined) patch.creditos_mensagens_extras = data.creditos_mensagens_extras;
+
+    if (data.trial_end !== undefined) {
+      patch.trial_end = data.trial_end;
+    } else if (data.diasExtras !== undefined) {
+      const base = current?.trial_end ? new Date(current.trial_end).getTime() : Date.now();
+      const alvo = base < Date.now() ? Date.now() : base;
+      patch.trial_end = new Date(alvo + data.diasExtras * 86400_000).toISOString();
+    }
+
+    if (Object.keys(patch).length === 0) return { ok: true };
+
+    // upsert cobre o caso da subscription ainda não existir
+    const { error } = await supabaseAdmin
+      .from("subscriptions")
+      .upsert({ user_id: data.userId, ...patch }, { onConflict: "user_id" });
+    if (error) throw new Error(error.message);
+
+    const { ip, ua } = getAuditContext();
+    await supabaseAdmin.from("admin_audit_log").insert({
+      actor_user_id: context.userId,
+      action: "subscription.update",
+      target_user_id: data.userId,
+      metadata: patch as Record<string, unknown> as never,
+      ip_address: ip,
+      user_agent: ua,
+    });
+
     return { ok: true };
   });
 
@@ -246,6 +402,9 @@ export const adminCreateUser = createServerFn({ method: "POST" })
       perfil_atuacao: z
         .enum(["sindico", "advogado", "administradora", "conselheiro", "outro"])
         .optional(),
+      plano_config_id: PlanoConfigEnum.optional(),
+      cortesia: z.boolean().optional(),
+      observacao: z.string().trim().max(500).optional(),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -278,12 +437,36 @@ export const adminCreateUser = createServerFn({ method: "POST" })
       }, { onConflict: "id" });
     if (upErr) throw new Error(upErr.message);
 
+    // Assinatura: por padrão CORTESIA (sem limites). Se o admin escolheu um
+    // plano específico, gravamos com status 'aguardando_pagamento' para o
+    // usuário ser redirecionado ao checkout no primeiro login.
+    const planoConfigId: PlanId = data.plano_config_id ?? "personalizado";
+    const cortesia = data.cortesia ?? true;
+    await supabaseAdmin.from("subscriptions").upsert(
+      {
+        user_id: newUserId,
+        plano_config_id: planoConfigId,
+        cortesia,
+        cortesia_concedida_por: cortesia ? context.userId : null,
+        cortesia_observacao: cortesia ? (data.observacao ?? "Conta criada pelo admin") : null,
+        status: cortesia ? "active" : "aguardando_pagamento",
+        trial_end: cortesia ? null : new Date(Date.now() + 7 * 86400_000).toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
     const { ip, ua } = getAuditContext();
     await supabaseAdmin.from("admin_audit_log").insert({
       actor_user_id: context.userId,
       action: "user.create",
       target_user_id: newUserId,
-      metadata: { email: data.email, papel: data.papel, perfil: data.perfil_atuacao ?? null },
+      metadata: {
+        email: data.email,
+        papel: data.papel,
+        perfil: data.perfil_atuacao ?? null,
+        plano_config_id: planoConfigId,
+        cortesia,
+      },
       ip_address: ip,
       user_agent: ua,
     });

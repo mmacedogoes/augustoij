@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PLANS } from "@/config/plans";
-import { resolvePlanId, isTrialExpired, gateMessages } from "@/lib/plan-gates";
+import { resolvePlanId, isTrialExpired, gateMessages, efetivoPlanoId } from "@/lib/plan-gates";
 
 export const listCondominios = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -32,7 +32,7 @@ export const createCondominio = createServerFn({ method: "POST" })
     const [subRes, countRes] = await Promise.all([
       context.supabase
         .from("subscriptions")
-        .select("plano_config_id, trial_end")
+        .select("plano_config_id, trial_end, cortesia")
         .eq("user_id", context.userId)
         .maybeSingle(),
       context.supabase
@@ -40,9 +40,11 @@ export const createCondominio = createServerFn({ method: "POST" })
         .select("id", { count: "exact", head: true })
         .eq("owner_id", context.userId),
     ]);
-    const planoId = resolvePlanId(subRes.data?.plano_config_id ?? null);
+    const planoBruto = resolvePlanId(subRes.data?.plano_config_id ?? null);
+    const cortesia = subRes.data?.cortesia === true;
+    const planoId = efetivoPlanoId(planoBruto, cortesia);
     const plano = PLANS[planoId];
-    if (isTrialExpired(planoId, subRes.data?.trial_end ?? null)) {
+    if (!cortesia && isTrialExpired(planoBruto, subRes.data?.trial_end ?? null)) {
       throw new Error(gateMessages.trialExpirado());
     }
     const atual = countRes.count ?? 0;

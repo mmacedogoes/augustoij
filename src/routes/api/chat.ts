@@ -12,7 +12,7 @@ import { createLovableAiGatewayProvider, embedText } from "@/lib/ai-gateway.serv
 import type { Database } from "@/integrations/supabase/types";
 import { PLANS, type PlanId } from "@/config/plans";
 import { avaliarLimite, modeloParaPlano, type UsoAtual } from "@/lib/uso-limits";
-import { jurisprudenciaDirective } from "@/lib/plan-gates";
+import { jurisprudenciaDirective, efetivoPlanoId } from "@/lib/plan-gates";
 
 type ChatBody = {
   messages?: UIMessage[];
@@ -172,7 +172,7 @@ export const Route = createFileRoute("/api/chat")({
           const [subRes, mensalRes, diarioRes] = await Promise.all([
             supabase
               .from("subscriptions")
-              .select("plano_config_id, trial_end, user_id")
+              .select("plano_config_id, trial_end, user_id, cortesia")
               .eq("user_id", conv.user_id)
               .maybeSingle(),
             supabase
@@ -190,15 +190,18 @@ export const Route = createFileRoute("/api/chat")({
           ]);
           const rawPlano = (subRes.data?.plano_config_id ?? "gratuito") as string;
           const planoId = (rawPlano in PLANS ? rawPlano : "gratuito") as PlanId;
+          const cortesia = subRes.data?.cortesia === true;
           const plano = PLANS[planoId];
           const trialFimIso = subRes.data?.trial_end ?? null;
           const trialExpirado =
+            !cortesia &&
             planoId === "gratuito" &&
             !!trialFimIso &&
             new Date(trialFimIso).getTime() <= Date.now();
           const uso: UsoAtual = {
             planoId,
             planoNome: plano.nome,
+            cortesia,
             mensagensMes: mensalRes.data?.total_mensagens ?? 0,
             mensagensDia: diarioRes.data?.total_mensagens ?? 0,
             limiteMes: plano.mensagensPorMes,
@@ -464,7 +467,8 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
           // Diretiva de plano: quando o plano NÃO inclui jurisprudência
           // completa, adicionamos ao system prompt a restrição de não
           // citar acórdãos. A IA continua respondendo normalmente.
-          const jurisDirective = jurisprudenciaDirective(planoId);
+          const planoIdEfetivo = efetivoPlanoId(planoId, cortesia);
+          const jurisDirective = jurisprudenciaDirective(planoIdEfetivo);
           const systemPromptFinal = jurisDirective
             ? `${systemPrompt}\n${jurisDirective}`
             : systemPrompt;
@@ -477,7 +481,7 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
           });
 
           const gateway = createLovableAiGatewayProvider(apiKey);
-          const modelName = modeloParaPlano(planoId);
+          const modelName = modeloParaPlano(planoIdEfetivo);
           const model = gateway(modelName);
 
           // Preço do modelo em créditos Lovable por token (fallback caso a

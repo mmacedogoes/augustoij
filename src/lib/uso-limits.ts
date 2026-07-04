@@ -7,6 +7,8 @@ import { PLANS, type PlanId } from "@/config/plans";
 export type UsoAtual = {
   planoId: PlanId;
   planoNome: string;
+  /** Conta de cortesia (criada por admin) — bypass total de limites. */
+  cortesia: boolean;
   /** Contador de mensagens do MÊS corrente (fuso America/Sao_Paulo). */
   mensagensMes: number;
   /** Contador de mensagens de HOJE (fuso America/Sao_Paulo). */
@@ -48,6 +50,8 @@ function fmtDataBR(iso: string): string {
 }
 
 export function avaliarLimite(uso: UsoAtual): LimiteStatus {
+  // Cortesia = admin liberou uso sem limites
+  if (uso.cortesia) return { bloqueado: false };
   const plano = PLANS[uso.planoId];
   if (!plano) return { bloqueado: false };
 
