@@ -501,7 +501,7 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
 
           const result = streamText({
             model,
-            system: systemPrompt,
+            system: systemPromptFinal,
             messages: await convertToModelMessages(messages),
             experimental_transform: [sanitizarRespostaStream()],
             onFinish: async ({ text, usage }) => {
