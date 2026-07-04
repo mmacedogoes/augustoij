@@ -120,6 +120,10 @@
   --sidebar-ring: oklch(0.68 0.085 75);
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Cormorant Garamond", Georgia, serif;
+  /* Consumo — semáforo de barras de progresso (verde/âmbar/vermelho) */
+  --usage-ok: oklch(0.65 0.15 152);
+  --usage-warn: oklch(0.75 0.16 75);
+  --usage-alert: oklch(0.6 0.22 27);
 }
 
 .dark {
