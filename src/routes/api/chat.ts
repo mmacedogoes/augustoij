@@ -172,7 +172,7 @@ export const Route = createFileRoute("/api/chat")({
           const [subRes, mensalRes, diarioRes] = await Promise.all([
             supabase
               .from("subscriptions")
-              .select("plano_config_id, trial_end, user_id")
+              .select("plano_config_id, trial_end, user_id, cortesia")
               .eq("user_id", conv.user_id)
               .maybeSingle(),
             supabase
@@ -190,15 +190,18 @@ export const Route = createFileRoute("/api/chat")({
           ]);
           const rawPlano = (subRes.data?.plano_config_id ?? "gratuito") as string;
           const planoId = (rawPlano in PLANS ? rawPlano : "gratuito") as PlanId;
+          const cortesia = subRes.data?.cortesia === true;
           const plano = PLANS[planoId];
           const trialFimIso = subRes.data?.trial_end ?? null;
           const trialExpirado =
+            !cortesia &&
             planoId === "gratuito" &&
             !!trialFimIso &&
             new Date(trialFimIso).getTime() <= Date.now();
           const uso: UsoAtual = {
             planoId,
             planoNome: plano.nome,
+            cortesia,
             mensagensMes: mensalRes.data?.total_mensagens ?? 0,
             mensagensDia: diarioRes.data?.total_mensagens ?? 0,
             limiteMes: plano.mensagensPorMes,
