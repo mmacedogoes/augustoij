@@ -992,6 +992,7 @@ export type Database = {
           current_period_end: string | null
           id: string
           plano: Database["public"]["Enums"]["plano_assinatura"] | null
+          plano_config_id: string
           plano_id: string | null
           status: string
           stripe_customer_id: string | null
@@ -1007,6 +1008,7 @@ export type Database = {
           current_period_end?: string | null
           id?: string
           plano?: Database["public"]["Enums"]["plano_assinatura"] | null
+          plano_config_id?: string
           plano_id?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -1022,6 +1024,7 @@ export type Database = {
           current_period_end?: string | null
           id?: string
           plano?: Database["public"]["Enums"]["plano_assinatura"] | null
+          plano_config_id?: string
           plano_id?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -1090,6 +1093,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      uso_diario: {
+        Row: {
+          dia: string
+          total_mensagens: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          dia: string
+          total_mensagens?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          dia?: string
+          total_mensagens?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       uso_mensal: {
         Row: {
