@@ -17,7 +17,7 @@ export const getUsoOverview = createServerFn({ method: "GET" })
     const { mes } = mesAtual();
 
     const [{ data: uso }, { data: docs }, { data: msgsErro }, { data: kb }] = await Promise.all([
-      supabaseAdmin.from("uso_mensal").select("total_mensagens, total_tokens, custo_estimado_brl, user_id").eq("mes_ano", mes),
+      supabaseAdmin.from("uso_mensal").select("total_mensagens, total_tokens, total_credits, custo_estimado_brl, user_id").eq("mes_ano", mes),
       supabaseAdmin.from("documentos").select("id, status_processamento"),
       supabaseAdmin.from("mensagens").select("id", { count: "exact", head: true }).gte("created_at", `${mes}-01`),
       supabaseAdmin.from("kb_documentos").select("id, status_processamento"),
@@ -26,6 +26,7 @@ export const getUsoOverview = createServerFn({ method: "GET" })
     const totalMsgs = (uso ?? []).reduce((a, r) => a + (r.total_mensagens ?? 0), 0);
     const totalTokens = (uso ?? []).reduce((a, r) => a + (r.total_tokens ?? 0), 0);
     const custoIA = (uso ?? []).reduce((a, r) => a + Number(r.custo_estimado_brl ?? 0), 0);
+    const totalCredits = (uso ?? []).reduce((a, r) => a + Number(r.total_credits ?? 0), 0);
     const usuariosAtivos = new Set((uso ?? []).map((r) => r.user_id)).size;
 
     const { data: storageAgg } = await supabaseAdmin
@@ -46,6 +47,7 @@ export const getUsoOverview = createServerFn({ method: "GET" })
       total_mensagens: totalMsgs,
       total_tokens: totalTokens,
       custo_ia_brl: custoIA,
+      total_credits: totalCredits,
       usuarios_ativos: usuariosAtivos,
       documentos_total: docs?.length ?? 0,
       documentos_erro: (docs ?? []).filter((d) => (d.status_processamento ?? "").startsWith("erro")).length,
@@ -75,10 +77,10 @@ export const listUsoPorUsuario = createServerFn({ method: "GET" })
 
     const [{ data: subs }, { data: usos }, { data: custos }, { data: planos }, { data: cfg }] = await Promise.all([
       supabaseAdmin.from("subscriptions").select("user_id, plano_id, status").in("user_id", ids),
-      supabaseAdmin.from("uso_mensal").select("user_id, total_mensagens, total_tokens, custo_estimado_brl").eq("mes_ano", mes).in("user_id", ids),
+      supabaseAdmin.from("uso_mensal").select("user_id, total_mensagens, total_tokens, total_credits, custo_estimado_brl").eq("mes_ano", mes).in("user_id", ids),
       supabaseAdmin.from("custos_cliente_mensal").select("user_id, custo_tokens_openai, custo_storage").eq("mes_ano", `${mes}-01`).in("user_id", ids),
       supabaseAdmin.from("planos").select("id, nome, limite_mensagens_mes, limite_storage_mb, preco_mensal"),
-      supabaseAdmin.from("config_alertas").select("custo_storage_mb_brl").eq("id", 1).maybeSingle(),
+      supabaseAdmin.from("config_alertas").select("custo_storage_mb_brl, credito_brl").eq("id", 1).maybeSingle(),
     ]);
 
     const planosById = Object.fromEntries((planos ?? []).map((p) => [p.id, p]));
@@ -86,6 +88,7 @@ export const listUsoPorUsuario = createServerFn({ method: "GET" })
     const usoByUser = Object.fromEntries((usos ?? []).map((u) => [u.user_id, u]));
     const custoByUser = Object.fromEntries((custos ?? []).map((c) => [c.user_id, c]));
     const rateMb = Number(cfg?.custo_storage_mb_brl ?? 0.0001);
+    const creditoBrl = Number(cfg?.credito_brl ?? 0.05);
 
     const rows = [];
     for (const p of profiles ?? []) {
@@ -100,9 +103,11 @@ export const listUsoPorUsuario = createServerFn({ method: "GET" })
       const msgs = u?.total_mensagens ?? 0;
       const limMsgs = plano?.limite_mensagens_mes ?? null;
       const limMb = plano?.limite_storage_mb ?? null;
-      // Estimativa de créditos Lovable AI Gateway (~R$ 0,05 / crédito).
-      const CREDITO_BRL = 0.05;
-      const creditosLovable = custoIA / CREDITO_BRL;
+      // Créditos reais somados de mensagens.creditos_lovable (via uso_mensal.total_credits).
+      // Se ainda não houver dados (mensagens antigas), estima pelo custo IA / câmbio.
+      const creditosReais = Number(u?.total_credits ?? 0);
+      const creditosLovable =
+        creditosReais > 0 ? creditosReais : creditoBrl > 0 ? custoIA / creditoBrl : 0;
       rows.push({
         user_id: p.id,
         nome: p.nome,
@@ -117,6 +122,7 @@ export const listUsoPorUsuario = createServerFn({ method: "GET" })
         custo_storage_brl: custoStorage,
         custo_total_brl: custoIA + custoStorage,
         creditos_lovable: creditosLovable,
+        creditos_fonte: creditosReais > 0 ? ("real" as const) : ("estimado" as const),
         limite_mensagens: limMsgs,
         limite_storage_mb: limMb,
         pct_mensagens: limMsgs ? (msgs / limMsgs) * 100 : null,
@@ -195,6 +201,7 @@ export const updateConfigAlertas = createServerFn({ method: "POST" })
         notificar_admin: z.boolean(),
         notificar_usuarios: z.boolean(),
         custo_storage_mb_brl: z.number().min(0),
+        credito_brl: z.number().min(0),
       })
       .parse(i),
   )
@@ -208,6 +215,7 @@ export const updateConfigAlertas = createServerFn({ method: "POST" })
         notificar_admin: data.notificar_admin,
         notificar_usuarios: data.notificar_usuarios,
         custo_storage_mb_brl: data.custo_storage_mb_brl,
+        credito_brl: data.credito_brl,
       })
       .eq("id", 1);
     if (error) throw new Error(error.message);
