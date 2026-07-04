@@ -461,6 +461,14 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
               : ""
           }`;
 
+          // Diretiva de plano: quando o plano NÃO inclui jurisprudência
+          // completa, adicionamos ao system prompt a restrição de não
+          // citar acórdãos. A IA continua respondendo normalmente.
+          const jurisDirective = jurisprudenciaDirective(planoId);
+          const systemPromptFinal = jurisDirective
+            ? `${systemPrompt}\n${jurisDirective}`
+            : systemPrompt;
+
           // Persist user message
           await supabase.from("mensagens").insert({
             conversa_id: conversaId,
