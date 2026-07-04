@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX, ChevronRight, Sparkles } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { Link, MatchRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
@@ -391,10 +391,28 @@ function AdminUsuariosPage() {
                   asChild
                   size="sm"
                   variant="ghost"
-                  className="text-muted-foreground hover:text-primary"
+                  className="text-muted-foreground hover:text-primary transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
-                  <Link to="/app/admin/usuarios/$userId" params={{ userId: u.id }}>
-                    Detalhes <ChevronRight className="h-4 w-4 ml-0.5" />
+                  <Link
+                    to="/app/admin/usuarios/$userId"
+                    params={{ userId: u.id }}
+                    preload="intent"
+                    className="group inline-flex items-center gap-0.5"
+                  >
+                    Detalhes
+                    <MatchRoute
+                      to="/app/admin/usuarios/$userId"
+                      params={{ userId: u.id }}
+                      pending
+                    >
+                      {(match) =>
+                        match ? (
+                          <Loader2 className="h-4 w-4 ml-1 animate-spin" aria-label="Carregando" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 ml-0.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                        )
+                      }
+                    </MatchRoute>
                   </Link>
                 </Button>
               </div>
