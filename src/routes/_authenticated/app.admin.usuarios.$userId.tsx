@@ -14,6 +14,8 @@ import {
   Unlock,
   Save,
   Loader2,
+  Users,
+  Link2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -29,7 +31,7 @@ import {
   adminUpdateSubscription,
   type UsuarioDetalhe,
 } from "@/lib/admin.functions";
-import { PLANS, PLAN_IDS, type PlanId } from "@/config/plans";
+import { PLANS, PLAN_IDS, CLASSIFICACAO_VINCULADO, type PlanId } from "@/config/plans";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios/$userId")({
   component: AdminUsuarioDetalhePage,
@@ -91,7 +93,24 @@ function AdminUsuarioDetalhePage() {
                   <Sparkles className="h-3 w-3 mr-1" /> Cortesia
                 </Badge>
               )}
+              {data.vinculadoA && (
+                <Badge
+                  className="bg-primary/10 text-primary hover:bg-primary/15 border-0"
+                  title={CLASSIFICACAO_VINCULADO.descricao}
+                >
+                  <Link2 className="h-3 w-3 mr-1" /> {CLASSIFICACAO_VINCULADO.nome}
+                </Badge>
+              )}
             </div>
+            {data.vinculadoA && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Vinculado a{" "}
+                <span className="font-medium text-foreground">
+                  {data.vinculadoA.nome || data.vinculadoA.email || "titular"}
+                </span>{" "}
+                · {data.vinculadoA.condominio_nome}
+              </p>
+            )}
           </div>
         </div>
 
@@ -177,6 +196,9 @@ function AdminUsuarioDetalhePage() {
             </ul>
           )}
         </Card>
+
+        {/* Usuários vinculados a este titular */}
+        <MembrosVinculadosCard membros={data.membrosVinculados} />
       </div>
     </AppShell>
   );
@@ -208,6 +230,85 @@ function Row({ label, value }: { label: string; value: string }) {
       <dt className="col-span-1 text-muted-foreground">{label}</dt>
       <dd className="col-span-2 font-medium text-foreground truncate">{value}</dd>
     </>
+  );
+}
+
+function MembrosVinculadosCard({
+  membros,
+}: {
+  membros: UsuarioDetalhe["membrosVinculados"];
+}) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary shrink-0">
+            <Users className="h-4 w-4" strokeWidth={1.75} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-semibold leading-tight">Usuários vinculados</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {CLASSIFICACAO_VINCULADO.descricao}
+            </p>
+          </div>
+        </div>
+        <Badge variant="outline" className="border-border/70 shrink-0 tabular-nums">
+          {membros.length}
+        </Badge>
+      </div>
+
+      {membros.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Este titular ainda não cadastrou usuários vinculados.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border/60 -mx-1">
+          {membros.map((m) => (
+            <li
+              key={`${m.condominio_id}:${m.user_id}`}
+              className="px-1 py-3 flex flex-wrap items-center gap-3"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {m.nome || m.email || "Usuário"}
+                </p>
+                {m.email && m.nome && (
+                  <p className="text-xs text-muted-foreground truncate">{m.email}</p>
+                )}
+                <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                  <Building2 className="h-3 w-3" strokeWidth={1.75} /> {m.condominio_nome}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Badge
+                  variant="outline"
+                  className="border-border/70 text-[11px] font-medium capitalize"
+                >
+                  {m.papel.replace(/_/g, " ")}
+                </Badge>
+                <Badge className="bg-primary/10 text-primary hover:bg-primary/15 border-0 text-[11px]">
+                  <Link2 className="h-3 w-3 mr-1" /> Vinculado
+                </Badge>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-primary transition-colors duration-200"
+                >
+                  <Link
+                    to="/app/admin/usuarios/$userId"
+                    params={{ userId: m.user_id }}
+                    preload="intent"
+                  >
+                    Abrir
+                  </Link>
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
 

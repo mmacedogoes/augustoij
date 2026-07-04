@@ -185,3 +185,18 @@ export const atingiuLimite = (usado: number, limite: number | null): boolean =>
 /** Formata um limite numérico para exibição ("Ilimitado" quando null). */
 export const formatarLimite = (v: number | null, unidade = ""): string =>
   v === null ? "Ilimitado" : unidade ? `${v} ${unidade}` : String(v);
+
+/**
+ * Classificação especial para usuários cadastrados por um titular pagante
+ * dentro de um condomínio. Eles não possuem plano próprio — o consumo e os
+ * limites são atribuídos ao titular do condomínio.
+ *
+ * Não faz parte de `PLANS` porque não deve aparecer em seletores de plano,
+ * checkout, landing ou comparativos. É apenas um rótulo de exibição.
+ */
+export const CLASSIFICACAO_VINCULADO = {
+  id: "vinculado" as const,
+  nome: "Vinculado ao titular",
+  descricao:
+    "Usuário cadastrado por um titular pagante. Utiliza o plano do titular do condomínio.",
+};

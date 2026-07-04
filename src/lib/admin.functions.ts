@@ -81,6 +81,32 @@ export type UsuarioDetalhe = {
   condominios: Array<{ id: string; nome: string; uf: string | null; qtd_unidades: number | null; created_at: string }>;
   usoMes: { mensagens: number; tokens: number; custo_brl: number; mes_ano: string };
   financeiro: { total_mensagens_historico: number; custo_estimado_total_brl: number };
+  /**
+   * Usuários cadastrados pelo titular nos condomínios que ele possui
+   * (operadores/co-administradores). Classificados como "vinculado".
+   */
+  membrosVinculados: Array<{
+    user_id: string;
+    nome: string | null;
+    email: string | null;
+    papel: string;
+    condominio_id: string;
+    condominio_nome: string;
+    created_at: string;
+  }>;
+  /**
+   * Se este usuário é ele próprio um "vinculado" (foi cadastrado por outro
+   * titular e não possui condomínio próprio pagante), traz os dados do
+   * titular a que está vinculado. `null` quando o usuário é titular ou
+   * admin.
+   */
+  vinculadoA: {
+    user_id: string;
+    nome: string | null;
+    email: string | null;
+    condominio_id: string;
+    condominio_nome: string;
+  } | null;
 };
 
 export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
@@ -92,7 +118,7 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
     const now = new Date();
     const mesAno = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 
-    const [profRes, subRes, condosRes, usoMesRes, historicoRes] = await Promise.all([
+    const [profRes, subRes, condosRes, usoMesRes, historicoRes, membrosRes, minhasMembershipsRes] = await Promise.all([
       supabaseAdmin.from("profiles").select(
         "id, nome, email, telefone, oab, tipo_pessoa, cpf_cnpj, razao_social, papel_sistema, perfil_atuacao, ativo, created_at, ultimo_acesso",
       ).eq("id", data.userId).maybeSingle(),
@@ -102,6 +128,17 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
       supabaseAdmin.from("condominios").select("id, nome, uf, qtd_unidades, created_at").eq("owner_id", data.userId).order("created_at", { ascending: false }),
       supabaseAdmin.from("uso_mensal").select("total_mensagens, total_tokens, custo_estimado_brl").eq("user_id", data.userId).eq("mes_ano", mesAno).maybeSingle(),
       supabaseAdmin.from("uso_mensal").select("total_mensagens, custo_estimado_brl").eq("user_id", data.userId),
+      // Usuários vinculados a este titular (membros dos condos que ele possui)
+      supabaseAdmin
+        .from("condominio_members")
+        .select("user_id, papel, created_at, condominio_id, condominios!inner(nome, owner_id)")
+        .eq("condominios.owner_id", data.userId)
+        .neq("user_id", data.userId),
+      // Este usuário é membro de condo de outro titular?
+      supabaseAdmin
+        .from("condominio_members")
+        .select("condominio_id, condominios!inner(nome, owner_id)")
+        .eq("user_id", data.userId),
     ]);
 
     if (profRes.error || !profRes.data) throw new Error("Usuário não encontrado");
@@ -109,6 +146,62 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
     const rawPlano = (subRes.data?.plano_config_id ?? "personalizado") as string;
     const planoConfigId = (rawPlano in PLANS ? rawPlano : "personalizado") as PlanId;
     const historico = historicoRes.data ?? [];
+
+    // ---------- Hidrata perfis dos membros vinculados ----------
+    type MembroRow = {
+      user_id: string;
+      papel: string;
+      created_at: string;
+      condominio_id: string;
+      condominios: { nome: string; owner_id: string } | null;
+    };
+    const membrosRows = ((membrosRes.data ?? []) as unknown) as MembroRow[];
+    const memberIds = Array.from(new Set(membrosRows.map((m) => m.user_id)));
+    const profilesById: Record<string, { nome: string | null; email: string | null }> = {};
+    if (memberIds.length > 0) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, nome, email")
+        .in("id", memberIds);
+      for (const p of profs ?? []) profilesById[p.id] = { nome: p.nome, email: p.email };
+    }
+    const membrosVinculados = membrosRows
+      .map((m) => ({
+        user_id: m.user_id,
+        nome: profilesById[m.user_id]?.nome ?? null,
+        email: profilesById[m.user_id]?.email ?? null,
+        papel: m.papel,
+        condominio_id: m.condominio_id,
+        condominio_nome: m.condominios?.nome ?? "—",
+        created_at: m.created_at,
+      }))
+      .sort((a, b) => (a.nome ?? "").localeCompare(b.nome ?? ""));
+
+    // ---------- Verifica se este usuário é ele próprio vinculado ----------
+    type MinhaMembershipRow = {
+      condominio_id: string;
+      condominios: { nome: string; owner_id: string } | null;
+    };
+    const minhasMemberships = ((minhasMembershipsRes.data ?? []) as unknown) as MinhaMembershipRow[];
+    const ehVinculadoDe = minhasMemberships.find(
+      (m) => m.condominios && m.condominios.owner_id !== data.userId,
+    );
+    let vinculadoA: UsuarioDetalhe["vinculadoA"] = null;
+    if (ehVinculadoDe && (condosRes.data?.length ?? 0) === 0) {
+      const ownerId = ehVinculadoDe.condominios!.owner_id;
+      const { data: ownerProf } = await supabaseAdmin
+        .from("profiles")
+        .select("id, nome, email")
+        .eq("id", ownerId)
+        .maybeSingle();
+      vinculadoA = {
+        user_id: ownerId,
+        nome: ownerProf?.nome ?? null,
+        email: ownerProf?.email ?? null,
+        condominio_id: ehVinculadoDe.condominio_id,
+        condominio_nome: ehVinculadoDe.condominios!.nome,
+      };
+    }
 
     return {
       profile: profRes.data,
@@ -132,6 +225,8 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
         total_mensagens_historico: historico.reduce((s, r) => s + (r.total_mensagens ?? 0), 0),
         custo_estimado_total_brl: historico.reduce((s, r) => s + Number(r.custo_estimado_brl ?? 0), 0),
       },
+      membrosVinculados,
+      vinculadoA,
     };
   });
 
