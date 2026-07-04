@@ -402,7 +402,26 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
           });
 
           const gateway = createLovableAiGatewayProvider(apiKey);
-          const model = gateway("google/gemini-3-flash-preview");
+          const modelName = "google/gemini-3-flash-preview";
+          const model = gateway(modelName);
+
+          // Preço do modelo em créditos Lovable por token (fallback se a
+          // linha em model_pricing for removida).
+          let pricePerInput = 0.0000075;
+          let pricePerOutput = 0.00003;
+          try {
+            const { data: pricing } = await supabase
+              .from("model_pricing")
+              .select("credits_per_input_token, credits_per_output_token")
+              .eq("model", modelName)
+              .maybeSingle();
+            if (pricing) {
+              pricePerInput = Number(pricing.credits_per_input_token) || pricePerInput;
+              pricePerOutput = Number(pricing.credits_per_output_token) || pricePerOutput;
+            }
+          } catch (err) {
+            console.error("model_pricing lookup failed:", err);
+          }
 
           const result = streamText({
             model,
@@ -412,12 +431,27 @@ ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n
             onFinish: async ({ text, usage }) => {
               try {
                 const textoLimpo = sanitizarResposta(text);
+                const inputTokens =
+                  (usage as { inputTokens?: number; promptTokens?: number } | undefined)
+                    ?.inputTokens ??
+                  (usage as { promptTokens?: number } | undefined)?.promptTokens ??
+                  0;
+                const outputTokens =
+                  (usage as { outputTokens?: number; completionTokens?: number } | undefined)
+                    ?.outputTokens ??
+                  (usage as { completionTokens?: number } | undefined)?.completionTokens ??
+                  0;
+                const creditos =
+                  inputTokens * pricePerInput + outputTokens * pricePerOutput;
                 await supabase.from("mensagens").insert({
                   conversa_id: conversaId,
                   papel: "assistant",
                   conteudo: textoLimpo,
-                  model_usado: "google/gemini-3-flash-preview",
+                  model_usado: modelName,
                   tokens_usados: usage?.totalTokens ?? null,
+                  tokens_input: inputTokens || null,
+                  tokens_output: outputTokens || null,
+                  creditos_lovable: creditos > 0 ? creditos : null,
                 });
                 // Salva no cache (chave: condominio + pergunta normalizada).
                 // Não cacheia se o usuário anexou documento temporário

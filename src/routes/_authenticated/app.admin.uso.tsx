@@ -65,6 +65,7 @@ function OverviewTab() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Metric label="Mensagens no mês" value={r.total_mensagens.toLocaleString("pt-BR")} />
         <Metric label="Tokens no mês" value={r.total_tokens.toLocaleString("pt-BR")} />
+        <Metric label="Créditos Lovable" value={creditFmt.format(r.total_credits ?? 0)} />
         <Metric label="Custo IA (BRL)" value={brl(r.custo_ia_brl)} />
         <Metric label="Usuários ativos" value={String(r.usuarios_ativos)} />
         <Metric label="Storage total" value={`${r.storage_mb.toFixed(1)} MB`} />
@@ -130,7 +131,8 @@ function UsuariosTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
-          Créditos Lovable estimados a partir do custo IA (≈ R$ 0,05 / crédito).
+          Créditos calculados a partir dos tokens reais × preço do modelo
+          (tabela <code className="font-mono">model_pricing</code>).
         </p>
         <Button
           variant="outline"
@@ -228,10 +230,15 @@ function UsuariosTab() {
                     Créditos
                   </span>
                   <div className="md:text-right">
-                    <p className="text-sm font-semibold text-accent-foreground bg-accent/15 rounded-md px-2 py-0.5 inline-block tabular-nums">
+                    <p
+                      className="text-base font-semibold text-primary bg-primary/10 border border-primary/20 rounded-md px-2 py-0.5 inline-block tabular-nums"
+                      title={r.creditos_fonte === "real" ? "Créditos reais" : "Estimado (sem tokens registrados)"}
+                    >
                       {creditFmt.format(r.creditos_lovable)}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 hidden md:block">Lovable</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 hidden md:block">
+                      Lovable {r.creditos_fonte === "estimado" ? "(est.)" : ""}
+                    </p>
                   </div>
                 </div>
 
@@ -261,6 +268,7 @@ function AlertasTab() {
     notificar_admin: boolean;
     notificar_usuarios: boolean;
     custo_storage_mb_brl: number;
+    credito_brl: number;
   } | null>(null);
   const [rows, setRows] = useState<Awaited<ReturnType<typeof listAlertas>>>([]);
   const [thresholdsStr, setThresholdsStr] = useState("50,80,100");
@@ -272,6 +280,7 @@ function AlertasTab() {
         notificar_admin: c.notificar_admin ?? true,
         notificar_usuarios: c.notificar_usuarios ?? false,
         custo_storage_mb_brl: Number(c.custo_storage_mb_brl ?? 0.0001),
+        credito_brl: Number((c as { credito_brl?: number }).credito_brl ?? 0.05),
       };
       setCfg(parsed);
       setThresholdsStr(parsed.thresholds.join(","));
@@ -291,6 +300,7 @@ function AlertasTab() {
           notificar_admin: cfg.notificar_admin,
           notificar_usuarios: cfg.notificar_usuarios,
           custo_storage_mb_brl: cfg.custo_storage_mb_brl,
+          credito_brl: cfg.credito_brl,
         },
       });
       toast.success("Configuração salva");
@@ -317,6 +327,19 @@ function AlertasTab() {
               value={cfg.custo_storage_mb_brl}
               onChange={(e) => setCfg({ ...cfg, custo_storage_mb_brl: Number(e.target.value) })}
             />
+          </div>
+          <div>
+            <Label className="text-xs">R$ por crédito Lovable</Label>
+            <Input
+              type="number"
+              step="0.0001"
+              value={cfg.credito_brl}
+              onChange={(e) => setCfg({ ...cfg, credito_brl: Number(e.target.value) })}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Câmbio usado para converter créditos em BRL. Preços por token vivem
+              na tabela <code className="font-mono">model_pricing</code>.
+            </p>
           </div>
         </div>
         <div className="flex items-center justify-between border-t border-border pt-4">
