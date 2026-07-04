@@ -249,6 +249,9 @@ export const adminCreateUser = createServerFn({ method: "POST" })
       perfil_atuacao: z
         .enum(["sindico", "advogado", "administradora", "conselheiro", "outro"])
         .optional(),
+      plano_config_id: PlanoConfigEnum.optional(),
+      cortesia: z.boolean().optional(),
+      observacao: z.string().trim().max(500).optional(),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
