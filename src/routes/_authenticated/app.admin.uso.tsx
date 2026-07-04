@@ -65,6 +65,7 @@ function OverviewTab() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Metric label="Mensagens no mês" value={r.total_mensagens.toLocaleString("pt-BR")} />
         <Metric label="Tokens no mês" value={r.total_tokens.toLocaleString("pt-BR")} />
+        <Metric label="Créditos Lovable" value={creditFmt.format(r.total_credits ?? 0)} />
         <Metric label="Custo IA (BRL)" value={brl(r.custo_ia_brl)} />
         <Metric label="Usuários ativos" value={String(r.usuarios_ativos)} />
         <Metric label="Storage total" value={`${r.storage_mb.toFixed(1)} MB`} />
@@ -130,7 +131,8 @@ function UsuariosTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
-          Créditos Lovable estimados a partir do custo IA (≈ R$ 0,05 / crédito).
+          Créditos calculados a partir dos tokens reais × preço do modelo
+          (tabela <code className="font-mono">model_pricing</code>).
         </p>
         <Button
           variant="outline"
@@ -228,10 +230,15 @@ function UsuariosTab() {
                     Créditos
                   </span>
                   <div className="md:text-right">
-                    <p className="text-sm font-semibold text-accent-foreground bg-accent/15 rounded-md px-2 py-0.5 inline-block tabular-nums">
+                    <p
+                      className="text-base font-semibold text-primary bg-primary/10 border border-primary/20 rounded-md px-2 py-0.5 inline-block tabular-nums"
+                      title={r.creditos_fonte === "real" ? "Créditos reais" : "Estimado (sem tokens registrados)"}
+                    >
                       {creditFmt.format(r.creditos_lovable)}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 hidden md:block">Lovable</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 hidden md:block">
+                      Lovable {r.creditos_fonte === "estimado" ? "(est.)" : ""}
+                    </p>
                   </div>
                 </div>
 
