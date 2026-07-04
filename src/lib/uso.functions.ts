@@ -26,7 +26,7 @@ export const getUsoAtual = createServerFn({ method: "GET" })
     const [subRes, mensalRes, diarioRes] = await Promise.all([
       supabase
         .from("subscriptions")
-        .select("plano_config_id, trial_end")
+        .select("plano_config_id, trial_end, cortesia")
         .eq("user_id", userId)
         .maybeSingle(),
       supabase
@@ -45,6 +45,9 @@ export const getUsoAtual = createServerFn({ method: "GET" })
 
     const rawPlano = (subRes.data?.plano_config_id ?? "gratuito") as string;
     const planoId = (rawPlano in PLANS ? rawPlano : "gratuito") as PlanId;
+    const cortesia = subRes.data?.cortesia === true;
+    // Cortesia usa limites do plano Personalizado (ilimitado em tudo)
+    const planoEfetivo = cortesia ? PLANS.personalizado : PLANS[planoId];
     const plano = PLANS[planoId];
 
     const trialFimIso = subRes.data?.trial_end ?? null;
@@ -59,13 +62,14 @@ export const getUsoAtual = createServerFn({ method: "GET" })
     return {
       planoId,
       planoNome: plano.nome,
+      cortesia,
       mensagensMes: mensalRes.data?.total_mensagens ?? 0,
       mensagensDia: diarioRes.data?.total_mensagens ?? 0,
-      limiteMes: plano.mensagensPorMes,
-      limiteDia: plano.mensagensPorDia,
+      limiteMes: planoEfetivo.mensagensPorMes,
+      limiteDia: planoEfetivo.mensagensPorDia,
       resetMesIso,
       trialFimIso,
       diasRestantesTrial,
-      trialExpirado,
+      trialExpirado: cortesia ? false : trialExpirado,
     };
   });
