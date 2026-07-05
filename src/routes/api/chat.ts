@@ -13,6 +13,11 @@ import type { Database } from "@/integrations/supabase/types";
 import { PLANS, type PlanId } from "@/config/plans";
 import { avaliarLimite, modeloParaPlano, type UsoAtual } from "@/lib/uso-limits";
 import { jurisprudenciaDirective, efetivoPlanoId } from "@/lib/plan-gates";
+import {
+  avaliarBaseCondominial,
+  deveSolicitarReupload,
+  blocoContextoCondominial,
+} from "@/lib/chat-base-condominial";
 
 type ChatBody = {
   messages?: UIMessage[];
