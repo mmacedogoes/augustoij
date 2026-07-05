@@ -211,7 +211,7 @@ export function UpgradeDialog({
 
         <div className="mt-2 flex justify-center">
           <Button asChild variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
-            <Link to="/" hash="planos" onClick={() => onOpenChange(false)}>
+            <Link to="/" hash="pricing" onClick={() => onOpenChange(false)}>
               Ver todos os planos <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
