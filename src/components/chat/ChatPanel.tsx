@@ -44,6 +44,7 @@ import {
   PerguntaEstruturada,
   tryParsePerguntaEstruturada,
 } from "@/components/chat/PerguntaEstruturada";
+import { AvisoJuridicoBanner } from "@/components/chat/AvisoJuridicoBanner";
 
 type Props = {
   condominioId: string;
@@ -536,6 +537,7 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-col h-[70vh] min-h-[500px] border border-border rounded-lg overflow-hidden bg-card">
+      <AvisoJuridicoBanner />
       <Conversation className="flex-1">
         <ConversationContent>
           {!historyLoaded ? (

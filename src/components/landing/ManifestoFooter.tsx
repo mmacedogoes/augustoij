@@ -95,10 +95,9 @@ export function ManifestoFooter() {
           <FooterCol
             title="Jurídico"
             items={[
-              { label: "Termos de Uso", href: "#" },
-              { label: "Política de Privacidade", href: "#" },
-              { label: "LGPD", href: "#" },
-              { label: "Sigilo Profissional", href: "#" },
+              { label: "Termos de Uso", to: "/termos" },
+              { label: "Política de Privacidade", to: "/privacidade" },
+              { label: "Contato DPO: privacidade@augusto.ij", href: "mailto:privacidade@augusto.ij" },
             ]}
           />
         </div>
@@ -107,7 +106,21 @@ export function ManifestoFooter() {
           <div className="h-px bg-augusto-gold/30" />
           <div className="mt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-[13px] text-augusto-slate">
             <div>© {new Date().getFullYear()} Augusto.IJ, Todos os direitos reservados.</div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <Link to="/privacidade" className="text-augusto-slate hover:text-augusto-green transition-colors">
+                Política de Privacidade
+              </Link>
+              <span className="text-augusto-slate/40">|</span>
+              <Link to="/termos" className="text-augusto-slate hover:text-augusto-green transition-colors">
+                Termos de Uso
+              </Link>
+              <span className="text-augusto-slate/40">|</span>
+              <a
+                href="mailto:privacidade@augusto.ij"
+                className="text-augusto-slate hover:text-augusto-green transition-colors"
+              >
+                Contato DPO: privacidade@augusto.ij
+              </a>
               <a
                 href={INSTAGRAM_URL}
                 target="_blank"
