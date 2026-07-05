@@ -262,14 +262,32 @@ function SignupPage() {
           <label className="flex items-start gap-2 text-sm">
             <Checkbox checked={lgpd} onCheckedChange={(c) => setLgpd(c === true)} className="mt-0.5 border-slate-600" />
             <span className="text-slate-400">
-              Li e aceito os <Link to="/termos" className="text-emerald-400 underline">Termos de uso</Link> e a{" "}
-              <Link to="/privacidade" className="text-emerald-400 underline">Política de privacidade</Link>.
+              Li e aceito os{" "}
+              <Link to="/termos" target="_blank" rel="noopener" className="text-emerald-400 underline">
+                Termos de uso
+              </Link>{" "}
+              e a{" "}
+              <Link to="/privacidade" target="_blank" rel="noopener" className="text-emerald-400 underline">
+                Política de privacidade
+              </Link>
+              .
             </span>
           </label>
           <FieldError name="lgpd" />
 
+          <label className="flex items-start gap-2 text-sm">
+            <Checkbox
+              checked={marketingOptIn}
+              onCheckedChange={(c) => setMarketingOptIn(c === true)}
+              className="mt-0.5 border-slate-600"
+            />
+            <span className="text-slate-400">
+              Aceito receber novidades e atualizações por e-mail.
+            </span>
+          </label>
+
           <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
-            disabled={loading} aria-busy={loading}>
+            disabled={loading || !lgpd} aria-busy={loading}>
             {loading ? "Criando conta..." : "Criar conta"}
           </Button>
         </form>
