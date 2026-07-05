@@ -23,6 +23,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  useHashScroll();
   return (
     <div className="min-h-screen bg-augusto-cream text-augusto-slate-dark">
       <Nav />
