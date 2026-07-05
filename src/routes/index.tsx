@@ -8,6 +8,7 @@ import { AnatomySection } from "@/components/landing/AnatomySection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { ManifestoFooter } from "@/components/landing/ManifestoFooter";
+import { useHashScroll } from "@/hooks/use-hash-scroll";
 
 export const Route = createFileRoute("/")({
   head: () => ({
