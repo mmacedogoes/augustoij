@@ -37,6 +37,21 @@ function LoginPage() {
       return;
     }
     setLoading(true);
+    try {
+      const rl = await fetch("/api/public/auth-check", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "login" }),
+      });
+      if (rl.status === 429) {
+        const body = (await rl.json().catch(() => ({}))) as { message?: string };
+        setLoading(false);
+        toast.error(body.message ?? "Muitas tentativas. Aguarde 15 minutos e tente novamente.");
+        return;
+      }
+    } catch {
+      /* falha de rede no rate limit não bloqueia o fluxo */
+    }
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     setLoading(false);
     if (error) {

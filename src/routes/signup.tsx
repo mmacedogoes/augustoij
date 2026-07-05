@@ -9,6 +9,9 @@ import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { registrarAceiteTermos } from "@/lib/privacidade.functions";
+import { TERMOS_VERSAO } from "@/config/legal";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -61,8 +64,10 @@ function SignupPage() {
     confirmar: "",
   });
   const [lgpd, setLgpd] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const registrarAceite = useServerFn(registrarAceiteTermos);
 
   const pwd = form.password;
   const checks = useMemo(
@@ -107,6 +112,20 @@ function SignupPage() {
 
     setLoading(true);
     try {
+      try {
+        const rl = await fetch("/api/public/auth-check", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ kind: "signup" }),
+        });
+        if (rl.status === 429) {
+          const body = (await rl.json().catch(() => ({}))) as { message?: string };
+          toast.error(body.message ?? "Muitas tentativas. Aguarde 15 minutos e tente novamente.");
+          return;
+        }
+      } catch {
+        /* falha de rede no rate limit não bloqueia o fluxo */
+      }
       const { data, error } = await supabase.auth.signUp({
         email: parsed.data.email,
         password: parsed.data.password,
@@ -121,6 +140,8 @@ function SignupPage() {
             razao_social: parsed.data.tipo_pessoa === "pj" ? parsed.data.razao_social ?? "" : "",
             perfil_atuacao: parsed.data.perfil_atuacao,
             lgpd_aceite: true,
+            marketing_opt_in: marketingOptIn,
+            termos_versao: TERMOS_VERSAO,
           },
         },
       });
@@ -132,6 +153,12 @@ function SignupPage() {
         if (/email/i.test(error.message)) setErrors((prev) => ({ ...prev, email: friendly }));
         if (/password|senha/i.test(error.message)) setErrors((prev) => ({ ...prev, password: friendly }));
         return;
+      }
+
+      if (data?.session) {
+        registrarAceite({ data: { versao: TERMOS_VERSAO, marketingOptIn } }).catch((e) => {
+          console.warn("[signup] falha ao registrar aceite dos termos", e);
+        });
       }
 
       toast.success("Conta criada com sucesso! Bem-vindo(a).");
@@ -262,14 +289,32 @@ function SignupPage() {
           <label className="flex items-start gap-2 text-sm">
             <Checkbox checked={lgpd} onCheckedChange={(c) => setLgpd(c === true)} className="mt-0.5 border-slate-600" />
             <span className="text-slate-400">
-              Li e aceito os <Link to="/termos" className="text-emerald-400 underline">Termos de uso</Link> e a{" "}
-              <Link to="/privacidade" className="text-emerald-400 underline">Política de privacidade</Link>.
+              Li e aceito os{" "}
+              <Link to="/termos" target="_blank" rel="noopener" className="text-emerald-400 underline">
+                Termos de uso
+              </Link>{" "}
+              e a{" "}
+              <Link to="/privacidade" target="_blank" rel="noopener" className="text-emerald-400 underline">
+                Política de privacidade
+              </Link>
+              .
             </span>
           </label>
           <FieldError name="lgpd" />
 
+          <label className="flex items-start gap-2 text-sm">
+            <Checkbox
+              checked={marketingOptIn}
+              onCheckedChange={(c) => setMarketingOptIn(c === true)}
+              className="mt-0.5 border-slate-600"
+            />
+            <span className="text-slate-400">
+              Aceito receber novidades e atualizações por e-mail.
+            </span>
+          </label>
+
           <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
-            disabled={loading} aria-busy={loading}>
+            disabled={loading || !lgpd} aria-busy={loading}>
             {loading ? "Criando conta..." : "Criar conta"}
           </Button>
         </form>

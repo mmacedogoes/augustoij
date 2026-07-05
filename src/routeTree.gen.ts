@@ -15,6 +15,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HistoriaRouteImport } from './routes/historia'
+import { Route as ConfirmarExclusaoRouteImport } from './routes/confirmar-exclusao'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
@@ -23,6 +24,7 @@ import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
+import { Route as ApiPublicAuthCheckRouteImport } from './routes/api/public/auth-check'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
 import { Route as AuthenticatedAppAjudaRouteImport } from './routes/_authenticated/app.ajuda'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
@@ -74,6 +76,11 @@ const HistoriaRoute = HistoriaRouteImport.update({
   path: '/historia',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfirmarExclusaoRoute = ConfirmarExclusaoRouteImport.update({
+  id: '/confirmar-exclusao',
+  path: '/confirmar-exclusao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -111,6 +118,11 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
 const ApiPublicDemoChatRoute = ApiPublicDemoChatRouteImport.update({
   id: '/api/public/demo-chat',
   path: '/api/public/demo-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAuthCheckRoute = ApiPublicAuthCheckRouteImport.update({
+  id: '/api/public/auth-check',
+  path: '/api/public/auth-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
@@ -233,6 +245,7 @@ const AuthenticatedAppAdminUsuariosUserIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/confirmar-exclusao': typeof ConfirmarExclusaoRoute
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
@@ -246,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
@@ -268,6 +282,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/confirmar-exclusao': typeof ConfirmarExclusaoRoute
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
@@ -279,6 +294,7 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/blog': typeof BlogIndexRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
@@ -303,6 +319,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/confirmar-exclusao': typeof ConfirmarExclusaoRoute
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
@@ -316,6 +333,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
@@ -340,6 +358,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/confirmar-exclusao'
     | '/historia'
     | '/login'
     | '/manifesto'
@@ -353,6 +372,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/ajuda'
     | '/app/conta'
+    | '/api/public/auth-check'
     | '/api/public/demo-chat'
     | '/app/'
     | '/app/admin/auditoria'
@@ -375,6 +395,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/confirmar-exclusao'
     | '/historia'
     | '/login'
     | '/manifesto'
@@ -386,6 +407,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/blog'
     | '/app/conta'
+    | '/api/public/auth-check'
     | '/api/public/demo-chat'
     | '/app'
     | '/app/admin/auditoria'
@@ -409,6 +431,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/confirmar-exclusao'
     | '/historia'
     | '/login'
     | '/manifesto'
@@ -422,6 +445,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin'
     | '/_authenticated/app/ajuda'
     | '/_authenticated/app/conta'
+    | '/api/public/auth-check'
     | '/api/public/demo-chat'
     | '/_authenticated/app/'
     | '/_authenticated/app/admin/auditoria'
@@ -446,6 +470,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  ConfirmarExclusaoRoute: typeof ConfirmarExclusaoRoute
   HistoriaRoute: typeof HistoriaRoute
   LoginRoute: typeof LoginRoute
   ManifestoRoute: typeof ManifestoRoute
@@ -455,6 +480,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
   ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
 }
 
@@ -500,6 +526,13 @@ declare module '@tanstack/react-router' {
       path: '/historia'
       fullPath: '/historia'
       preLoaderRoute: typeof HistoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirmar-exclusao': {
+      id: '/confirmar-exclusao'
+      path: '/confirmar-exclusao'
+      fullPath: '/confirmar-exclusao'
+      preLoaderRoute: typeof ConfirmarExclusaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -556,6 +589,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/demo-chat'
       fullPath: '/api/public/demo-chat'
       preLoaderRoute: typeof ApiPublicDemoChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/auth-check': {
+      id: '/api/public/auth-check'
+      path: '/api/public/auth-check'
+      fullPath: '/api/public/auth-check'
+      preLoaderRoute: typeof ApiPublicAuthCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/conta': {
@@ -782,6 +822,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  ConfirmarExclusaoRoute: ConfirmarExclusaoRoute,
   HistoriaRoute: HistoriaRoute,
   LoginRoute: LoginRoute,
   ManifestoRoute: ManifestoRoute,
@@ -791,6 +832,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   BlogSlugRoute: BlogSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,
   ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
 }
 export const routeTree = rootRouteImport
