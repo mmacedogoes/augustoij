@@ -361,10 +361,12 @@ export const Route = createFileRoute("/api/chat")({
           //    (Sem gastar créditos com o modelo.)
           // ============================================================
           if (
-            !temBaseCondominial &&
-            !temMatchDocumento &&
-            !temAnexoTemporario &&
-            perguntaNorm.length > 0
+            deveSolicitarReupload({
+              temBaseCondominial,
+              temMatchDocumento,
+              temAnexoTemporario,
+              perguntaNorm,
+            })
           ) {
             const faltantes: string[] = [];
             if (!temConvencao) faltantes.push("**Convenção**");
