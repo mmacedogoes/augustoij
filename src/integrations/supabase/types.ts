@@ -122,6 +122,30 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_rate_limits: {
+        Row: {
+          bloqueado_ate: string | null
+          ip: string
+          janela_inicio: string
+          kind: string
+          tentativas: number
+        }
+        Insert: {
+          bloqueado_ate?: string | null
+          ip: string
+          janela_inicio?: string
+          kind: string
+          tentativas?: number
+        }
+        Update: {
+          bloqueado_ate?: string | null
+          ip?: string
+          janela_inicio?: string
+          kind?: string
+          tentativas?: number
+        }
+        Relationships: []
+      }
       blog_categorias: {
         Row: {
           created_at: string
@@ -921,6 +945,7 @@ export type Database = {
           email: string | null
           id: string
           lgpd_aceite_em: string | null
+          marketing_opt_in: boolean
           nome: string | null
           oab: string | null
           onboarding_completo: boolean
@@ -929,6 +954,9 @@ export type Database = {
           perfil_atuacao: Database["public"]["Enums"]["perfil_atuacao"] | null
           razao_social: string | null
           telefone: string | null
+          termos_aceitos_em: string | null
+          termos_ip: string | null
+          termos_versao: string | null
           tipo_pessoa: Database["public"]["Enums"]["tipo_pessoa"] | null
           ultimo_acesso: string | null
           updated_at: string
@@ -942,6 +970,7 @@ export type Database = {
           email?: string | null
           id: string
           lgpd_aceite_em?: string | null
+          marketing_opt_in?: boolean
           nome?: string | null
           oab?: string | null
           onboarding_completo?: boolean
@@ -950,6 +979,9 @@ export type Database = {
           perfil_atuacao?: Database["public"]["Enums"]["perfil_atuacao"] | null
           razao_social?: string | null
           telefone?: string | null
+          termos_aceitos_em?: string | null
+          termos_ip?: string | null
+          termos_versao?: string | null
           tipo_pessoa?: Database["public"]["Enums"]["tipo_pessoa"] | null
           ultimo_acesso?: string | null
           updated_at?: string
@@ -963,6 +995,7 @@ export type Database = {
           email?: string | null
           id?: string
           lgpd_aceite_em?: string | null
+          marketing_opt_in?: boolean
           nome?: string | null
           oab?: string | null
           onboarding_completo?: boolean
@@ -971,6 +1004,9 @@ export type Database = {
           perfil_atuacao?: Database["public"]["Enums"]["perfil_atuacao"] | null
           razao_social?: string | null
           telefone?: string | null
+          termos_aceitos_em?: string | null
+          termos_ip?: string | null
+          termos_versao?: string | null
           tipo_pessoa?: Database["public"]["Enums"]["tipo_pessoa"] | null
           ultimo_acesso?: string | null
           updated_at?: string
@@ -984,6 +1020,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      solicitacoes_exclusao_conta: {
+        Row: {
+          confirmado_em: string | null
+          excluir_em: string | null
+          id: string
+          ip: string | null
+          solicitado_em: string
+          status: string
+          suspende_em: string | null
+          token_confirmacao: string
+          user_id: string
+        }
+        Insert: {
+          confirmado_em?: string | null
+          excluir_em?: string | null
+          id?: string
+          ip?: string | null
+          solicitado_em?: string
+          status?: string
+          suspende_em?: string | null
+          token_confirmacao?: string
+          user_id: string
+        }
+        Update: {
+          confirmado_em?: string | null
+          excluir_em?: string | null
+          id?: string
+          ip?: string | null
+          solicitado_em?: string
+          status?: string
+          suspende_em?: string | null
+          token_confirmacao?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      solicitacoes_exportacao: {
+        Row: {
+          entregue_em: string | null
+          id: string
+          solicitado_em: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          entregue_em?: string | null
+          id?: string
+          solicitado_em?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          entregue_em?: string | null
+          id?: string
+          solicitado_em?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
