@@ -224,7 +224,7 @@ function ContaPage() {
               </p>
             </div>
             <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <Link to="/" hash="planos">
+              <Link to="/" hash="pricing">
                 <Sparkles className="h-3.5 w-3.5" /> Fazer upgrade
               </Link>
             </Button>
