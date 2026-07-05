@@ -301,9 +301,8 @@ export const Route = createFileRoute("/api/chat")({
             .eq("condominio_id", condominioId)
             .eq("status_processamento", "pronto")
             .in("tipo", ["convencao", "regimento"]);
-          const temConvencao = !!docsBase?.some((d) => d.tipo === "convencao");
-          const temRegimento = !!docsBase?.some((d) => d.tipo === "regimento");
-          const temBaseCondominial = temConvencao || temRegimento;
+          const { temConvencao, temRegimento, temBaseCondominial } =
+            avaliarBaseCondominial(docsBase);
 
           // RAG retrieval
           let contexto = "";
