@@ -1,4 +1,5 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
+import { setResponseHeaders } from "@tanstack/react-start/server";
 
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
@@ -20,21 +21,18 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 
 // Adiciona headers de segurança a todas as respostas (SSR, server routes, server fns).
 const securityHeadersMiddleware = createMiddleware().server(async ({ next }) => {
-  const result = (await next()) as { response?: Response } & Record<string, unknown>;
-  const response = result?.response;
-  if (response && response.headers) {
-    if (!response.headers.has("strict-transport-security"))
-      response.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
-    if (!response.headers.has("x-content-type-options"))
-      response.headers.set("x-content-type-options", "nosniff");
-    if (!response.headers.has("x-frame-options"))
-      response.headers.set("x-frame-options", "DENY");
-    if (!response.headers.has("referrer-policy"))
-      response.headers.set("referrer-policy", "strict-origin-when-cross-origin");
-    if (!response.headers.has("permissions-policy"))
-      response.headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
+  try {
+    setResponseHeaders({
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "permissions-policy": "camera=(), microphone=(), geolocation=()",
+    });
+  } catch {
+    /* fora de contexto de requisição — ignora */
   }
-  return result;
+  return next();
 });
 
 export const startInstance = createStart(() => ({
