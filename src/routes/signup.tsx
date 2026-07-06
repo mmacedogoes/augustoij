@@ -44,7 +44,7 @@ const schema = z.object({
 
 function ReqItem({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
-    <li className={`flex items-center gap-1.5 text-xs ${ok ? "text-emerald-400" : "text-slate-500"}`}>
+    <li className={`flex items-center gap-1.5 text-xs ${ok ? "text-primary" : "text-muted-foreground"}`}>
       {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} {children}
     </li>
   );
@@ -174,49 +174,47 @@ function SignupPage() {
 
   function FieldError({ name }: { name: string }) {
     if (!errors[name]) return null;
-    return <p className="text-xs text-red-400 mt-1">{errors[name]}</p>;
+    return <p className="text-xs text-destructive mt-1">{errors[name]}</p>;
   }
 
   const tipo = form.tipo_pessoa;
 
   return (
-    <div className="min-h-screen bg-[#0A1220] text-[#F4F5F7] flex flex-col items-center px-4 py-12">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center px-4 py-12">
       <Link to="/" className="flex justify-center mb-8">
-        <AugustoLogo variant="stacked" theme="dark" size={200} showTagline />
+        <AugustoLogo variant="stacked" theme="light" size={200} showTagline />
       </Link>
-      <div className="w-full max-w-[440px] rounded-xl border border-[#1F2937] bg-[#0F1929] p-10 shadow-xl">
+      <div className="w-full max-w-[440px] rounded-xl border border-border bg-card text-card-foreground p-10 shadow-sm">
         <h1 className="text-2xl font-bold tracking-tight text-center">Criar conta</h1>
-        <p className="mt-2 text-sm text-slate-400 text-center">3 dias de teste grátis. Sem cartão.</p>
+        <p className="mt-2 text-sm text-muted-foreground text-center">3 dias de teste grátis. Sem cartão.</p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="nome" className="text-xs uppercase tracking-wide text-slate-400">Nome completo</Label>
-            <Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required
-              className="bg-[#152033] border-[#1F2937] text-white" />
+            <Label htmlFor="nome" className="text-xs uppercase tracking-wide text-muted-foreground">Nome completo</Label>
+            <Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
             <FieldError name="nome" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs uppercase tracking-wide text-slate-400">E-mail</Label>
+            <Label htmlFor="email" className="text-xs uppercase tracking-wide text-muted-foreground">E-mail</Label>
             <Input id="email" type="email" autoComplete="email" value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })} required
-              className="bg-[#152033] border-[#1F2937] text-white" />
+              onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             <FieldError name="email" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="tel" className="text-xs uppercase tracking-wide text-slate-400">Telefone</Label>
+            <Label htmlFor="tel" className="text-xs uppercase tracking-wide text-muted-foreground">Telefone</Label>
             <Input id="tel" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} required
-              placeholder="(11) 99999-0000" className="bg-[#152033] border-[#1F2937] text-white" />
+              placeholder="(11) 99999-0000" />
             <FieldError name="telefone" />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-slate-400">Você é</Label>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Você é</Label>
             <div className="grid grid-cols-2 gap-2">
               {(["pf", "pj"] as const).map((t) => (
                 <button key={t} type="button" onClick={() => setForm({ ...form, tipo_pessoa: t })}
-                  className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                    tipo === t ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
-                      : "border-[#1F2937] text-slate-300 hover:border-slate-600"}`}>
+                  className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    tipo === t ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-foreground/80 hover:border-primary/40 hover:bg-muted/40"}`}>
                   {t === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}
                 </button>
               ))}
@@ -224,24 +222,24 @@ function SignupPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="doc" className="text-xs uppercase tracking-wide text-slate-400">
+            <Label htmlFor="doc" className="text-xs uppercase tracking-wide text-muted-foreground">
               {tipo === "pf" ? "CPF" : "CNPJ"}
             </Label>
             <Input id="doc" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })} required
-              className="bg-[#152033] border-[#1F2937] text-white" />
+              />
             <FieldError name="cpf_cnpj" />
           </div>
           {tipo === "pj" && (
             <div className="space-y-1.5">
-              <Label htmlFor="rs" className="text-xs uppercase tracking-wide text-slate-400">Razão Social</Label>
+              <Label htmlFor="rs" className="text-xs uppercase tracking-wide text-muted-foreground">Razão Social</Label>
               <Input id="rs" value={form.razao_social} onChange={(e) => setForm({ ...form, razao_social: e.target.value })} required
-                className="bg-[#152033] border-[#1F2937] text-white" />
+                />
               <FieldError name="razao_social" />
             </div>
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="perfil" className="text-xs uppercase tracking-wide text-slate-400">
+            <Label htmlFor="perfil" className="text-xs uppercase tracking-wide text-muted-foreground">
               Perfil de atuação
             </Label>
             <select
@@ -251,7 +249,7 @@ function SignupPage() {
                 setForm({ ...form, perfil_atuacao: e.target.value as typeof form.perfil_atuacao })
               }
               required
-              className="w-full rounded-md border border-[#1F2937] bg-[#152033] px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors duration-200 focus:border-ring focus:ring-2 focus:ring-ring/40"
             >
               <option value="" disabled>Selecione…</option>
               <option value="sindico">Síndico</option>
@@ -264,10 +262,9 @@ function SignupPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-xs uppercase tracking-wide text-slate-400">Senha</Label>
+            <Label htmlFor="password" className="text-xs uppercase tracking-wide text-muted-foreground">Senha</Label>
             <Input id="password" type="password" autoComplete="new-password" value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })} required
-              className="bg-[#152033] border-[#1F2937] text-white" />
+              onChange={(e) => setForm({ ...form, password: e.target.value })} required />
             <ul className="mt-1 space-y-0.5">
               <ReqItem ok={checks.len}>Pelo menos 8 caracteres</ReqItem>
               <ReqItem ok={checks.letter}>Contém uma letra</ReqItem>
@@ -276,10 +273,9 @@ function SignupPage() {
             <FieldError name="password" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="conf" className="text-xs uppercase tracking-wide text-slate-400">Confirmar senha</Label>
+            <Label htmlFor="conf" className="text-xs uppercase tracking-wide text-muted-foreground">Confirmar senha</Label>
             <Input id="conf" type="password" autoComplete="new-password" value={form.confirmar}
-              onChange={(e) => setForm({ ...form, confirmar: e.target.value })} required
-              className="bg-[#152033] border-[#1F2937] text-white" />
+              onChange={(e) => setForm({ ...form, confirmar: e.target.value })} required />
             {form.confirmar.length > 0 && (
               <ReqItem ok={checks.match}>Senhas coincidem</ReqItem>
             )}
@@ -287,14 +283,14 @@ function SignupPage() {
           </div>
 
           <label className="flex items-start gap-2 text-sm">
-            <Checkbox checked={lgpd} onCheckedChange={(c) => setLgpd(c === true)} className="mt-0.5 border-slate-600" />
-            <span className="text-slate-400">
+            <Checkbox checked={lgpd} onCheckedChange={(c) => setLgpd(c === true)} className="mt-0.5" />
+            <span className="text-muted-foreground">
               Li e aceito os{" "}
-              <Link to="/termos" target="_blank" rel="noopener" className="text-emerald-400 underline">
+              <Link to="/termos" target="_blank" rel="noopener" className="text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm transition-colors duration-150">
                 Termos de uso
               </Link>{" "}
               e a{" "}
-              <Link to="/privacidade" target="_blank" rel="noopener" className="text-emerald-400 underline">
+              <Link to="/privacidade" target="_blank" rel="noopener" className="text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm transition-colors duration-150">
                 Política de privacidade
               </Link>
               .
@@ -306,22 +302,22 @@ function SignupPage() {
             <Checkbox
               checked={marketingOptIn}
               onCheckedChange={(c) => setMarketingOptIn(c === true)}
-              className="mt-0.5 border-slate-600"
+              className="mt-0.5"
             />
-            <span className="text-slate-400">
+            <span className="text-muted-foreground">
               Aceito receber novidades e atualizações por e-mail.
             </span>
           </label>
 
-          <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
+          <Button type="submit" className="w-full font-semibold"
             disabled={loading || !lgpd} aria-busy={loading}>
             {loading ? "Criando conta..." : "Criar conta"}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-400">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Já tem conta?{" "}
-          <Link to="/login" className="text-emerald-400 font-medium hover:underline">Entrar</Link>
+          <Link to="/login" className="text-primary font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm transition-colors duration-150">Entrar</Link>
         </p>
       </div>
     </div>
