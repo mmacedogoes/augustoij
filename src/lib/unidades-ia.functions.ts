@@ -185,7 +185,17 @@ export async function _extrairESalvarSugestaoUnidades(
 
   const parsed = (await callGeminiJson(apiKey, system, user)) as { unidades?: unknown[] };
   const linhas = z.array(UnidadeSugestao).safeParse(parsed?.unidades ?? []);
-  const unidades = linhas.success ? linhas.data : [];
+  const brutas = linhas.success ? linhas.data : [];
+  // Deduplica por (bloco, numero) — a IA às vezes repete a mesma unidade em
+  // tabelas diferentes (fração / área / vagas), inflando o total.
+  const seen = new Set<string>();
+  const unidades: typeof brutas = [];
+  for (const u of brutas) {
+    const key = `${(u.bloco ?? "").trim().toLowerCase()}|${(u.numero ?? "").trim().toLowerCase()}`;
+    if (!u.numero || seen.has(key)) continue;
+    seen.add(key);
+    unidades.push(u);
+  }
   if (unidades.length === 0) return [];
 
   // Em modo force, apaga sugestões anteriores em QUALQUER status para essa convenção
