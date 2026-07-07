@@ -1156,6 +1156,51 @@ export type Database = {
           },
         ]
       }
+      sugestoes_unidades: {
+        Row: {
+          condominio_id: string
+          created_at: string
+          documento_id: string | null
+          id: string
+          payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          condominio_id: string
+          created_at?: string
+          documento_id?: string | null
+          id?: string
+          payload: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          condominio_id?: string
+          created_at?: string
+          documento_id?: string | null
+          id?: string
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugestoes_unidades_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugestoes_unidades_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unidades: {
         Row: {
           area_m2: number | null
