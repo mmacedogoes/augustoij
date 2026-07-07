@@ -304,10 +304,10 @@ function CondominioDetail() {
                     <p><strong>UF:</strong> {condo?.uf ?? "—"}</p>
                     <p>
                       <strong>Tipo:</strong>{" "}
-                      {condo?.categoria === "casas" ? "Condomínio de casas" : "Prédio / apartamentos"}
+                      {getCategoriaMeta(condo?.categoria).label}
                     </p>
                     <p>
-                      <strong>{condo?.categoria === "casas" ? "Lotes" : "Unidades"}:</strong>{" "}
+                      <strong>{getCategoriaMeta(condo?.categoria).vocab.unidade}s:</strong>{" "}
                       {condo?.qtd_unidades ?? 0}
                     </p>
                   </div>
@@ -336,19 +336,23 @@ function CondominioDetail() {
                         onChange={(e) =>
                           setForm({
                             ...form,
-                            categoria: (e.target.value === "casas" ? "casas" : "predio") as
-                              | "predio"
-                              | "casas",
+                            categoria: e.target.value as CategoriaCondominio,
                           })
                         }
-                        className="h-10 w-full border rounded-md px-3 text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-shadow"
+                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       >
-                        <option value="predio">Prédio / apartamentos</option>
-                        <option value="casas">Condomínio de casas</option>
+                        {CATEGORIAS_CONDOMINIO.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.label}
+                          </option>
+                        ))}
                       </select>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                        {getCategoriaMeta(form.categoria).descricaoCurta} — guia a IA na leitura da convenção.
+                      </p>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>{form.categoria === "casas" ? "Lotes" : "Unidades"}</Label>
+                      <Label>{getCategoriaMeta(form.categoria).vocab.unidade}s</Label>
                       <Input
                         type="number"
                         min={0}
@@ -369,9 +373,7 @@ function CondominioDetail() {
                               endereco: condo.endereco ?? "",
                               uf: condo.uf ?? "",
                               qtd_unidades: condo.qtd_unidades ?? 0,
-                              categoria: (condo.categoria === "casas" ? "casas" : "predio") as
-                                | "predio"
-                                | "casas",
+                              categoria: normalizeCategoria(condo.categoria),
                             });
                           }
                         }}
