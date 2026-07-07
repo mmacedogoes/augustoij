@@ -535,10 +535,13 @@ export function UnidadesPanel({
       {revisarUnidades && (
         <RevisarUnidadesDialog
           sugestoes={revisarUnidades.unidades}
+          existentes={unidades.map((u) => ({ bloco: u.bloco, numero: u.numero }))}
+          vocab={vocab}
+          qtdMaxima={qtdConvencao}
           onClose={() => setRevisarUnidades(null)}
-          onConfirmar={async (linhas) => {
+          onConfirmar={async (linhas, estrategia) => {
             const r = (await importFn({
-              data: { condominioId, linhas: linhas as never },
+              data: { condominioId, linhas: linhas as never, estrategiaConflito: estrategia },
             })) as {
               unidadesCriadas: number;
               unidadesAtualizadas: number;
