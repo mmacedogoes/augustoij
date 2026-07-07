@@ -172,8 +172,11 @@ export function RevisarUnidadesDialog({
                   >
                     <option value="apartamento">Apartamento</option>
                     <option value="casa">Casa</option>
+                    <option value="lote">Lote</option>
+                    <option value="terreno">Terreno</option>
                     <option value="sala_comercial">Sala comercial</option>
                     <option value="loja">Loja</option>
+                    <option value="galpao">Galpão</option>
                     <option value="vaga_avulsa">Vaga avulsa</option>
                     <option value="outro">Outro</option>
                   </select>
@@ -218,8 +221,11 @@ export function RevisarUnidadesDialog({
                     >
                       <option value="apartamento">Apartamento</option>
                       <option value="casa">Casa</option>
+                      <option value="lote">Lote</option>
+                      <option value="terreno">Terreno</option>
                       <option value="sala_comercial">Sala comercial</option>
                       <option value="loja">Loja</option>
+                      <option value="galpao">Galpão</option>
                       <option value="vaga_avulsa">Vaga avulsa</option>
                       <option value="outro">Outro</option>
                     </select>
