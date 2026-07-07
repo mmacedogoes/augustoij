@@ -846,8 +846,11 @@ function labelTipoUnidade(t: TipoUnidade) {
   const map: Record<TipoUnidade, string> = {
     apartamento: "Apartamento",
     casa: "Casa",
+    lote: "Lote",
+    terreno: "Terreno",
     sala_comercial: "Sala comercial",
     loja: "Loja",
+    galpao: "Galpão",
     vaga_avulsa: "Vaga avulsa",
     outro: "Outro",
   };
