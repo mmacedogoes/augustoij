@@ -13,8 +13,11 @@ export type CategoriaCondominio =
 export type TipoUnidadePadrao =
   | "apartamento"
   | "casa"
+  | "lote"
+  | "terreno"
   | "sala_comercial"
   | "loja"
+  | "galpao"
   | "outro";
 
 export type CategoriaMeta = {
@@ -44,9 +47,9 @@ export const CATEGORIAS_CONDOMINIO: CategoriaMeta[] = [
     id: "casas",
     label: "Condomínio de casas / lotes",
     descricaoCurta: "Casas ou lotes distribuídos em quadras",
-    vocab: { bloco: "Quadra", numero: "Lote", unidade: "Lote", tipoPadrao: "casa" },
+    vocab: { bloco: "Quadra", numero: "Lote", unidade: "Lote", tipoPadrao: "lote" },
     vocabIA:
-      'Este condomínio é de CASAS/LOTES organizados por QUADRAS. Use "bloco" para a QUADRA (ex: Q1, Quadra A) e "numero" para o LOTE/CASA (ex: 001, 042). Tipo padrão: "casa". Se a convenção citar apenas "N lotes" ou "N casas" sem numeração explícita, gere as unidades numeradas de 1 a N.',
+      'Este condomínio é de CASAS/LOTES organizados por QUADRAS. Use "bloco" para a QUADRA (ex: Q1, Quadra A) e "numero" para o LOTE/CASA (ex: 001, 042). Tipo padrão: "lote" (ou "casa" se a convenção especificar casas construídas, "terreno" se explicitar terrenos sem edificação). REGRA IMPORTANTE DE DISTRIBUIÇÃO: se a convenção declarar "N quadras e M lotes" (ex: "36 quadras e 662 lotes"), SEMPRE distribua os lotes entre as quadras — não devolva apenas os lotes sem quadra. Se a divisão exata por quadra não constar, distribua uniformemente (M/N lotes por quadra, arredondando as sobras nas primeiras quadras) e nomeie as quadras como Q1..QN.',
   },
   {
     id: "salas_comerciais",
@@ -68,9 +71,9 @@ export const CATEGORIAS_CONDOMINIO: CategoriaMeta[] = [
     id: "galpoes",
     label: "Galpões / logística",
     descricaoCurta: "Condomínio logístico de galpões",
-    vocab: { bloco: "Setor", numero: "Galpão", unidade: "Galpão", tipoPadrao: "outro" },
+    vocab: { bloco: "Setor", numero: "Galpão", unidade: "Galpão", tipoPadrao: "galpao" },
     vocabIA:
-      'Este condomínio é LOGÍSTICO/INDUSTRIAL, com GALPÕES. Use "bloco" para o SETOR/MÓDULO (ex: A, B) e "numero" para o GALPÃO (ex: G01, G02). Tipo padrão: "outro".',
+      'Este condomínio é LOGÍSTICO/INDUSTRIAL, com GALPÕES. Use "bloco" para o SETOR/MÓDULO (ex: A, B) e "numero" para o GALPÃO (ex: G01, G02). Tipo padrão: "galpao".',
   },
 ];
 

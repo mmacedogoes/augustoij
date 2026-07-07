@@ -5,8 +5,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const TipoUnidade = z.enum([
   "apartamento",
   "casa",
+  "lote",
+  "terreno",
   "sala_comercial",
   "loja",
+  "galpao",
   "vaga_avulsa",
   "outro",
 ]);
@@ -74,7 +77,7 @@ export const createUnidade = createServerFn({ method: "POST" })
         condominio_id: data.condominioId,
         bloco: data.bloco ?? null,
         numero: data.numero,
-        tipo: data.tipo,
+        tipo: data.tipo as never,
         fracao_ideal: data.fracao_ideal ?? null,
         area_m2: data.area_m2 ?? null,
         vagas_garagem: data.vagas_garagem,
@@ -97,7 +100,7 @@ export const updateUnidade = createServerFn({ method: "POST" })
       .update({
         bloco: data.bloco ?? null,
         numero: data.numero,
-        tipo: data.tipo,
+        tipo: data.tipo as never,
         fracao_ideal: data.fracao_ideal ?? null,
         area_m2: data.area_m2 ?? null,
         vagas_garagem: data.vagas_garagem,
@@ -266,7 +269,7 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
               condominio_id: data.condominioId,
               bloco: l.bloco ?? null,
               numero: l.numero,
-              tipo: l.tipo_unidade ?? "apartamento",
+              tipo: (l.tipo_unidade ?? "apartamento") as never,
               fracao_ideal: l.fracao_ideal ?? null,
               area_m2: l.area_m2 ?? null,
               vagas_garagem: l.vagas_garagem ?? 0,
@@ -282,7 +285,7 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
             const { error } = await sb
               .from("unidades")
               .update({
-                tipo: l.tipo_unidade ?? "apartamento",
+                tipo: (l.tipo_unidade ?? "apartamento") as never,
                 fracao_ideal: l.fracao_ideal ?? null,
                 area_m2: l.area_m2 ?? null,
                 vagas_garagem: l.vagas_garagem ?? 0,

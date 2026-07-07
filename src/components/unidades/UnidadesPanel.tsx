@@ -16,7 +16,6 @@ import {
   listSugestoesUnidades,
   atualizarStatusSugestao,
   extrairCondominosDeArquivo,
-  detectarUnidadesConvencaoExistente,
   reprocessarConvencao,
 } from "@/lib/unidades-ia.functions";
 import {
@@ -56,8 +55,11 @@ import {
 type TipoUnidade =
   | "apartamento"
   | "casa"
+  | "lote"
+  | "terreno"
   | "sala_comercial"
   | "loja"
+  | "galpao"
   | "vaga_avulsa"
   | "outro";
 type TipoCondomino =
@@ -114,7 +116,6 @@ export function UnidadesPanel({
   const listSugestoesFn = useServerFn(listSugestoesUnidades);
   const updateSugestaoFn = useServerFn(atualizarStatusSugestao);
   const extrairCondFn = useServerFn(extrairCondominosDeArquivo);
-  const detectarConvFn = useServerFn(detectarUnidadesConvencaoExistente);
   const reprocessarFn = useServerFn(reprocessarConvencao);
 
   const [loading, setLoading] = useState(true);
@@ -138,7 +139,6 @@ export function UnidadesPanel({
     unidades: UnidadeRef[];
   } | null>(null);
   const [extraindo, setExtraindo] = useState(false);
-  const [detectando, setDetectando] = useState(false);
   const [openImportUnificado, setOpenImportUnificado] = useState(false);
   const [categoria, setCategoria] = useState<CategoriaCondominio>("predio");
   const [qtdConvencao, setQtdConvencao] = useState<number | null>(null);
@@ -160,7 +160,7 @@ export function UnidadesPanel({
       .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar"))
       .finally(() => setLoading(false));
     listSugestoesFn({ data: { condominioId } })
-      .then(async (rows) => {
+      .then((rows) => {
         const list =
           (rows as unknown as {
             id: string;
@@ -168,58 +168,10 @@ export function UnidadesPanel({
             payload: { unidades?: UnidadeSugerida[] };
           }[]) ?? [];
         setSugestoes(list);
-        // Retro-detecção silenciosa (convenções antigas sem sugestão)
-        if (list.length === 0) {
-          try {
-            const r = (await detectarConvFn({ data: { condominioId } })) as {
-              status: "sem_convencao" | "ja_processada" | "gerada";
-            };
-            if (r.status === "gerada") {
-              const again = await listSugestoesFn({ data: { condominioId } });
-              setSugestoes(
-                (again as unknown as {
-                  id: string;
-                  documento_id: string | null;
-                  payload: { unidades?: UnidadeSugerida[] };
-                }[]) ?? [],
-              );
-            }
-          } catch (err) {
-            console.warn("[UnidadesPanel] detecção retroativa falhou", err);
-          }
-        }
       })
       .catch(() => setSugestoes([]));
   }
   useEffect(refresh, [condominioId]);
-
-  async function detectarManual() {
-    setDetectando(true);
-    try {
-      const r = (await detectarConvFn({
-        data: { condominioId, force: true },
-      })) as {
-        status: "sem_convencao" | "ja_processada" | "gerada" | "vazio";
-        unidades?: UnidadeSugerida[];
-      };
-      if (r.status === "sem_convencao") {
-        toast.info("Nenhuma convenção processada foi encontrada neste condomínio.");
-      } else if (r.status === "vazio") {
-        toast.warning(
-          'A IA não achou unidades no texto atualmente indexado. Use "Reprocessar convenção" para baixar o arquivo original e forçar OCR/visão.',
-        );
-      } else {
-        toast.success(
-          `${r.unidades?.length ?? 0} ${vocab.unidade.toLowerCase()}(s) detectada(s) na convenção.`,
-        );
-        refresh();
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao detectar unidades");
-    } finally {
-      setDetectando(false);
-    }
-  }
 
   async function reprocessar() {
     setReprocessando(true);
@@ -310,7 +262,7 @@ export function UnidadesPanel({
 
   function openCreate() {
     setEditing(null);
-    setForm({ ...EMPTY_UNIDADE });
+    setForm({ ...EMPTY_UNIDADE, tipo: vocab.tipoPadrao as TipoUnidade });
     setOpenForm(true);
   }
 
@@ -432,32 +384,17 @@ export function UnidadesPanel({
             <Button
               variant="ghost"
               size="sm"
-              disabled={detectando}
-              onClick={detectarManual}
-              className="transition-colors"
-              title="Força a IA a reler a convenção do condomínio"
-            >
-              {detectando ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-1" />
-              )}
-              Reler convenção
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
               disabled={reprocessando}
               onClick={reprocessar}
               className="transition-colors"
-              title="Baixa o arquivo original e força OCR/visão. Use se a IA não estiver lendo o conteúdo."
+              title="Baixa a convenção do storage, força OCR/visão quando necessário e extrai as unidades com IA."
             >
               {reprocessando ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <Sparkles className="h-4 w-4 mr-1" />
               )}
-              Reprocessar convenção
+              Importar unidades da convenção
             </Button>
             <Button
               variant="outline"
@@ -843,8 +780,11 @@ function labelTipoUnidade(t: TipoUnidade) {
   const map: Record<TipoUnidade, string> = {
     apartamento: "Apartamento",
     casa: "Casa",
+    lote: "Lote",
+    terreno: "Terreno",
     sala_comercial: "Sala comercial",
     loja: "Loja",
+    galpao: "Galpão",
     vaga_avulsa: "Vaga avulsa",
     outro: "Outro",
   };
@@ -908,8 +848,11 @@ function UnidadeFormDialog({
               <SelectContent>
                 <SelectItem value="apartamento">Apartamento</SelectItem>
                 <SelectItem value="casa">Casa</SelectItem>
+                <SelectItem value="lote">Lote</SelectItem>
+                <SelectItem value="terreno">Terreno</SelectItem>
                 <SelectItem value="sala_comercial">Sala comercial</SelectItem>
                 <SelectItem value="loja">Loja</SelectItem>
+                <SelectItem value="galpao">Galpão</SelectItem>
                 <SelectItem value="vaga_avulsa">Vaga avulsa</SelectItem>
                 <SelectItem value="outro">Outro</SelectItem>
               </SelectContent>
