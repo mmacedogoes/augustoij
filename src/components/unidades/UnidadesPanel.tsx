@@ -160,7 +160,7 @@ export function UnidadesPanel({
       .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar"))
       .finally(() => setLoading(false));
     listSugestoesFn({ data: { condominioId } })
-      .then(async (rows) => {
+      .then((rows) => {
         const list =
           (rows as unknown as {
             id: string;
@@ -168,58 +168,10 @@ export function UnidadesPanel({
             payload: { unidades?: UnidadeSugerida[] };
           }[]) ?? [];
         setSugestoes(list);
-        // Retro-detecção silenciosa (convenções antigas sem sugestão)
-        if (list.length === 0) {
-          try {
-            const r = (await detectarConvFn({ data: { condominioId } })) as {
-              status: "sem_convencao" | "ja_processada" | "gerada";
-            };
-            if (r.status === "gerada") {
-              const again = await listSugestoesFn({ data: { condominioId } });
-              setSugestoes(
-                (again as unknown as {
-                  id: string;
-                  documento_id: string | null;
-                  payload: { unidades?: UnidadeSugerida[] };
-                }[]) ?? [],
-              );
-            }
-          } catch (err) {
-            console.warn("[UnidadesPanel] detecção retroativa falhou", err);
-          }
-        }
       })
       .catch(() => setSugestoes([]));
   }
   useEffect(refresh, [condominioId]);
-
-  async function detectarManual() {
-    setDetectando(true);
-    try {
-      const r = (await detectarConvFn({
-        data: { condominioId, force: true },
-      })) as {
-        status: "sem_convencao" | "ja_processada" | "gerada" | "vazio";
-        unidades?: UnidadeSugerida[];
-      };
-      if (r.status === "sem_convencao") {
-        toast.info("Nenhuma convenção processada foi encontrada neste condomínio.");
-      } else if (r.status === "vazio") {
-        toast.warning(
-          'A IA não achou unidades no texto atualmente indexado. Use "Reprocessar convenção" para baixar o arquivo original e forçar OCR/visão.',
-        );
-      } else {
-        toast.success(
-          `${r.unidades?.length ?? 0} ${vocab.unidade.toLowerCase()}(s) detectada(s) na convenção.`,
-        );
-        refresh();
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao detectar unidades");
-    } finally {
-      setDetectando(false);
-    }
-  }
 
   async function reprocessar() {
     setReprocessando(true);
