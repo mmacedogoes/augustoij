@@ -45,6 +45,26 @@ export const listUnidades = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+export const getCondominioMeta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { condominioId: string }) =>
+    z.object({ condominioId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("condominios")
+      .select("categoria, qtd_unidades")
+      .eq("id", data.condominioId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return {
+      categoria: ((row?.categoria as string) === "casas" ? "casas" : "predio") as
+        | "predio"
+        | "casas",
+      qtdUnidades: (row?.qtd_unidades as number | null) ?? null,
+    };
+  });
+
 export const createUnidade = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof UnidadeInput>) => UnidadeInput.parse(input))
