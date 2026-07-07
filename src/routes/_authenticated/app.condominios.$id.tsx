@@ -333,6 +333,9 @@ function CondominioDetail() {
                               endereco: condo.endereco ?? "",
                               uf: condo.uf ?? "",
                               qtd_unidades: condo.qtd_unidades ?? 0,
+                              categoria: (condo.categoria === "casas" ? "casas" : "predio") as
+                                | "predio"
+                                | "casas",
                             });
                           }
                         }}
