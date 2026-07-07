@@ -109,6 +109,9 @@ function CondominioDetail() {
             endereco: row.endereco ?? "",
             uf: row.uf ?? "",
             qtd_unidades: row.qtd_unidades ?? 0,
+            categoria: (row.categoria === "casas" ? "casas" : "predio") as
+              | "predio"
+              | "casas",
           });
         }
       })
