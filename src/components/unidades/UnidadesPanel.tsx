@@ -10,6 +10,7 @@ import {
   createCondomino,
   deleteCondomino,
   importUnidadesLote,
+  getCondominioMeta,
 } from "@/lib/unidades.functions";
 import {
   listSugestoesUnidades,
@@ -103,6 +104,7 @@ export function UnidadesPanel({
   const createCondFn = useServerFn(createCondomino);
   const deleteCondFn = useServerFn(deleteCondomino);
   const importFn = useServerFn(importUnidadesLote);
+  const metaFn = useServerFn(getCondominioMeta);
   const listSugestoesFn = useServerFn(listSugestoesUnidades);
   const updateSugestaoFn = useServerFn(atualizarStatusSugestao);
   const extrairCondFn = useServerFn(extrairCondominosDeArquivo);
@@ -131,9 +133,28 @@ export function UnidadesPanel({
   const [extraindo, setExtraindo] = useState(false);
   const [detectando, setDetectando] = useState(false);
   const [openImportUnificado, setOpenImportUnificado] = useState(false);
+  const [categoria, setCategoria] = useState<"predio" | "casas">("predio");
+  const [qtdConvencao, setQtdConvencao] = useState<number | null>(null);
+
+  const vocab =
+    categoria === "casas"
+      ? { bloco: "Quadra", numero: "Lote", unidade: "Lote", tipoPadrao: "casa" as const }
+      : {
+          bloco: "Bloco",
+          numero: "Número",
+          unidade: "Unidade",
+          tipoPadrao: "apartamento" as const,
+        };
 
   function refresh() {
     setLoading(true);
+    metaFn({ data: { condominioId } })
+      .then((m) => {
+        const meta = m as { categoria: "predio" | "casas"; qtdUnidades: number | null };
+        setCategoria(meta.categoria);
+        setQtdConvencao(meta.qtdUnidades);
+      })
+      .catch(() => {});
     fetchAll({ data: { condominioId } })
       .then((r) => setUnidades((r as Unidade[]) ?? []))
       .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar"))
@@ -175,16 +196,22 @@ export function UnidadesPanel({
   async function detectarManual() {
     setDetectando(true);
     try {
-      const r = (await detectarConvFn({ data: { condominioId } })) as {
-        status: "sem_convencao" | "ja_processada" | "gerada";
+      const r = (await detectarConvFn({
+        data: { condominioId, force: true },
+      })) as {
+        status: "sem_convencao" | "ja_processada" | "gerada" | "vazio";
         unidades?: UnidadeSugerida[];
       };
       if (r.status === "sem_convencao") {
         toast.info("Nenhuma convenção processada foi encontrada neste condomínio.");
-      } else if (r.status === "ja_processada") {
-        toast.info("Essa convenção já foi processada anteriormente.");
+      } else if (r.status === "vazio") {
+        toast.warning(
+          "A IA não conseguiu identificar unidades no texto da convenção. Verifique se o arquivo carregado é a convenção completa (com quadro de frações/lotes/quadras).",
+        );
       } else {
-        toast.success(`${r.unidades?.length ?? 0} unidade(s) detectada(s).`);
+        toast.success(
+          `${r.unidades?.length ?? 0} ${vocab.unidade.toLowerCase()}(s) detectada(s) na convenção.`,
+        );
         refresh();
       }
     } catch (e) {
@@ -275,7 +302,7 @@ export function UnidadesPanel({
   }
 
   async function excluir(u: Unidade) {
-    if (!confirm(`Excluir a unidade ${formatLabel(u)} e todos os condôminos vinculados?`)) return;
+    if (!confirm(`Excluir a unidade ${formatLabel(u, vocab.bloco)} e todos os condôminos vinculados?`)) return;
     try {
       await deleteFn({ data: { id: u.id } });
       toast.success("Unidade removida.");
@@ -300,10 +327,11 @@ export function UnidadesPanel({
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
           <div className="flex-1 min-w-[220px]">
             <p className="text-sm font-medium">
-              {sugestoes[0].payload.unidades?.length ?? 0} unidade(s) detectada(s) na convenção
+              {sugestoes[0].payload.unidades?.length ?? 0} {vocab.unidade.toLowerCase()}(s)
+              detectada(s) na convenção
             </p>
             <p className="text-xs text-muted-foreground">
-              Revise antes de importar para a lista de unidades.
+              Revise antes de importar para a lista de {vocab.unidade.toLowerCase()}s.
             </p>
           </div>
           <Button
@@ -332,29 +360,31 @@ export function UnidadesPanel({
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold">Unidades e Condôminos</h2>
+          <h2 className="text-lg font-semibold tracking-tight">
+            {vocab.unidade}s e Condôminos
+          </h2>
           <p className="text-xs text-muted-foreground">
-            {unidades.length} unidade(s) cadastrada(s)
+            {unidades.length} {vocab.unidade.toLowerCase()}(s) cadastrada(s)
+            {qtdConvencao != null && ` • convenção prevê ${qtdConvencao}`}
           </p>
         </div>
         {isOwner && (
           <div className="flex gap-2 flex-wrap">
-            {sugestoes.length === 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={detectando}
-                onClick={detectarManual}
-                className="transition-colors"
-              >
-                {detectando ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-1" />
-                )}
-                Detectar unidades na convenção
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={detectando}
+              onClick={detectarManual}
+              className="transition-colors"
+              title="Força a IA a reler a convenção do condomínio"
+            >
+              {detectando ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-1" />
+              )}
+              Reler convenção
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -392,7 +422,7 @@ export function UnidadesPanel({
                 className="flex-1 min-w-0 text-left hover:bg-muted/30 -m-2 p-2 rounded transition-colors"
                 title="Ver detalhes da unidade"
               >
-                <p className="font-medium text-primary hover:underline">{formatLabel(u)}</p>
+                <p className="font-medium text-primary hover:underline">{formatLabel(u, vocab.bloco)}</p>
                 <p className="text-xs text-muted-foreground">
                   {labelTipoUnidade(u.tipo)}
                   {u.area_m2 ? ` • ${u.area_m2} m²` : ""}
@@ -496,10 +526,13 @@ export function UnidadesPanel({
       {revisarUnidades && (
         <RevisarUnidadesDialog
           sugestoes={revisarUnidades.unidades}
+          existentes={unidades.map((u) => ({ bloco: u.bloco, numero: u.numero }))}
+          vocab={vocab}
+          qtdMaxima={qtdConvencao}
           onClose={() => setRevisarUnidades(null)}
-          onConfirmar={async (linhas) => {
+          onConfirmar={async (linhas, estrategia) => {
             const r = (await importFn({
-              data: { condominioId, linhas: linhas as never },
+              data: { condominioId, linhas: linhas as never, estrategiaConflito: estrategia },
             })) as {
               unidadesCriadas: number;
               unidadesAtualizadas: number;
@@ -603,8 +636,8 @@ export function UnidadesPanel({
   );
 }
 
-function formatLabel(u: Unidade) {
-  return u.bloco ? `Bloco ${u.bloco} • ${u.numero}` : u.numero;
+function formatLabel(u: Unidade, labelBloco = "Bloco") {
+  return u.bloco ? `${labelBloco} ${u.bloco} • ${u.numero}` : u.numero;
 }
 
 function VisualizarUnidadeDialog({

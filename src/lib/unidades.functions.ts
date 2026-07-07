@@ -45,6 +45,26 @@ export const listUnidades = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+export const getCondominioMeta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { condominioId: string }) =>
+    z.object({ condominioId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("condominios")
+      .select("categoria, qtd_unidades")
+      .eq("id", data.condominioId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return {
+      categoria: ((row?.categoria as string) === "casas" ? "casas" : "predio") as
+        | "predio"
+        | "casas",
+      qtdUnidades: (row?.qtd_unidades as number | null) ?? null,
+    };
+  });
+
 export const createUnidade = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof UnidadeInput>) => UnidadeInput.parse(input))
@@ -188,34 +208,59 @@ const ImportLinha = z.object({
 export const importUnidadesLote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (input: { condominioId: string; linhas: z.infer<typeof ImportLinha>[] }) =>
+    (input: {
+      condominioId: string;
+      linhas: z.infer<typeof ImportLinha>[];
+      estrategiaConflito?: "manter" | "substituir";
+    }) =>
       z
         .object({
           condominioId: z.string().uuid(),
           linhas: z.array(ImportLinha).min(1).max(2000),
+          estrategiaConflito: z.enum(["manter", "substituir"]).optional().default("manter"),
         })
         .parse(input),
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
+    // Limite pelo total previsto na convenção (qtd_unidades)
+    const { data: cond } = await sb
+      .from("condominios")
+      .select("qtd_unidades")
+      .eq("id", data.condominioId)
+      .maybeSingle();
+    const { count: atuais } = await sb
+      .from("unidades")
+      .select("id", { count: "exact", head: true })
+      .eq("condominio_id", data.condominioId);
+    const maxPrevisto = (cond?.qtd_unidades as number | null) ?? null;
+
     let unidadesCriadas = 0;
     let unidadesAtualizadas = 0;
     let condominosCriados = 0;
     const erros: { linha: number; mensagem: string }[] = [];
+    let jaExistentes = atuais ?? 0;
 
     for (let i = 0; i < data.linhas.length; i++) {
       const l = data.linhas[i];
       try {
-        const { data: existing } = await sb
+        // Match por (bloco, numero) — trata null/'' como equivalentes
+        const q = sb
           .from("unidades")
           .select("id")
           .eq("condominio_id", data.condominioId)
-          .eq("numero", l.numero)
-          .eq("bloco", l.bloco ?? "")
-          .maybeSingle();
+          .eq("numero", l.numero);
+        const { data: existing } = l.bloco
+          ? await q.eq("bloco", l.bloco).maybeSingle()
+          : await q.or("bloco.is.null,bloco.eq.").maybeSingle();
 
         let unidadeId = existing?.id ?? null;
         if (!unidadeId) {
+          if (maxPrevisto != null && jaExistentes >= maxPrevisto) {
+            throw new Error(
+              `Limite da convenção atingido (${maxPrevisto} unidades). Ajuste "qtd_unidades" no cadastro do condomínio ou remova unidades antes de importar mais.`,
+            );
+          }
           const { data: nova, error } = await sb
             .from("unidades")
             .insert({
@@ -232,7 +277,20 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
           if (error) throw new Error(error.message);
           unidadeId = nova!.id;
           unidadesCriadas++;
+          jaExistentes++;
         } else {
+          if (data.estrategiaConflito === "substituir") {
+            const { error } = await sb
+              .from("unidades")
+              .update({
+                tipo: l.tipo_unidade ?? "apartamento",
+                fracao_ideal: l.fracao_ideal ?? null,
+                area_m2: l.area_m2 ?? null,
+                vagas_garagem: l.vagas_garagem ?? 0,
+              })
+              .eq("id", unidadeId);
+            if (error) throw new Error(error.message);
+          }
           unidadesAtualizadas++;
         }
 

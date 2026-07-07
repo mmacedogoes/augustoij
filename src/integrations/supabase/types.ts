@@ -323,6 +323,7 @@ export type Database = {
       }
       condominios: {
         Row: {
+          categoria: string
           cnpj: string | null
           created_at: string
           endereco: string | null
@@ -334,6 +335,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          categoria?: string
           cnpj?: string | null
           created_at?: string
           endereco?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          categoria?: string
           cnpj?: string | null
           created_at?: string
           endereco?: string | null

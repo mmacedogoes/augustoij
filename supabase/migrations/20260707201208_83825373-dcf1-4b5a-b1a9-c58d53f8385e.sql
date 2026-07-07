@@ -1,0 +1,1 @@
+ALTER TABLE public.condominios ADD COLUMN IF NOT EXISTS categoria text NOT NULL DEFAULT 'predio' CHECK (categoria IN ('predio','casas'));

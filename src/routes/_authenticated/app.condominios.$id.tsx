@@ -57,11 +57,11 @@ function CondominioDetail() {
   const fetchProfile = useServerFn(getProfile);
   const checkAdmin = useServerFn(isCurrentUserAdmin);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; owner_id?: string } | null>(null);
+  const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; categoria?: string | null; owner_id?: string } | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [form, setForm] = useState({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: 0 });
+  const [form, setForm] = useState({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: 0, categoria: "predio" as "predio" | "casas" });
   const [conversaAtiva, setConversaAtiva] = useState<string | null>(null);
   // chave usada como `key` do ChatPanel para forçar remount limpo
   // ao trocar entre "nova conversa" e abrir uma conversa do histórico.
@@ -109,6 +109,9 @@ function CondominioDetail() {
             endereco: row.endereco ?? "",
             uf: row.uf ?? "",
             qtd_unidades: row.qtd_unidades ?? 0,
+            categoria: (row.categoria === "casas" ? "casas" : "predio") as
+              | "predio"
+              | "casas",
           });
         }
       })
@@ -288,7 +291,14 @@ function CondominioDetail() {
                     <p><strong>CNPJ:</strong> {condo?.cnpj ?? "—"}</p>
                     <p><strong>Endereço:</strong> {condo?.endereco ?? "—"}</p>
                     <p><strong>UF:</strong> {condo?.uf ?? "—"}</p>
-                    <p><strong>Unidades:</strong> {condo?.qtd_unidades ?? 0}</p>
+                    <p>
+                      <strong>Tipo:</strong>{" "}
+                      {condo?.categoria === "casas" ? "Condomínio de casas" : "Prédio / apartamentos"}
+                    </p>
+                    <p>
+                      <strong>{condo?.categoria === "casas" ? "Lotes" : "Unidades"}:</strong>{" "}
+                      {condo?.qtd_unidades ?? 0}
+                    </p>
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -309,7 +319,25 @@ function CondominioDetail() {
                       <Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Unidades</Label>
+                      <Label>Tipo de condomínio</Label>
+                      <select
+                        value={form.categoria}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            categoria: (e.target.value === "casas" ? "casas" : "predio") as
+                              | "predio"
+                              | "casas",
+                          })
+                        }
+                        className="h-10 w-full border rounded-md px-3 text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-shadow"
+                      >
+                        <option value="predio">Prédio / apartamentos</option>
+                        <option value="casas">Condomínio de casas</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>{form.categoria === "casas" ? "Lotes" : "Unidades"}</Label>
                       <Input
                         type="number"
                         min={0}
@@ -330,6 +358,9 @@ function CondominioDetail() {
                               endereco: condo.endereco ?? "",
                               uf: condo.uf ?? "",
                               qtd_unidades: condo.qtd_unidades ?? 0,
+                              categoria: (condo.categoria === "casas" ? "casas" : "predio") as
+                                | "predio"
+                                | "casas",
                             });
                           }
                         }}
@@ -349,6 +380,7 @@ function CondominioDetail() {
                                 endereco: form.endereco.trim() || null,
                                 uf: form.uf.trim() ? form.uf.trim().toUpperCase() : null,
                                 qtd_unidades: form.qtd_unidades,
+                                categoria: form.categoria,
                               },
                             });
                             setCondo(saved as typeof condo);
