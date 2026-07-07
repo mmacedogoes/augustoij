@@ -13,7 +13,17 @@ const UnidadeSugestao = z.object({
   bloco: z.string().nullable().optional(),
   numero: z.string(),
   tipo: z
-    .enum(["apartamento", "casa", "sala_comercial", "loja", "vaga_avulsa", "outro"])
+    .enum([
+      "apartamento",
+      "casa",
+      "lote",
+      "terreno",
+      "sala_comercial",
+      "loja",
+      "galpao",
+      "vaga_avulsa",
+      "outro",
+    ])
     .optional(),
   fracao_ideal: z.number().nullable().optional(),
   area_m2: z.number().nullable().optional(),
