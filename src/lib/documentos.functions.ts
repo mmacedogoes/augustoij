@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PLANS } from "@/config/plans";
 import { resolvePlanId, isTrialExpired, gateMessages, efetivoPlanoId } from "@/lib/plan-gates";
+import { isAdminInternoServer } from "@/lib/admin-bypass";
 
 /**
  * Verifica se o usuário logado pode enviar mais um documento no condomínio
@@ -13,7 +14,7 @@ async function assertUploadPermitido(
   userId: string,
   condominioId: string,
 ) {
-  const [subRes, docsRes] = await Promise.all([
+  const [subRes, docsRes, admin] = await Promise.all([
     supabase
       .from("subscriptions")
       .select("plano_config_id, trial_end, cortesia")
@@ -23,9 +24,10 @@ async function assertUploadPermitido(
       .from("documentos")
       .select("id", { count: "exact", head: true })
       .eq("condominio_id", condominioId),
+    isAdminInternoServer(supabase, userId),
   ]);
   const planoBruto = resolvePlanId(subRes.data?.plano_config_id ?? null);
-  const cortesia = subRes.data?.cortesia === true;
+  const cortesia = subRes.data?.cortesia === true || admin;
   const planoId = efetivoPlanoId(planoBruto, cortesia);
   const plano = PLANS[planoId];
   if (!cortesia && isTrialExpired(planoBruto, subRes.data?.trial_end ?? null)) {

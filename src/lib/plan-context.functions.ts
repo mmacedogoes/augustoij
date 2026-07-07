@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PLANS } from "@/config/plans";
 import { resolvePlanId, isTrialExpired, efetivoPlanoId } from "@/lib/plan-gates";
+import { isAdminInternoServer } from "@/lib/admin-bypass";
 import type { PlanId, PlanRecursos } from "@/config/plans";
 
 export type PlanContext = {
@@ -27,7 +28,7 @@ export const getPlanContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<PlanContext> => {
     const { supabase, userId } = context;
-    const [subRes, condosRes] = await Promise.all([
+    const [subRes, condosRes, admin] = await Promise.all([
       supabase
         .from("subscriptions")
         .select("plano_config_id, trial_end, cortesia, status")
@@ -37,10 +38,11 @@ export const getPlanContext = createServerFn({ method: "GET" })
         .from("condominios")
         .select("id", { count: "exact", head: true })
         .eq("owner_id", userId),
+      isAdminInternoServer(supabase, userId),
     ]);
 
     const planoId = resolvePlanId(subRes.data?.plano_config_id ?? null);
-    const cortesia = subRes.data?.cortesia === true;
+    const cortesia = subRes.data?.cortesia === true || admin;
     const planoEfetivo = PLANS[efetivoPlanoId(planoId, cortesia)];
     const plano = PLANS[planoId];
     const trialEndIso = subRes.data?.trial_end ?? null;
