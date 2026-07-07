@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, Pencil, Upload, Users, Loader2, Eye, Sparkles, FileUp } from "lucide-react";
+import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import {
   listUnidades,
