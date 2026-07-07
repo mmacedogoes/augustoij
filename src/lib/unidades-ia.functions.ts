@@ -102,6 +102,7 @@ export async function _extrairESalvarSugestaoUnidades(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   documentoId: string,
   apiKey: string,
+  opts: { force?: boolean } = {},
 ): Promise<UnidadeSugerida[]> {
   const { data: doc, error } = await supabase
     .from("documentos")
@@ -111,36 +112,59 @@ export async function _extrairESalvarSugestaoUnidades(
   if (error || !doc) return [];
   if (doc.status_processamento !== "pronto") return [];
 
+  // Categoria do condomínio guia o vocabulário do prompt
+  const { data: cond } = await supabase
+    .from("condominios")
+    .select("categoria, qtd_unidades")
+    .eq("id", doc.condominio_id)
+    .maybeSingle();
+  const categoria = (cond?.categoria as string) === "casas" ? "casas" : "predio";
+  const qtdEsperada = (cond?.qtd_unidades as number | null) ?? null;
+
   const { data: chunks } = await supabase
     .from("document_chunks")
     .select("conteudo")
     .eq("documento_id", doc.id)
-    .limit(200);
-  const texto = (chunks ?? [])
-    .map((c) => c.conteudo as string)
-    .join("\n\n")
-    .slice(0, 40000);
+    .limit(600);
+  // Prioriza chunks que mencionam vocabulário de unidades — a tabela costuma
+  // aparecer no meio/fim da convenção e ficava de fora do corte de 40k.
+  const RE_UNIDADE =
+    /(unidade|apart(a|â)mento|apto|fra[cç][aã]o|lote|quadra|bloco|garagem|vaga|área privativa|coeficiente)/i;
+  const rawChunks = (chunks ?? []).map((c) => c.conteudo as string);
+  const prioritarios = rawChunks.filter((c) => RE_UNIDADE.test(c));
+  const restantes = rawChunks.filter((c) => !RE_UNIDADE.test(c));
+  const texto = [...prioritarios, ...restantes].join("\n\n").slice(0, 150000);
   if (!texto.trim()) return [];
 
+  const vocab =
+    categoria === "casas"
+      ? 'Este condomínio é de CASAS. Use "bloco" para armazenar a QUADRA e "numero" para o LOTE/CASA. Tipo padrão: "casa".'
+      : 'Este condomínio é de PRÉDIO/APARTAMENTOS. Use "bloco" para o bloco/torre e "numero" para o apartamento. Tipo padrão: "apartamento".';
+  const hint = qtdEsperada
+    ? `A convenção deve listar aproximadamente ${qtdEsperada} unidades.`
+    : "";
   const system =
-    "Você é um assistente que extrai dados estruturados de convenções de condomínio brasileiras. " +
-    "Sua tarefa é listar TODAS as unidades autônomas do quadro de frações ideais / áreas / vagas. " +
+    "Você é um assistente especialista em convenções de condomínio brasileiras. " +
+    "Sua tarefa é EXTRAIR TODAS as unidades autônomas mencionadas — mesmo que o texto esteja " +
+    "quebrado por OCR ou dividido em várias tabelas/anexos. Procure quadros de frações ideais, " +
+    "listas numeradas, anexos, memoriais descritivos e o corpo da convenção. " +
+    vocab + " " + hint + " " +
     'Responda EXCLUSIVAMENTE em JSON no formato: {"unidades":[{"bloco":string|null,"numero":string,' +
     '"tipo":"apartamento|casa|sala_comercial|loja|vaga_avulsa|outro","fracao_ideal":number|null,' +
     '"area_m2":number|null,"vagas_garagem":number}]}. ' +
-    "Se o documento não trouxer o campo, use null (ou 0 para vagas). Não invente unidades.";
-  const user = `Arquivo: ${doc.nome_arquivo}\n\nTexto da convenção (pode estar truncado):\n\n${texto}`;
+    "Se o documento não trouxer o campo, use null (ou 0 para vagas). Se realmente NÃO encontrar " +
+    'nenhuma unidade, devolva {"unidades":[]}, mas releia com atenção antes de desistir — ' +
+    "convenções sempre listam unidades em algum ponto. Não invente unidades que não estejam no texto.";
+  const user = `Arquivo: ${doc.nome_arquivo}\n\nTexto da convenção (pode estar truncado; releia com cuidado procurando listas/tabelas):\n\n${texto}`;
 
   const parsed = (await callGeminiJson(apiKey, system, user)) as { unidades?: unknown[] };
   const linhas = z.array(UnidadeSugestao).safeParse(parsed?.unidades ?? []);
   const unidades = linhas.success ? linhas.data : [];
   if (unidades.length === 0) return [];
 
-  await supabase
-    .from("sugestoes_unidades")
-    .delete()
-    .eq("documento_id", doc.id)
-    .eq("status", "pendente");
+  // Em modo force, apaga sugestões anteriores em QUALQUER status para essa convenção
+  const del = supabase.from("sugestoes_unidades").delete().eq("documento_id", doc.id);
+  await (opts.force ? del : del.eq("status", "pendente"));
   await supabase.from("sugestoes_unidades").insert({
     condominio_id: doc.condominio_id,
     documento_id: doc.id,
@@ -307,8 +331,13 @@ export const extrairCondominosDeArquivo = createServerFn({ method: "POST" })
 
 export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { condominioId: string }) =>
-    z.object({ condominioId: z.string().uuid() }).parse(input),
+  .inputValidator((input: { condominioId: string; force?: boolean }) =>
+    z
+      .object({
+        condominioId: z.string().uuid(),
+        force: z.boolean().optional().default(false),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -326,18 +355,24 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
       .maybeSingle();
     if (!doc) return { status: "sem_convencao" as const };
 
-    const { data: existente } = await context.supabase
-      .from("sugestoes_unidades")
-      .select("id, status")
-      .eq("documento_id", doc.id)
-      .limit(1)
-      .maybeSingle();
-    if (existente) return { status: "ja_processada" as const };
+    if (!data.force) {
+      const { data: existente } = await context.supabase
+        .from("sugestoes_unidades")
+        .select("id, status")
+        .eq("documento_id", doc.id)
+        .limit(1)
+        .maybeSingle();
+      if (existente) return { status: "ja_processada" as const };
+    }
 
     const unidades = await _extrairESalvarSugestaoUnidades(
       context.supabase,
       doc.id,
       apiKey,
+      { force: data.force },
     );
+    if (unidades.length === 0) {
+      return { status: "vazio" as const, documentoId: doc.id };
+    }
     return { status: "gerada" as const, unidades, documentoId: doc.id };
   });
