@@ -196,34 +196,22 @@ export function UnidadesPanel({
   async function detectarManual() {
     setDetectando(true);
     try {
-      const r = (await detectarConvFn({ data: { condominioId } })) as {
+      const r = (await detectarConvFn({
+        data: { condominioId, force: true },
+      })) as {
         status: "sem_convencao" | "ja_processada" | "gerada" | "vazio";
         unidades?: UnidadeSugerida[];
       };
       if (r.status === "sem_convencao") {
         toast.info("Nenhuma convenção processada foi encontrada neste condomínio.");
-      } else if (r.status === "ja_processada") {
-        // Já existe sugestão — força uma releitura
-        const r2 = (await detectarConvFn({
-          data: { condominioId, force: true },
-        })) as {
-          status: "gerada" | "vazio";
-          unidades?: UnidadeSugerida[];
-        };
-        if (r2.status === "gerada") {
-          toast.success(`${r2.unidades?.length ?? 0} unidade(s) detectada(s) na convenção.`);
-          refresh();
-        } else {
-          toast.warning(
-            "A IA não conseguiu identificar unidades no texto da convenção. Verifique se o arquivo carregado é realmente a convenção completa (com quadro de frações/lotes).",
-          );
-        }
       } else if (r.status === "vazio") {
         toast.warning(
-          "A IA não conseguiu identificar unidades no texto da convenção. Verifique se o arquivo carregado é realmente a convenção completa (com quadro de frações/lotes).",
+          "A IA não conseguiu identificar unidades no texto da convenção. Verifique se o arquivo carregado é a convenção completa (com quadro de frações/lotes/quadras).",
         );
       } else {
-        toast.success(`${r.unidades?.length ?? 0} unidade(s) detectada(s).`);
+        toast.success(
+          `${r.unidades?.length ?? 0} ${vocab.unidade.toLowerCase()}(s) detectada(s) na convenção.`,
+        );
         refresh();
       }
     } catch (e) {
