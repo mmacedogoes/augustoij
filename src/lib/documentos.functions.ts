@@ -201,6 +201,26 @@ export const processDocumento = createServerFn({ method: "POST" })
         .update({ status_processamento: "pronto" })
         .eq("id", doc.id);
 
+      // Auto-extração de unidades quando o documento é a convenção.
+      // Best-effort: se falhar, não invalida o processamento do documento.
+      if (doc.tipo === "convencao") {
+        try {
+          const { extrairUnidadesDaConvencao } = await import("./unidades-ia.functions");
+          // chamado como função server-side interna (fora de RPC) — reusa a lógica
+          await (extrairUnidadesDaConvencao as unknown as {
+            handler: (arg: {
+              data: { documentoId: string; persistir: boolean };
+              context: { supabase: typeof context.supabase; userId: string };
+            }) => Promise<unknown>;
+          }).handler?.({
+            data: { documentoId: doc.id, persistir: true },
+            context: { supabase: context.supabase, userId: context.userId },
+          });
+        } catch (autoErr) {
+          console.warn("[processDocumento] auto-extração de unidades falhou", autoErr);
+        }
+      }
+
       return { ok: true, chunks: chunks.length, mode: usedVision ? "vision" : "text" };
     } catch (e) {
       const ing = humanizeIngestError(e, "leitura");
