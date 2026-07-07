@@ -339,10 +339,11 @@ export function UnidadesPanel({
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
           <div className="flex-1 min-w-[220px]">
             <p className="text-sm font-medium">
-              {sugestoes[0].payload.unidades?.length ?? 0} unidade(s) detectada(s) na convenção
+              {sugestoes[0].payload.unidades?.length ?? 0} {vocab.unidade.toLowerCase()}(s)
+              detectada(s) na convenção
             </p>
             <p className="text-xs text-muted-foreground">
-              Revise antes de importar para a lista de unidades.
+              Revise antes de importar para a lista de {vocab.unidade.toLowerCase()}s.
             </p>
           </div>
           <Button
