@@ -545,6 +545,60 @@ export function UnidadesPanel({
           }}
         />
       )}
+
+      {openImportUnificado && (
+        <Dialog open onOpenChange={(v) => !v && setOpenImportUnificado(false)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Importar unidades e condôminos</DialogTitle>
+              <DialogDescription>
+                Envie um arquivo com a lista de condôminos (CSV, Excel, PDF, DOCX, DOC ou
+                TXT). As unidades são extraídas automaticamente da convenção do condomínio
+                na aba Documentos.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <input
+                id="upload-import-unificado"
+                type="file"
+                accept=".csv,.xlsx,.xls,.pdf,.docx,.doc,.txt"
+                className="hidden"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  setOpenImportUnificado(false);
+                  await abrirImportarCondominos(f);
+                }}
+              />
+              <Button
+                className="w-full"
+                disabled={extraindo}
+                onClick={() =>
+                  document.getElementById("upload-import-unificado")?.click()
+                }
+              >
+                {extraindo ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileUp className="h-4 w-4 mr-2" />
+                )}
+                Selecionar arquivo
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenImportUnificado(false);
+                  setOpenImport(true);
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors block mx-auto"
+              >
+                Importar via CSV estruturado (avançado)
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
