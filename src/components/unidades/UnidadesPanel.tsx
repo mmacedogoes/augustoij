@@ -17,7 +17,13 @@ import {
   atualizarStatusSugestao,
   extrairCondominosDeArquivo,
   detectarUnidadesConvencaoExistente,
+  reprocessarConvencao,
 } from "@/lib/unidades-ia.functions";
+import {
+  getCategoriaMeta,
+  normalizeCategoria,
+  type CategoriaCondominio,
+} from "@/lib/categorias-condominio";
 import {
   RevisarUnidadesDialog,
   type UnidadeSugerida,
@@ -109,6 +115,7 @@ export function UnidadesPanel({
   const updateSugestaoFn = useServerFn(atualizarStatusSugestao);
   const extrairCondFn = useServerFn(extrairCondominosDeArquivo);
   const detectarConvFn = useServerFn(detectarUnidadesConvencaoExistente);
+  const reprocessarFn = useServerFn(reprocessarConvencao);
 
   const [loading, setLoading] = useState(true);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -133,25 +140,18 @@ export function UnidadesPanel({
   const [extraindo, setExtraindo] = useState(false);
   const [detectando, setDetectando] = useState(false);
   const [openImportUnificado, setOpenImportUnificado] = useState(false);
-  const [categoria, setCategoria] = useState<"predio" | "casas">("predio");
+  const [categoria, setCategoria] = useState<CategoriaCondominio>("predio");
   const [qtdConvencao, setQtdConvencao] = useState<number | null>(null);
+  const [reprocessando, setReprocessando] = useState(false);
 
-  const vocab =
-    categoria === "casas"
-      ? { bloco: "Quadra", numero: "Lote", unidade: "Lote", tipoPadrao: "casa" as const }
-      : {
-          bloco: "Bloco",
-          numero: "Número",
-          unidade: "Unidade",
-          tipoPadrao: "apartamento" as const,
-        };
+  const vocab = getCategoriaMeta(categoria).vocab;
 
   function refresh() {
     setLoading(true);
     metaFn({ data: { condominioId } })
       .then((m) => {
-        const meta = m as { categoria: "predio" | "casas"; qtdUnidades: number | null };
-        setCategoria(meta.categoria);
+        const meta = m as { categoria: string; qtdUnidades: number | null };
+        setCategoria(normalizeCategoria(meta.categoria));
         setQtdConvencao(meta.qtdUnidades);
       })
       .catch(() => {});
@@ -206,7 +206,7 @@ export function UnidadesPanel({
         toast.info("Nenhuma convenção processada foi encontrada neste condomínio.");
       } else if (r.status === "vazio") {
         toast.warning(
-          "A IA não conseguiu identificar unidades no texto da convenção. Verifique se o arquivo carregado é a convenção completa (com quadro de frações/lotes/quadras).",
+          'A IA não achou unidades no texto atualmente indexado. Use "Reprocessar convenção" para baixar o arquivo original e forçar OCR/visão.',
         );
       } else {
         toast.success(
@@ -218,6 +218,65 @@ export function UnidadesPanel({
       toast.error(e instanceof Error ? e.message : "Falha ao detectar unidades");
     } finally {
       setDetectando(false);
+    }
+  }
+
+  async function reprocessar() {
+    setReprocessando(true);
+    const t = toast.loading("Baixando e reinterpretando a convenção com OCR/visão…");
+    try {
+      const r = (await reprocessarFn({ data: { condominioId } })) as
+        | { status: "sem_convencao" }
+        | { status: "erro_download"; mensagem?: string }
+        | { status: "erro_leitura"; mensagem?: string }
+        | { status: "erro_indexacao"; mensagem?: string }
+        | { status: "vazio_extracao" }
+        | { status: "sem_unidades"; modo: string; chunks: number }
+        | {
+            status: "gerada";
+            unidades: UnidadeSugerida[];
+            modo: string;
+            chunks: number;
+          };
+      toast.dismiss(t);
+      switch (r.status) {
+        case "sem_convencao":
+          toast.info("Este condomínio não tem convenção enviada.");
+          break;
+        case "erro_download":
+          toast.error(`Não foi possível baixar o arquivo original. ${r.mensagem ?? ""}`);
+          break;
+        case "erro_leitura":
+          toast.error(
+            `Não foi possível ler o conteúdo do arquivo. ${r.mensagem ?? ""}`,
+          );
+          break;
+        case "erro_indexacao":
+          toast.error(`Falha ao reindexar os trechos. ${r.mensagem ?? ""}`);
+          break;
+        case "vazio_extracao":
+          toast.warning(
+            "Mesmo com OCR/visão o arquivo não devolveu texto legível. Reenvie uma versão de melhor qualidade da convenção.",
+          );
+          break;
+        case "sem_unidades":
+          toast.warning(
+            `Convenção reprocessada (${r.chunks} trechos, modo: ${r.modo}), mas a IA não localizou uma lista de ${vocab.unidade.toLowerCase()}s. Confirme se o arquivo enviado é a convenção completa (com quadro de frações/anexos).`,
+          );
+          refresh();
+          break;
+        case "gerada":
+          toast.success(
+            `${r.unidades.length} ${vocab.unidade.toLowerCase()}(s) identificada(s) após reprocessamento (${r.modo}).`,
+          );
+          refresh();
+          break;
+      }
+    } catch (e) {
+      toast.dismiss(t);
+      toast.error(e instanceof Error ? e.message : "Falha ao reprocessar a convenção");
+    } finally {
+      setReprocessando(false);
     }
   }
 
@@ -384,6 +443,21 @@ export function UnidadesPanel({
                 <Sparkles className="h-4 w-4 mr-1" />
               )}
               Reler convenção
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={reprocessando}
+              onClick={reprocessar}
+              className="transition-colors"
+              title="Baixa o arquivo original e força OCR/visão. Use se a IA não estiver lendo o conteúdo."
+            >
+              {reprocessando ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-1" />
+              )}
+              Reprocessar convenção
             </Button>
             <Button
               variant="outline"
