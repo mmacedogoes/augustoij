@@ -444,6 +444,59 @@ export function UnidadesPanel({
           }}
         />
       )}
+
+      {revisarUnidades && (
+        <RevisarUnidadesDialog
+          sugestoes={revisarUnidades.unidades}
+          onClose={() => setRevisarUnidades(null)}
+          onConfirmar={async (linhas) => {
+            const r = (await importFn({
+              data: { condominioId, linhas: linhas as never },
+            })) as {
+              unidadesCriadas: number;
+              unidadesAtualizadas: number;
+              condominosCriados: number;
+              erros: { linha: number; mensagem: string }[];
+            };
+            if (revisarUnidades.sugestaoId) {
+              await updateSugestaoFn({
+                data: { id: revisarUnidades.sugestaoId, status: "aplicada" },
+              });
+              setSugestoes((prev) => prev.filter((s) => s.id !== revisarUnidades.sugestaoId));
+            }
+            toast.success(
+              `${r.unidadesCriadas} nova(s), ${r.unidadesAtualizadas} já existiam.`,
+            );
+            setRevisarUnidades(null);
+            refresh();
+          }}
+        />
+      )}
+
+      {revisarCondominos && (
+        <RevisarCondominosDialog
+          sugestoes={revisarCondominos.condominos}
+          unidades={revisarCondominos.unidades}
+          onClose={() => setRevisarCondominos(null)}
+          onConfirmar={async (linhas) => {
+            const r = (await importFn({
+              data: { condominioId, linhas: linhas as never },
+            })) as {
+              unidadesCriadas: number;
+              unidadesAtualizadas: number;
+              condominosCriados: number;
+              erros: { linha: number; mensagem: string }[];
+            };
+            toast.success(
+              `${r.condominosCriados} condômino(s) importado(s).${
+                r.erros.length ? ` ${r.erros.length} erro(s).` : ""
+              }`,
+            );
+            setRevisarCondominos(null);
+            refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
