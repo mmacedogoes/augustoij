@@ -848,8 +848,11 @@ function UnidadeFormDialog({
               <SelectContent>
                 <SelectItem value="apartamento">Apartamento</SelectItem>
                 <SelectItem value="casa">Casa</SelectItem>
+                <SelectItem value="lote">Lote</SelectItem>
+                <SelectItem value="terreno">Terreno</SelectItem>
                 <SelectItem value="sala_comercial">Sala comercial</SelectItem>
                 <SelectItem value="loja">Loja</SelectItem>
+                <SelectItem value="galpao">Galpão</SelectItem>
                 <SelectItem value="vaga_avulsa">Vaga avulsa</SelectItem>
                 <SelectItem value="outro">Outro</SelectItem>
               </SelectContent>
