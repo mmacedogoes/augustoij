@@ -314,7 +314,7 @@ export function UnidadesPanel({
   }
 
   async function excluir(u: Unidade) {
-    if (!confirm(`Excluir a unidade ${formatLabel(u)} e todos os condôminos vinculados?`)) return;
+    if (!confirm(`Excluir a unidade ${formatLabel(u, vocab.bloco)} e todos os condôminos vinculados?`)) return;
     try {
       await deleteFn({ data: { id: u.id } });
       toast.success("Unidade removida.");
@@ -435,7 +435,7 @@ export function UnidadesPanel({
                 className="flex-1 min-w-0 text-left hover:bg-muted/30 -m-2 p-2 rounded transition-colors"
                 title="Ver detalhes da unidade"
               >
-                <p className="font-medium text-primary hover:underline">{formatLabel(u)}</p>
+                <p className="font-medium text-primary hover:underline">{formatLabel(u, vocab.bloco)}</p>
                 <p className="text-xs text-muted-foreground">
                   {labelTipoUnidade(u.tipo)}
                   {u.area_m2 ? ` • ${u.area_m2} m²` : ""}
