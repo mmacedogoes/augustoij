@@ -56,7 +56,7 @@ export function RevisarUnidadesDialog({
     bloco: string;
     numero: string;
     unidade: string;
-    tipoPadrao: "apartamento" | "casa";
+    tipoPadrao: "apartamento" | "casa" | "sala_comercial" | "loja" | "outro";
   };
   qtdMaxima?: number | null;
   onClose: () => void;
