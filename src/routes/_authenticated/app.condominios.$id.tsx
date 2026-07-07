@@ -57,11 +57,11 @@ function CondominioDetail() {
   const fetchProfile = useServerFn(getProfile);
   const checkAdmin = useServerFn(isCurrentUserAdmin);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; owner_id?: string } | null>(null);
+  const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; categoria?: string | null; owner_id?: string } | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [form, setForm] = useState({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: 0 });
+  const [form, setForm] = useState({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: 0, categoria: "predio" as "predio" | "casas" });
   const [conversaAtiva, setConversaAtiva] = useState<string | null>(null);
   // chave usada como `key` do ChatPanel para forçar remount limpo
   // ao trocar entre "nova conversa" e abrir uma conversa do histórico.
