@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getCategoriaMeta, normalizeCategoria } from "@/lib/categorias-condominio";
 
 /**
  * Sugestões estruturadas de unidades e condôminos extraídas por IA.
@@ -112,13 +113,15 @@ export async function _extrairESalvarSugestaoUnidades(
   if (error || !doc) return [];
   if (doc.status_processamento !== "pronto") return [];
 
-  // Categoria do condomínio guia o vocabulário do prompt
+  // Categoria do condomínio guia o vocabulário do prompt (predio, casas,
+  // salas_comerciais, shopping, galpoes)
   const { data: cond } = await supabase
     .from("condominios")
     .select("categoria, qtd_unidades")
     .eq("id", doc.condominio_id)
     .maybeSingle();
-  const categoria = (cond?.categoria as string) === "casas" ? "casas" : "predio";
+  const categoriaId = normalizeCategoria(cond?.categoria as string | null);
+  const catMeta = getCategoriaMeta(categoriaId);
   const qtdEsperada = (cond?.qtd_unidades as number | null) ?? null;
 
   const { data: chunks } = await supabase
@@ -129,26 +132,27 @@ export async function _extrairESalvarSugestaoUnidades(
   // Prioriza chunks que mencionam vocabulário de unidades — a tabela costuma
   // aparecer no meio/fim da convenção e ficava de fora do corte de 40k.
   const RE_UNIDADE =
-    /(unidade|apart(a|â)mento|apto|fra[cç][aã]o|lote|quadra|bloco|garagem|vaga|área privativa|coeficiente)/i;
+    /(unidade|apart(a|â)mento|apto|fra[cç][aã]o|lote|quadra|bloco|garag(e|em)|vaga|área privativa|coeficiente|sala|loja|piso|pavimento|galp[aã]o|setor|m[oó]dulo|torre)/i;
   const rawChunks = (chunks ?? []).map((c) => c.conteudo as string);
   const prioritarios = rawChunks.filter((c) => RE_UNIDADE.test(c));
   const restantes = rawChunks.filter((c) => !RE_UNIDADE.test(c));
   const texto = [...prioritarios, ...restantes].join("\n\n").slice(0, 150000);
   if (!texto.trim()) return [];
 
-  const vocab =
-    categoria === "casas"
-      ? 'Este condomínio é de CASAS. Use "bloco" para armazenar a QUADRA e "numero" para o LOTE/CASA. Tipo padrão: "casa".'
-      : 'Este condomínio é de PRÉDIO/APARTAMENTOS. Use "bloco" para o bloco/torre e "numero" para o apartamento. Tipo padrão: "apartamento".';
   const hint = qtdEsperada
-    ? `A convenção deve listar aproximadamente ${qtdEsperada} unidades.`
+    ? `O cadastro do condomínio indica aproximadamente ${qtdEsperada} unidades — use esse valor como referência.`
     : "";
   const system =
     "Você é um assistente especialista em convenções de condomínio brasileiras. " +
     "Sua tarefa é EXTRAIR TODAS as unidades autônomas mencionadas — mesmo que o texto esteja " +
     "quebrado por OCR ou dividido em várias tabelas/anexos. Procure quadros de frações ideais, " +
     "listas numeradas, anexos, memoriais descritivos e o corpo da convenção. " +
-    vocab + " " + hint + " " +
+    catMeta.vocabIA + " " + hint + " " +
+    "REGRA IMPORTANTE: se a convenção declarar quantidades globais (por exemplo " +
+    '"o condomínio é composto por 662 lotes distribuídos em 36 quadras" ou "40 apartamentos por bloco") ' +
+    "e NÃO trouxer a lista individual completa, GERE as unidades numericamente conforme a descrição " +
+    "(ex.: 662 lotes → gere lotes 1..662; se houver quadras nomeadas Q1..Q36 com N lotes cada, distribua). " +
+    "Prefira sempre a lista real quando existir. NÃO devolva vazio se o próprio texto disser quantas unidades existem. " +
     'Responda EXCLUSIVAMENTE em JSON no formato: {"unidades":[{"bloco":string|null,"numero":string,' +
     '"tipo":"apartamento|casa|sala_comercial|loja|vaga_avulsa|outro","fracao_ideal":number|null,' +
     '"area_m2":number|null,"vagas_garagem":number}]}. ' +
@@ -375,4 +379,137 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
       return { status: "vazio" as const, documentoId: doc.id };
     }
     return { status: "gerada" as const, unidades, documentoId: doc.id };
+  });
+
+/**
+ * Reprocessamento REAL da convenção:
+ *  1. baixa o PDF original do storage;
+ *  2. extrai texto — se o resultado for pobre (poucas keywords de unidade),
+ *     força fallback de visão/OCR mesmo que exista camada de texto;
+ *  3. reindexa (apaga chunks antigos, recria com novos embeddings);
+ *  4. executa a extração de unidades com force=true.
+ * Retorna status descritivo para a UI mostrar mensagem específica.
+ */
+export const reprocessarConvencao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { condominioId: string }) =>
+    z.object({ condominioId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+    await assertOwnerCondominio(context.supabase, context.userId, data.condominioId);
+
+    const { data: doc } = await context.supabase
+      .from("documentos")
+      .select("id, storage_path, nome_arquivo")
+      .eq("condominio_id", data.condominioId)
+      .eq("tipo", "convencao")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!doc) return { status: "sem_convencao" as const };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { extractText, extractTextWithVision, chunkText } = await import(
+      "./documentos.server"
+    );
+    const { embedChunksParallel } = await import("./ai-gateway.server");
+
+    // 1) baixa arquivo original
+    const { data: file, error: dlErr } = await supabaseAdmin.storage
+      .from("documentos")
+      .download(doc.storage_path);
+    if (dlErr || !file) {
+      return { status: "erro_download" as const, mensagem: dlErr?.message ?? "" };
+    }
+    const buffer = new Uint8Array(await file.arrayBuffer());
+
+    // 2) extrai texto (com fallback e detecção de texto "ruim")
+    const RE_UNIDADE =
+      /(unidade|apart|apto|fra[cç][aã]o|lote|quadra|bloco|garag|vaga|área privativa|coeficiente|sala|loja|piso|pavimento|galp[aã]o|setor|m[oó]dulo|torre)/gi;
+    let texto = "";
+    let modo: "texto" | "visao_forcada" | "visao_fallback" = "texto";
+    try {
+      texto = await extractText(buffer, doc.nome_arquivo);
+    } catch (err) {
+      if (err instanceof Error && err.message === "__NEEDS_VISION__") {
+        modo = "visao_fallback";
+        // preserva buffer: extractText do PDF detach o array — precisamos recopiar
+        const copy = new Uint8Array(buffer.byteLength);
+        copy.set(buffer);
+        texto = await extractTextWithVision(apiKey, copy, doc.nome_arquivo);
+      } else {
+        return {
+          status: "erro_leitura" as const,
+          mensagem: err instanceof Error ? err.message : String(err),
+        };
+      }
+    }
+
+    const hits = (texto.match(RE_UNIDADE) ?? []).length;
+    const densidade = texto.length > 0 ? hits / (texto.length / 1000) : 0;
+    // Texto suspeito: mais de 1500 chars mas menos de 1 keyword de unidade a
+    // cada 1000 chars → provável ruído (headers PJe/carimbos). Força OCR/visão.
+    if (modo === "texto" && texto.length > 1500 && densidade < 1 && buffer.byteLength > 0) {
+      try {
+        const copy = new Uint8Array(buffer.byteLength);
+        copy.set(buffer);
+        texto = await extractTextWithVision(apiKey, copy, doc.nome_arquivo);
+        modo = "visao_forcada";
+      } catch {
+        // mantém o texto original — tenta indexar assim mesmo
+      }
+    }
+
+    if (!texto.trim()) {
+      return { status: "vazio_extracao" as const };
+    }
+
+    // 3) reindexa chunks
+    await supabaseAdmin.from("document_chunks").delete().eq("documento_id", doc.id);
+    const chunks = chunkText(texto, 1000, 150);
+    const embeddings = await embedChunksParallel(apiKey, chunks, 5);
+    const rows = chunks.map((c, i) => ({
+      condominio_id: data.condominioId,
+      documento_id: doc.id,
+      conteudo: c,
+      embedding: `[${embeddings[i].join(",")}]`,
+    }));
+    for (let i = 0; i < rows.length; i += 50) {
+      const slice = rows.slice(i, i + 50);
+      const { error: insErr } = await supabaseAdmin
+        .from("document_chunks")
+        .insert(slice);
+      if (insErr) {
+        return { status: "erro_indexacao" as const, mensagem: insErr.message };
+      }
+    }
+    await supabaseAdmin
+      .from("documentos")
+      .update({ status_processamento: "pronto" })
+      .eq("id", doc.id);
+
+    // 4) roda extração de unidades já com o texto novo
+    const unidades = await _extrairESalvarSugestaoUnidades(
+      context.supabase,
+      doc.id,
+      apiKey,
+      { force: true },
+    );
+    if (unidades.length === 0) {
+      return {
+        status: "sem_unidades" as const,
+        documentoId: doc.id,
+        modo,
+        chunks: chunks.length,
+      };
+    }
+    return {
+      status: "gerada" as const,
+      documentoId: doc.id,
+      unidades,
+      modo,
+      chunks: chunks.length,
+    };
   });

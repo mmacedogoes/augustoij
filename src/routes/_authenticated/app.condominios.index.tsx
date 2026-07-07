@@ -13,6 +13,11 @@ import { listCondominios, createCondominio } from "@/lib/condominios.functions";
 import { usePlanContext } from "@/hooks/usePlanContext";
 import { gateMessages } from "@/lib/plan-gates";
 import { toast } from "sonner";
+import {
+  CATEGORIAS_CONDOMINIO,
+  type CategoriaCondominio,
+  getCategoriaMeta,
+} from "@/lib/categorias-condominio";
 
 export const Route = createFileRoute("/_authenticated/app/condominios/")({
   component: CondominiosPage,
@@ -23,6 +28,7 @@ const schema = z.object({
   cnpj: z.string().trim().max(20).optional(),
   uf: z.string().trim().length(2, "UF deve ter 2 letras").optional().or(z.literal("")),
   qtd_unidades: z.coerce.number().int().min(0).max(100000).optional(),
+  categoria: z.enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"]),
 });
 
 function CondominiosPage() {
@@ -31,7 +37,13 @@ function CondominiosPage() {
   const { data: plano, refetch: refetchPlano } = usePlanContext();
   const [items, setItems] = useState<Array<{ id: string; nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null }>>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ nome: "", cnpj: "", uf: "", qtd_unidades: "" });
+  const [form, setForm] = useState<{
+    nome: string;
+    cnpj: string;
+    uf: string;
+    qtd_unidades: string;
+    categoria: CategoriaCondominio;
+  }>({ nome: "", cnpj: "", uf: "", qtd_unidades: "", categoria: "predio" });
   const [loading, setLoading] = useState(false);
 
   async function reload() {
@@ -51,10 +63,11 @@ function CondominiosPage() {
         cnpj: parsed.data.cnpj || null,
         uf: parsed.data.uf ? parsed.data.uf.toUpperCase() : null,
         qtd_unidades: parsed.data.qtd_unidades ?? null,
+        categoria: parsed.data.categoria,
       }});
       toast.success("Condomínio criado!");
       setOpen(false);
-      setForm({ nome: "", cnpj: "", uf: "", qtd_unidades: "" });
+      setForm({ nome: "", cnpj: "", uf: "", qtd_unidades: "", categoria: "predio" });
       reload();
       refetchPlano();
     } catch (e) {
@@ -102,11 +115,34 @@ function CondominiosPage() {
               <DialogHeader><DialogTitle>Cadastrar condomínio</DialogTitle></DialogHeader>
               <form onSubmit={onCreate} className="space-y-4">
                 <div className="space-y-2"><Label htmlFor="nome">Nome *</Label><Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+                <div className="space-y-2">
+                  <Label htmlFor="categoria">Tipo de condomínio *</Label>
+                  <select
+                    id="categoria"
+                    value={form.categoria}
+                    onChange={(e) =>
+                      setForm({ ...form, categoria: e.target.value as CategoriaCondominio })
+                    }
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {CATEGORIAS_CONDOMINIO.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    {getCategoriaMeta(form.categoria).descricaoCurta} — guia a IA na leitura da convenção.
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} /></div>
                   <div className="space-y-2"><Label htmlFor="uf">UF</Label><Input id="uf" value={form.uf} maxLength={2} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} placeholder="SP" /></div>
                 </div>
-                <div className="space-y-2"><Label htmlFor="qtd">Unidades</Label><Input id="qtd" type="number" min={0} value={form.qtd_unidades} onChange={(e) => setForm({ ...form, qtd_unidades: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label htmlFor="qtd">{getCategoriaMeta(form.categoria).vocab.unidade}s</Label>
+                  <Input id="qtd" type="number" min={0} value={form.qtd_unidades} onChange={(e) => setForm({ ...form, qtd_unidades: e.target.value })} />
+                </div>
                 <Button type="submit" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Cadastrar"}</Button>
               </form>
             </DialogContent>
