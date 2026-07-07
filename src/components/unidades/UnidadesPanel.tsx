@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, Pencil, Upload, Users, Loader2, Eye, Sparkles, FileUp } from "lucide-react";
+import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import {
   listUnidades,
@@ -15,6 +15,7 @@ import {
   listSugestoesUnidades,
   atualizarStatusSugestao,
   extrairCondominosDeArquivo,
+  detectarUnidadesConvencaoExistente,
 } from "@/lib/unidades-ia.functions";
 import {
   RevisarUnidadesDialog,
@@ -105,6 +106,7 @@ export function UnidadesPanel({
   const listSugestoesFn = useServerFn(listSugestoesUnidades);
   const updateSugestaoFn = useServerFn(atualizarStatusSugestao);
   const extrairCondFn = useServerFn(extrairCondominosDeArquivo);
+  const detectarConvFn = useServerFn(detectarUnidadesConvencaoExistente);
 
   const [loading, setLoading] = useState(true);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -127,6 +129,8 @@ export function UnidadesPanel({
     unidades: UnidadeRef[];
   } | null>(null);
   const [extraindo, setExtraindo] = useState(false);
+  const [detectando, setDetectando] = useState(false);
+  const [openImportUnificado, setOpenImportUnificado] = useState(false);
 
   function refresh() {
     setLoading(true);
@@ -135,18 +139,60 @@ export function UnidadesPanel({
       .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar"))
       .finally(() => setLoading(false));
     listSugestoesFn({ data: { condominioId } })
-      .then((rows) =>
-        setSugestoes(
+      .then(async (rows) => {
+        const list =
           (rows as unknown as {
             id: string;
             documento_id: string | null;
             payload: { unidades?: UnidadeSugerida[] };
-          }[]) ?? [],
-        ),
-      )
+          }[]) ?? [];
+        setSugestoes(list);
+        // Retro-detecção silenciosa (convenções antigas sem sugestão)
+        if (list.length === 0) {
+          try {
+            const r = (await detectarConvFn({ data: { condominioId } })) as {
+              status: "sem_convencao" | "ja_processada" | "gerada";
+            };
+            if (r.status === "gerada") {
+              const again = await listSugestoesFn({ data: { condominioId } });
+              setSugestoes(
+                (again as unknown as {
+                  id: string;
+                  documento_id: string | null;
+                  payload: { unidades?: UnidadeSugerida[] };
+                }[]) ?? [],
+              );
+            }
+          } catch (err) {
+            console.warn("[UnidadesPanel] detecção retroativa falhou", err);
+          }
+        }
+      })
       .catch(() => setSugestoes([]));
   }
   useEffect(refresh, [condominioId]);
+
+  async function detectarManual() {
+    setDetectando(true);
+    try {
+      const r = (await detectarConvFn({ data: { condominioId } })) as {
+        status: "sem_convencao" | "ja_processada" | "gerada";
+        unidades?: UnidadeSugerida[];
+      };
+      if (r.status === "sem_convencao") {
+        toast.info("Nenhuma convenção processada foi encontrada neste condomínio.");
+      } else if (r.status === "ja_processada") {
+        toast.info("Essa convenção já foi processada anteriormente.");
+      } else {
+        toast.success(`${r.unidades?.length ?? 0} unidade(s) detectada(s).`);
+        refresh();
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao detectar unidades");
+    } finally {
+      setDetectando(false);
+    }
+  }
 
   async function abrirImportarCondominos(file: File) {
     if (file.size > 10 * 1024 * 1024) {
@@ -293,33 +339,34 @@ export function UnidadesPanel({
         </div>
         {isOwner && (
           <div className="flex gap-2 flex-wrap">
+            {sugestoes.length === 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={detectando}
+                onClick={detectarManual}
+                className="transition-colors"
+              >
+                {detectando ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-1" />
+                )}
+                Detectar unidades na convenção
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
               disabled={extraindo}
-              onClick={() => document.getElementById("upload-condominos-ia")?.click()}
-              className="transition-colors"
+              onClick={() => setOpenImportUnificado(true)}
             >
               {extraindo ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <FileUp className="h-4 w-4 mr-1" />
               )}
-              Importar condôminos (IA)
-            </Button>
-            <input
-              id="upload-condominos-ia"
-              type="file"
-              accept=".csv,.xlsx,.xls,.docx,.pdf"
-              className="hidden"
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) await abrirImportarCondominos(f);
-              }}
-            />
-            <Button variant="outline" size="sm" onClick={() => setOpenImport(true)}>
-              <Upload className="h-4 w-4 mr-1" /> Importar CSV
+              Importar unidades e condôminos
             </Button>
             <Button size="sm" onClick={openCreate}>
               <Plus className="h-4 w-4 mr-1" /> Nova unidade
@@ -331,7 +378,8 @@ export function UnidadesPanel({
       {unidades.length === 0 ? (
         <Card className="p-8 text-center border-dashed">
           <p className="text-sm text-muted-foreground">
-            Nenhuma unidade cadastrada. {isOwner && "Use 'Nova unidade' ou 'Importar CSV'."}
+            Nenhuma unidade cadastrada.{" "}
+            {isOwner && "Use 'Nova unidade' ou 'Importar unidades e condôminos'."}
           </p>
         </Card>
       ) : (
@@ -496,6 +544,60 @@ export function UnidadesPanel({
             refresh();
           }}
         />
+      )}
+
+      {openImportUnificado && (
+        <Dialog open onOpenChange={(v) => !v && setOpenImportUnificado(false)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Importar unidades e condôminos</DialogTitle>
+              <DialogDescription>
+                Envie um arquivo com a lista de condôminos (CSV, Excel, PDF, DOCX, DOC ou
+                TXT). As unidades são extraídas automaticamente da convenção do condomínio
+                na aba Documentos.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <input
+                id="upload-import-unificado"
+                type="file"
+                accept=".csv,.xlsx,.xls,.pdf,.docx,.doc,.txt"
+                className="hidden"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  setOpenImportUnificado(false);
+                  await abrirImportarCondominos(f);
+                }}
+              />
+              <Button
+                className="w-full"
+                disabled={extraindo}
+                onClick={() =>
+                  document.getElementById("upload-import-unificado")?.click()
+                }
+              >
+                {extraindo ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileUp className="h-4 w-4 mr-2" />
+                )}
+                Selecionar arquivo
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenImportUnificado(false);
+                  setOpenImport(true);
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors block mx-auto"
+              >
+                Importar via CSV estruturado (avançado)
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

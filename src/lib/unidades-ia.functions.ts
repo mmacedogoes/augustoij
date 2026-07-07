@@ -304,3 +304,40 @@ export const extrairCondominosDeArquivo = createServerFn({ method: "POST" })
 
     return { condominos, unidades: unidadesResumo };
   });
+
+export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { condominioId: string }) =>
+    z.object({ condominioId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+    await assertOwnerCondominio(context.supabase, context.userId, data.condominioId);
+
+    const { data: doc } = await context.supabase
+      .from("documentos")
+      .select("id")
+      .eq("condominio_id", data.condominioId)
+      .eq("tipo", "convencao")
+      .eq("status_processamento", "pronto")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!doc) return { status: "sem_convencao" as const };
+
+    const { data: existente } = await context.supabase
+      .from("sugestoes_unidades")
+      .select("id, status")
+      .eq("documento_id", doc.id)
+      .limit(1)
+      .maybeSingle();
+    if (existente) return { status: "ja_processada" as const };
+
+    const unidades = await _extrairESalvarSugestaoUnidades(
+      context.supabase,
+      doc.id,
+      apiKey,
+    );
+    return { status: "gerada" as const, unidades, documentoId: doc.id };
+  });
