@@ -10,6 +10,7 @@ import {
   createCondomino,
   deleteCondomino,
   importUnidadesLote,
+  getCondominioMeta,
 } from "@/lib/unidades.functions";
 import {
   listSugestoesUnidades,
@@ -103,6 +104,7 @@ export function UnidadesPanel({
   const createCondFn = useServerFn(createCondomino);
   const deleteCondFn = useServerFn(deleteCondomino);
   const importFn = useServerFn(importUnidadesLote);
+  const metaFn = useServerFn(getCondominioMeta);
   const listSugestoesFn = useServerFn(listSugestoesUnidades);
   const updateSugestaoFn = useServerFn(atualizarStatusSugestao);
   const extrairCondFn = useServerFn(extrairCondominosDeArquivo);
@@ -131,9 +133,28 @@ export function UnidadesPanel({
   const [extraindo, setExtraindo] = useState(false);
   const [detectando, setDetectando] = useState(false);
   const [openImportUnificado, setOpenImportUnificado] = useState(false);
+  const [categoria, setCategoria] = useState<"predio" | "casas">("predio");
+  const [qtdConvencao, setQtdConvencao] = useState<number | null>(null);
+
+  const vocab =
+    categoria === "casas"
+      ? { bloco: "Quadra", numero: "Lote", unidade: "Lote", tipoPadrao: "casa" as const }
+      : {
+          bloco: "Bloco",
+          numero: "Número",
+          unidade: "Unidade",
+          tipoPadrao: "apartamento" as const,
+        };
 
   function refresh() {
     setLoading(true);
+    metaFn({ data: { condominioId } })
+      .then((m) => {
+        const meta = m as { categoria: "predio" | "casas"; qtdUnidades: number | null };
+        setCategoria(meta.categoria);
+        setQtdConvencao(meta.qtdUnidades);
+      })
+      .catch(() => {});
     fetchAll({ data: { condominioId } })
       .then((r) => setUnidades((r as Unidade[]) ?? []))
       .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar"))
@@ -176,13 +197,31 @@ export function UnidadesPanel({
     setDetectando(true);
     try {
       const r = (await detectarConvFn({ data: { condominioId } })) as {
-        status: "sem_convencao" | "ja_processada" | "gerada";
+        status: "sem_convencao" | "ja_processada" | "gerada" | "vazio";
         unidades?: UnidadeSugerida[];
       };
       if (r.status === "sem_convencao") {
         toast.info("Nenhuma convenção processada foi encontrada neste condomínio.");
       } else if (r.status === "ja_processada") {
-        toast.info("Essa convenção já foi processada anteriormente.");
+        // Já existe sugestão — força uma releitura
+        const r2 = (await detectarConvFn({
+          data: { condominioId, force: true },
+        })) as {
+          status: "gerada" | "vazio";
+          unidades?: UnidadeSugerida[];
+        };
+        if (r2.status === "gerada") {
+          toast.success(`${r2.unidades?.length ?? 0} unidade(s) detectada(s) na convenção.`);
+          refresh();
+        } else {
+          toast.warning(
+            "A IA não conseguiu identificar unidades no texto da convenção. Verifique se o arquivo carregado é realmente a convenção completa (com quadro de frações/lotes).",
+          );
+        }
+      } else if (r.status === "vazio") {
+        toast.warning(
+          "A IA não conseguiu identificar unidades no texto da convenção. Verifique se o arquivo carregado é realmente a convenção completa (com quadro de frações/lotes).",
+        );
       } else {
         toast.success(`${r.unidades?.length ?? 0} unidade(s) detectada(s).`);
         refresh();
