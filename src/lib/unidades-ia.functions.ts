@@ -93,6 +93,65 @@ async function callGeminiJson(
   }
 }
 
+/**
+ * Núcleo compartilhado: dado um documento já processado, extrai unidades
+ * e persiste uma sugestão pendente. Reutilizado pelo auto-disparo em
+ * processDocumento e pela server function pública.
+ */
+export async function _extrairESalvarSugestaoUnidades(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  documentoId: string,
+  apiKey: string,
+): Promise<UnidadeSugerida[]> {
+  const { data: doc, error } = await supabase
+    .from("documentos")
+    .select("id, condominio_id, nome_arquivo, status_processamento")
+    .eq("id", documentoId)
+    .maybeSingle();
+  if (error || !doc) return [];
+  if (doc.status_processamento !== "pronto") return [];
+
+  const { data: chunks } = await supabase
+    .from("document_chunks")
+    .select("conteudo")
+    .eq("documento_id", doc.id)
+    .limit(200);
+  const texto = (chunks ?? [])
+    .map((c) => c.conteudo as string)
+    .join("\n\n")
+    .slice(0, 40000);
+  if (!texto.trim()) return [];
+
+  const system =
+    "Você é um assistente que extrai dados estruturados de convenções de condomínio brasileiras. " +
+    "Sua tarefa é listar TODAS as unidades autônomas do quadro de frações ideais / áreas / vagas. " +
+    'Responda EXCLUSIVAMENTE em JSON no formato: {"unidades":[{"bloco":string|null,"numero":string,' +
+    '"tipo":"apartamento|casa|sala_comercial|loja|vaga_avulsa|outro","fracao_ideal":number|null,' +
+    '"area_m2":number|null,"vagas_garagem":number}]}. ' +
+    "Se o documento não trouxer o campo, use null (ou 0 para vagas). Não invente unidades.";
+  const user = `Arquivo: ${doc.nome_arquivo}\n\nTexto da convenção (pode estar truncado):\n\n${texto}`;
+
+  const parsed = (await callGeminiJson(apiKey, system, user)) as { unidades?: unknown[] };
+  const linhas = z.array(UnidadeSugestao).safeParse(parsed?.unidades ?? []);
+  const unidades = linhas.success ? linhas.data : [];
+  if (unidades.length === 0) return [];
+
+  await supabase
+    .from("sugestoes_unidades")
+    .delete()
+    .eq("documento_id", doc.id)
+    .eq("status", "pendente");
+  await supabase.from("sugestoes_unidades").insert({
+    condominio_id: doc.condominio_id,
+    documento_id: doc.id,
+    payload: { unidades },
+    status: "pendente",
+  });
+  return unidades;
+}
+
+type UnidadeSugerida = z.infer<typeof UnidadeSugestao>;
+
 export const extrairUnidadesDaConvencao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { documentoId: string; persistir?: boolean }) =>
@@ -119,45 +178,11 @@ export const extrairUnidadesDaConvencao = createServerFn({ method: "POST" })
       throw new Error("Documento ainda não foi processado.");
     }
 
-    const { data: chunks, error: cErr } = await context.supabase
-      .from("document_chunks")
-      .select("conteudo")
-      .eq("documento_id", doc.id)
-      .limit(200);
-    if (cErr) throw new Error(cErr.message);
-    const texto = (chunks ?? [])
-      .map((c) => c.conteudo as string)
-      .join("\n\n")
-      .slice(0, 40000);
-    if (!texto.trim()) throw new Error("Documento sem texto indexado.");
-
-    const system =
-      "Você é um assistente que extrai dados estruturados de convenções de condomínio brasileiras. " +
-      "Sua tarefa é listar TODAS as unidades autônomas do quadro de frações ideais / áreas / vagas. " +
-      'Responda EXCLUSIVAMENTE em JSON no formato: {"unidades":[{"bloco":string|null,"numero":string,' +
-      '"tipo":"apartamento|casa|sala_comercial|loja|vaga_avulsa|outro","fracao_ideal":number|null,' +
-      '"area_m2":number|null,"vagas_garagem":number}]}. ' +
-      "Se o documento não trouxer o campo, use null (ou 0 para vagas). Não invente unidades.";
-    const user = `Arquivo: ${doc.nome_arquivo}\n\nTexto da convenção (pode estar truncado):\n\n${texto}`;
-
-    const parsed = (await callGeminiJson(apiKey, system, user)) as { unidades?: unknown[] };
-    const linhas = z.array(UnidadeSugestao).safeParse(parsed?.unidades ?? []);
-    const unidades = linhas.success ? linhas.data : [];
-
-    if (data.persistir && unidades.length > 0) {
-      await context.supabase
-        .from("sugestoes_unidades")
-        .delete()
-        .eq("documento_id", doc.id)
-        .eq("status", "pendente");
-      await context.supabase.from("sugestoes_unidades").insert({
-        condominio_id: doc.condominio_id,
-        documento_id: doc.id,
-        payload: { unidades },
-        status: "pendente",
-      });
-    }
-
+    const unidades = await _extrairESalvarSugestaoUnidades(
+      context.supabase,
+      doc.id,
+      apiKey,
+    );
     return { unidades, documentoId: doc.id, condominioId: doc.condominio_id };
   });
 
