@@ -291,7 +291,14 @@ function CondominioDetail() {
                     <p><strong>CNPJ:</strong> {condo?.cnpj ?? "—"}</p>
                     <p><strong>Endereço:</strong> {condo?.endereco ?? "—"}</p>
                     <p><strong>UF:</strong> {condo?.uf ?? "—"}</p>
-                    <p><strong>Unidades:</strong> {condo?.qtd_unidades ?? 0}</p>
+                    <p>
+                      <strong>Tipo:</strong>{" "}
+                      {condo?.categoria === "casas" ? "Condomínio de casas" : "Prédio / apartamentos"}
+                    </p>
+                    <p>
+                      <strong>{condo?.categoria === "casas" ? "Lotes" : "Unidades"}:</strong>{" "}
+                      {condo?.qtd_unidades ?? 0}
+                    </p>
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -312,7 +319,25 @@ function CondominioDetail() {
                       <Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Unidades</Label>
+                      <Label>Tipo de condomínio</Label>
+                      <select
+                        value={form.categoria}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            categoria: (e.target.value === "casas" ? "casas" : "predio") as
+                              | "predio"
+                              | "casas",
+                          })
+                        }
+                        className="h-10 w-full border rounded-md px-3 text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-shadow"
+                      >
+                        <option value="predio">Prédio / apartamentos</option>
+                        <option value="casas">Condomínio de casas</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>{form.categoria === "casas" ? "Lotes" : "Unidades"}</Label>
                       <Input
                         type="number"
                         min={0}
