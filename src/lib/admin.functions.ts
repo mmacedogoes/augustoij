@@ -318,6 +318,157 @@ export const getUsageTimeseries = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+/**
+ * Visão geral do negócio para o dashboard admin.
+ * Consolida receita (MRR estimada), custo Lovable, distribuição de assinaturas,
+ * atividade diária e saúde operacional em uma única chamada.
+ */
+export type AdminOverview = {
+  mes: string;
+  mrr: number;
+  novos_usuarios_mes: number;
+  margem_mes: number;
+  custo_lovable_mes: number;
+  despesas_mes: number;
+  assinaturas: { ativas: number; trialing: number; cortesia: number; canceladas: number };
+  distribuicao_planos: Array<{ plano: string; quantidade: number }>;
+  serie_receita_custo: Array<{ mes: string; receita: number; custo: number }>;
+  serie_mensagens: Array<{ dia: string; mensagens: number }>;
+  operacional: {
+    condominios_total: number;
+    condominios_ativos_mes: number;
+    documentos_total: number;
+    documentos_erro: number;
+    kb_prontos: number;
+    kb_total: number;
+    storage_mb: number;
+  };
+};
+
+export const getAdminOverview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AdminOverview> => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const now = new Date();
+    const mesAtual = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const primeiroDiaAtual = `${mesAtual}-01`;
+
+    // 6 meses de histórico (inclui atual)
+    const meses: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      meses.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+    }
+    const seisMesesAtras = `${meses[0]}-01`;
+
+    const [
+      subsRes,
+      planosRes,
+      profilesMesRes,
+      condosRes,
+      docsRes,
+      kbRes,
+      usoMesesRes,
+      despesasRes,
+      serieRes,
+      condosAtivosRes,
+    ] = await Promise.all([
+      supabaseAdmin.from("subscriptions").select("plano_id, plano_config_id, status, cortesia"),
+      supabaseAdmin.from("planos").select("id, nome, preco_mensal"),
+      supabaseAdmin
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", `${primeiroDiaAtual}T00:00:00Z`),
+      supabaseAdmin.from("condominios").select("owner_id"),
+      supabaseAdmin.from("documentos").select("id, status_processamento"),
+      supabaseAdmin.from("kb_documentos").select("id, status_processamento"),
+      supabaseAdmin
+        .from("uso_mensal")
+        .select("mes_ano, custo_estimado_brl, total_credits")
+        .gte("mes_ano", meses[0]),
+      supabaseAdmin
+        .from("despesas")
+        .select("valor, data")
+        .gte("data", seisMesesAtras),
+      supabaseAdmin.rpc("admin_usage_timeseries", { _days: 30 }),
+      supabaseAdmin.rpc("admin_dashboard_metrics"),
+    ]);
+
+    const planosById = Object.fromEntries(
+      (planosRes.data ?? []).map((p) => [p.id, { nome: p.nome as string, preco: Number(p.preco_mensal ?? 0) }]),
+    );
+
+    // MRR = soma dos preços dos planos das assinaturas ativas/trial
+    let mrr = 0;
+    const dist: Record<string, number> = {};
+    let ativas = 0, trialing = 0, cortesia = 0, canceladas = 0;
+    for (const s of subsRes.data ?? []) {
+      const plano = s.plano_id ? planosById[s.plano_id] : undefined;
+      const nomePlano = s.cortesia ? "Cortesia" : plano?.nome ?? (s.plano_config_id ?? "Trial");
+      dist[nomePlano] = (dist[nomePlano] ?? 0) + 1;
+      if (s.status === "active") { ativas++; mrr += plano?.preco ?? 0; }
+      else if (s.status === "trialing") trialing++;
+      else if (s.status === "canceled") canceladas++;
+      if (s.cortesia) cortesia++;
+    }
+    const distribuicao_planos = Object.entries(dist)
+      .map(([plano, quantidade]) => ({ plano, quantidade }))
+      .sort((a, b) => b.quantidade - a.quantidade);
+
+    // Série receita × custo dos últimos 6 meses
+    const custoPorMes: Record<string, number> = {};
+    for (const u of usoMesesRes.data ?? []) {
+      const m = String(u.mes_ano);
+      custoPorMes[m] = (custoPorMes[m] ?? 0) + Number(u.custo_estimado_brl ?? 0);
+    }
+    const serie_receita_custo = meses.map((m) => ({
+      mes: m,
+      receita: mrr, // MRR corrente projetado no histórico — sem histórico de plano por sub
+      custo: Number((custoPorMes[m] ?? 0).toFixed(2)),
+    }));
+
+    const custo_lovable_mes = custoPorMes[mesAtual] ?? 0;
+    const despesas_mes = (despesasRes.data ?? [])
+      .filter((d) => String(d.data).startsWith(mesAtual))
+      .reduce((a, d) => a + Number(d.valor ?? 0), 0);
+    const margem_mes = mrr - custo_lovable_mes - despesas_mes;
+
+    // Storage total (sum por owner distinto)
+    const ownerIds = Array.from(new Set((condosRes.data ?? []).map((c) => c.owner_id).filter(Boolean)));
+    let storageBytes = 0;
+    for (const uid of ownerIds) {
+      const { data } = await supabaseAdmin.rpc("storage_bytes_by_user", { _user_id: uid });
+      storageBytes += Number(data ?? 0);
+    }
+
+    const metrics = (serieRes.data as { dia: string; mensagens: number }[] | null) ?? [];
+    const opsMetrics = (condosAtivosRes.data ?? {}) as Record<string, number>;
+
+    return {
+      mes: mesAtual,
+      mrr,
+      novos_usuarios_mes: profilesMesRes.count ?? 0,
+      margem_mes,
+      custo_lovable_mes,
+      despesas_mes,
+      assinaturas: { ativas, trialing, cortesia, canceladas },
+      distribuicao_planos,
+      serie_receita_custo,
+      serie_mensagens: metrics.map((r) => ({ dia: String(r.dia), mensagens: Number(r.mensagens) })),
+      operacional: {
+        condominios_total: (condosRes.data ?? []).length,
+        condominios_ativos_mes: Number(opsMetrics.condominios_ativos_mes ?? 0),
+        documentos_total: (docsRes.data ?? []).length,
+        documentos_erro: (docsRes.data ?? []).filter((d) => String(d.status_processamento ?? "").startsWith("erro")).length,
+        kb_prontos: (kbRes.data ?? []).filter((k) => k.status_processamento === "pronto").length,
+        kb_total: (kbRes.data ?? []).length,
+        storage_mb: storageBytes / 1048576,
+      },
+    };
+  });
+
 export const listUsuariosAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>

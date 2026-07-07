@@ -1,8 +1,27 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
+import {
+  RefreshCw,
+  MessagesSquare,
+  Cpu,
+  Coins,
+  Users,
+  HardDrive,
+  FileText,
+  Library,
+  ChevronRight,
+} from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
@@ -10,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getUsoOverview,
@@ -26,6 +46,15 @@ export const Route = createFileRoute("/_authenticated/app/admin/uso")({
 
 const brl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+const compact = (n: number) => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toLocaleString("pt-BR");
+};
+const fmtDia = (d: string) => {
+  const dt = new Date(d);
+  return `${String(dt.getUTCDate()).padStart(2, "0")}/${String(dt.getUTCMonth() + 1).padStart(2, "0")}`;
+};
 
 function UsoPage() {
   return (
@@ -56,49 +85,281 @@ function UsoPage() {
 function OverviewTab() {
   const fn = useServerFn(getUsoOverview);
   const [r, setR] = useState<Awaited<ReturnType<typeof getUsoOverview>> | null>(null);
-  useEffect(() => {
-    fn({ data: undefined as never }).then(setR).catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(() => {
+    setRefreshing(true);
+    fn({ data: undefined as never })
+      .then(setR)
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"))
+      .finally(() => setRefreshing(false));
   }, [fn]);
-  if (!r) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  useEffect(load, [load]);
+
+  const serie = (r?.serie ?? []) as Array<{ dia: string; mensagens: number }>;
+  const top = r?.top_usuarios ?? [];
+  const topMax = Math.max(1, ...top.map((t) => t.custo_brl));
+
   return (
-    <div className="space-y-4">
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Metric label="Mensagens no mês" value={r.total_mensagens.toLocaleString("pt-BR")} />
-        <Metric label="Tokens no mês" value={r.total_tokens.toLocaleString("pt-BR")} />
-        <Metric label="Créditos Lovable" value={creditFmt.format(r.total_credits ?? 0)} />
-        <Metric label="Custo IA (BRL)" value={brl(r.custo_ia_brl)} />
-        <Metric label="Usuários ativos" value={String(r.usuarios_ativos)} />
-        <Metric label="Storage total" value={`${r.storage_mb.toFixed(1)} MB`} />
-        <Metric label="Documentos" value={`${r.documentos_total} (${r.documentos_erro} erros)`} />
-        <Metric label="Base de conhecimento" value={`${r.kb_prontos}/${r.kb_total} prontos`} />
-        <Metric label="Mês de referência" value={r.mes} />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          Métricas do mês corrente. Custo Lovable é atualizado automaticamente a cada mensagem.
+        </p>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={load}
+          disabled={refreshing}
+          className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
+          Recarregar
+        </Button>
       </div>
-      <Card className="p-5">
-        <h3 className="text-sm font-semibold text-primary mb-3">Mensagens por dia (últimos 30 dias)</h3>
-        <div className="flex items-end gap-1 h-32">
-          {(r.serie as { dia: string; mensagens: number }[]).map((d) => {
-            const max = Math.max(1, ...(r.serie as { mensagens: number }[]).map((x) => x.mensagens));
-            const h = (d.mensagens / max) * 100;
-            return (
-              <div key={d.dia} className="flex-1 flex flex-col items-center" title={`${d.dia}: ${d.mensagens}`}>
-                <div className="w-full bg-primary/70 rounded-t" style={{ height: `${h}%` }} />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Metric
+          icon={MessagesSquare}
+          label="Mensagens no mês"
+          value={r ? r.total_mensagens.toLocaleString("pt-BR") : null}
+          hint={r ? `${r.usuarios_ativos} usuários ativos` : "—"}
+          tone="primary"
+        />
+        <Metric
+          icon={Cpu}
+          label="Média tokens/msg"
+          value={r ? compact(r.media_tokens_msg) : null}
+          hint={r ? `Total: ${compact(r.total_tokens)} · input + output` : "—"}
+          title={
+            r
+              ? `${r.total_tokens.toLocaleString("pt-BR")} tokens processados no mês (soma de prompt + completion de todas as chamadas)`
+              : undefined
+          }
+        />
+        <Metric
+          icon={Coins}
+          label="Custo médio/msg"
+          value={r ? brl(r.custo_medio_msg) : null}
+          hint={r ? `Total Lovable: ${brl(r.custo_ia_brl)}` : "—"}
+          tone="accent"
+        />
+        <Metric
+          icon={Users}
+          label="Usuários ativos"
+          value={r ? r.usuarios_ativos.toString() : null}
+          hint={r ? `${creditFmt.format(r.total_credits ?? 0)} créditos consumidos` : "—"}
+        />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <Card className="p-5 sm:p-6 border-border/60 rounded-2xl lg:col-span-3">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Atividade</p>
+          <h3 className="mt-1 text-lg font-semibold text-primary">Mensagens por dia · 30 dias</h3>
+          <div className="mt-4 h-56">
+            {!r ? (
+              <Skeleton className="h-full w-full rounded-xl" />
+            ) : serie.length === 0 ? (
+              <div className="h-full grid place-items-center text-xs text-muted-foreground">
+                Sem dados no período.
               </div>
-            );
-          })}
-          {(!r.serie || r.serie.length === 0) && (
-            <p className="text-xs text-muted-foreground">Sem dados no período.</p>
-          )}
-        </div>
-      </Card>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={serie} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
+                  <defs>
+                    <linearGradient id="grad-msg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis
+                    dataKey="dia"
+                    tickFormatter={fmtDia}
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
+                    axisLine={{ stroke: "var(--color-border)" }}
+                    tickLine={false}
+                    minTickGap={16}
+                  />
+                  <YAxis
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    cursor={{ stroke: "var(--color-border)" }}
+                    content={({ active, payload, label }) =>
+                      active && payload?.length ? (
+                        <div className="rounded-lg border border-border bg-popover text-popover-foreground shadow-md px-3 py-2 text-xs">
+                          <p className="font-medium text-foreground mb-1">{fmtDia(String(label))}</p>
+                          <p className="text-muted-foreground">
+                            <span className="font-medium tabular-nums text-foreground">
+                              {Number(payload[0].value).toLocaleString("pt-BR")}
+                            </span>{" "}
+                            mensagens
+                          </p>
+                        </div>
+                      ) : null
+                    }
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="mensagens"
+                    stroke="var(--color-accent)"
+                    strokeWidth={2}
+                    fill="url(#grad-msg)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6 border-border/60 rounded-2xl lg:col-span-2">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
+                Top 5 · custo do mês
+              </p>
+              <h3 className="mt-1 text-lg font-semibold text-primary">Maiores consumos</h3>
+            </div>
+          </div>
+          <div className="mt-4 space-y-2.5">
+            {!r ? (
+              Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)
+            ) : top.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-6 text-center">Sem consumo registrado.</p>
+            ) : (
+              top.map((u) => (
+                <Link
+                  key={u.user_id}
+                  to="/app/admin/usuarios/$userId"
+                  params={{ userId: u.user_id }}
+                  className="group block rounded-lg border border-transparent px-2.5 py-2 transition-all duration-200 hover:border-border hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <p className="font-medium text-foreground truncate flex-1 min-w-0">{u.nome}</p>
+                    <p className="font-semibold text-primary tabular-nums shrink-0">{brl(u.custo_brl)}</p>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </div>
+                  <div className="mt-1.5 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary/80 transition-[width] duration-500 ease-out"
+                      style={{ width: `${Math.max(4, (u.custo_brl / topMax) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                    {u.mensagens.toLocaleString("pt-BR")} mensagens
+                  </p>
+                </Link>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Operacional */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <MiniCard
+          icon={HardDrive}
+          label="Storage total"
+          value={r ? `${r.storage_mb.toFixed(1)} MB` : null}
+          hint="uso em documentos"
+        />
+        <MiniCard
+          icon={FileText}
+          label="Documentos"
+          value={r ? String(r.documentos_total) : null}
+          hint={r ? (r.documentos_erro > 0 ? `${r.documentos_erro} com erro` : "sem erros") : "—"}
+          tone={r && r.documentos_erro > 0 ? "danger" : "muted"}
+        />
+        <MiniCard
+          icon={Library}
+          label="Base de conhecimento"
+          value={r ? `${r.kb_prontos}/${r.kb_total}` : null}
+          hint="documentos prontos"
+        />
+      </div>
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+type Tone = "primary" | "accent" | "danger" | "muted";
+
+function Metric({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone = "muted",
+  title,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string | null;
+  hint: string;
+  tone?: Tone;
+  title?: string;
+}) {
+  const toneRing: Record<Tone, string> = {
+    primary: "bg-primary/10 text-primary ring-primary/15",
+    accent: "bg-accent/15 text-accent ring-accent/20",
+    danger: "bg-destructive/10 text-destructive ring-destructive/20",
+    muted: "bg-muted text-muted-foreground ring-border",
+  };
   return (
-    <Card className="p-5">
-      <p className="text-xs uppercase text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-primary">{value}</p>
+    <Card
+      title={title}
+      className="p-5 border-border/60 rounded-2xl transition-all duration-200 hover:border-border hover:shadow-sm"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
+        <span
+          className={`grid place-items-center h-8 w-8 rounded-lg ring-1 transition-colors ${toneRing[tone]}`}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      {value === null ? (
+        <Skeleton className="mt-3 h-8 w-24" />
+      ) : (
+        <p className="mt-2.5 text-[28px] leading-none font-semibold text-primary tabular-nums">{value}</p>
+      )}
+      <p className="mt-2 text-xs text-muted-foreground truncate">{hint}</p>
+    </Card>
+  );
+}
+
+function MiniCard({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone = "muted",
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string | null;
+  hint: string;
+  tone?: Tone;
+}) {
+  const iconColor =
+    tone === "danger" ? "text-destructive" : tone === "accent" ? "text-accent" : "text-muted-foreground";
+  return (
+    <Card className="p-4 border-border/60 rounded-xl transition-all duration-200 hover:border-border">
+      <div className="flex items-center gap-2">
+        <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
+        <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
+      </div>
+      {value === null ? (
+        <Skeleton className="mt-2 h-6 w-20" />
+      ) : (
+        <p className="mt-1.5 text-xl font-semibold text-primary tabular-nums">{value}</p>
+      )}
+      <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{hint}</p>
     </Card>
   );
 }
