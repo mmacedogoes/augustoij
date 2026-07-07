@@ -380,6 +380,7 @@ function CondominioDetail() {
                                 endereco: form.endereco.trim() || null,
                                 uf: form.uf.trim() ? form.uf.trim().toUpperCase() : null,
                                 qtd_unidades: form.qtd_unidades,
+                                categoria: form.categoria,
                               },
                             });
                             setCondo(saved as typeof condo);
