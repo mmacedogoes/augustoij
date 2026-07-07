@@ -384,32 +384,17 @@ export function UnidadesPanel({
             <Button
               variant="ghost"
               size="sm"
-              disabled={detectando}
-              onClick={detectarManual}
-              className="transition-colors"
-              title="Força a IA a reler a convenção do condomínio"
-            >
-              {detectando ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-1" />
-              )}
-              Reler convenção
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
               disabled={reprocessando}
               onClick={reprocessar}
               className="transition-colors"
-              title="Baixa o arquivo original e força OCR/visão. Use se a IA não estiver lendo o conteúdo."
+              title="Baixa a convenção do storage, força OCR/visão quando necessário e extrai as unidades com IA."
             >
               {reprocessando ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <Sparkles className="h-4 w-4 mr-1" />
               )}
-              Reprocessar convenção
+              Importar unidades da convenção
             </Button>
             <Button
               variant="outline"
