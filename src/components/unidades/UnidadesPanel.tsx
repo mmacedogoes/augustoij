@@ -16,7 +16,6 @@ import {
   listSugestoesUnidades,
   atualizarStatusSugestao,
   extrairCondominosDeArquivo,
-  detectarUnidadesConvencaoExistente,
   reprocessarConvencao,
 } from "@/lib/unidades-ia.functions";
 import {
@@ -117,7 +116,6 @@ export function UnidadesPanel({
   const listSugestoesFn = useServerFn(listSugestoesUnidades);
   const updateSugestaoFn = useServerFn(atualizarStatusSugestao);
   const extrairCondFn = useServerFn(extrairCondominosDeArquivo);
-  const detectarConvFn = useServerFn(detectarUnidadesConvencaoExistente);
   const reprocessarFn = useServerFn(reprocessarConvencao);
 
   const [loading, setLoading] = useState(true);
@@ -141,7 +139,6 @@ export function UnidadesPanel({
     unidades: UnidadeRef[];
   } | null>(null);
   const [extraindo, setExtraindo] = useState(false);
-  const [detectando, setDetectando] = useState(false);
   const [openImportUnificado, setOpenImportUnificado] = useState(false);
   const [categoria, setCategoria] = useState<CategoriaCondominio>("predio");
   const [qtdConvencao, setQtdConvencao] = useState<number | null>(null);
