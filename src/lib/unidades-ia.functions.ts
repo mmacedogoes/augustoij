@@ -161,11 +161,14 @@ export async function _extrairESalvarSugestaoUnidades(
     "REGRA IMPORTANTE: se a convenção declarar quantidades globais (por exemplo " +
     '"o condomínio é composto por 662 lotes distribuídos em 36 quadras" ou "40 apartamentos por bloco") ' +
     "e NÃO trouxer a lista individual completa, GERE as unidades numericamente conforme a descrição " +
-    "(ex.: 662 lotes → gere lotes 1..662; se houver quadras nomeadas Q1..Q36 com N lotes cada, distribua). " +
+    "(ex.: 662 lotes em 36 quadras → distribua M/N lotes por quadra e SEMPRE preencha o campo 'bloco' com " +
+    "Q1..Q36; nunca devolva lotes sem o bloco/quadra quando ambos os totais estiverem no texto). " +
     "Prefira sempre a lista real quando existir. NÃO devolva vazio se o próprio texto disser quantas unidades existem. " +
     'Responda EXCLUSIVAMENTE em JSON no formato: {"unidades":[{"bloco":string|null,"numero":string,' +
-    '"tipo":"apartamento|casa|sala_comercial|loja|vaga_avulsa|outro","fracao_ideal":number|null,' +
+    '"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","fracao_ideal":number|null,' +
     '"area_m2":number|null,"vagas_garagem":number}]}. ' +
+    "SEMPRE preencha o campo 'tipo' com o valor que melhor descreve a unidade conforme a categoria informada acima " +
+    "(condomínio de casas/lotes → 'lote' ou 'casa'; logístico → 'galpao'; comercial → 'sala_comercial' ou 'loja'). " +
     "Se o documento não trouxer o campo, use null (ou 0 para vagas). Se realmente NÃO encontrar " +
     'nenhuma unidade, devolva {"unidades":[]}, mas releia com atenção antes de desistir — ' +
     "convenções sempre listam unidades em algum ponto. Não invente unidades que não estejam no texto.";
