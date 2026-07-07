@@ -153,6 +153,7 @@ export function UnidadesPanel({
       setOpenForm(false);
       refresh();
     } catch (e) {
+      console.error("[UnidadesPanel] salvar falhou", e);
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
     } finally {
       setSaving(false);
