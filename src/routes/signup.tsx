@@ -14,6 +14,7 @@ import { registrarAceiteTermos } from "@/lib/privacidade.functions";
 import { TERMOS_VERSAO } from "@/config/legal";
 
 export const Route = createFileRoute("/signup")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Criar conta — Augusto.IJ" },
