@@ -57,10 +57,9 @@ export const getCondominioMeta = createServerFn({ method: "POST" })
       .eq("id", data.condominioId)
       .maybeSingle();
     if (error) throw new Error(error.message);
+    const { normalizeCategoria } = await import("./categorias-condominio");
     return {
-      categoria: ((row?.categoria as string) === "casas" ? "casas" : "predio") as
-        | "predio"
-        | "casas",
+      categoria: normalizeCategoria(row?.categoria as string | null),
       qtdUnidades: (row?.qtd_unidades as number | null) ?? null,
     };
   });
