@@ -1,5 +1,6 @@
 import { extractText as unpdfExtract, getDocumentProxy } from "unpdf";
 import mammoth from "mammoth";
+import * as XLSX from "xlsx";
 
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp|tiff?)$/i;
 const IMAGE_MIME: Record<string, string> = {
@@ -146,8 +147,31 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
       if (!txt.trim()) throw new Error("Arquivo de texto vazio.");
       return txt;
     }
+    if (lower.endsWith(".csv")) {
+      const txt = new TextDecoder("utf-8").decode(buffer);
+      if (!txt.trim()) throw new Error("CSV vazio.");
+      return txt;
+    }
+    if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+      let wb: XLSX.WorkBook;
+      try {
+        wb = XLSX.read(buffer, { type: "array" });
+      } catch {
+        throw new Error(
+          "Não foi possível ler a planilha. Salve como CSV e reenvie.",
+        );
+      }
+      const partes: string[] = [];
+      for (const name of wb.SheetNames) {
+        const csv = XLSX.utils.sheet_to_csv(wb.Sheets[name]);
+        if (csv.trim()) partes.push(`## Aba: ${name}\n\n${csv}`);
+      }
+      const out = partes.join("\n\n");
+      if (!out.trim()) throw new Error("Planilha sem dados legíveis.");
+      return out;
+    }
     throw new Error(
-      `Formato de arquivo não suportado: "${fileName}". Use PDF, DOCX ou TXT.`,
+      `Formato de arquivo não suportado: "${fileName}". Use PDF, DOCX, DOC, TXT, CSV, XLS ou XLSX.`,
     );
   } catch (e) {
     if (e instanceof Error) {
