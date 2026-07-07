@@ -372,9 +372,12 @@ export function UnidadesPanel({
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold">Unidades e Condôminos</h2>
+          <h2 className="text-lg font-semibold tracking-tight">
+            {vocab.unidade}s e Condôminos
+          </h2>
           <p className="text-xs text-muted-foreground">
-            {unidades.length} unidade(s) cadastrada(s)
+            {unidades.length} {vocab.unidade.toLowerCase()}(s) cadastrada(s)
+            {qtdConvencao != null && ` • convenção prevê ${qtdConvencao}`}
           </p>
         </div>
         {isOwner && (
