@@ -9,6 +9,7 @@ import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Entrar — Augusto.IJ" },
