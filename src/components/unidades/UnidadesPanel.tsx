@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, Pencil, Upload, Users, Loader2, Eye } from "lucide-react";
+import { Plus, Trash2, Pencil, Upload, Users, Loader2, Eye, Sparkles, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import {
   listUnidades,
@@ -11,6 +11,20 @@ import {
   deleteCondomino,
   importUnidadesLote,
 } from "@/lib/unidades.functions";
+import {
+  listSugestoesUnidades,
+  atualizarStatusSugestao,
+  extrairCondominosDeArquivo,
+} from "@/lib/unidades-ia.functions";
+import {
+  RevisarUnidadesDialog,
+  type UnidadeSugerida,
+} from "@/components/unidades/RevisarUnidadesDialog";
+import {
+  RevisarCondominosDialog,
+  type CondominoSugerido,
+  type UnidadeRef,
+} from "@/components/unidades/RevisarCondominosDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
