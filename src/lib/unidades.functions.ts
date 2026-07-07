@@ -5,8 +5,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const TipoUnidade = z.enum([
   "apartamento",
   "casa",
+  "lote",
+  "terreno",
   "sala_comercial",
   "loja",
+  "galpao",
   "vaga_avulsa",
   "outro",
 ]);
