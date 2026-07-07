@@ -27,6 +27,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
+import {
+  CATEGORIAS_CONDOMINIO,
+  type CategoriaCondominio,
+  getCategoriaMeta,
+  normalizeCategoria,
+} from "@/lib/categorias-condominio";
 
 export const Route = createFileRoute("/_authenticated/app/condominios/$id")({
   component: CondominioDetail,
@@ -61,7 +67,14 @@ function CondominioDetail() {
   const [profileId, setProfileId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [form, setForm] = useState({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: 0, categoria: "predio" as "predio" | "casas" });
+  const [form, setForm] = useState<{
+    nome: string;
+    cnpj: string;
+    endereco: string;
+    uf: string;
+    qtd_unidades: number;
+    categoria: CategoriaCondominio;
+  }>({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: 0, categoria: "predio" });
   const [conversaAtiva, setConversaAtiva] = useState<string | null>(null);
   // chave usada como `key` do ChatPanel para forçar remount limpo
   // ao trocar entre "nova conversa" e abrir uma conversa do histórico.
@@ -109,9 +122,7 @@ function CondominioDetail() {
             endereco: row.endereco ?? "",
             uf: row.uf ?? "",
             qtd_unidades: row.qtd_unidades ?? 0,
-            categoria: (row.categoria === "casas" ? "casas" : "predio") as
-              | "predio"
-              | "casas",
+            categoria: normalizeCategoria(row.categoria),
           });
         }
       })
