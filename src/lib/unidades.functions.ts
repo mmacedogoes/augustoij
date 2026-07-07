@@ -225,97 +225,161 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
-    // Limite pelo total previsto na convenção (qtd_unidades)
+    // Limite pelo total previsto na convenção (qtd_unidades).
+    // 0 ou null = "não informado" → sem limite.
     const { data: cond } = await sb
       .from("condominios")
       .select("qtd_unidades")
       .eq("id", data.condominioId)
       .maybeSingle();
-    const { count: atuais } = await sb
+    const maxPrevisto =
+      cond?.qtd_unidades && (cond.qtd_unidades as number) > 0
+        ? (cond.qtd_unidades as number)
+        : null;
+
+    // Snapshot das unidades existentes para saber o que é update vs insert
+    const { data: existentesRows, error: exErr } = await sb
       .from("unidades")
-      .select("id", { count: "exact", head: true })
+      .select("id, bloco, numero")
       .eq("condominio_id", data.condominioId);
-    const maxPrevisto = (cond?.qtd_unidades as number | null) ?? null;
+    if (exErr) throw new Error(`Falha ao ler unidades existentes: ${exErr.message}`);
+    const chave = (b: string | null, n: string) =>
+      `${(b ?? "").trim().toLowerCase()}::${n.trim()}`;
+    const existentesMap = new Map<string, string>();
+    for (const r of existentesRows ?? []) {
+      existentesMap.set(
+        chave((r.bloco as string) ?? null, r.numero as string),
+        r.id as string,
+      );
+    }
+
+    // Deduplica linhas de entrada por (bloco, numero) preservando a última ocorrência
+    const dedupMap = new Map<string, (typeof data.linhas)[number]>();
+    for (const l of data.linhas) dedupMap.set(chave(l.bloco ?? null, l.numero), l);
+    const linhas = Array.from(dedupMap.values());
+
+    const novas = linhas.filter((l) => !existentesMap.has(chave(l.bloco ?? null, l.numero)));
+    const jaExistem = linhas.length - novas.length;
+
+    if (maxPrevisto != null && (existentesRows?.length ?? 0) + novas.length > maxPrevisto) {
+      throw new Error(
+        `Limite da convenção atingido (${maxPrevisto} unidades). Ajuste "qtd_unidades" no cadastro do condomínio ou remova unidades antes de importar mais.`,
+      );
+    }
 
     let unidadesCriadas = 0;
     let unidadesAtualizadas = 0;
     let condominosCriados = 0;
     const erros: { linha: number; mensagem: string }[] = [];
-    let jaExistentes = atuais ?? 0;
 
-    for (let i = 0; i < data.linhas.length; i++) {
-      const l = data.linhas[i];
-      try {
-        // Match por (bloco, numero) — trata null/'' como equivalentes
-        const q = sb
-          .from("unidades")
-          .select("id")
-          .eq("condominio_id", data.condominioId)
-          .eq("numero", l.numero);
-        const { data: existing } = l.bloco
-          ? await q.eq("bloco", l.bloco).maybeSingle()
-          : await q.or("bloco.is.null,bloco.eq.").maybeSingle();
-
-        let unidadeId = existing?.id ?? null;
-        if (!unidadeId) {
-          if (maxPrevisto != null && jaExistentes >= maxPrevisto) {
-            throw new Error(
-              `Limite da convenção atingido (${maxPrevisto} unidades). Ajuste "qtd_unidades" no cadastro do condomínio ou remova unidades antes de importar mais.`,
-            );
-          }
-          const { data: nova, error } = await sb
-            .from("unidades")
-            .insert({
-              condominio_id: data.condominioId,
-              bloco: l.bloco ?? null,
-              numero: l.numero,
-              tipo: (l.tipo_unidade ?? "apartamento") as never,
-              fracao_ideal: l.fracao_ideal ?? null,
-              area_m2: l.area_m2 ?? null,
-              vagas_garagem: l.vagas_garagem ?? 0,
-            })
-            .select("id")
-            .single();
-          if (error) throw new Error(error.message);
-          unidadeId = nova!.id;
-          unidadesCriadas++;
-          jaExistentes++;
-        } else {
-          if (data.estrategiaConflito === "substituir") {
-            const { error } = await sb
-              .from("unidades")
-              .update({
-                tipo: (l.tipo_unidade ?? "apartamento") as never,
-                fracao_ideal: l.fracao_ideal ?? null,
-                area_m2: l.area_m2 ?? null,
-                vagas_garagem: l.vagas_garagem ?? 0,
-              })
-              .eq("id", unidadeId);
-            if (error) throw new Error(error.message);
-          }
-          unidadesAtualizadas++;
-        }
-
-        if (l.nome && unidadeId) {
-          const { error } = await sb.from("condominos").insert({
-            unidade_id: unidadeId,
-            condominio_id: data.condominioId,
-            nome: l.nome,
-            cpf: l.cpf || null,
-            email: l.email || null,
-            telefone: l.telefone || null,
-            tipo: l.tipo_condomino ?? "proprietario",
-            principal: true,
-          });
-          if (error) throw new Error(error.message);
-          condominosCriados++;
-        }
-      } catch (e) {
+    // 1) INSERT em lotes das novas unidades
+    const CHUNK = 200;
+    const inseridasIdPorChave = new Map<string, string>();
+    for (let i = 0; i < novas.length; i += CHUNK) {
+      const slice = novas.slice(i, i + CHUNK);
+      const payload = slice.map((l) => ({
+        condominio_id: data.condominioId,
+        bloco: l.bloco ?? null,
+        numero: l.numero,
+        tipo: (l.tipo_unidade ?? "apartamento") as never,
+        fracao_ideal: l.fracao_ideal ?? null,
+        area_m2: l.area_m2 ?? null,
+        vagas_garagem: l.vagas_garagem ?? 0,
+      }));
+      const { data: inseridas, error } = await sb
+        .from("unidades")
+        .insert(payload)
+        .select("id, bloco, numero");
+      if (error) {
         erros.push({
           linha: i + 2,
-          mensagem: e instanceof Error ? e.message : "Erro desconhecido",
+          mensagem: `Falha ao inserir lote (${slice.length} unidades): ${error.message}`,
         });
+        continue;
       }
+      unidadesCriadas += inseridas?.length ?? 0;
+      for (const r of inseridas ?? []) {
+        inseridasIdPorChave.set(
+          chave((r.bloco as string) ?? null, r.numero as string),
+          r.id as string,
+        );
+      }
+    }
+
+    // 2) UPDATE das existentes (apenas em modo "substituir")
+    if (data.estrategiaConflito === "substituir") {
+      const existentesParaAtualizar = linhas.filter((l) =>
+        existentesMap.has(chave(l.bloco ?? null, l.numero)),
+      );
+      for (const l of existentesParaAtualizar) {
+        const id = existentesMap.get(chave(l.bloco ?? null, l.numero))!;
+        const { error } = await sb
+          .from("unidades")
+          .update({
+            tipo: (l.tipo_unidade ?? "apartamento") as never,
+            fracao_ideal: l.fracao_ideal ?? null,
+            area_m2: l.area_m2 ?? null,
+            vagas_garagem: l.vagas_garagem ?? 0,
+          })
+          .eq("id", id);
+        if (error) {
+          erros.push({ linha: 0, mensagem: `Falha ao atualizar ${l.numero}: ${error.message}` });
+          continue;
+        }
+        unidadesAtualizadas++;
+      }
+    } else {
+      unidadesAtualizadas = jaExistem;
+    }
+
+    // 3) Condôminos vinculados (quando a linha trouxer nome)
+    const condominosPayload: Array<Record<string, unknown>> = [];
+    for (const l of linhas) {
+      if (!l.nome) continue;
+      const k = chave(l.bloco ?? null, l.numero);
+      const unidadeId = inseridasIdPorChave.get(k) ?? existentesMap.get(k);
+      if (!unidadeId) continue;
+      condominosPayload.push({
+        unidade_id: unidadeId,
+        condominio_id: data.condominioId,
+        nome: l.nome,
+        cpf: l.cpf || null,
+        email: l.email || null,
+        telefone: l.telefone || null,
+        tipo: l.tipo_condomino ?? "proprietario",
+        principal: true,
+      });
+    }
+    for (let i = 0; i < condominosPayload.length; i += CHUNK) {
+      const slice = condominosPayload.slice(i, i + CHUNK);
+      const { data: inseridos, error } = await sb
+        .from("condominos")
+        .insert(slice)
+        .select("id");
+      if (error) {
+        erros.push({
+          linha: 0,
+          mensagem: `Falha ao inserir condôminos: ${error.message}`,
+        });
+        continue;
+      }
+      condominosCriados += inseridos?.length ?? 0;
+    }
+
+    // 4) Se o cadastro estava com qtd_unidades = 0/null, atualiza com o total agora existente
+    if (!maxPrevisto && unidadesCriadas > 0) {
+      const totalAtual = (existentesRows?.length ?? 0) + unidadesCriadas;
+      await sb
+        .from("condominios")
+        .update({ qtd_unidades: totalAtual })
+        .eq("id", data.condominioId);
+    }
+
+    // 5) Se nada foi criado nem atualizado E há erros, lança para o cliente ver
+    if (unidadesCriadas === 0 && unidadesAtualizadas === 0 && erros.length > 0) {
+      throw new Error(
+        `Nenhuma unidade importada. Primeiro erro: ${erros[0].mensagem}`,
+      );
     }
 
     return { unidadesCriadas, unidadesAtualizadas, condominosCriados, erros };
