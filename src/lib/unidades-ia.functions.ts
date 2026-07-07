@@ -161,8 +161,17 @@ export async function _extrairESalvarSugestaoUnidades(
     "REGRA IMPORTANTE: se a convenção declarar quantidades globais (por exemplo " +
     '"o condomínio é composto por 662 lotes distribuídos em 36 quadras" ou "40 apartamentos por bloco") ' +
     "e NÃO trouxer a lista individual completa, GERE as unidades numericamente conforme a descrição " +
-    "(ex.: 662 lotes em 36 quadras → distribua M/N lotes por quadra e SEMPRE preencha o campo 'bloco' com " +
-    "Q1..Q36; nunca devolva lotes sem o bloco/quadra quando ambos os totais estiverem no texto). " +
+    "(ex.: 662 lotes em 36 quadras → distribua exatamente 662 lotes entre Q1..Q36; o TOTAL deve bater " +
+    "com o número declarado. Se 662/36 não for inteiro, use base=floor(662/36)=18 por quadra e some +1 " +
+    "às primeiras (662 mod 36)=14 quadras — resultando em 14 quadras com 19 lotes e 22 com 18 lotes, " +
+    "totalizando exatamente 662. Nunca devolva 648 ou 650 quando o texto disser 662). Sempre preencha o " +
+    "campo 'bloco' com Q1..QN quando houver quadras/setores/torres declarados. " +
+    "REGRA DE CONTAGEM ESTRITA: o TOTAL de unidades retornadas deve ser EXATAMENTE o número que a convenção " +
+    "declarar (ex.: 'condomínio composto por 60 apartamentos' → devolva 60, nunca 72). NÃO conte como unidade: " +
+    "vagas de garagem, boxes/depósitos, hobby boxes, área comum, salão de festas, guarita, casa do zelador, " +
+    "reservatórios — a menos que a convenção diga EXPLICITAMENTE que são unidades autônomas com matrícula própria. " +
+    "NÃO duplique unidades: cada par (bloco, número) deve aparecer UMA única vez. Se a mesma unidade aparecer " +
+    "em várias tabelas (fração ideal, área privativa, vagas), consolide em UMA linha. " +
     "Prefira sempre a lista real quando existir. NÃO devolva vazio se o próprio texto disser quantas unidades existem. " +
     'Responda EXCLUSIVAMENTE em JSON no formato: {"unidades":[{"bloco":string|null,"numero":string,' +
     '"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","fracao_ideal":number|null,' +
@@ -176,7 +185,17 @@ export async function _extrairESalvarSugestaoUnidades(
 
   const parsed = (await callGeminiJson(apiKey, system, user)) as { unidades?: unknown[] };
   const linhas = z.array(UnidadeSugestao).safeParse(parsed?.unidades ?? []);
-  const unidades = linhas.success ? linhas.data : [];
+  const brutas = linhas.success ? linhas.data : [];
+  // Deduplica por (bloco, numero) — a IA às vezes repete a mesma unidade em
+  // tabelas diferentes (fração / área / vagas), inflando o total.
+  const seen = new Set<string>();
+  const unidades: typeof brutas = [];
+  for (const u of brutas) {
+    const key = `${(u.bloco ?? "").trim().toLowerCase()}|${(u.numero ?? "").trim().toLowerCase()}`;
+    if (!u.numero || seen.has(key)) continue;
+    seen.add(key);
+    unidades.push(u);
+  }
   if (unidades.length === 0) return [];
 
   // Em modo force, apaga sugestões anteriores em QUALQUER status para essa convenção
