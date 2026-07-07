@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CookieBanner } from "@/components/CookieBanner";
+import { Toaster } from "@/components/ui/sonner";
 // favicon agora servido de /public (Augusto.IJ aqueduto)
 
 function NotFoundComponent() {
@@ -146,6 +147,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <CookieBanner />
+      <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );
 }
