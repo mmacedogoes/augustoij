@@ -249,6 +249,41 @@ export function UnidadesPanel({
 
   return (
     <div className="space-y-4">
+      {isOwner && sugestoes.length > 0 && (
+        <Card className="p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
+          <Sparkles className="h-5 w-5 text-primary shrink-0" />
+          <div className="flex-1 min-w-[220px]">
+            <p className="text-sm font-medium">
+              {sugestoes[0].payload.unidades?.length ?? 0} unidade(s) detectada(s) na convenção
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Revise antes de importar para a lista de unidades.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() =>
+              setRevisarUnidades({
+                sugestaoId: sugestoes[0].id,
+                unidades: sugestoes[0].payload.unidades ?? [],
+              })
+            }
+          >
+            Revisar e importar
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={async () => {
+              await updateSugestaoFn({ data: { id: sugestoes[0].id, status: "descartada" } });
+              setSugestoes((prev) => prev.slice(1));
+            }}
+          >
+            Descartar
+          </Button>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h2 className="text-lg font-semibold">Unidades e Condôminos</h2>
@@ -257,7 +292,32 @@ export function UnidadesPanel({
           </p>
         </div>
         {isOwner && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={extraindo}
+              onClick={() => document.getElementById("upload-condominos-ia")?.click()}
+              className="transition-colors"
+            >
+              {extraindo ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <FileUp className="h-4 w-4 mr-1" />
+              )}
+              Importar condôminos (IA)
+            </Button>
+            <input
+              id="upload-condominos-ia"
+              type="file"
+              accept=".csv,.xlsx,.xls,.docx,.pdf"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) await abrirImportarCondominos(f);
+              }}
+            />
             <Button variant="outline" size="sm" onClick={() => setOpenImport(true)}>
               <Upload className="h-4 w-4 mr-1" /> Importar CSV
             </Button>
