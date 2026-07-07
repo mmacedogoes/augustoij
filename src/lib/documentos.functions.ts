@@ -125,7 +125,7 @@ export const processDocumento = createServerFn({ method: "POST" })
 
     const { data: doc, error: errGet } = await context.supabase
       .from("documentos")
-      .select("id, condominio_id, storage_path, nome_arquivo")
+      .select("id, condominio_id, storage_path, nome_arquivo, tipo")
       .eq("id", data.id)
       .maybeSingle();
     if (errGet) throw new Error(errGet.message);
@@ -200,6 +200,17 @@ export const processDocumento = createServerFn({ method: "POST" })
         .from("documentos")
         .update({ status_processamento: "pronto" })
         .eq("id", doc.id);
+
+      // Auto-extração de unidades quando o documento é a convenção.
+      // Best-effort: se falhar, não invalida o processamento do documento.
+      if (doc.tipo === "convencao") {
+        try {
+          const { _extrairESalvarSugestaoUnidades } = await import("./unidades-ia.functions");
+          await _extrairESalvarSugestaoUnidades(context.supabase, doc.id, apiKey);
+        } catch (autoErr) {
+          console.warn("[processDocumento] auto-extração de unidades falhou", autoErr);
+        }
+      }
 
       return { ok: true, chunks: chunks.length, mode: usedVision ? "vision" : "text" };
     } catch (e) {

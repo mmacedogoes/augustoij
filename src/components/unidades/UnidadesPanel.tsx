@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, Pencil, Upload, Users, Loader2, Eye } from "lucide-react";
+import { Plus, Trash2, Pencil, Upload, Users, Loader2, Eye, Sparkles, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import {
   listUnidades,
@@ -11,6 +11,20 @@ import {
   deleteCondomino,
   importUnidadesLote,
 } from "@/lib/unidades.functions";
+import {
+  listSugestoesUnidades,
+  atualizarStatusSugestao,
+  extrairCondominosDeArquivo,
+} from "@/lib/unidades-ia.functions";
+import {
+  RevisarUnidadesDialog,
+  type UnidadeSugerida,
+} from "@/components/unidades/RevisarUnidadesDialog";
+import {
+  RevisarCondominosDialog,
+  type CondominoSugerido,
+  type UnidadeRef,
+} from "@/components/unidades/RevisarCondominosDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +102,9 @@ export function UnidadesPanel({
   const createCondFn = useServerFn(createCondomino);
   const deleteCondFn = useServerFn(deleteCondomino);
   const importFn = useServerFn(importUnidadesLote);
+  const listSugestoesFn = useServerFn(listSugestoesUnidades);
+  const updateSugestaoFn = useServerFn(atualizarStatusSugestao);
+  const extrairCondFn = useServerFn(extrairCondominosDeArquivo);
 
   const [loading, setLoading] = useState(true);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -98,6 +115,18 @@ export function UnidadesPanel({
   const [openCond, setOpenCond] = useState<Unidade | null>(null);
   const [openImport, setOpenImport] = useState(false);
   const [openView, setOpenView] = useState<Unidade | null>(null);
+  const [sugestoes, setSugestoes] = useState<
+    { id: string; documento_id: string | null; payload: { unidades?: UnidadeSugerida[] } }[]
+  >([]);
+  const [revisarUnidades, setRevisarUnidades] = useState<{
+    sugestaoId: string | null;
+    unidades: UnidadeSugerida[];
+  } | null>(null);
+  const [revisarCondominos, setRevisarCondominos] = useState<{
+    condominos: CondominoSugerido[];
+    unidades: UnidadeRef[];
+  } | null>(null);
+  const [extraindo, setExtraindo] = useState(false);
 
   function refresh() {
     setLoading(true);
@@ -105,8 +134,47 @@ export function UnidadesPanel({
       .then((r) => setUnidades((r as Unidade[]) ?? []))
       .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar"))
       .finally(() => setLoading(false));
+    listSugestoesFn({ data: { condominioId } })
+      .then((rows) =>
+        setSugestoes(
+          (rows as unknown as {
+            id: string;
+            documento_id: string | null;
+            payload: { unidades?: UnidadeSugerida[] };
+          }[]) ?? [],
+        ),
+      )
+      .catch(() => setSugestoes([]));
   }
   useEffect(refresh, [condominioId]);
+
+  async function abrirImportarCondominos(file: File) {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Arquivo maior que 10 MB.");
+      return;
+    }
+    setExtraindo(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let bin = "";
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      const base64 = btoa(bin);
+      const r = (await extrairCondFn({
+        data: { condominioId, fileName: file.name, base64 },
+      })) as { condominos: CondominoSugerido[]; unidades: UnidadeRef[] };
+      if (!r.condominos || r.condominos.length === 0) {
+        toast.info("Nenhum condômino foi identificado no arquivo.");
+        return;
+      }
+      setRevisarCondominos({ condominos: r.condominos, unidades: r.unidades });
+    } catch (e) {
+      console.error("[UnidadesPanel] extrair condôminos falhou", e);
+      toast.error(e instanceof Error ? e.message : "Falha ao extrair condôminos");
+    } finally {
+      setExtraindo(false);
+    }
+  }
 
   function openCreate() {
     setEditing(null);
@@ -181,6 +249,41 @@ export function UnidadesPanel({
 
   return (
     <div className="space-y-4">
+      {isOwner && sugestoes.length > 0 && (
+        <Card className="p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
+          <Sparkles className="h-5 w-5 text-primary shrink-0" />
+          <div className="flex-1 min-w-[220px]">
+            <p className="text-sm font-medium">
+              {sugestoes[0].payload.unidades?.length ?? 0} unidade(s) detectada(s) na convenção
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Revise antes de importar para a lista de unidades.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() =>
+              setRevisarUnidades({
+                sugestaoId: sugestoes[0].id,
+                unidades: sugestoes[0].payload.unidades ?? [],
+              })
+            }
+          >
+            Revisar e importar
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={async () => {
+              await updateSugestaoFn({ data: { id: sugestoes[0].id, status: "descartada" } });
+              setSugestoes((prev) => prev.slice(1));
+            }}
+          >
+            Descartar
+          </Button>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h2 className="text-lg font-semibold">Unidades e Condôminos</h2>
@@ -189,7 +292,32 @@ export function UnidadesPanel({
           </p>
         </div>
         {isOwner && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={extraindo}
+              onClick={() => document.getElementById("upload-condominos-ia")?.click()}
+              className="transition-colors"
+            >
+              {extraindo ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <FileUp className="h-4 w-4 mr-1" />
+              )}
+              Importar condôminos (IA)
+            </Button>
+            <input
+              id="upload-condominos-ia"
+              type="file"
+              accept=".csv,.xlsx,.xls,.docx,.pdf"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) await abrirImportarCondominos(f);
+              }}
+            />
             <Button variant="outline" size="sm" onClick={() => setOpenImport(true)}>
               <Upload className="h-4 w-4 mr-1" /> Importar CSV
             </Button>
@@ -313,6 +441,59 @@ export function UnidadesPanel({
             const u = openView;
             setOpenView(null);
             setOpenCond(u);
+          }}
+        />
+      )}
+
+      {revisarUnidades && (
+        <RevisarUnidadesDialog
+          sugestoes={revisarUnidades.unidades}
+          onClose={() => setRevisarUnidades(null)}
+          onConfirmar={async (linhas) => {
+            const r = (await importFn({
+              data: { condominioId, linhas: linhas as never },
+            })) as {
+              unidadesCriadas: number;
+              unidadesAtualizadas: number;
+              condominosCriados: number;
+              erros: { linha: number; mensagem: string }[];
+            };
+            if (revisarUnidades.sugestaoId) {
+              await updateSugestaoFn({
+                data: { id: revisarUnidades.sugestaoId, status: "aplicada" },
+              });
+              setSugestoes((prev) => prev.filter((s) => s.id !== revisarUnidades.sugestaoId));
+            }
+            toast.success(
+              `${r.unidadesCriadas} nova(s), ${r.unidadesAtualizadas} já existiam.`,
+            );
+            setRevisarUnidades(null);
+            refresh();
+          }}
+        />
+      )}
+
+      {revisarCondominos && (
+        <RevisarCondominosDialog
+          sugestoes={revisarCondominos.condominos}
+          unidades={revisarCondominos.unidades}
+          onClose={() => setRevisarCondominos(null)}
+          onConfirmar={async (linhas) => {
+            const r = (await importFn({
+              data: { condominioId, linhas: linhas as never },
+            })) as {
+              unidadesCriadas: number;
+              unidadesAtualizadas: number;
+              condominosCriados: number;
+              erros: { linha: number; mensagem: string }[];
+            };
+            toast.success(
+              `${r.condominosCriados} condômino(s) importado(s).${
+                r.erros.length ? ` ${r.erros.length} erro(s).` : ""
+              }`,
+            );
+            setRevisarCondominos(null);
+            refresh();
           }}
         />
       )}
