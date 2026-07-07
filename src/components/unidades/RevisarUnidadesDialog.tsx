@@ -56,7 +56,15 @@ export function RevisarUnidadesDialog({
     bloco: string;
     numero: string;
     unidade: string;
-    tipoPadrao: "apartamento" | "casa" | "sala_comercial" | "loja" | "outro";
+    tipoPadrao:
+      | "apartamento"
+      | "casa"
+      | "lote"
+      | "terreno"
+      | "sala_comercial"
+      | "loja"
+      | "galpao"
+      | "outro";
   };
   qtdMaxima?: number | null;
   onClose: () => void;
@@ -65,7 +73,10 @@ export function RevisarUnidadesDialog({
     estrategia: "manter" | "substituir",
   ) => Promise<void>;
 }) {
-  const [linhas, setLinhas] = useState<Linha[]>(sugestoes.map(toLinha));
+  const tipoPadrao = vocab.tipoPadrao;
+  const [linhas, setLinhas] = useState<Linha[]>(
+    sugestoes.map((s) => toLinha({ ...s, tipo: s.tipo ?? tipoPadrao })),
+  );
   const [saving, setSaving] = useState(false);
   const [estrategia, setEstrategia] = useState<"manter" | "substituir">("manter");
 
@@ -76,8 +87,12 @@ export function RevisarUnidadesDialog({
     chaveExistentes.has(`${l.bloco.trim().toLowerCase()}::${l.numero.trim()}`),
   ).length;
   const totalValidas = linhas.filter((l) => l.numero.trim().length > 0).length;
+  // Só bloqueia se a convenção declarar um total explícito (> 0).
+  // qtdMaxima null ou 0 = "não informado no cadastro" → sem limite.
   const excedeConvencao =
-    qtdMaxima != null && totalValidas - conflitos + existentes.length > qtdMaxima;
+    qtdMaxima != null &&
+    qtdMaxima > 0 &&
+    totalValidas - conflitos + existentes.length > qtdMaxima;
 
   function update(i: number, patch: Partial<Linha>) {
     setLinhas((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
@@ -88,7 +103,7 @@ export function RevisarUnidadesDialog({
   function add() {
     setLinhas((prev) => [
       ...prev,
-      { bloco: "", numero: "", tipo: "apartamento", fracao_ideal: "", area_m2: "", vagas_garagem: "0" },
+      { bloco: "", numero: "", tipo: tipoPadrao, fracao_ideal: "", area_m2: "", vagas_garagem: "0" },
     ]);
   }
 
