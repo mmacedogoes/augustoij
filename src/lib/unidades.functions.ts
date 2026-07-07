@@ -333,7 +333,17 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
     }
 
     // 3) Condôminos vinculados (quando a linha trouxer nome)
-    const condominosPayload: Array<Record<string, unknown>> = [];
+    type CondominoInsertRow = {
+      unidade_id: string;
+      condominio_id: string;
+      nome: string;
+      cpf: string | null;
+      email: string | null;
+      telefone: string | null;
+      tipo: z.infer<typeof TipoCondomino>;
+      principal: boolean;
+    };
+    const condominosPayload: CondominoInsertRow[] = [];
     for (const l of linhas) {
       if (!l.nome) continue;
       const k = chave(l.bloco ?? null, l.numero);
