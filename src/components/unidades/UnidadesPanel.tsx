@@ -56,8 +56,11 @@ import {
 type TipoUnidade =
   | "apartamento"
   | "casa"
+  | "lote"
+  | "terreno"
   | "sala_comercial"
   | "loja"
+  | "galpao"
   | "vaga_avulsa"
   | "outro";
 type TipoCondomino =
