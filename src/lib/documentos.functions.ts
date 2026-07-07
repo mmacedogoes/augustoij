@@ -125,7 +125,7 @@ export const processDocumento = createServerFn({ method: "POST" })
 
     const { data: doc, error: errGet } = await context.supabase
       .from("documentos")
-      .select("id, condominio_id, storage_path, nome_arquivo")
+      .select("id, condominio_id, storage_path, nome_arquivo, tipo")
       .eq("id", data.id)
       .maybeSingle();
     if (errGet) throw new Error(errGet.message);
@@ -205,17 +205,8 @@ export const processDocumento = createServerFn({ method: "POST" })
       // Best-effort: se falhar, não invalida o processamento do documento.
       if (doc.tipo === "convencao") {
         try {
-          const { extrairUnidadesDaConvencao } = await import("./unidades-ia.functions");
-          // chamado como função server-side interna (fora de RPC) — reusa a lógica
-          await (extrairUnidadesDaConvencao as unknown as {
-            handler: (arg: {
-              data: { documentoId: string; persistir: boolean };
-              context: { supabase: typeof context.supabase; userId: string };
-            }) => Promise<unknown>;
-          }).handler?.({
-            data: { documentoId: doc.id, persistir: true },
-            context: { supabase: context.supabase, userId: context.userId },
-          });
+          const { _extrairESalvarSugestaoUnidades } = await import("./unidades-ia.functions");
+          await _extrairESalvarSugestaoUnidades(context.supabase, doc.id, apiKey);
         } catch (autoErr) {
           console.warn("[processDocumento] auto-extração de unidades falhou", autoErr);
         }
