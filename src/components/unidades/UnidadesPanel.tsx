@@ -649,8 +649,8 @@ export function UnidadesPanel({
   );
 }
 
-function formatLabel(u: Unidade) {
-  return u.bloco ? `Bloco ${u.bloco} • ${u.numero}` : u.numero;
+function formatLabel(u: Unidade, labelBloco = "Bloco") {
+  return u.bloco ? `${labelBloco} ${u.bloco} • ${u.numero}` : u.numero;
 }
 
 function VisualizarUnidadeDialog({
