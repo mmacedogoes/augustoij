@@ -42,10 +42,36 @@ export const getUsoOverview = createServerFn({ method: "GET" })
     // série temporal
     const { data: serie } = await supabaseAdmin.rpc("admin_usage_timeseries", { _days: 30 });
 
+    // Top usuários por custo do mês
+    const topRaw = [...(uso ?? [])]
+      .sort((a, b) => Number(b.custo_estimado_brl ?? 0) - Number(a.custo_estimado_brl ?? 0))
+      .slice(0, 5);
+    const topIds = topRaw.map((r) => r.user_id).filter(Boolean);
+    let nomesById: Record<string, { nome: string | null; email: string | null }> = {};
+    if (topIds.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, nome, email")
+        .in("id", topIds);
+      nomesById = Object.fromEntries((profs ?? []).map((p) => [p.id, { nome: p.nome, email: p.email }]));
+    }
+    const top_usuarios = topRaw.map((r) => ({
+      user_id: r.user_id,
+      nome: nomesById[r.user_id]?.nome ?? nomesById[r.user_id]?.email ?? "—",
+      email: nomesById[r.user_id]?.email ?? "",
+      mensagens: r.total_mensagens ?? 0,
+      custo_brl: Number(r.custo_estimado_brl ?? 0),
+    }));
+
+    const media_tokens_msg = totalMsgs > 0 ? Math.round(totalTokens / totalMsgs) : 0;
+    const custo_medio_msg = totalMsgs > 0 ? custoIA / totalMsgs : 0;
+
     return {
       mes,
       total_mensagens: totalMsgs,
       total_tokens: totalTokens,
+      media_tokens_msg,
+      custo_medio_msg,
       custo_ia_brl: custoIA,
       total_credits: totalCredits,
       usuarios_ativos: usuariosAtivos,
@@ -56,6 +82,7 @@ export const getUsoOverview = createServerFn({ method: "GET" })
       storage_mb: storageBytesTotal / 1048576,
       mensagens_totais_mes: msgsErro ?? 0,
       serie: serie ?? [],
+      top_usuarios,
     };
   });
 
