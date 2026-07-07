@@ -13,6 +13,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { PLANS, type PlanId } from "@/config/plans";
 import { avaliarLimite, modeloParaPlano, type UsoAtual } from "@/lib/uso-limits";
 import { jurisprudenciaDirective, efetivoPlanoId } from "@/lib/plan-gates";
+import { isAdminInternoServer } from "@/lib/admin-bypass";
 import {
   avaliarBaseCondominial,
   deveSolicitarReupload,
@@ -174,7 +175,7 @@ export const Route = createFileRoute("/api/chat")({
           const proximoMes = new Date(
             Date.UTC(nowSp.getFullYear(), nowSp.getMonth() + 1, 1, 3, 0, 0),
           );
-          const [subRes, mensalRes, diarioRes] = await Promise.all([
+          const [subRes, mensalRes, diarioRes, admin] = await Promise.all([
             supabase
               .from("subscriptions")
               .select("plano_config_id, trial_end, user_id, cortesia")
@@ -192,10 +193,11 @@ export const Route = createFileRoute("/api/chat")({
               .eq("user_id", conv.user_id)
               .eq("dia", dia)
               .maybeSingle(),
+            isAdminInternoServer(supabase, conv.user_id),
           ]);
           const rawPlano = (subRes.data?.plano_config_id ?? "gratuito") as string;
           const planoId = (rawPlano in PLANS ? rawPlano : "gratuito") as PlanId;
-          const cortesia = subRes.data?.cortesia === true;
+          const cortesia = subRes.data?.cortesia === true || admin;
           const plano = PLANS[planoId];
           const trialFimIso = subRes.data?.trial_end ?? null;
           const trialExpirado =
