@@ -23,7 +23,9 @@ const createSchema = z.object({
   endereco: z.string().trim().max(255).optional().nullable(),
   uf: z.string().trim().length(2).optional().nullable(),
   qtd_unidades: z.number().int().min(0).max(100000).optional().nullable(),
-  categoria: z.enum(["predio", "casas"]).optional(),
+  categoria: z
+    .enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"])
+    .optional(),
 });
 
 export const createCondominio = createServerFn({ method: "POST" })
@@ -84,7 +86,9 @@ const updateSchema = z.object({
   endereco: z.string().trim().max(255).optional().nullable(),
   uf: z.string().trim().length(2).optional().nullable(),
   qtd_unidades: z.number().int().min(0).max(100000).optional().nullable(),
-  categoria: z.enum(["predio", "casas"]).optional(),
+  categoria: z
+    .enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"])
+    .optional(),
 });
 
 export const updateCondominio = createServerFn({ method: "POST" })
