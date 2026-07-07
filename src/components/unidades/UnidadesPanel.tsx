@@ -102,6 +102,9 @@ export function UnidadesPanel({
   const createCondFn = useServerFn(createCondomino);
   const deleteCondFn = useServerFn(deleteCondomino);
   const importFn = useServerFn(importUnidadesLote);
+  const listSugestoesFn = useServerFn(listSugestoesUnidades);
+  const updateSugestaoFn = useServerFn(atualizarStatusSugestao);
+  const extrairCondFn = useServerFn(extrairCondominosDeArquivo);
 
   const [loading, setLoading] = useState(true);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -112,6 +115,18 @@ export function UnidadesPanel({
   const [openCond, setOpenCond] = useState<Unidade | null>(null);
   const [openImport, setOpenImport] = useState(false);
   const [openView, setOpenView] = useState<Unidade | null>(null);
+  const [sugestoes, setSugestoes] = useState<
+    { id: string; documento_id: string | null; payload: { unidades?: UnidadeSugerida[] } }[]
+  >([]);
+  const [revisarUnidades, setRevisarUnidades] = useState<{
+    sugestaoId: string | null;
+    unidades: UnidadeSugerida[];
+  } | null>(null);
+  const [revisarCondominos, setRevisarCondominos] = useState<{
+    condominos: CondominoSugerido[];
+    unidades: UnidadeRef[];
+  } | null>(null);
+  const [extraindo, setExtraindo] = useState(false);
 
   function refresh() {
     setLoading(true);
@@ -119,8 +134,47 @@ export function UnidadesPanel({
       .then((r) => setUnidades((r as Unidade[]) ?? []))
       .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar"))
       .finally(() => setLoading(false));
+    listSugestoesFn({ data: { condominioId } })
+      .then((rows) =>
+        setSugestoes(
+          (rows as unknown as {
+            id: string;
+            documento_id: string | null;
+            payload: { unidades?: UnidadeSugerida[] };
+          }[]) ?? [],
+        ),
+      )
+      .catch(() => setSugestoes([]));
   }
   useEffect(refresh, [condominioId]);
+
+  async function abrirImportarCondominos(file: File) {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Arquivo maior que 10 MB.");
+      return;
+    }
+    setExtraindo(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let bin = "";
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      const base64 = btoa(bin);
+      const r = (await extrairCondFn({
+        data: { condominioId, fileName: file.name, base64 },
+      })) as { condominos: CondominoSugerido[]; unidades: UnidadeRef[] };
+      if (!r.condominos || r.condominos.length === 0) {
+        toast.info("Nenhum condômino foi identificado no arquivo.");
+        return;
+      }
+      setRevisarCondominos({ condominos: r.condominos, unidades: r.unidades });
+    } catch (e) {
+      console.error("[UnidadesPanel] extrair condôminos falhou", e);
+      toast.error(e instanceof Error ? e.message : "Falha ao extrair condôminos");
+    } finally {
+      setExtraindo(false);
+    }
+  }
 
   function openCreate() {
     setEditing(null);
