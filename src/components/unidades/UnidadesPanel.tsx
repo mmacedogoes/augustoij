@@ -382,22 +382,21 @@ export function UnidadesPanel({
         </div>
         {isOwner && (
           <div className="flex gap-2 flex-wrap">
-            {sugestoes.length === 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={detectando}
-                onClick={detectarManual}
-                className="transition-colors"
-              >
-                {detectando ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-1" />
-                )}
-                Detectar unidades na convenção
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={detectando}
+              onClick={detectarManual}
+              className="transition-colors"
+              title="Força a IA a reler a convenção do condomínio"
+            >
+              {detectando ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-1" />
+              )}
+              Reler convenção
+            </Button>
             <Button
               variant="outline"
               size="sm"
