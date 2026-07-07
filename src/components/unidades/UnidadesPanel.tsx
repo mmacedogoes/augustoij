@@ -262,7 +262,7 @@ export function UnidadesPanel({
 
   function openCreate() {
     setEditing(null);
-    setForm({ ...EMPTY_UNIDADE });
+    setForm({ ...EMPTY_UNIDADE, tipo: vocab.tipoPadrao as TipoUnidade });
     setOpenForm(true);
   }
 
