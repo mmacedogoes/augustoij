@@ -128,7 +128,14 @@ export function UnidadesPanel({
   const [openImport, setOpenImport] = useState(false);
   const [openView, setOpenView] = useState<Unidade | null>(null);
   const [sugestoes, setSugestoes] = useState<
-    { id: string; documento_id: string | null; payload: { unidades?: UnidadeSugerida[] } }[]
+    {
+      id: string;
+      documento_id: string | null;
+      payload: {
+        unidades?: UnidadeSugerida[];
+        auditoria?: { ajustes?: string[]; totalOriginal?: number; totalFinal?: number };
+      };
+    }[]
   >([]);
   const [revisarUnidades, setRevisarUnidades] = useState<{
     sugestaoId: string | null;
@@ -165,7 +172,10 @@ export function UnidadesPanel({
           (rows as unknown as {
             id: string;
             documento_id: string | null;
-            payload: { unidades?: UnidadeSugerida[] };
+            payload: {
+              unidades?: UnidadeSugerida[];
+              auditoria?: { ajustes?: string[]; totalOriginal?: number; totalFinal?: number };
+            };
           }[]) ?? [];
         setSugestoes(list);
       })
@@ -344,6 +354,11 @@ export function UnidadesPanel({
             <p className="text-xs text-muted-foreground">
               Revise antes de importar para a lista de {vocab.unidade.toLowerCase()}s.
             </p>
+            {sugestoes[0].payload.auditoria?.ajustes?.[0] && (
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                {sugestoes[0].payload.auditoria.ajustes[0]}
+              </p>
+            )}
           </div>
           <Button
             size="sm"
