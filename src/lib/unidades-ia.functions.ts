@@ -323,7 +323,10 @@ export async function _extrairESalvarSugestaoUnidades(
     "REGRA DE CONTAGEM ESTRITA: o TOTAL de unidades retornadas deve ser EXATAMENTE o número que a convenção " +
     "declarar (ex.: 'condomínio composto por 60 apartamentos' → devolva 60, nunca 72). NÃO conte como unidade: " +
     "vagas de garagem, boxes/depósitos, hobby boxes, área comum, salão de festas, guarita, casa do zelador, " +
-    "reservatórios — a menos que a convenção diga EXPLICITAMENTE que são unidades autônomas com matrícula própria. " +
+    "reservatórios, subsolo, térreo, pavimento especial, cobertura, barrilete e qualquer pavimento descrito como área comum — " +
+    "a menos que a convenção diga EXPLICITAMENTE que são unidades autônomas com matrícula própria. " +
+    "Em prédios, números ordinais de pavimento especial/cobertura (ex.: 18º andar com piscina/salão/sauna) NÃO indicam " +
+    "que existam apartamentos naquele andar; use somente pavimentos tipo/residenciais para gerar apartamentos. " +
     "NÃO duplique unidades: cada par (bloco, número) deve aparecer UMA única vez. Se a mesma unidade aparecer " +
     "em várias tabelas (fração ideal, área privativa, vagas), consolide em UMA linha. " +
     "Prefira sempre a lista real quando existir. NÃO devolva vazio se o próprio texto disser quantas unidades existem. " +
@@ -350,7 +353,14 @@ export async function _extrairESalvarSugestaoUnidades(
     seen.add(key);
     unidades.push(u);
   }
-  if (unidades.length === 0) return [];
+  const corrigida = corrigirExcessoPredioPorPadrao(
+    unidades,
+    qtdEsperada && qtdEsperada > 0 ? qtdEsperada : null,
+    categoriaId,
+    texto,
+  );
+  const unidadesFinais = corrigida.unidades;
+  if (unidadesFinais.length === 0) return [];
 
   // Em modo force, apaga sugestões anteriores em QUALQUER status para essa convenção
   const del = supabase.from("sugestoes_unidades").delete().eq("documento_id", doc.id);
@@ -358,10 +368,13 @@ export async function _extrairESalvarSugestaoUnidades(
   await supabase.from("sugestoes_unidades").insert({
     condominio_id: doc.condominio_id,
     documento_id: doc.id,
-    payload: { unidades },
+    payload: {
+      unidades: unidadesFinais,
+      auditoria: corrigida.auditoria ?? undefined,
+    },
     status: "pendente",
   });
-  return unidades;
+  return unidadesFinais;
 }
 
 type UnidadeSugerida = z.infer<typeof UnidadeSugestao>;
