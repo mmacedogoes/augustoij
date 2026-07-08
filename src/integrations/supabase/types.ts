@@ -739,6 +739,62 @@ export type Database = {
           },
         ]
       }
+      eventos_ia: {
+        Row: {
+          aig_log_id: string | null
+          aig_run_id: string | null
+          condominio_id: string | null
+          created_at: string
+          creditos_lovable: number
+          custo_brl: number
+          id: string
+          meta: Json | null
+          model: string | null
+          origem: string
+          tokens_input: number
+          tokens_output: number
+          user_id: string | null
+        }
+        Insert: {
+          aig_log_id?: string | null
+          aig_run_id?: string | null
+          condominio_id?: string | null
+          created_at?: string
+          creditos_lovable?: number
+          custo_brl?: number
+          id?: string
+          meta?: Json | null
+          model?: string | null
+          origem: string
+          tokens_input?: number
+          tokens_output?: number
+          user_id?: string | null
+        }
+        Update: {
+          aig_log_id?: string | null
+          aig_run_id?: string | null
+          condominio_id?: string | null
+          created_at?: string
+          creditos_lovable?: number
+          custo_brl?: number
+          id?: string
+          meta?: Json | null
+          model?: string | null
+          origem?: string
+          tokens_input?: number
+          tokens_output?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_ia_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kb_chunks: {
         Row: {
           conteudo: string
