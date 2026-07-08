@@ -1,45 +1,81 @@
-## Causa raiz
+## Diagnóstico do erro no Roberto Rocha
 
-O componente `<Toaster />` do **sonner** nunca é montado na árvore da aplicação. O wrapper existe em `src/components/ui/sonner.tsx`, mas ninguém o importa nem renderiza. Consequência: TODAS as chamadas `toast.error(...)` e `toast.success(...)` (usadas em ~20 arquivos, incluindo `UnidadesPanel.tsx`) são silenciosas — o código dispara a mensagem, mas nada aparece na tela.
+O problema não está no cadastro do condomínio: ele está salvo com **60 unidades** e categoria **prédio**.
 
-Fluxo real ao clicar em **Salvar** em "Nova unidade":
+O erro vem da etapa de interpretação da convenção. O texto extraído contém estas informações relevantes:
 
-1. `salvar()` roda a validação `if (!form.numero.trim())` → dispara `toast.error("Informe o número da unidade")` → silencioso → **"nada acontece"**.
-2. Ou, se `numero` estiver preenchido, chama `createFn(...)`. Se o server function joga qualquer erro (ex.: duplicidade em `UNIQUE (condominio_id, bloco, numero)`, `fracao_ideal` inválido, etc.), o `catch` dispara `toast.error(e.message)` → silencioso → **"nada acontece"**.
-3. Se der certo, `setOpenForm(false)` fecha e `refresh()` atualiza — nesse caso o usuário veria a nova unidade. Como não vê, é porque um dos dois toasts silenciosos acima está sendo disparado.
+- “composto de um bloco, contendo **60 (sessenta) unidades autônomas**”
+- “**15 (quinze) pavimentos tipo**, sendo em cada pavimento **04 unidades autônomas**”
+- “Pavimento Especial: localiza-se no **18º andar**, sendo composto de piscina, sauna, sala de festas, sala de ginástica etc.”
 
-O problema não é RLS, não é policy, não é o schema — todas as políticas (`Donos podem inserir unidades`), grants e constraints estão OK. O problema é UX: erros ficam invisíveis, dando a sensação de que o app "não faz nada".
+A IA gerou unidades de **101 a 1804**, ou seja:
 
-## Correção
-
-### 1. Montar `<Toaster />` globalmente (uma linha resolve toda a aplicação)
-
-Em `src/routes/__root.tsx`, importar e renderizar `<Toaster />` dentro do shell:
-
-```tsx
-import { Toaster } from "@/components/ui/sonner";
-// ...
-<>
-  <Outlet />
-  <Toaster richColors position="top-right" />
-</>
+```text
+18 andares x 4 apartamentos = 72 unidades
 ```
 
-Isso restaura o feedback visual de todos os `toast.error/success/info` já presentes no código (login, condomínios, unidades, admin, onboarding, etc.). Depois disso, ao clicar em Salvar, o usuário verá exatamente o que está impedindo o save.
+Mas a leitura correta é:
 
-### 2. Garantia defensiva no `UnidadesPanel`
+```text
+15 pavimentos tipo x 4 apartamentos = 60 unidades
+```
 
-No `catch` de `salvar()`, além do toast, logar `console.error(e)` — assim mesmo se o Toaster falhar futuramente, o erro fica visível no console. Custo: 1 linha.
+O “18º andar” mencionado no documento é **pavimento especial / área comum**, não pavimento tipo residencial. A IA confundiu o número ordinal “18º andar” com mais pavimentos residenciais e extrapolou apartamentos inexistentes nos andares 16, 17 e 18.
 
-### 3. Não é necessário mexer em backend
+Também há um segundo fator: a lista OCR da convenção está truncada/parcial, com unidades visíveis até 1504 em um trecho e continuação ruim em outro. Quando a lista real fica incompleta, o prompt atual permite a IA “gerar numericamente” unidades — e ela usou a referência errada: 18 andares em vez de 15 pavimentos tipo.
 
-Nenhuma migração, nenhuma alteração de RLS, nenhuma mudança de policy. O banco e o server function `createUnidade` estão corretos.
+## Possíveis soluções
 
-## Arquivos alterados
+### Solução 1 — Só reforçar o prompt da IA
 
-- `src/routes/__root.tsx` — adicionar import e `<Toaster />` no shell.
-- `src/components/unidades/UnidadesPanel.tsx` — adicionar `console.error(e)` no catch do `salvar()`.
+Ajustar o prompt para dizer que pavimentos especiais, cobertura, garagem, subsolo e áreas comuns não geram unidades.
 
-## Verificação
+**Vantagem:** simples.
 
-Após implementar, você reabre o formulário de "Nova unidade" e clica em Salvar. Vai aparecer o toast com a mensagem real (ex.: "Informe o número da unidade" ou o erro do servidor). Se o erro real for algo diferente (validação de fração, duplicidade, etc.), aí sim eu ajusto o campo específico.
+**Limite:** ainda depende da IA obedecer sempre. Como já vimos, mesmo com regra de “60 nunca 72”, ela ignorou a contagem quando viu “18º andar”.
+
+### Solução 2 — Pós-validação determinística no servidor
+
+Depois da IA responder, o sistema valida o resultado com regras objetivas:
+
+- se o cadastro/convenção declara `qtd_unidades = 60`, a sugestão não pode retornar 72;
+- para prédio, detectar padrão de apartamentos por andar (`101`, `102`, `103`, `104` etc.);
+- se houver excesso, remover os andares acima do total compatível com a contagem declarada;
+- no caso Roberto Rocha: manter `101–1504` e remover `1601–1804`.
+
+**Vantagem:** corrige o erro mesmo se a IA insistir em gerar 72.
+
+**Limite:** precisa ser cuidadoso para não cortar unidades reais em condomínios com cobertura/unidades especiais. Por isso deve só agir quando houver padrão claro e total declarado.
+
+### Solução 3 — Extração híbrida: regras antes da IA
+
+Antes de perguntar à IA, o servidor tenta interpretar frases formais como:
+
+```text
+15 pavimentos tipo, 04 unidades por pavimento
+60 unidades autônomas
+```
+
+Quando houver esse padrão, o sistema já gera a lista correta de unidades (`101–1504`) e usa a IA só para complementar área/fração, não para decidir a quantidade.
+
+**Vantagem:** mais preciso para convenções padronizadas.
+
+**Limite:** mais trabalho e cobre primeiro os padrões mais comuns; ainda mantém IA como fallback.
+
+## Plano recomendado
+
+Implementar uma correção proporcional, sem over-engineering, combinando as soluções 1 e 2:
+
+1. **Reforçar o prompt** em `src/lib/unidades-ia.functions.ts` para impedir que “pavimento especial”, “cobertura”, “subsolo”, “térreo” e áreas comuns sejam convertidos em unidades autônomas.
+2. **Adicionar pós-validação determinística** após a deduplicação das unidades:
+   - usar `qtd_unidades` como limite forte quando for maior que zero;
+   - detectar padrão de prédio com apartamentos por andar;
+   - quando a IA retornar mais unidades que o total previsto e o excesso estiver em andares finais gerados artificialmente, cortar para o total correto;
+   - preservar dados de área/fração/vagas das unidades mantidas.
+3. **Adicionar metadados de auditoria na sugestão**, para a UI poder explicar quando houve correção automática, por exemplo: “A IA retornou 72 unidades, mas a convenção/cadastro prevê 60; foram removidas 12 unidades geradas em pavimento especial/cobertura.”
+4. **Reprocessar a sugestão pendente do Roberto Rocha** para substituir a sugestão atual de 72 pela lista correta de 60 unidades.
+5. **Validar no banco** que a nova sugestão pendente possui exatamente 60 unidades e que não há apartamentos `1601–1804`.
+
+## Resultado esperado
+
+No Roberto Rocha, a revisão/importação passará a mostrar **60 apartamentos**, numerados de `101` a `1504`, respeitando os 15 pavimentos tipo com 4 unidades por pavimento e ignorando o pavimento especial do 18º andar.
