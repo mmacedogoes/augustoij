@@ -299,12 +299,13 @@ export async function _extrairESalvarSugestaoUnidades(
   // salas_comerciais, shopping, galpoes)
   const { data: cond } = await supabase
     .from("condominios")
-    .select("categoria, qtd_unidades")
+    .select("categoria, qtd_unidades, owner_id")
     .eq("id", doc.condominio_id)
     .maybeSingle();
   const categoriaId = normalizeCategoria(cond?.categoria as string | null);
   const catMeta = getCategoriaMeta(categoriaId);
   const qtdEsperada = (cond?.qtd_unidades as number | null) ?? null;
+  const ownerId = (cond?.owner_id as string | null) ?? null;
 
   const { data: chunks } = await supabase
     .from("document_chunks")
@@ -361,7 +362,24 @@ export async function _extrairESalvarSugestaoUnidades(
     "convenções sempre listam unidades em algum ponto. Não invente unidades que não estejam no texto.";
   const user = `Arquivo: ${doc.nome_arquivo}\n\nTexto da convenção (pode estar truncado; releia com cuidado procurando listas/tabelas):\n\n${texto}`;
 
-  const parsed = (await callGeminiJson(apiKey, system, user)) as { unidades?: unknown[] };
+  const chamada = await callGeminiJson(apiKey, system, user);
+  try {
+    const { registrarEventoIa } = await import("./uso-ia.server");
+    await registrarEventoIa({
+      userId: ownerId,
+      condominioId: doc.condominio_id,
+      origem: "importacao_convencao",
+      model: chamada.model,
+      tokensInput: chamada.usage.prompt_tokens,
+      tokensOutput: chamada.usage.completion_tokens,
+      aigLogId: chamada.aigLogId,
+      aigRunId: chamada.aigRunId,
+      meta: { documento_id: doc.id, arquivo: doc.nome_arquivo },
+    });
+  } catch (err) {
+    console.error("[uso-ia] importacao_convencao:", err);
+  }
+  const parsed = chamada.data as { unidades?: unknown[] };
   const linhas = z.array(UnidadeSugestao).safeParse(parsed?.unidades ?? []);
   const brutas = linhas.success ? linhas.data : [];
   // Deduplica por (bloco, numero) — a IA às vezes repete a mesma unidade em
