@@ -180,7 +180,35 @@ export const processDocumento = createServerFn({ method: "POST" })
       const chunks = chunkText(text, 1000, 150);
 
       // Embeddings em paralelo controlado (evita timeout do Worker em docs longos)
-      const embeddings = await embedChunksParallel(apiKey, chunks, 5);
+      const { embeddings, totalTokens: embTokens } = await embedChunksParallel(
+        apiKey,
+        chunks,
+        5,
+      );
+      try {
+        const { registrarEventoIa } = await import("./uso-ia.server");
+        const { EMBEDDING_MODEL } = await import("./ai-gateway.server");
+        await registrarEventoIa({
+          userId: context.userId,
+          condominioId: doc.condominio_id,
+          origem: "embedding_documento",
+          model: EMBEDDING_MODEL,
+          tokensInput: embTokens,
+          meta: { documento_id: doc.id, chunks: chunks.length, arquivo: doc.nome_arquivo },
+        });
+        if (usedVision) {
+          await registrarEventoIa({
+            userId: context.userId,
+            condominioId: doc.condominio_id,
+            origem: "ocr_visao_documento",
+            model: "google/gemini-3-flash-preview",
+            tokensOutput: Math.ceil(text.length / 4),
+            meta: { documento_id: doc.id, arquivo: doc.nome_arquivo },
+          });
+        }
+      } catch (err) {
+        console.error("[uso-ia] processDocumento:", err);
+      }
       const rows = chunks.map((c, i) => ({
         condominio_id: doc.condominio_id,
         documento_id: doc.id,
