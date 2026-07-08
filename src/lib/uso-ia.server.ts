@@ -103,7 +103,7 @@ export async function registrarEventoIa(input: RegistrarEventoIaInput): Promise<
       custo_brl: 0,
       aig_log_id: input.aigLogId ?? null,
       aig_run_id: input.aigRunId ?? null,
-      meta: input.meta ?? null,
+      meta: (input.meta ?? null) as never,
     });
     if (error) {
       console.error("[uso-ia] insert eventos_ia falhou:", error.message);
