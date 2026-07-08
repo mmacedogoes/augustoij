@@ -74,9 +74,23 @@ export function RevisarUnidadesDialog({
   ) => Promise<void>;
 }) {
   const tipoPadrao = vocab.tipoPadrao;
-  const [linhas, setLinhas] = useState<Linha[]>(
-    sugestoes.map((s) => toLinha({ ...s, tipo: s.tipo ?? tipoPadrao })),
-  );
+  const [linhas, setLinhas] = useState<Linha[]>(() => {
+    const parseNum = (s: string | null | undefined) => {
+      const m = String(s ?? "").match(/\d+/);
+      return m ? parseInt(m[0], 10) : Number.POSITIVE_INFINITY;
+    };
+    return sugestoes
+      .map((s) => toLinha({ ...s, tipo: s.tipo ?? tipoPadrao }))
+      .sort((a, b) => {
+        const ba = String(a.bloco ?? "");
+        const bb = String(b.bloco ?? "");
+        if (ba !== bb) return ba.localeCompare(bb, "pt-BR", { numeric: true });
+        const na = parseNum(a.numero);
+        const nb = parseNum(b.numero);
+        if (na !== nb) return na - nb;
+        return String(a.numero ?? "").localeCompare(String(b.numero ?? ""), "pt-BR", { numeric: true });
+      });
+  });
   const [saving, setSaving] = useState(false);
   const [estrategia, setEstrategia] = useState<"manter" | "substituir">("manter");
 

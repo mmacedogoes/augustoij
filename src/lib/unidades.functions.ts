@@ -45,7 +45,20 @@ export const listUnidades = createServerFn({ method: "POST" })
       .order("bloco", { ascending: true, nullsFirst: true })
       .order("numero", { ascending: true });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const parseNum = (s: string | null | undefined) => {
+      const m = String(s ?? "").match(/\d+/);
+      return m ? parseInt(m[0], 10) : Number.POSITIVE_INFINITY;
+    };
+    const sorted = (rows ?? []).slice().sort((a: any, b: any) => {
+      const ba = String(a.bloco ?? "");
+      const bb = String(b.bloco ?? "");
+      if (ba !== bb) return ba.localeCompare(bb, "pt-BR", { numeric: true });
+      const na = parseNum(a.numero);
+      const nb = parseNum(b.numero);
+      if (na !== nb) return na - nb;
+      return String(a.numero ?? "").localeCompare(String(b.numero ?? ""), "pt-BR", { numeric: true });
+    });
+    return sorted;
   });
 
 export const getCondominioMeta = createServerFn({ method: "POST" })
