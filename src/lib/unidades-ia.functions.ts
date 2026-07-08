@@ -668,13 +668,50 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
     // 3) reindexa chunks
     await supabaseAdmin.from("document_chunks").delete().eq("documento_id", doc.id);
     const chunks = chunkText(texto, 1000, 150);
-    const embeddings = await embedChunksParallel(apiKey, chunks, 5);
+    const { embeddings, totalTokens: embTokens } = await embedChunksParallel(
+      apiKey,
+      chunks,
+      5,
+    );
+    try {
+      const { registrarEventoIa } = await import("./uso-ia.server");
+      const { EMBEDDING_MODEL } = await import("./ai-gateway.server");
+      await registrarEventoIa({
+        userId: context.userId,
+        condominioId: data.condominioId,
+        origem: "embedding_documento",
+        model: EMBEDDING_MODEL,
+        tokensInput: embTokens,
+        meta: { documento_id: doc.id, chunks: chunks.length, contexto: "reprocessarConvencao" },
+      });
+    } catch (err) {
+      console.error("[uso-ia] reprocessarConvencao embed:", err);
+    }
     const rows = chunks.map((c, i) => ({
       condominio_id: data.condominioId,
       documento_id: doc.id,
       conteudo: c,
       embedding: `[${embeddings[i].join(",")}]`,
     }));
+
+    // Se caiu no fallback de visão, também registra o custo do OCR
+    if (modo === "visao_forcada" || modo === "visao_fallback") {
+      try {
+        const { registrarEventoIa } = await import("./uso-ia.server");
+        await registrarEventoIa({
+          userId: context.userId,
+          condominioId: data.condominioId,
+          origem: "ocr_visao_documento",
+          model: "google/gemini-3-flash-preview",
+          // Sem usage do gateway aqui (chamada em documentos.server.ts não
+          // retorna). Estimamos por tamanho do texto retornado (~4 chars/token).
+          tokensOutput: Math.ceil(texto.length / 4),
+          meta: { documento_id: doc.id, contexto: "reprocessarConvencao", modo },
+        });
+      } catch (err) {
+        console.error("[uso-ia] reprocessarConvencao ocr:", err);
+      }
+    }
     for (let i = 0; i < rows.length; i += 50) {
       const slice = rows.slice(i, i + 50);
       const { error: insErr } = await supabaseAdmin
