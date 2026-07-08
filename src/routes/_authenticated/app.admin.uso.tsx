@@ -38,6 +38,7 @@ import {
   listAlertas,
   getConfigAlertas,
   updateConfigAlertas,
+  getConsumoPorOrigemMes,
 } from "@/lib/admin-uso.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/uso")({
@@ -283,7 +284,85 @@ function OverviewTab() {
           hint="documentos prontos"
         />
       </div>
+
+      <ConsumoPorOrigem />
     </div>
+  );
+}
+
+const ORIGEM_LABEL: Record<string, string> = {
+  chat: "Chat com usuários",
+  importacao_convencao: "Importação de convenção (IA)",
+  ocr_visao_documento: "OCR/Visão de documentos",
+  ocr_visao_kb: "OCR/Visão da base de conhecimento",
+  embedding_documento: "Indexação (embeddings) de documentos",
+  embedding_kb: "Indexação (embeddings) da base de conhecimento",
+  demo_chat: "Chat de demonstração (landing)",
+  outro: "Outros",
+};
+
+function ConsumoPorOrigem() {
+  const fn = useServerFn(getConsumoPorOrigemMes);
+  const [data, setData] = useState<Awaited<
+    ReturnType<typeof getConsumoPorOrigemMes>
+  > | null>(null);
+  useEffect(() => {
+    fn({ data: undefined as never })
+      .then(setData)
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
+  }, [fn]);
+  const linhas = data?.linhas ?? [];
+  const maxCred = Math.max(1, ...linhas.map((l) => l.credits));
+  return (
+    <Card className="p-5 sm:p-6 border-border/60 rounded-2xl">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
+            Onde os créditos foram usados
+          </p>
+          <h3 className="mt-1 text-lg font-semibold text-primary">Consumo Lovable por origem · mês</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Além do chat, importação de convenção, OCR e embeddings de documentos também consomem créditos.
+          </p>
+        </div>
+        <p className="text-sm font-semibold text-primary tabular-nums shrink-0">
+          {data ? brl(data.total_brl) : "—"}
+        </p>
+      </div>
+      <div className="mt-4 space-y-2.5">
+        {!data ? (
+          Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)
+        ) : linhas.filter((l) => l.credits > 0).length === 0 ? (
+          <p className="text-xs text-muted-foreground py-4 text-center">
+            Sem consumo registrado neste mês.
+          </p>
+        ) : (
+          linhas
+            .filter((l) => l.credits > 0)
+            .map((l) => (
+              <div key={l.origem} className="rounded-lg px-2.5 py-2 hover:bg-muted/40 transition-colors">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <p className="font-medium text-foreground truncate flex-1 min-w-0">
+                    {ORIGEM_LABEL[l.origem] ?? l.origem}
+                  </p>
+                  <p className="font-semibold text-primary tabular-nums shrink-0">{brl(l.brl)}</p>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary/80 transition-[width] duration-500 ease-out"
+                    style={{ width: `${Math.max(4, (l.credits / maxCred) * 100)}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                  {creditFmt.format(l.credits)} créditos
+                  {l.count > 0 ? ` · ${l.count} chamada(s)` : ""}
+                  {l.tokens > 0 ? ` · ${compact(l.tokens)} tokens` : ""}
+                </p>
+              </div>
+            ))
+        )}
+      </div>
+    </Card>
   );
 }
 
