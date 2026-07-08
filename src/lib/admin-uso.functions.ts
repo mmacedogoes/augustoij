@@ -262,3 +262,75 @@ export const countAlertasPendentes = createServerFn({ method: "GET" })
       .eq("notificou_admin", false);
     return { count: count ?? 0 };
   });
+
+/**
+ * Retorna consumo Lovable AI do mês agrupado por origem
+ * (chat vs importação de convenção vs OCR vs embeddings vs demo).
+ * Alimentado pela tabela eventos_ia + uso_mensal (chat vem do trigger de mensagens).
+ */
+export const getConsumoPorOrigemMes = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { primeiroDia } = mesAtual();
+
+    // Créditos do chat: soma total_credits em uso_mensal MENOS o que veio
+    // de eventos_ia (que também alimenta uso_mensal).
+    const [{ data: uso }, { data: eventos }, cfg] = await Promise.all([
+      supabaseAdmin
+        .from("uso_mensal")
+        .select("total_credits, custo_estimado_brl")
+        .eq("mes_ano", primeiroDia.slice(0, 7)),
+      supabaseAdmin
+        .from("eventos_ia")
+        .select("origem, creditos_lovable, tokens_input, tokens_output")
+        .gte("created_at", `${primeiroDia}T00:00:00-03:00`),
+      supabaseAdmin.from("config_alertas").select("credito_brl").eq("id", 1).maybeSingle(),
+    ]);
+
+    const creditoBrl = Number(cfg.data?.credito_brl ?? 0.05);
+    const totalUso = (uso ?? []).reduce((a, r) => a + Number(r.total_credits ?? 0), 0);
+
+    const porOrigem = new Map<string, { credits: number; count: number; tokens: number }>();
+    for (const ev of eventos ?? []) {
+      const cur = porOrigem.get(ev.origem) ?? { credits: 0, count: 0, tokens: 0 };
+      cur.credits += Number(ev.creditos_lovable ?? 0);
+      cur.count += 1;
+      cur.tokens += Number(ev.tokens_input ?? 0) + Number(ev.tokens_output ?? 0);
+      porOrigem.set(ev.origem, cur);
+    }
+    const somaEventos = Array.from(porOrigem.values()).reduce((a, r) => a + r.credits, 0);
+    // O que sobra em uso_mensal veio do chat (que não gera evento_ia).
+    const chatCredits = Math.max(0, totalUso - somaEventos);
+    const linhas: Array<{
+      origem: string;
+      credits: number;
+      brl: number;
+      count: number;
+      tokens: number;
+    }> = [];
+    linhas.push({
+      origem: "chat",
+      credits: chatCredits,
+      brl: chatCredits * creditoBrl,
+      count: 0,
+      tokens: 0,
+    });
+    for (const [origem, v] of porOrigem) {
+      linhas.push({
+        origem,
+        credits: v.credits,
+        brl: v.credits * creditoBrl,
+        count: v.count,
+        tokens: v.tokens,
+      });
+    }
+    linhas.sort((a, b) => b.credits - a.credits);
+    return {
+      linhas,
+      total_credits: totalUso,
+      total_brl: totalUso * creditoBrl,
+      credito_brl: creditoBrl,
+    };
+  });

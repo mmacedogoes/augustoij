@@ -125,8 +125,11 @@ export const Route = createFileRoute("/api/public/demo-chat")({
             );
           }
 
+          const aigLogId = res.headers.get("x-lovable-aig-log-id");
+          const aigRunId = res.headers.get("x-lovable-aig-run-id");
           const json = (await res.json()) as {
             choices?: Array<{ message?: { content?: string } }>;
+            usage?: { prompt_tokens?: number; completion_tokens?: number };
           };
           answer = json.choices?.[0]?.message?.content?.trim() ?? "";
           if (!answer) {
@@ -134,6 +137,21 @@ export const Route = createFileRoute("/api/public/demo-chat")({
               { error: "Resposta vazia. Tente reformular a pergunta." },
               { status: 502 },
             );
+          }
+          try {
+            const { registrarEventoIa } = await import("@/lib/uso-ia.server");
+            await registrarEventoIa({
+              userId: null,
+              origem: "demo_chat",
+              model: "google/gemini-2.5-flash",
+              tokensInput: json.usage?.prompt_tokens ?? 0,
+              tokensOutput: json.usage?.completion_tokens ?? 0,
+              aigLogId,
+              aigRunId,
+              meta: { ip },
+            });
+          } catch (err) {
+            console.error("[uso-ia] demo_chat:", err);
           }
         } catch (err) {
           console.error("[demo-chat] fetch failed", err);

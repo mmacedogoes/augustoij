@@ -1,81 +1,75 @@
-## Diagnóstico do erro no Roberto Rocha
 
-O problema não está no cadastro do condomínio: ele está salvo com **60 unidades** e categoria **prédio**.
+## Diagnóstico
 
-O erro vem da etapa de interpretação da convenção. O texto extraído contém estas informações relevantes:
+Hoje o dashboard "Usos e custos" é alimentado **exclusivamente** pelo trigger `tg_update_uso_mensal`, que roda **apenas quando uma linha é inserida em `public.mensagens` com `papel='assistant'`**. Esse insert existe em um único lugar: `src/routes/api/chat.ts` (o chat conversacional). O trigger é quem popula `uso_mensal`, `uso_diario` e `custos_cliente_mensal`.
 
-- “composto de um bloco, contendo **60 (sessenta) unidades autônomas**”
-- “**15 (quinze) pavimentos tipo**, sendo em cada pavimento **04 unidades autônomas**”
-- “Pavimento Especial: localiza-se no **18º andar**, sendo composto de piscina, sauna, sala de festas, sala de ginástica etc.”
+Verificando os outros consumidores da Lovable AI Gateway no projeto (todos usam `LOVABLE_API_KEY` e portanto **queimam créditos reais**):
 
-A IA gerou unidades de **101 a 1804**, ou seja:
+| Arquivo | O que faz | Registra em `mensagens`/uso? |
+|---|---|---|
+| `src/routes/api/chat.ts` | Chat com o usuário | **Sim** (único caso hoje) |
+| `src/lib/unidades-ia.functions.ts` | Extrai unidades da convenção (`generateText` + prompt grande, às vezes com retry) | **Não** |
+| `src/lib/documentos.functions.ts` / `documentos.server.ts` | Chunk + `embedText`/`embedChunksParallel` de cada documento enviado (dezenas a centenas de embeddings por PDF) | **Não** |
+| `src/lib/admin-kb.functions.ts` | Ingestão de KB jurídica (embeddings + eventual chat) | **Não** |
+| `src/routes/api/public/demo-chat.ts` | Chat público de demo na landing | **Não** |
 
-```text
-18 andares x 4 apartamentos = 72 unidades
-```
+Ou seja: **cada convenção importada, cada PDF processado e cada documento da KB consome créditos Lovable que somem do dashboard**. O sintoma que você observou (créditos gastos na leitura de documentos sem aparecer em uso/custo) é exatamente esse ponto cego.
 
-Mas a leitura correta é:
-
-```text
-15 pavimentos tipo x 4 apartamentos = 60 unidades
-```
-
-O “18º andar” mencionado no documento é **pavimento especial / área comum**, não pavimento tipo residencial. A IA confundiu o número ordinal “18º andar” com mais pavimentos residenciais e extrapolou apartamentos inexistentes nos andares 16, 17 e 18.
-
-Também há um segundo fator: a lista OCR da convenção está truncada/parcial, com unidades visíveis até 1504 em um trecho e continuação ruim em outro. Quando a lista real fica incompleta, o prompt atual permite a IA “gerar numericamente” unidades — e ela usou a referência errada: 18 andares em vez de 15 pavimentos tipo.
+Fatores agravantes:
+1. `embedText` não retorna a contagem de tokens do provedor (o helper descarta o campo `usage` da resposta do gateway).
+2. `custos_cliente_mensal.custo_embeddings` está fixado em `0` pelo trigger, e `refresh_custos_cliente_mensal` também zera — não há caminho para embeddings entrarem no custo.
+3. Não há tabela dedicada de "eventos de IA" fora do chat, então hoje um consumo de importação não deixa rastro nem em `mensagens`, nem em `uso_mensal`, nem em `custos_cliente_mensal`.
 
 ## Possíveis soluções
 
-### Solução 1 — Só reforçar o prompt da IA
+### Opção A — Registrar cada chamada em uma nova tabela `eventos_ia` (recomendada)
+Criar `public.eventos_ia (id, user_id, condominio_id, origem, model, tokens_input, tokens_output, creditos_lovable, aig_log_id, aig_run_id, created_at)` com RLS por dono, e um trigger `AFTER INSERT` que agrega em `uso_mensal` / `uso_diario` / `custos_cliente_mensal` reaproveitando a mesma fórmula do trigger de mensagens (créditos × `credito_brl`).
+- **Vantagem:** rastreia origem ("importacao_convencao", "embedding_documento", "kb_ingest", "demo_chat"), permite filtrar no admin e não polui a tabela `mensagens` (que é conversacional).
+- **Custo:** uma migração + wrapper `registrarEventoIa()` chamado nos 4 pontos acima.
 
-Ajustar o prompt para dizer que pavimentos especiais, cobertura, garagem, subsolo e áreas comuns não geram unidades.
+### Opção B — Reusar `mensagens` com um `papel` novo (ex.: `sistema_ia`)
+Inserir uma linha "fantasma" em `mensagens` (sem conversa real ou com uma conversa técnica por condomínio) e adaptar o trigger para contar essas linhas também.
+- **Vantagem:** aproveita todo o pipeline atual, mudança mínima.
+- **Desvantagem:** mistura chat do usuário com uso interno; complica listagens da conversa; força criar `conversa_id` sintético.
 
-**Vantagem:** simples.
+### Opção C — Contabilizar só nos totais (mais simples, menos rastreável)
+Após cada chamada de IA fora do chat, chamar diretamente um RPC `registrar_uso_ia(user_id, tokens_in, tokens_out, model, origem)` que faz o `INSERT ... ON CONFLICT` em `uso_mensal`/`uso_diario`/`custos_cliente_mensal`.
+- **Vantagem:** sem tabela nova; corrige o dashboard imediatamente.
+- **Desvantagem:** perde detalhe por evento (não dá para auditar qual PDF gerou o custo).
 
-**Limite:** ainda depende da IA obedecer sempre. Como já vimos, mesmo com regra de “60 nunca 72”, ela ignorou a contagem quando viu “18º andar”.
+## Plano recomendado (Opção A + captura de tokens de embeddings)
 
-### Solução 2 — Pós-validação determinística no servidor
+Objetivo: **cada crédito Lovable consumido aparece no dashboard, com origem**.
 
-Depois da IA responder, o sistema valida o resultado com regras objetivas:
+### 1. Migração
+- Nova tabela `public.eventos_ia` com colunas acima, `owner_id NOT NULL`, índice `(user_id, created_at DESC)` e `(user_id, mes_ano)`.
+- `GRANT SELECT, INSERT ON public.eventos_ia TO authenticated;` + `GRANT ALL ... TO service_role;`
+- RLS: SELECT/INSERT `TO authenticated USING (auth.uid() = user_id)`; admin lê tudo via `is_any_admin`.
+- Trigger `AFTER INSERT`: soma `creditos_lovable` e tokens em `uso_mensal.total_credits/total_tokens`, `custo_estimado_brl`, e em `custos_cliente_mensal.custo_tokens_openai` (para eventos de chat/prompt) **ou** `custos_cliente_mensal.custo_embeddings` (quando `origem` começa com `embedding_`). NÃO incrementa `total_mensagens` para não distorcer contagem de mensagens do plano — o limite de mensagens do usuário continua vindo só de `mensagens.papel='assistant'`.
+- Ajustar `refresh_custos_cliente_mensal` para agregar embeddings a partir de `eventos_ia` em vez de forçar `0`.
 
-- se o cadastro/convenção declara `qtd_unidades = 60`, a sugestão não pode retornar 72;
-- para prédio, detectar padrão de apartamentos por andar (`101`, `102`, `103`, `104` etc.);
-- se houver excesso, remover os andares acima do total compatível com a contagem declarada;
-- no caso Roberto Rocha: manter `101–1504` e remover `1601–1804`.
-
-**Vantagem:** corrige o erro mesmo se a IA insistir em gerar 72.
-
-**Limite:** precisa ser cuidadoso para não cortar unidades reais em condomínios com cobertura/unidades especiais. Por isso deve só agir quando houver padrão claro e total declarado.
-
-### Solução 3 — Extração híbrida: regras antes da IA
-
-Antes de perguntar à IA, o servidor tenta interpretar frases formais como:
-
-```text
-15 pavimentos tipo, 04 unidades por pavimento
-60 unidades autônomas
+### 2. Helper server-side `src/lib/uso-ia.server.ts`
+```ts
+registrarEventoIa({ userId, condominioId?, origem, model,
+  tokensInput, tokensOutput, aigLogId?, aigRunId? })
 ```
+Calcula créditos a partir de `model_pricing` (mesmo caminho do chat), grava em `eventos_ia`. Falhas viram `console.error` — nunca quebram o fluxo do usuário.
 
-Quando houver esse padrão, o sistema já gera a lista correta de unidades (`101–1504`) e usa a IA só para complementar área/fração, não para decidir a quantidade.
+### 3. Instrumentar os 4 chamadores
+- `src/lib/unidades-ia.functions.ts`: após `generateText`, chamar `registrarEventoIa({ origem: "importacao_convencao", ... })` usando `result.usage` e o `X-Lovable-AIG-Log-ID` capturado.
+- `src/lib/ai-gateway.server.ts`: fazer `embedText` retornar `{ embedding, usage }` e adicionar um callback opcional `onUsage(usage)` em `embedText`/`embedChunksParallel`; `documentos.server.ts`, `documentos.functions.ts` e `admin-kb.functions.ts` passam esse callback para registrar `origem: "embedding_documento"` ou `"embedding_kb"` (um evento agregado por documento, com soma dos tokens — não um por chunk, para não poluir).
+- `src/routes/api/public/demo-chat.ts`: registrar com `origem: "demo_chat"`, `user_id` null (ou usuário-sistema) — decidir na implementação; opcionalmente só logar em `custos_cliente_mensal` de uma conta "demo" para ser visível no admin.
 
-**Vantagem:** mais preciso para convenções padronizadas.
+### 4. UI
+- `src/routes/_authenticated/app.admin.uso.tsx` e `app.admin.financeiro.tsx`: adicionar coluna/breakdown "por origem" lendo `eventos_ia` (chat vs importação vs embeddings vs demo).
+- `src/routes/_authenticated/app.conta.tsx` (ou onde o próprio usuário vê seu uso): mostrar "Créditos usados este mês" separando **Chat** vs **Processamento de documentos** vs **Importação de convenção**, para o usuário entender de onde vem o consumo.
 
-**Limite:** mais trabalho e cobre primeiro os padrões mais comuns; ainda mantém IA como fallback.
+### 5. Backfill leve (opcional)
+Não temos histórico de tokens dos consumos passados. Registrar um único evento manual de ajuste (origem `"backfill_estimativa"`) por usuário afetado, baseado no nº de PDFs já processados × custo médio, para o dashboard não parecer "quebrado" retroativamente. Ou deixar sem backfill e comunicar que a partir de agora todo consumo é rastreado.
 
-## Plano recomendado
+### Não-objetivos
+- Não alterar o limite mensal de mensagens do plano (uso de IA de sistema não deve consumir a cota do usuário).
+- Não expor `X-Lovable-AIG-Log-ID` ao browser (fica só no servidor, salvo em `eventos_ia` para auditoria).
+- Não mudar o cálculo já existente do chat — ele continua funcionando pela mesma via.
 
-Implementar uma correção proporcional, sem over-engineering, combinando as soluções 1 e 2:
-
-1. **Reforçar o prompt** em `src/lib/unidades-ia.functions.ts` para impedir que “pavimento especial”, “cobertura”, “subsolo”, “térreo” e áreas comuns sejam convertidos em unidades autônomas.
-2. **Adicionar pós-validação determinística** após a deduplicação das unidades:
-   - usar `qtd_unidades` como limite forte quando for maior que zero;
-   - detectar padrão de prédio com apartamentos por andar;
-   - quando a IA retornar mais unidades que o total previsto e o excesso estiver em andares finais gerados artificialmente, cortar para o total correto;
-   - preservar dados de área/fração/vagas das unidades mantidas.
-3. **Adicionar metadados de auditoria na sugestão**, para a UI poder explicar quando houve correção automática, por exemplo: “A IA retornou 72 unidades, mas a convenção/cadastro prevê 60; foram removidas 12 unidades geradas em pavimento especial/cobertura.”
-4. **Reprocessar a sugestão pendente do Roberto Rocha** para substituir a sugestão atual de 72 pela lista correta de 60 unidades.
-5. **Validar no banco** que a nova sugestão pendente possui exatamente 60 unidades e que não há apartamentos `1601–1804`.
-
-## Resultado esperado
-
-No Roberto Rocha, a revisão/importação passará a mostrar **60 apartamentos**, numerados de `101` a `1504`, respeitando os 15 pavimentos tipo com 4 unidades por pavimento e ignorando o pavimento especial do 18º andar.
+Ao aprovar, executo migração + helpers + instrumentação dos 4 pontos + ajustes de UI, e valido com um SELECT em `eventos_ia` após uma importação de teste.

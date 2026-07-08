@@ -49,7 +49,17 @@ export function createLovableAiGatewayProvider(lovableApiKey: string, initialRun
   });
 }
 
-export async function embedText(lovableApiKey: string, input: string): Promise<number[]> {
+export const EMBEDDING_MODEL = "openai/text-embedding-3-small";
+
+export type EmbeddingUsage = {
+  promptTokens: number;
+  totalTokens: number;
+};
+
+export async function embedTextWithUsage(
+  lovableApiKey: string,
+  input: string,
+): Promise<{ embedding: number[]; usage: EmbeddingUsage }> {
   const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
     method: "POST",
     headers: {
@@ -57,7 +67,7 @@ export async function embedText(lovableApiKey: string, input: string): Promise<n
       "Lovable-API-Key": lovableApiKey,
     },
     body: JSON.stringify({
-      model: "openai/text-embedding-3-small",
+      model: EMBEDDING_MODEL,
       input,
       dimensions: 1536,
     }),
@@ -66,8 +76,18 @@ export async function embedText(lovableApiKey: string, input: string): Promise<n
     const body = await res.text();
     throw new Error(`Embedding failed (${res.status}): ${body}`);
   }
-  const json = (await res.json()) as { data: Array<{ embedding: number[] }> };
-  return json.data[0].embedding;
+  const json = (await res.json()) as {
+    data: Array<{ embedding: number[] }>;
+    usage?: { prompt_tokens?: number; total_tokens?: number };
+  };
+  const promptTokens = json.usage?.prompt_tokens ?? 0;
+  const totalTokens = json.usage?.total_tokens ?? promptTokens;
+  return { embedding: json.data[0].embedding, usage: { promptTokens, totalTokens } };
+}
+
+export async function embedText(lovableApiKey: string, input: string): Promise<number[]> {
+  const { embedding } = await embedTextWithUsage(lovableApiKey, input);
+  return embedding;
 }
 
 export async function embedBatch(lovableApiKey: string, inputs: string[]): Promise<number[][]> {
@@ -87,9 +107,10 @@ export async function embedChunksParallel(
   apiKey: string,
   chunks: string[],
   concurrency = 5,
-): Promise<number[][]> {
-  if (chunks.length === 0) return [];
+): Promise<{ embeddings: number[][]; totalTokens: number }> {
+  if (chunks.length === 0) return { embeddings: [], totalTokens: 0 };
   const results: number[][] = new Array(chunks.length);
+  let totalTokens = 0;
   let cursor = 0;
   const workers = Array.from(
     { length: Math.min(concurrency, chunks.length) },
@@ -97,10 +118,12 @@ export async function embedChunksParallel(
       while (true) {
         const idx = cursor++;
         if (idx >= chunks.length) return;
-        results[idx] = await embedText(apiKey, chunks[idx]);
+        const { embedding, usage } = await embedTextWithUsage(apiKey, chunks[idx]);
+        results[idx] = embedding;
+        totalTokens += usage.totalTokens || usage.promptTokens || 0;
       }
     },
   );
   await Promise.all(workers);
-  return results;
+  return { embeddings: results, totalTokens };
 }

@@ -199,7 +199,24 @@ export const processKbDocumento = createServerFn({ method: "POST" })
 
       const chunks = chunkText(texto, 1000, 150);
       // Paralelismo controlado: evita timeout do Worker em documentos longos.
-      const embeddings = await embedChunksParallel(apiKey, chunks, 5);
+      const { embeddings, totalTokens: embTokens } = await embedChunksParallel(
+        apiKey,
+        chunks,
+        5,
+      );
+      try {
+        const { registrarEventoIa } = await import("./uso-ia.server");
+        const { EMBEDDING_MODEL } = await import("./ai-gateway.server");
+        await registrarEventoIa({
+          userId: context.userId,
+          origem: "embedding_kb",
+          model: EMBEDDING_MODEL,
+          tokensInput: embTokens,
+          meta: { kb_documento_id: doc.id, chunks: chunks.length, titulo: doc.titulo },
+        });
+      } catch (err) {
+        console.error("[uso-ia] processKbDocumento:", err);
+      }
       const rows = chunks.map((c, i) => ({
         kb_documento_id: doc.id,
         conteudo: c,

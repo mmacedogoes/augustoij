@@ -186,7 +186,13 @@ async function callGeminiJson(
   apiKey: string,
   systemPrompt: string,
   userPrompt: string,
-): Promise<unknown> {
+): Promise<{
+  data: unknown;
+  model: string;
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  aigLogId: string | null;
+  aigRunId: string | null;
+}> {
   // 524 = Cloudflare gateway timeout (>100s upstream). Gemini com prompts grandes
   // costuma estourar; tentamos uma vez com modelo rápido, e em caso de 524/timeout
   // repetimos automaticamente com o modelo "lite" (mais rápido).
@@ -218,15 +224,18 @@ async function callGeminiJson(
   };
 
   let res: Response;
+  let modelUsado = "google/gemini-2.5-flash";
   try {
     res = await doCall("google/gemini-2.5-flash", 90_000);
   } catch (e) {
     // timeout local -> tenta modelo lite
+    modelUsado = "google/gemini-2.5-flash-lite";
     res = await doCall("google/gemini-2.5-flash-lite", 90_000);
   }
   if (res.status === 524 || res.status === 502 || res.status === 504) {
     // retry uma vez com modelo mais leve
     try {
+      modelUsado = "google/gemini-2.5-flash-lite";
       res = await doCall("google/gemini-2.5-flash-lite", 90_000);
     } catch {
       throw new Error(
@@ -244,15 +253,27 @@ async function callGeminiJson(
       );
     throw new Error(`Falha na IA (${res.status}): ${body.slice(0, 200)}`);
   }
-  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const aigLogId = res.headers.get("x-lovable-aig-log-id");
+  const aigRunId = res.headers.get("x-lovable-aig-run-id");
+  const json = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  };
   const raw = json.choices?.[0]?.message?.content ?? "{}";
+  const usage = {
+    prompt_tokens: json.usage?.prompt_tokens ?? 0,
+    completion_tokens: json.usage?.completion_tokens ?? 0,
+    total_tokens: json.usage?.total_tokens ?? 0,
+  };
+  let parsed: unknown;
   try {
-    return JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch {
     const m = raw.match(/\{[\s\S]*\}/);
-    if (m) return JSON.parse(m[0]);
-    throw new Error("Resposta da IA não é JSON válido.");
+    if (m) parsed = JSON.parse(m[0]);
+    else throw new Error("Resposta da IA não é JSON válido.");
   }
+  return { data: parsed, model: modelUsado, usage, aigLogId, aigRunId };
 }
 
 /**
@@ -278,12 +299,13 @@ export async function _extrairESalvarSugestaoUnidades(
   // salas_comerciais, shopping, galpoes)
   const { data: cond } = await supabase
     .from("condominios")
-    .select("categoria, qtd_unidades")
+    .select("categoria, qtd_unidades, owner_id")
     .eq("id", doc.condominio_id)
     .maybeSingle();
   const categoriaId = normalizeCategoria(cond?.categoria as string | null);
   const catMeta = getCategoriaMeta(categoriaId);
   const qtdEsperada = (cond?.qtd_unidades as number | null) ?? null;
+  const ownerId = (cond?.owner_id as string | null) ?? null;
 
   const { data: chunks } = await supabase
     .from("document_chunks")
@@ -340,7 +362,24 @@ export async function _extrairESalvarSugestaoUnidades(
     "convenções sempre listam unidades em algum ponto. Não invente unidades que não estejam no texto.";
   const user = `Arquivo: ${doc.nome_arquivo}\n\nTexto da convenção (pode estar truncado; releia com cuidado procurando listas/tabelas):\n\n${texto}`;
 
-  const parsed = (await callGeminiJson(apiKey, system, user)) as { unidades?: unknown[] };
+  const chamada = await callGeminiJson(apiKey, system, user);
+  try {
+    const { registrarEventoIa } = await import("./uso-ia.server");
+    await registrarEventoIa({
+      userId: ownerId,
+      condominioId: doc.condominio_id,
+      origem: "importacao_convencao",
+      model: chamada.model,
+      tokensInput: chamada.usage.prompt_tokens,
+      tokensOutput: chamada.usage.completion_tokens,
+      aigLogId: chamada.aigLogId,
+      aigRunId: chamada.aigRunId,
+      meta: { documento_id: doc.id, arquivo: doc.nome_arquivo },
+    });
+  } catch (err) {
+    console.error("[uso-ia] importacao_convencao:", err);
+  }
+  const parsed = chamada.data as { unidades?: unknown[] };
   const linhas = z.array(UnidadeSugestao).safeParse(parsed?.unidades ?? []);
   const brutas = linhas.success ? linhas.data : [];
   // Deduplica por (bloco, numero) — a IA às vezes repete a mesma unidade em
@@ -525,7 +564,24 @@ export const extrairCondominosDeArquivo = createServerFn({ method: "POST" })
       `Unidades já cadastradas neste condomínio (JSON):\n${JSON.stringify(unidadesResumo).slice(0, 8000)}\n\n` +
       `Arquivo: ${data.fileName}\n\nConteúdo extraído:\n\n${texto}`;
 
-    const parsed = (await callGeminiJson(apiKey, system, user)) as { condominos?: unknown[] };
+    const chamada = await callGeminiJson(apiKey, system, user);
+    try {
+      const { registrarEventoIa } = await import("./uso-ia.server");
+      await registrarEventoIa({
+        userId: context.userId,
+        condominioId: data.condominioId,
+        origem: "importacao_convencao",
+        model: chamada.model,
+        tokensInput: chamada.usage.prompt_tokens,
+        tokensOutput: chamada.usage.completion_tokens,
+        aigLogId: chamada.aigLogId,
+        aigRunId: chamada.aigRunId,
+        meta: { contexto: "extrair_condominos", arquivo: data.fileName },
+      });
+    } catch (err) {
+      console.error("[uso-ia] extrair_condominos:", err);
+    }
+    const parsed = chamada.data as { condominos?: unknown[] };
     const linhas = z.array(CondominoSugestao).safeParse(parsed?.condominos ?? []);
     const condominos = linhas.success ? linhas.data : [];
 
@@ -668,13 +724,50 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
     // 3) reindexa chunks
     await supabaseAdmin.from("document_chunks").delete().eq("documento_id", doc.id);
     const chunks = chunkText(texto, 1000, 150);
-    const embeddings = await embedChunksParallel(apiKey, chunks, 5);
+    const { embeddings, totalTokens: embTokens } = await embedChunksParallel(
+      apiKey,
+      chunks,
+      5,
+    );
+    try {
+      const { registrarEventoIa } = await import("./uso-ia.server");
+      const { EMBEDDING_MODEL } = await import("./ai-gateway.server");
+      await registrarEventoIa({
+        userId: context.userId,
+        condominioId: data.condominioId,
+        origem: "embedding_documento",
+        model: EMBEDDING_MODEL,
+        tokensInput: embTokens,
+        meta: { documento_id: doc.id, chunks: chunks.length, contexto: "reprocessarConvencao" },
+      });
+    } catch (err) {
+      console.error("[uso-ia] reprocessarConvencao embed:", err);
+    }
     const rows = chunks.map((c, i) => ({
       condominio_id: data.condominioId,
       documento_id: doc.id,
       conteudo: c,
       embedding: `[${embeddings[i].join(",")}]`,
     }));
+
+    // Se caiu no fallback de visão, também registra o custo do OCR
+    if (modo === "visao_forcada" || modo === "visao_fallback") {
+      try {
+        const { registrarEventoIa } = await import("./uso-ia.server");
+        await registrarEventoIa({
+          userId: context.userId,
+          condominioId: data.condominioId,
+          origem: "ocr_visao_documento",
+          model: "google/gemini-3-flash-preview",
+          // Sem usage do gateway aqui (chamada em documentos.server.ts não
+          // retorna). Estimamos por tamanho do texto retornado (~4 chars/token).
+          tokensOutput: Math.ceil(texto.length / 4),
+          meta: { documento_id: doc.id, contexto: "reprocessarConvencao", modo },
+        });
+      } catch (err) {
+        console.error("[uso-ia] reprocessarConvencao ocr:", err);
+      }
+    }
     for (let i = 0; i < rows.length; i += 50) {
       const slice = rows.slice(i, i + 50);
       const { error: insErr } = await supabaseAdmin
