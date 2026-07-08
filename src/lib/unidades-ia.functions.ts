@@ -186,7 +186,13 @@ async function callGeminiJson(
   apiKey: string,
   systemPrompt: string,
   userPrompt: string,
-): Promise<unknown> {
+): Promise<{
+  data: unknown;
+  model: string;
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  aigLogId: string | null;
+  aigRunId: string | null;
+}> {
   // 524 = Cloudflare gateway timeout (>100s upstream). Gemini com prompts grandes
   // costuma estourar; tentamos uma vez com modelo rápido, e em caso de 524/timeout
   // repetimos automaticamente com o modelo "lite" (mais rápido).
@@ -218,15 +224,18 @@ async function callGeminiJson(
   };
 
   let res: Response;
+  let modelUsado = "google/gemini-2.5-flash";
   try {
     res = await doCall("google/gemini-2.5-flash", 90_000);
   } catch (e) {
     // timeout local -> tenta modelo lite
+    modelUsado = "google/gemini-2.5-flash-lite";
     res = await doCall("google/gemini-2.5-flash-lite", 90_000);
   }
   if (res.status === 524 || res.status === 502 || res.status === 504) {
     // retry uma vez com modelo mais leve
     try {
+      modelUsado = "google/gemini-2.5-flash-lite";
       res = await doCall("google/gemini-2.5-flash-lite", 90_000);
     } catch {
       throw new Error(
@@ -244,15 +253,27 @@ async function callGeminiJson(
       );
     throw new Error(`Falha na IA (${res.status}): ${body.slice(0, 200)}`);
   }
-  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const aigLogId = res.headers.get("x-lovable-aig-log-id");
+  const aigRunId = res.headers.get("x-lovable-aig-run-id");
+  const json = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  };
   const raw = json.choices?.[0]?.message?.content ?? "{}";
+  const usage = {
+    prompt_tokens: json.usage?.prompt_tokens ?? 0,
+    completion_tokens: json.usage?.completion_tokens ?? 0,
+    total_tokens: json.usage?.total_tokens ?? 0,
+  };
+  let parsed: unknown;
   try {
-    return JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch {
     const m = raw.match(/\{[\s\S]*\}/);
-    if (m) return JSON.parse(m[0]);
-    throw new Error("Resposta da IA não é JSON válido.");
+    if (m) parsed = JSON.parse(m[0]);
+    else throw new Error("Resposta da IA não é JSON válido.");
   }
+  return { data: parsed, model: modelUsado, usage, aigLogId, aigRunId };
 }
 
 /**
