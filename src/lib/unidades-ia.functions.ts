@@ -180,7 +180,10 @@ export async function _extrairESalvarSugestaoUnidades(
   const rawChunks = (chunks ?? []).map((c) => c.conteudo as string);
   const prioritarios = rawChunks.filter((c) => RE_UNIDADE.test(c));
   const restantes = rawChunks.filter((c) => !RE_UNIDADE.test(c));
-  const texto = [...prioritarios, ...restantes].join("\n\n").slice(0, 150000);
+  // Limitamos a ~70k chars para evitar 524 (timeout do gateway) com prompts muito grandes.
+  // Chunks prioritários (contendo vocabulário de unidades) vêm primeiro, então cortar aqui
+  // não perde a tabela de unidades — só descarta contexto redundante.
+  const texto = [...prioritarios, ...restantes].join("\n\n").slice(0, 70000);
   if (!texto.trim()) return [];
 
   const hint = qtdEsperada
