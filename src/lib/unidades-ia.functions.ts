@@ -70,27 +70,61 @@ async function callGeminiJson(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<unknown> {
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Lovable-API-Key": apiKey,
-      "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
-  });
+  // 524 = Cloudflare gateway timeout (>100s upstream). Gemini com prompts grandes
+  // costuma estourar; tentamos uma vez com modelo rápido, e em caso de 524/timeout
+  // repetimos automaticamente com o modelo "lite" (mais rápido).
+  const doCall = async (model: string, signalTimeoutMs: number) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), signalTimeoutMs);
+    try {
+      return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        signal: ctrl.signal,
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-API-Key": apiKey,
+          "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      });
+    } finally {
+      clearTimeout(t);
+    }
+  };
+
+  let res: Response;
+  try {
+    res = await doCall("google/gemini-2.5-flash", 90_000);
+  } catch (e) {
+    // timeout local -> tenta modelo lite
+    res = await doCall("google/gemini-2.5-flash-lite", 90_000);
+  }
+  if (res.status === 524 || res.status === 502 || res.status === 504) {
+    // retry uma vez com modelo mais leve
+    try {
+      res = await doCall("google/gemini-2.5-flash-lite", 90_000);
+    } catch {
+      throw new Error(
+        "A IA demorou demais para responder (gateway 524). Tente novamente em instantes — se persistir, divida a convenção em partes menores.",
+      );
+    }
+  }
   if (!res.ok) {
     const body = await res.text();
     if (res.status === 429) throw new Error("Limite de uso da IA atingido. Tente novamente em instantes.");
     if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos para continuar.");
+    if (res.status === 524)
+      throw new Error(
+        "A IA demorou demais para responder (gateway 524). Tente novamente em instantes — se persistir, divida a convenção em partes menores.",
+      );
     throw new Error(`Falha na IA (${res.status}): ${body.slice(0, 200)}`);
   }
   const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
