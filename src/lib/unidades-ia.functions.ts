@@ -44,6 +44,123 @@ const CondominoSugestao = z.object({
   match_status: z.enum(["ok", "ambiguo", "sem_match"]).optional(),
 });
 
+type AuditoriaSugestao = {
+  ajustes: string[];
+  totalOriginal: number;
+  totalFinal: number;
+  totalEsperado: number | null;
+};
+
+function parseNumeroApartamento(numero: string) {
+  const digits = String(numero ?? "").replace(/\D/g, "");
+  if (digits.length < 3 || digits.length > 5) return null;
+  const sufixo = digits.slice(-2);
+  const andar = Number.parseInt(digits.slice(0, -2), 10);
+  const final = Number.parseInt(sufixo, 10);
+  if (!Number.isFinite(andar) || !Number.isFinite(final) || andar <= 0 || final <= 0) {
+    return null;
+  }
+  return { andar, sufixo, final };
+}
+
+function detectarPadraoPavimentosTipo(texto: string) {
+  const match = texto.match(
+    /(\d{1,3})\s*(?:\([^)]{0,40}\))?\s*pavimentos?\s+tipo[\s\S]{0,240}?(?:cada\s+pavimento|por\s+pavimento|pavimento\s+possuidor)[\s\S]{0,140}?(\d{1,2})\s*(?:\([^)]{0,40}\))?\s+unidades?\s+aut[oô]nomas?/i,
+  );
+  if (!match) return null;
+  const andaresTipo = Number.parseInt(match[1], 10);
+  const unidadesPorAndar = Number.parseInt(match[2], 10);
+  if (!Number.isFinite(andaresTipo) || !Number.isFinite(unidadesPorAndar)) return null;
+  if (andaresTipo <= 0 || unidadesPorAndar <= 0) return null;
+  return { andaresTipo, unidadesPorAndar, total: andaresTipo * unidadesPorAndar };
+}
+
+function corrigirExcessoPredioPorPadrao(
+  unidades: UnidadeSugerida[],
+  qtdEsperada: number | null,
+  categoriaId: string,
+  texto: string,
+): { unidades: UnidadeSugerida[]; auditoria: AuditoriaSugestao | null } {
+  if (!qtdEsperada || qtdEsperada <= 0 || unidades.length <= qtdEsperada) {
+    return { unidades, auditoria: null };
+  }
+  if (categoriaId !== "predio") return { unidades, auditoria: null };
+
+  const parsed = unidades.map((unidade, index) => ({
+    unidade,
+    index,
+    apto: parseNumeroApartamento(unidade.numero),
+  }));
+  if (parsed.some((item) => !item.apto)) return { unidades, auditoria: null };
+
+  const ordenadas = [...parsed].sort((a, b) => {
+    const aptoA = a.apto!;
+    const aptoB = b.apto!;
+    return (
+      aptoA.andar - aptoB.andar ||
+      aptoA.final - aptoB.final ||
+      a.index - b.index
+    );
+  });
+
+  const padrao = detectarPadraoPavimentosTipo(texto);
+  if (padrao?.total === qtdEsperada) {
+    const mantidas = ordenadas.slice(0, qtdEsperada);
+    const removidas = ordenadas.slice(qtdEsperada);
+    const maiorAndarMantido = Math.max(...mantidas.map((item) => item.apto!.andar));
+    const menorAndarRemovido = Math.min(...removidas.map((item) => item.apto!.andar));
+    if (
+      mantidas.length === qtdEsperada &&
+      removidas.length > 0 &&
+      maiorAndarMantido <= padrao.andaresTipo &&
+      menorAndarRemovido > padrao.andaresTipo
+    ) {
+      return {
+        unidades: mantidas.map((item) => item.unidade),
+        auditoria: {
+          totalOriginal: unidades.length,
+          totalFinal: qtdEsperada,
+          totalEsperado: qtdEsperada,
+          ajustes: [
+            `A IA retornou ${unidades.length} unidades, mas a convenção/cadastro prevê ${qtdEsperada}. Foram removidas ${removidas.length} unidade(s) gerada(s) em pavimentos acima dos ${padrao.andaresTipo} pavimentos tipo residenciais.`,
+          ],
+        },
+      };
+    }
+  }
+
+  const porAndar = new Map<number, number>();
+  for (const item of parsed) {
+    const andar = item.apto!.andar;
+    porAndar.set(andar, (porAndar.get(andar) ?? 0) + 1);
+  }
+  const frequencias = Array.from(porAndar.values());
+  const unidadesPorAndar = frequencias[0];
+  const padraoRegular =
+    unidadesPorAndar > 0 &&
+    frequencias.every((count) => count === unidadesPorAndar) &&
+    qtdEsperada % unidadesPorAndar === 0 &&
+    (unidades.length - qtdEsperada) % unidadesPorAndar === 0;
+
+  if (padraoRegular) {
+    const mantidas = ordenadas.slice(0, qtdEsperada);
+    const removidas = ordenadas.slice(qtdEsperada);
+    return {
+      unidades: mantidas.map((item) => item.unidade),
+      auditoria: {
+        totalOriginal: unidades.length,
+        totalFinal: qtdEsperada,
+        totalEsperado: qtdEsperada,
+        ajustes: [
+          `A IA retornou ${unidades.length} unidades em padrão regular por andar, mas o total previsto é ${qtdEsperada}. Foram removidas ${removidas.length} unidade(s) excedente(s) dos pavimentos finais.`,
+        ],
+      },
+    };
+  }
+
+  return { unidades, auditoria: null };
+}
+
 async function assertOwnerCondominio(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   userId: string,
