@@ -564,7 +564,24 @@ export const extrairCondominosDeArquivo = createServerFn({ method: "POST" })
       `Unidades já cadastradas neste condomínio (JSON):\n${JSON.stringify(unidadesResumo).slice(0, 8000)}\n\n` +
       `Arquivo: ${data.fileName}\n\nConteúdo extraído:\n\n${texto}`;
 
-    const parsed = (await callGeminiJson(apiKey, system, user)) as { condominos?: unknown[] };
+    const chamada = await callGeminiJson(apiKey, system, user);
+    try {
+      const { registrarEventoIa } = await import("./uso-ia.server");
+      await registrarEventoIa({
+        userId: context.userId,
+        condominioId: data.condominioId,
+        origem: "importacao_convencao",
+        model: chamada.model,
+        tokensInput: chamada.usage.prompt_tokens,
+        tokensOutput: chamada.usage.completion_tokens,
+        aigLogId: chamada.aigLogId,
+        aigRunId: chamada.aigRunId,
+        meta: { contexto: "extrair_condominos", arquivo: data.fileName },
+      });
+    } catch (err) {
+      console.error("[uso-ia] extrair_condominos:", err);
+    }
+    const parsed = chamada.data as { condominos?: unknown[] };
     const linhas = z.array(CondominoSugestao).safeParse(parsed?.condominos ?? []);
     const condominos = linhas.success ? linhas.data : [];
 
