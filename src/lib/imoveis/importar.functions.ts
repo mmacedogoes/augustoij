@@ -646,9 +646,16 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
         owner_admin_id: owner,
         nome,
         cpf: toStr(p.cpf),
+        rg: toStr(p.rg),
+        estado_civil: toStr(p.estado_civil),
+        profissao: toStr(p.profissao),
         endereco: toStr(p.endereco),
         email: toStr(p.email),
         telefone: toStr(p.telefone),
+        banco: toStr(p.banco),
+        agencia: toStr(p.agencia),
+        conta: toStr(p.conta),
+        pix: toStr(p.pix),
       }).select("id").single();
       if (error) throw new Error(`Proprietário: ${error.message}`);
       proprietarioId = ins.id as string;
