@@ -89,7 +89,7 @@ export function ManifestoFooter() {
             items={[
               { label: "A História", to: "/historia" },
               { label: "Manifesto", to: "/manifesto" },
-              { label: "Contato", href: "mailto:contato@augusto.ij" },
+              { label: "Contato", href: "mailto:suporte@augustoij.com.br" },
             ]}
           />
           <FooterCol
@@ -97,7 +97,7 @@ export function ManifestoFooter() {
             items={[
               { label: "Termos de Uso", to: "/termos" },
               { label: "Política de Privacidade", to: "/privacidade" },
-              { label: "Contato DPO: privacidade@augusto.ij", href: "mailto:privacidade@augusto.ij" },
+              { label: "Contato DPO: dpo@augustoij.com.br", href: "mailto:dpo@augustoij.com.br" },
             ]}
           />
         </div>
@@ -116,10 +116,10 @@ export function ManifestoFooter() {
               </Link>
               <span className="text-augusto-slate/40">|</span>
               <a
-                href="mailto:privacidade@augusto.ij"
+                href="mailto:dpo@augustoij.com.br"
                 className="text-augusto-slate hover:text-augusto-green transition-colors"
               >
-                Contato DPO: privacidade@augusto.ij
+                Contato DPO: dpo@augustoij.com.br
               </a>
               <a
                 href={INSTAGRAM_URL}
