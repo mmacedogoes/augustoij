@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Check, X, ArrowLeft, TrendingUp, Wallet } from "lucide-react";
+import { Pencil, Check, X, ArrowLeft, TrendingUp, Wallet, FileText } from "lucide-react";
 import {
   listPagamentosContrato,
   togglePagamento,
@@ -188,6 +188,9 @@ function Painel() {
             <Button size="sm" onClick={abrirDialogoReajuste}>
               <TrendingUp className="h-4 w-4 mr-1" /> Calcular reajuste
             </Button>
+            <Link to="/app/admin/imoveis/locacao/$id/aditivo" params={{ id }}>
+              <Button size="sm" variant="outline"><FileText className="h-4 w-4 mr-1" /> Gerar aditivo de renovação</Button>
+            </Link>
           </div>
         </Card>
 
