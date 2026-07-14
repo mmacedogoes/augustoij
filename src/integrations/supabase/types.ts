@@ -1246,6 +1246,33 @@ export type Database = {
           },
         ]
       }
+      indices_bcb_cache: {
+        Row: {
+          ano: number
+          fetched_at: string
+          id: string
+          mes: number
+          serie: number
+          valor: number
+        }
+        Insert: {
+          ano: number
+          fetched_at?: string
+          id?: string
+          mes: number
+          serie: number
+          valor: number
+        }
+        Update: {
+          ano?: number
+          fetched_at?: string
+          id?: string
+          mes?: number
+          serie?: number
+          valor?: number
+        }
+        Relationships: []
+      }
       kb_chunks: {
         Row: {
           conteudo: string
@@ -1702,6 +1729,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      reajustes: {
+        Row: {
+          contrato_locacao_id: string
+          created_at: string
+          data: string
+          id: string
+          indice_usado: string
+          observacoes: string | null
+          owner_admin_id: string
+          percentual: number
+          valor_anterior: number
+          valor_novo: number
+        }
+        Insert: {
+          contrato_locacao_id: string
+          created_at?: string
+          data?: string
+          id?: string
+          indice_usado: string
+          observacoes?: string | null
+          owner_admin_id: string
+          percentual: number
+          valor_anterior: number
+          valor_novo: number
+        }
+        Update: {
+          contrato_locacao_id?: string
+          created_at?: string
+          data?: string
+          id?: string
+          indice_usado?: string
+          observacoes?: string | null
+          owner_admin_id?: string
+          percentual?: number
+          valor_anterior?: number
+          valor_novo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reajustes_contrato_locacao_id_fkey"
+            columns: ["contrato_locacao_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_locacao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       solicitacoes_exclusao_conta: {
         Row: {
