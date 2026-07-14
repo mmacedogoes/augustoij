@@ -40,7 +40,7 @@ export const salvarAditivo = createServerFn({ method: "POST" })
       .insert({
         contrato_locacao_id: data.contratoLocacaoId,
         tipo: "renovacao",
-        dados: data.dados,
+        dados: data.dados as never,
         owner_admin_id: context.userId,
       })
       .select("id")
