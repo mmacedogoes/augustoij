@@ -651,19 +651,40 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
     }).select("id").single();
     if (eC) throw new Error(`Contrato de administração: ${eC.message}`);
 
-    // 3) Imóveis administrados — grava como imóveis do proprietário
-    if (data.imoveis_administrados.length > 0) {
-      const rows = data.imoveis_administrados.map((im) => ({
+    // 3) Imóveis administrados — cria os que faltam, vincula (sem duplicar) os já existentes
+    const criados: Array<{ id: string; label: string }> = [];
+    const vinculados: Array<{ id: string; label: string }> = [];
+    for (const raw of data.imoveis_administrados) {
+      const im = raw as Record<string, unknown>;
+      const dup = await buscarImovelDuplicado(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sb as any,
+        proprietarioId!,
+        im,
+      );
+      if (dup) {
+        vinculados.push(dup);
+        continue;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: ins, error: eImv } = await (sb as any).from("imoveis").insert({
         owner_admin_id: owner,
         proprietario_id: proprietarioId!,
-        descricao: toStr((im as Record<string, unknown>).descricao),
-        endereco: toStr((im as Record<string, unknown>).endereco),
-        edificio: toStr((im as Record<string, unknown>).edificio),
-        numero_unidade: toStr((im as Record<string, unknown>).numero_unidade),
-      }));
-      const { error: eImv } = await sb.from("imoveis").insert(rows);
+        descricao: toStr(im.descricao),
+        endereco: toStr(im.endereco),
+        edificio: toStr(im.edificio),
+        numero_unidade: toStr(im.numero_unidade),
+      }).select("id, edificio, numero_unidade, endereco").single();
       if (eImv) throw new Error(`Imóveis administrados: ${eImv.message}`);
+      const label = [ins.edificio, ins.numero_unidade].filter(Boolean).join(" ").trim()
+        || String(ins.endereco ?? "");
+      criados.push({ id: String(ins.id), label });
     }
 
-    return { contrato_id: contratoIns.id as string, proprietario_id: proprietarioId };
+    return {
+      contrato_id: contratoIns.id as string,
+      proprietario_id: proprietarioId,
+      imoveis_criados: criados,
+      imoveis_vinculados: vinculados,
+    };
   });
