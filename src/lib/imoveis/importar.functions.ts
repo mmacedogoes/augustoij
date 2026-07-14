@@ -425,10 +425,22 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       proprietarioId = ins.id as string;
     }
 
-    // 2) Imóvel
+    // 2) Imóvel — com de-duplicação por (edificio|endereco|cep) + numero_unidade
     let imovelId = data.imovel_id ?? null;
+    let imovelDuplicado: { id: string; label: string } | null = null;
     if (!imovelId) {
       const im = data.imovel as Record<string, unknown>;
+      if (!data.forcar_novo_imovel && proprietarioId) {
+        imovelDuplicado = await buscarImovelDuplicado(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          sb as any,
+          proprietarioId,
+          im,
+        );
+      }
+      if (imovelDuplicado) {
+        imovelId = imovelDuplicado.id;
+      } else {
       const { data: ins, error } = await sb.from("imoveis").insert({
         owner_admin_id: owner,
         proprietario_id: proprietarioId,
@@ -444,13 +456,37 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       }).select("id").single();
       if (error) throw new Error(`Imóvel: ${error.message}`);
       imovelId = ins.id as string;
+      }
     }
 
-    // 3) Contrato de locação
+    // 3) Contrato de locação — renovação atualiza o contrato existente
     const inq = data.inquilino as Record<string, unknown>;
     const loc = data.locacao as Record<string, unknown>;
     const enc = (loc.encargos_inquilino as Record<string, unknown>) ?? {};
-    const { data: contratoIns, error: eContrato } = await sb.from("contratos_locacao").insert({
+
+    const dataInicioVig = toDate(loc.data_inicio_vigencia);
+    const prazo = toInt(loc.prazo_meses);
+    const dataFimVig =
+      dataInicioVig && prazo && prazo > 0 ? addMonths(dataInicioVig, prazo) : null;
+
+    const isRenovacao = data.subtipo === "renovacao";
+
+    // Se for renovação, tentar localizar contrato existente para o mesmo imóvel
+    let contratoExistenteId = data.contrato_existente_id ?? null;
+    if (isRenovacao && !contratoExistenteId && imovelId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: existente } = await (sb as any)
+        .from("contratos_locacao")
+        .select("id, historico_renovacoes, data_contrato_original, data_inicio_vigencia, prazo_meses")
+        .eq("imovel_id", imovelId)
+        .in("status", ["ativo", "renovado"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existente?.id) contratoExistenteId = existente.id as string;
+    }
+
+    const basePayload: Record<string, unknown> = {
       owner_admin_id: owner,
       imovel_id: imovelId,
       inquilino_nome: toStr(inq.nome),
@@ -464,8 +500,9 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       valor_aluguel: toNum(loc.valor_aluguel),
       dia_vencimento: toInt(loc.dia_vencimento),
       data_contrato_original: toDate(loc.data_contrato_original),
-      data_inicio_vigencia: toDate(loc.data_inicio_vigencia),
-      prazo_meses: toInt(loc.prazo_meses),
+      data_inicio_vigencia: dataInicioVig,
+      prazo_meses: prazo,
+      data_fim_vigencia: dataFimVig,
       indice_reajuste: toStr(loc.indice_reajuste) ?? "IGP-M",
       periodicidade_reajuste_meses: toInt(loc.periodicidade_reajuste_meses) ?? 12,
       mes_base_reajuste: toInt(loc.mes_base_reajuste),
@@ -484,14 +521,63 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       foro: toStr(loc.foro),
       status: "ativo",
       arquivo_contrato_url: data.arquivoPath ?? null,
-    }).select("id").single();
-    if (eContrato) throw new Error(`Contrato: ${eContrato.message}`);
-    const contratoId = contratoIns.id as string;
+    };
+
+    let contratoId: string;
+    if (isRenovacao && contratoExistenteId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: prev } = await (sb as any)
+        .from("contratos_locacao")
+        .select("historico_renovacoes, data_contrato_original, data_inicio_vigencia, prazo_meses, data_fim_vigencia")
+        .eq("id", contratoExistenteId)
+        .maybeSingle();
+      const hist: unknown[] = Array.isArray(prev?.historico_renovacoes)
+        ? prev.historico_renovacoes
+        : [];
+      hist.push({
+        registrada_em: new Date().toISOString(),
+        data_inicio_vigencia_anterior: prev?.data_inicio_vigencia ?? null,
+        prazo_meses_anterior: prev?.prazo_meses ?? null,
+        data_fim_vigencia_anterior: prev?.data_fim_vigencia ?? null,
+        renovacao: {
+          data_contrato_original: basePayload.data_contrato_original,
+          data_inicio_vigencia: dataInicioVig,
+          prazo_meses: prazo,
+          data_fim_vigencia: dataFimVig,
+        },
+      });
+      const updatePayload = {
+        ...basePayload,
+        // Preserva data_contrato_original se já havia
+        data_contrato_original:
+          prev?.data_contrato_original ?? basePayload.data_contrato_original,
+        data_renovacao: dataInicioVig,
+        historico_renovacoes: hist,
+        status: "ativo",
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: eUp } = await (sb as any)
+        .from("contratos_locacao")
+        .update(updatePayload)
+        .eq("id", contratoExistenteId);
+      if (eUp) throw new Error(`Renovação: ${eUp.message}`);
+      contratoId = contratoExistenteId;
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: contratoIns, error: eContrato } = await (sb as any)
+        .from("contratos_locacao")
+        .insert(basePayload)
+        .select("id")
+        .single();
+      if (eContrato) throw new Error(`Contrato: ${eContrato.message}`);
+      contratoId = contratoIns.id as string;
+    }
 
     // 4) Caução
     const c = data.caucao as Record<string, unknown>;
     if (toBool(c.possui, false)) {
-      const { error: eC } = await sb.from("caucoes").insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: eC } = await (sb as any).from("caucoes").upsert({
         owner_admin_id: owner,
         contrato_locacao_id: contratoId,
         possui: true,
@@ -499,11 +585,17 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
         tipo: toStr(c.tipo),
         corrige_com_rendimento: toBool(c.corrige_com_rendimento, true),
         data_deposito: toDate(c.data_deposito),
-      });
+      }, { onConflict: "contrato_locacao_id" });
       if (eC) throw new Error(`Caução: ${eC.message}`);
     }
 
-    return { contrato_id: contratoId, proprietario_id: proprietarioId, imovel_id: imovelId };
+    return {
+      contrato_id: contratoId,
+      proprietario_id: proprietarioId,
+      imovel_id: imovelId,
+      imovel_duplicado: imovelDuplicado,
+      renovacao_aplicada: isRenovacao && !!data.contrato_existente_id,
+    };
   });
 
 /** Grava importação de contrato de administração (proprietário + contrato + imóveis administrados). */
