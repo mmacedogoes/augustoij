@@ -131,12 +131,22 @@ ESQUEMA quando tipo = "administracao":
   "tipo":"administracao",
   "subtipo":"original",
   "confianca":0,
-  "proprietario":{"nome":null,"cpf":null,"email":null,"telefone":null,"endereco":null},
-  "administrador":{"nome":null,"documento":null,"oab":null,"pix":null,"banco":null,"agencia":null,"conta":null},
+  "proprietario":{"nome":null,"cpf":null,"rg":null,"estado_civil":null,"profissao":null,"email":null,"telefone":null,"endereco":null,"banco":null,"agencia":null,"conta":null,"pix":null},
+  "administrador":{"nome":null,"documento":null,"oab":null,"endereco":null,"pix":null,"banco":null,"agencia":null,"conta":null},
   "honorarios":{"percent_honorario_renovacao":null,"percent_honorario_mensal":null,"mora_multa_percent":null,"mora_juros_mensal_percent":null,"mora_indice":null},
   "imoveis_administrados":[{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null}],
   "vigencia":{"data_inicio":null,"prazo_meses":null}
-}`;
+}
+
+DICAS PARA CONTRATOS DE ADMINISTRAÇÃO (Brasil):
+- CONTRATANTE = proprietário; CONTRATADO/ADMINISTRADOR = escritório/advogado.
+- Extraia CPF, RG, estado civil, profissão, endereço do proprietário quando aparecerem na qualificação inicial.
+- OAB do administrador costuma vir junto ao nome ("OAB/XX 12345").
+- Honorários: percentuais mencionados sobre "aluguel", "locação mensal", "renovação" ou "novo contrato" → percent_honorario_mensal / percent_honorario_renovacao. Se aparecer "10% (dez por cento) sobre o valor mensal do aluguel", use 10.
+- Mora: multa costuma ser 2%, juros 1% ao mês; extraia se explícito.
+- Vigência: procure "prazo de vigência", "vigorará por", "renovação automática".
+- imoveis_administrados: se o contrato listar bens/imóveis administrados, extraia cada um; caso contrário devolva [].
+- NUNCA devolva a estrutura vazia por medo de errar — preencha tudo que aparece literalmente no texto.`;
 
 async function callGateway(body: unknown): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
