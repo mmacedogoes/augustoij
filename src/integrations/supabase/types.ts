@@ -663,10 +663,13 @@ export type Database = {
           aviso_previo_dias: number
           created_at: string
           data_contrato_original: string | null
+          data_fim_vigencia: string | null
           data_inicio_vigencia: string | null
+          data_renovacao: string | null
           dia_vencimento: number | null
           encargos_inquilino: Json
           foro: string | null
+          historico_renovacoes: Json
           id: string
           imovel_id: string
           indice_reajuste: string
@@ -695,10 +698,13 @@ export type Database = {
           aviso_previo_dias?: number
           created_at?: string
           data_contrato_original?: string | null
+          data_fim_vigencia?: string | null
           data_inicio_vigencia?: string | null
+          data_renovacao?: string | null
           dia_vencimento?: number | null
           encargos_inquilino?: Json
           foro?: string | null
+          historico_renovacoes?: Json
           id?: string
           imovel_id: string
           indice_reajuste?: string
@@ -727,10 +733,13 @@ export type Database = {
           aviso_previo_dias?: number
           created_at?: string
           data_contrato_original?: string | null
+          data_fim_vigencia?: string | null
           data_inicio_vigencia?: string | null
+          data_renovacao?: string | null
           dia_vencimento?: number | null
           encargos_inquilino?: Json
           foro?: string | null
+          historico_renovacoes?: Json
           id?: string
           imovel_id?: string
           indice_reajuste?: string

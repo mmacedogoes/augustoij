@@ -20,6 +20,7 @@ import {
   extrairContrato,
   salvarImportacaoLocacao,
   salvarImportacaoAdministracao,
+  checarDuplicataImovel,
 } from "@/lib/imoveis/importar.functions";
 import { listProprietarios } from "@/lib/imoveis/proprietarios.functions";
 
@@ -35,6 +36,7 @@ type Dict = Record<string, any>;
 type Extracao = {
   arquivoPath: string;
   usouVisao: boolean;
+  textoExtraido?: string;
   extrai: Dict;
 };
 
@@ -85,6 +87,7 @@ function Page() {
   const salvarLocFn = useServerFn(salvarImportacaoLocacao);
   const salvarAdmFn = useServerFn(salvarImportacaoAdministracao);
   const listPropFn = useServerFn(listProprietarios);
+  const checarDupFn = useServerFn(checarDuplicataImovel);
 
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,12 +96,16 @@ function Page() {
   const [form, setForm] = useState<Dict | null>(null);
   const [proprietarios, setProprietarios] = useState<Array<{ id: string; nome: string }>>([]);
   const [proprietarioId, setProprietarioId] = useState<string>("");
+  const [duplicata, setDuplicata] = useState<{ id: string; label: string } | null>(null);
+  const [forcarNovo, setForcarNovo] = useState(false);
 
   useEffect(() => {
     listPropFn().then((r) => setProprietarios(r.rows as Array<{ id: string; nome: string }>)).catch(() => {});
   }, [listPropFn]);
 
   const tipo: "locacao" | "administracao" | null = form?.tipo ?? null;
+  const subtipo: "original" | "renovacao" = (form?.subtipo === "renovacao" ? "renovacao" : "original");
+  const confianca: number = Number(form?.confianca ?? 0);
 
   // Marca original da IA para o badge (compara valor atual vs original)
   const aiOriginal = ext?.extrai as Dict | undefined;
@@ -157,9 +164,25 @@ function Page() {
 
   const handleSave = async () => {
     if (!form || !ext) return;
+    if (!tipo) {
+      toast.error("Selecione o tipo do contrato (Locação ou Administração) antes de salvar.");
+      return;
+    }
     setSaving(true);
     try {
       if (tipo === "locacao") {
+        // Checa duplicata antes de gravar (se há proprietário conhecido)
+        if (proprietarioId && !forcarNovo) {
+          const dup = await checarDupFn({
+            data: { proprietario_id: proprietarioId, imovel: form.imovel ?? {} },
+          });
+          if (dup) {
+            setDuplicata(dup as { id: string; label: string });
+            toast.warning(`Imóvel já cadastrado: ${(dup as { label: string }).label}. Confirme abaixo antes de salvar.`);
+            setSaving(false);
+            return;
+          }
+        }
         const r = await salvarLocFn({
           data: {
             arquivoPath: ext.arquivoPath,
@@ -170,9 +193,17 @@ function Page() {
             caucao: form.caucao ?? {},
             proprietario_id: proprietarioId || null,
             imovel_id: null,
+            subtipo,
+            forcar_novo_imovel: forcarNovo,
           },
         });
-        toast.success("Contrato de locação importado!");
+        if ((r as { imovel_duplicado?: unknown }).imovel_duplicado) {
+          toast.success("Contrato vinculado ao imóvel já existente.");
+        } else if ((r as { renovacao_aplicada?: boolean }).renovacao_aplicada) {
+          toast.success("Renovação aplicada ao contrato existente!");
+        } else {
+          toast.success("Contrato de locação importado!");
+        }
         navigate({ to: "/app/admin/imoveis/locacao/$id", params: { id: r.contrato_id } });
       } else if (tipo === "administracao") {
         const r = await salvarAdmFn({
@@ -186,7 +217,14 @@ function Page() {
             proprietario_id: proprietarioId || null,
           },
         });
-        toast.success("Contrato de administração importado!");
+        const criados = (r as { imoveis_criados?: unknown[] }).imoveis_criados?.length ?? 0;
+        const vinc = (r as { imoveis_vinculados?: Array<{ label: string }> }).imoveis_vinculados ?? [];
+        toast.success(
+          `Contrato importado! ${criados} imóvel(is) criado(s), ${vinc.length} vinculado(s).`,
+        );
+        if (vinc.length > 0) {
+          toast.info(`Imóveis já cadastrados vinculados: ${vinc.map((v) => v.label).join(", ")}`);
+        }
         navigate({ to: "/app/admin/imoveis/administracao/$id", params: { id: r.contrato_id } });
       }
     } catch (e) {
@@ -250,6 +288,78 @@ function Page() {
             proprietarioId={proprietarioId}
             setProprietarioId={setProprietarioId}
           />
+        )}
+
+        {ext && form && (
+          <Card className="p-4 mt-4 space-y-3">
+            <div className="flex items-start gap-3 flex-wrap">
+              <div className="flex-1 min-w-[240px]">
+                <Label>Tipo de contrato (edite se necessário)</Label>
+                <Select
+                  value={tipo ?? undefined}
+                  onValueChange={(v) => setForm((prev) => (prev ? { ...prev, tipo: v } : prev))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo (a IA não identificou)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="locacao">Locação</SelectItem>
+                    <SelectItem value="administracao">Administração</SelectItem>
+                  </SelectContent>
+                </Select>
+                {confianca > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sugestão da IA: <b>{tipo ?? "não identificado"}</b> · confiança {confianca}%
+                  </p>
+                )}
+              </div>
+              {tipo === "locacao" && (
+                <div className="min-w-[200px]">
+                  <Label>Subtipo</Label>
+                  <Select
+                    value={subtipo}
+                    onValueChange={(v) => setForm((prev) => (prev ? { ...prev, subtipo: v } : prev))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="original">Contrato original</SelectItem>
+                      <SelectItem value="renovacao">Renovação (aditivo)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {subtipo === "renovacao" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Se já existir contrato para este imóvel, a renovação atualizará o contrato existente.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            {duplicata && tipo === "locacao" && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                <p className="font-medium">Imóvel já cadastrado: {duplicata.label}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Vamos vincular o contrato a este imóvel. Você pode editar os campos abaixo,
+                  ou criar um novo imóvel mesmo assim.
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setDuplicata(null); setForcarNovo(false); }}
+                  >
+                    Vincular ao existente
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setDuplicata(null); setForcarNovo(true); }}
+                  >
+                    Criar novo mesmo assim
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
         )}
 
         {ext && form && (

@@ -36,6 +36,11 @@ const salvarLocInput = z.object({
   // Se o usuário selecionou um proprietário/imóvel já existente, mandamos o id
   proprietario_id: z.string().uuid().nullable().optional(),
   imovel_id: z.string().uuid().nullable().optional(),
+  subtipo: z.enum(["original", "renovacao"]).nullable().optional(),
+  // Se o usuário confirmou criar imóvel novo mesmo com duplicata detectada
+  forcar_novo_imovel: z.boolean().optional(),
+  // Se subtipo=renovacao e o usuário aceitou atualizar contrato existente
+  contrato_existente_id: z.string().uuid().nullable().optional(),
 });
 
 const salvarAdmInput = z.object({
@@ -75,7 +80,9 @@ async function extrairTextoDoPdf(bytes: Uint8Array): Promise<string> {
 const SYSTEM_PROMPT = `Você é um extrator de dados jurídicos brasileiros especializado em contratos de locação residencial e contratos de administração de imóveis.
 
 REGRAS:
-- Detecte primeiro o TIPO do documento: "locacao" ou "administracao".
+- Detecte primeiro o TIPO do documento: "locacao" ou "administracao" (use null se realmente não conseguir decidir).
+- Detecte também o SUBTIPO: "original" ou "renovacao". Considere "renovacao" quando aparecerem termos como "RENOVAÇÃO", "renovar a locação", "aditivo de renovação", ou frases como "contrato firmado em ... considerando o interesse ... em renovar".
+- Devolva "confianca" (0-100) — o quão certo você está do TIPO detectado.
 - Retorne SOMENTE JSON válido, SEM markdown, SEM comentários, SEM texto antes ou depois.
 - Valores monetários como número (ex.: 1750.00, sem "R$" nem separador de milhar).
 - Datas no formato aaaa-mm-dd.
@@ -86,6 +93,8 @@ REGRAS:
 ESQUEMA quando tipo = "locacao":
 {
   "tipo":"locacao",
+  "subtipo":"original",
+  "confianca":0,
   "proprietario":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null,"banco":null,"agencia":null,"conta":null,"titular":null,"pix":null},
   "inquilino":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null},
   "imovel":{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null,"cep":null,"cidade":null,"uf":null,"quartos":null,"vaga_garagem":null},
@@ -93,9 +102,16 @@ ESQUEMA quando tipo = "locacao":
   "caucao":{"possui":null,"valor_depositado":null,"tipo":null,"corrige_com_rendimento":null,"data_deposito":null}
 }
 
+No subtipo "renovacao", preencha em "locacao":
+- "data_contrato_original" com a data do contrato de locação inicial (a que está sendo renovada).
+- "data_inicio_vigencia" com a data de início da nova vigência (data da renovação).
+- "prazo_meses" com o prazo da renovação (ex.: 24 ou 30).
+
 ESQUEMA quando tipo = "administracao":
 {
   "tipo":"administracao",
+  "subtipo":"original",
+  "confianca":0,
   "proprietario":{"nome":null,"cpf":null,"email":null,"telefone":null,"endereco":null},
   "administrador":{"nome":null,"documento":null,"oab":null,"pix":null,"banco":null,"agencia":null,"conta":null},
   "honorarios":{"percent_honorario_renovacao":null,"percent_honorario_mensal":null,"mora_multa_percent":null,"mora_juros_mensal_percent":null,"mora_indice":null},
@@ -221,15 +237,127 @@ export const extrairContrato = createServerFn({ method: "POST" })
     });
 
     const parsed = extrairJsonDoTexto(raw) as { tipo?: string };
-    if (!parsed || (parsed.tipo !== "locacao" && parsed.tipo !== "administracao")) {
-      throw new Error("Não foi possível identificar o tipo do contrato. Verifique se o arquivo é um contrato de locação ou de administração.");
+    // Nunca bloquear: se o tipo veio nulo, aplicamos heurística por palavras-chave
+    // para sugerir um tipo. O usuário confirma/corrige na tela de revisão.
+    const p = parsed as Record<string, unknown>;
+    const tipoAtual = String(p.tipo ?? "").toLowerCase();
+    if (tipoAtual !== "locacao" && tipoAtual !== "administracao") {
+      const guess = detectarTipoPorTexto(textoLocal);
+      p.tipo = guess.tipo; // pode continuar null
+      p.confianca = Math.max(Number(p.confianca ?? 0), guess.confianca);
+    }
+    // Subtipo por palavras-chave se a IA não classificou
+    const subtipoAtual = String(p.subtipo ?? "").toLowerCase();
+    if (subtipoAtual !== "original" && subtipoAtual !== "renovacao") {
+      p.subtipo = detectarSubtipoPorTexto(textoLocal);
     }
     return {
       arquivoPath: path,
       usouVisao: usaVisao,
+      textoExtraido: textoLocal.slice(0, 4000),
       extrai: parsed,
     };
   });
+
+// --------------- Heurísticas de tipo (fallback quando IA falha) ---------
+function normText(s: string): string {
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+function detectarTipoPorTexto(texto: string): { tipo: string | null; confianca: number } {
+  const t = normText(texto);
+  if (!t) return { tipo: null, confianca: 0 };
+  const kwLoc = ["locador", "locadora", "locatario", "locataria", "aluguel", "locacao", "caucao"];
+  const kwAdm = ["administracao de bens imoveis", "administracao de imoveis", "honorarios", "contratado", "contratante", "prestacao de servicos"];
+  const scoreLoc = kwLoc.reduce((s, k) => s + (t.includes(k) ? 1 : 0), 0);
+  const scoreAdm = kwAdm.reduce((s, k) => s + (t.includes(k) ? 1 : 0), 0);
+  if (scoreLoc === 0 && scoreAdm === 0) return { tipo: null, confianca: 0 };
+  if (scoreLoc >= scoreAdm) return { tipo: "locacao", confianca: Math.min(100, 30 + scoreLoc * 15) };
+  return { tipo: "administracao", confianca: Math.min(100, 30 + scoreAdm * 15) };
+}
+function detectarSubtipoPorTexto(texto: string): "original" | "renovacao" {
+  const t = normText(texto);
+  if (/renovacao|renovar a locacao|aditivo de renovacao|interesse.*renovar/.test(t)) return "renovacao";
+  return "original";
+}
+
+// --------------- De-duplicação de imóvel --------------------------------
+function normalizeKey(s: unknown): string {
+  return normText(String(s ?? "")).replace(/\s+/g, " ").trim();
+}
+async function buscarImovelDuplicado(
+  sb: {
+    from: (
+      t: string,
+    ) => {
+      select: (
+        c: string,
+      ) => {
+        eq: (col: string, v: string) => { maybeSingle?: unknown } & Record<string, unknown>;
+      };
+    };
+  },
+  proprietarioId: string,
+  im: Record<string, unknown>,
+): Promise<{ id: string; label: string } | null> {
+  // Busca todos os imóveis do proprietário e compara em memória (poucos registros).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (sb as any)
+    .from("imoveis")
+    .select("id, endereco, edificio, numero_unidade, cep")
+    .eq("proprietario_id", proprietarioId);
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  const alvoEd = normalizeKey(im.edificio);
+  const alvoEnd = normalizeKey(im.endereco);
+  const alvoCep = normalizeKey(im.cep);
+  const alvoNu = normalizeKey(im.numero_unidade);
+  for (const r of rows) {
+    const rEd = normalizeKey(r.edificio);
+    const rEnd = normalizeKey(r.endereco);
+    const rCep = normalizeKey(r.cep);
+    const rNu = normalizeKey(r.numero_unidade);
+    if (!alvoNu || !rNu || alvoNu !== rNu) continue;
+    const casaEdificio = alvoEd && rEd && alvoEd === rEd;
+    const casaEndereco = alvoEnd && rEnd && alvoEnd === rEnd;
+    const casaCep = alvoCep && rCep && alvoCep === rCep;
+    if (casaEdificio || casaEndereco || casaCep) {
+      const label = [r.edificio, r.numero_unidade].filter(Boolean).join(" ").trim()
+        || String(r.endereco ?? "");
+      return { id: String(r.id), label };
+    }
+  }
+  return null;
+}
+
+// Preview de duplicatas antes de gravar (usado pelo review no frontend).
+export const checarDuplicataImovel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) =>
+    z.object({
+      proprietario_id: z.string().uuid(),
+      imovel: anyRecord,
+    }).parse(v),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    return await buscarImovelDuplicado(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      context.supabase as any,
+      data.proprietario_id,
+      data.imovel,
+    );
+  });
+
+function addMonths(iso: string, months: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  const day = d.getUTCDate();
+  d.setUTCMonth(d.getUTCMonth() + months);
+  // ajuste de fim de mês (30/01 + 1m → 28/02)
+  if (d.getUTCDate() < day) d.setUTCDate(0);
+  return d.toISOString().slice(0, 10);
+}
 
 // --------------- Helpers de coerção segura ------------------------------
 function toStr(v: unknown): string | null {
@@ -297,10 +425,22 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       proprietarioId = ins.id as string;
     }
 
-    // 2) Imóvel
+    // 2) Imóvel — com de-duplicação por (edificio|endereco|cep) + numero_unidade
     let imovelId = data.imovel_id ?? null;
+    let imovelDuplicado: { id: string; label: string } | null = null;
     if (!imovelId) {
       const im = data.imovel as Record<string, unknown>;
+      if (!data.forcar_novo_imovel && proprietarioId) {
+        imovelDuplicado = await buscarImovelDuplicado(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          sb as any,
+          proprietarioId,
+          im,
+        );
+      }
+      if (imovelDuplicado) {
+        imovelId = imovelDuplicado.id;
+      } else {
       const { data: ins, error } = await sb.from("imoveis").insert({
         owner_admin_id: owner,
         proprietario_id: proprietarioId,
@@ -316,13 +456,37 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       }).select("id").single();
       if (error) throw new Error(`Imóvel: ${error.message}`);
       imovelId = ins.id as string;
+      }
     }
 
-    // 3) Contrato de locação
+    // 3) Contrato de locação — renovação atualiza o contrato existente
     const inq = data.inquilino as Record<string, unknown>;
     const loc = data.locacao as Record<string, unknown>;
     const enc = (loc.encargos_inquilino as Record<string, unknown>) ?? {};
-    const { data: contratoIns, error: eContrato } = await sb.from("contratos_locacao").insert({
+
+    const dataInicioVig = toDate(loc.data_inicio_vigencia);
+    const prazo = toInt(loc.prazo_meses);
+    const dataFimVig =
+      dataInicioVig && prazo && prazo > 0 ? addMonths(dataInicioVig, prazo) : null;
+
+    const isRenovacao = data.subtipo === "renovacao";
+
+    // Se for renovação, tentar localizar contrato existente para o mesmo imóvel
+    let contratoExistenteId = data.contrato_existente_id ?? null;
+    if (isRenovacao && !contratoExistenteId && imovelId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: existente } = await (sb as any)
+        .from("contratos_locacao")
+        .select("id, historico_renovacoes, data_contrato_original, data_inicio_vigencia, prazo_meses")
+        .eq("imovel_id", imovelId)
+        .in("status", ["ativo", "renovado"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existente?.id) contratoExistenteId = existente.id as string;
+    }
+
+    const basePayload: Record<string, unknown> = {
       owner_admin_id: owner,
       imovel_id: imovelId,
       inquilino_nome: toStr(inq.nome),
@@ -336,8 +500,9 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       valor_aluguel: toNum(loc.valor_aluguel),
       dia_vencimento: toInt(loc.dia_vencimento),
       data_contrato_original: toDate(loc.data_contrato_original),
-      data_inicio_vigencia: toDate(loc.data_inicio_vigencia),
-      prazo_meses: toInt(loc.prazo_meses),
+      data_inicio_vigencia: dataInicioVig,
+      prazo_meses: prazo,
+      data_fim_vigencia: dataFimVig,
       indice_reajuste: toStr(loc.indice_reajuste) ?? "IGP-M",
       periodicidade_reajuste_meses: toInt(loc.periodicidade_reajuste_meses) ?? 12,
       mes_base_reajuste: toInt(loc.mes_base_reajuste),
@@ -356,14 +521,63 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       foro: toStr(loc.foro),
       status: "ativo",
       arquivo_contrato_url: data.arquivoPath ?? null,
-    }).select("id").single();
-    if (eContrato) throw new Error(`Contrato: ${eContrato.message}`);
-    const contratoId = contratoIns.id as string;
+    };
+
+    let contratoId: string;
+    if (isRenovacao && contratoExistenteId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: prev } = await (sb as any)
+        .from("contratos_locacao")
+        .select("historico_renovacoes, data_contrato_original, data_inicio_vigencia, prazo_meses, data_fim_vigencia")
+        .eq("id", contratoExistenteId)
+        .maybeSingle();
+      const hist: unknown[] = Array.isArray(prev?.historico_renovacoes)
+        ? prev.historico_renovacoes
+        : [];
+      hist.push({
+        registrada_em: new Date().toISOString(),
+        data_inicio_vigencia_anterior: prev?.data_inicio_vigencia ?? null,
+        prazo_meses_anterior: prev?.prazo_meses ?? null,
+        data_fim_vigencia_anterior: prev?.data_fim_vigencia ?? null,
+        renovacao: {
+          data_contrato_original: basePayload.data_contrato_original,
+          data_inicio_vigencia: dataInicioVig,
+          prazo_meses: prazo,
+          data_fim_vigencia: dataFimVig,
+        },
+      });
+      const updatePayload = {
+        ...basePayload,
+        // Preserva data_contrato_original se já havia
+        data_contrato_original:
+          prev?.data_contrato_original ?? basePayload.data_contrato_original,
+        data_renovacao: dataInicioVig,
+        historico_renovacoes: hist,
+        status: "ativo",
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: eUp } = await (sb as any)
+        .from("contratos_locacao")
+        .update(updatePayload)
+        .eq("id", contratoExistenteId);
+      if (eUp) throw new Error(`Renovação: ${eUp.message}`);
+      contratoId = contratoExistenteId;
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: contratoIns, error: eContrato } = await (sb as any)
+        .from("contratos_locacao")
+        .insert(basePayload)
+        .select("id")
+        .single();
+      if (eContrato) throw new Error(`Contrato: ${eContrato.message}`);
+      contratoId = contratoIns.id as string;
+    }
 
     // 4) Caução
     const c = data.caucao as Record<string, unknown>;
     if (toBool(c.possui, false)) {
-      const { error: eC } = await sb.from("caucoes").insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: eC } = await (sb as any).from("caucoes").upsert({
         owner_admin_id: owner,
         contrato_locacao_id: contratoId,
         possui: true,
@@ -371,11 +585,17 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
         tipo: toStr(c.tipo),
         corrige_com_rendimento: toBool(c.corrige_com_rendimento, true),
         data_deposito: toDate(c.data_deposito),
-      });
+      }, { onConflict: "contrato_locacao_id" });
       if (eC) throw new Error(`Caução: ${eC.message}`);
     }
 
-    return { contrato_id: contratoId, proprietario_id: proprietarioId, imovel_id: imovelId };
+    return {
+      contrato_id: contratoId,
+      proprietario_id: proprietarioId,
+      imovel_id: imovelId,
+      imovel_duplicado: imovelDuplicado,
+      renovacao_aplicada: isRenovacao && !!data.contrato_existente_id,
+    };
   });
 
 /** Grava importação de contrato de administração (proprietário + contrato + imóveis administrados). */
@@ -431,19 +651,40 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
     }).select("id").single();
     if (eC) throw new Error(`Contrato de administração: ${eC.message}`);
 
-    // 3) Imóveis administrados — grava como imóveis do proprietário
-    if (data.imoveis_administrados.length > 0) {
-      const rows = data.imoveis_administrados.map((im) => ({
+    // 3) Imóveis administrados — cria os que faltam, vincula (sem duplicar) os já existentes
+    const criados: Array<{ id: string; label: string }> = [];
+    const vinculados: Array<{ id: string; label: string }> = [];
+    for (const raw of data.imoveis_administrados) {
+      const im = raw as Record<string, unknown>;
+      const dup = await buscarImovelDuplicado(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sb as any,
+        proprietarioId!,
+        im,
+      );
+      if (dup) {
+        vinculados.push(dup);
+        continue;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: ins, error: eImv } = await (sb as any).from("imoveis").insert({
         owner_admin_id: owner,
         proprietario_id: proprietarioId!,
-        descricao: toStr((im as Record<string, unknown>).descricao),
-        endereco: toStr((im as Record<string, unknown>).endereco),
-        edificio: toStr((im as Record<string, unknown>).edificio),
-        numero_unidade: toStr((im as Record<string, unknown>).numero_unidade),
-      }));
-      const { error: eImv } = await sb.from("imoveis").insert(rows);
+        descricao: toStr(im.descricao),
+        endereco: toStr(im.endereco),
+        edificio: toStr(im.edificio),
+        numero_unidade: toStr(im.numero_unidade),
+      }).select("id, edificio, numero_unidade, endereco").single();
       if (eImv) throw new Error(`Imóveis administrados: ${eImv.message}`);
+      const label = [ins.edificio, ins.numero_unidade].filter(Boolean).join(" ").trim()
+        || String(ins.endereco ?? "");
+      criados.push({ id: String(ins.id), label });
     }
 
-    return { contrato_id: contratoIns.id as string, proprietario_id: proprietarioId };
+    return {
+      contrato_id: contratoIns.id as string,
+      proprietario_id: proprietarioId,
+      imoveis_criados: criados,
+      imoveis_vinculados: vinculados,
+    };
   });
