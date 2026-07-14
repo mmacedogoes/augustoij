@@ -47,6 +47,7 @@ import { Route as AuthenticatedAppAdminUsuariosIndexRouteImport } from './routes
 import { Route as AuthenticatedAppAdminImoveisIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.index'
 import { Route as AuthenticatedAppAjudaPerfilPerfilRouteImport } from './routes/_authenticated/app.ajuda.perfil.$perfil'
 import { Route as AuthenticatedAppAdminUsuariosUserIdRouteImport } from './routes/_authenticated/app.admin.usuarios.$userId'
+import { Route as AuthenticatedAppAdminImoveisImportarRouteImport } from './routes/_authenticated/app.admin.imoveis.importar'
 import { Route as AuthenticatedAppAdminImoveisUnidadesIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.index'
 import { Route as AuthenticatedAppAdminImoveisProprietariosIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.index'
 import { Route as AuthenticatedAppAdminImoveisLocacaoIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.index'
@@ -264,6 +265,12 @@ const AuthenticatedAppAdminUsuariosUserIdRoute =
     path: '/usuarios/$userId',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
+const AuthenticatedAppAdminImoveisImportarRoute =
+  AuthenticatedAppAdminImoveisImportarRouteImport.update({
+    id: '/importar',
+    path: '/importar',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
 const AuthenticatedAppAdminImoveisUnidadesIndexRoute =
   AuthenticatedAppAdminImoveisUnidadesIndexRouteImport.update({
     id: '/unidades/',
@@ -347,6 +354,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
   '/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
@@ -391,6 +399,7 @@ export interface FileRoutesByTo {
   '/app/admin': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
   '/app/admin/imoveis': typeof AuthenticatedAppAdminImoveisIndexRoute
@@ -440,6 +449,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/_authenticated/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/_authenticated/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/_authenticated/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/_authenticated/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
   '/_authenticated/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
@@ -489,6 +499,7 @@ export interface FileRouteTypes {
     | '/app/admin/'
     | '/app/ajuda/'
     | '/app/condominios/'
+    | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
     | '/app/admin/imoveis/'
@@ -533,6 +544,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/ajuda'
     | '/app/condominios'
+    | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
     | '/app/admin/imoveis'
@@ -581,6 +593,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/'
     | '/_authenticated/app/ajuda/'
     | '/_authenticated/app/condominios/'
+    | '/_authenticated/app/admin/imoveis/importar'
     | '/_authenticated/app/admin/usuarios/$userId'
     | '/_authenticated/app/ajuda/perfil/$perfil'
     | '/_authenticated/app/admin/imoveis/'
@@ -880,6 +893,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminUsuariosUserIdRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
+    '/_authenticated/app/admin/imoveis/importar': {
+      id: '/_authenticated/app/admin/imoveis/importar'
+      path: '/importar'
+      fullPath: '/app/admin/imoveis/importar'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisImportarRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
     '/_authenticated/app/admin/imoveis/unidades/': {
       id: '/_authenticated/app/admin/imoveis/unidades/'
       path: '/unidades'
@@ -940,6 +960,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAppAdminImoveisRouteChildren {
+  AuthenticatedAppAdminImoveisImportarRoute: typeof AuthenticatedAppAdminImoveisImportarRoute
   AuthenticatedAppAdminImoveisIndexRoute: typeof AuthenticatedAppAdminImoveisIndexRoute
   AuthenticatedAppAdminImoveisAdministracaoIdRoute: typeof AuthenticatedAppAdminImoveisAdministracaoIdRoute
   AuthenticatedAppAdminImoveisLocacaoIdRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdRoute
@@ -953,6 +974,8 @@ interface AuthenticatedAppAdminImoveisRouteChildren {
 
 const AuthenticatedAppAdminImoveisRouteChildren: AuthenticatedAppAdminImoveisRouteChildren =
   {
+    AuthenticatedAppAdminImoveisImportarRoute:
+      AuthenticatedAppAdminImoveisImportarRoute,
     AuthenticatedAppAdminImoveisIndexRoute:
       AuthenticatedAppAdminImoveisIndexRoute,
     AuthenticatedAppAdminImoveisAdministracaoIdRoute:

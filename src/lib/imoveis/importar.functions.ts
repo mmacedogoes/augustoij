@@ -1,0 +1,449 @@
+/**
+ * Importação de contratos com extração automática via Lovable AI.
+ *
+ * 1) extrairContrato — recebe o arquivo (base64), extrai texto (unpdf/mammoth),
+ *    faz fallback para visão quando o PDF é escaneado, envia à IA e devolve
+ *    JSON estrito + o caminho no Storage privado "contratos".
+ * 2) salvarImportacaoLocacao / salvarImportacaoAdministracao — grava os dados
+ *    revisados nas tabelas da Fase 1, criando proprietário/imóvel/contrato
+ *    quando necessário. Nada é persistido sem confirmação do usuário.
+ */
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
+import { ensureSuperAdmin } from "./guard";
+
+const MODEL = "google/gemini-2.5-flash";
+const AIG_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+// ------- Input schemas ---------------------------------------------------
+const extractInput = z.object({
+  fileBase64: z.string().min(1),
+  fileName: z.string().min(1),
+  mimeType: z.string().min(1),
+});
+
+// Ajustes leves: nada estrito para permitir o que a IA devolver.
+const anyRecord = z.record(z.string(), z.unknown());
+
+const salvarLocInput = z.object({
+  arquivoPath: z.string().nullable().optional(),
+  proprietario: anyRecord,
+  inquilino: anyRecord,
+  imovel: anyRecord,
+  locacao: anyRecord,
+  caucao: anyRecord,
+  // Se o usuário selecionou um proprietário/imóvel já existente, mandamos o id
+  proprietario_id: z.string().uuid().nullable().optional(),
+  imovel_id: z.string().uuid().nullable().optional(),
+});
+
+const salvarAdmInput = z.object({
+  arquivoPath: z.string().nullable().optional(),
+  proprietario: anyRecord,
+  administrador: anyRecord,
+  honorarios: anyRecord,
+  vigencia: anyRecord,
+  imoveis_administrados: z.array(anyRecord).default([]),
+  proprietario_id: z.string().uuid().nullable().optional(),
+});
+
+// ------- Helpers ---------------------------------------------------------
+function toBuffer(base64: string): Uint8Array {
+  const bin = atob(base64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+async function extrairTextoDoDocx(bytes: Uint8Array): Promise<string> {
+  const mammoth = await import("mammoth");
+  // mammoth aceita { arrayBuffer } no Node/edge; passamos ArrayBuffer.
+  const buf = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buf).set(bytes);
+  const { value } = await mammoth.extractRawText({ arrayBuffer: buf });
+  return (value ?? "").trim();
+}
+
+async function extrairTextoDoPdf(bytes: Uint8Array): Promise<string> {
+  const { extractText, getDocumentProxy } = await import("unpdf");
+  const pdf = await getDocumentProxy(bytes);
+  const { text } = await extractText(pdf, { mergePages: true });
+  return (Array.isArray(text) ? text.join("\n") : text ?? "").trim();
+}
+
+const SYSTEM_PROMPT = `Você é um extrator de dados jurídicos brasileiros especializado em contratos de locação residencial e contratos de administração de imóveis.
+
+REGRAS:
+- Detecte primeiro o TIPO do documento: "locacao" ou "administracao".
+- Retorne SOMENTE JSON válido, SEM markdown, SEM comentários, SEM texto antes ou depois.
+- Valores monetários como número (ex.: 1750.00, sem "R$" nem separador de milhar).
+- Datas no formato aaaa-mm-dd.
+- Campos não encontrados = null. NUNCA invente dados. Preserve nomes próprios exatamente como aparecem.
+- Percentuais como número (ex.: 2 significa 2%).
+- Para booleanos (encargos, possui caução, corrige com rendimento) use true/false. Se não mencionado, use null.
+
+ESQUEMA quando tipo = "locacao":
+{
+  "tipo":"locacao",
+  "proprietario":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null,"banco":null,"agencia":null,"conta":null,"titular":null,"pix":null},
+  "inquilino":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null},
+  "imovel":{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null,"cep":null,"cidade":null,"uf":null,"quartos":null,"vaga_garagem":null},
+  "locacao":{"data_contrato_original":null,"data_inicio_vigencia":null,"prazo_meses":null,"valor_aluguel":null,"dia_vencimento":null,"indice_reajuste":null,"periodicidade_reajuste_meses":null,"mes_base_reajuste":null,"encargos_inquilino":{"condominio":null,"agua":null,"luz":null,"iptu":null,"tcr":null},"multa_mora_percent":null,"juros_mora_mensal_percent":null,"multa_rescisoria_multiplicador":null,"multa_rescisoria_proporcional":null,"aviso_previo_dias":null,"foro":null},
+  "caucao":{"possui":null,"valor_depositado":null,"tipo":null,"corrige_com_rendimento":null,"data_deposito":null}
+}
+
+ESQUEMA quando tipo = "administracao":
+{
+  "tipo":"administracao",
+  "proprietario":{"nome":null,"cpf":null,"email":null,"telefone":null,"endereco":null},
+  "administrador":{"nome":null,"documento":null,"oab":null,"pix":null,"banco":null,"agencia":null,"conta":null},
+  "honorarios":{"percent_honorario_renovacao":null,"percent_honorario_mensal":null,"mora_multa_percent":null,"mora_juros_mensal_percent":null,"mora_indice":null},
+  "imoveis_administrados":[{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null}],
+  "vigencia":{"data_inicio":null,"prazo_meses":null}
+}`;
+
+async function callGateway(body: unknown): Promise<string> {
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) throw new Error("Configuração de IA ausente (LOVABLE_API_KEY)");
+  const res = await fetch(AIG_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Lovable-API-Key": key,
+      "X-Lovable-AIG-SDK": "custom-fetch",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    if (res.status === 429) throw new Error("Limite de uso da IA atingido. Tente em alguns instantes.");
+    if (res.status === 402) throw new Error("Créditos da IA esgotados. Adicione créditos nas configurações.");
+    throw new Error(`Falha ao chamar IA (${res.status}): ${text.slice(0, 300)}`);
+  }
+  const json = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  return json.choices?.[0]?.message?.content ?? "";
+}
+
+function extrairJsonDoTexto(raw: string): unknown {
+  const cleaned = raw
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // fallback: tenta achar o primeiro { ... } balanceado
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(cleaned.slice(start, end + 1));
+      } catch {
+        /* noop */
+      }
+    }
+    throw new Error("A IA não devolveu JSON válido. Tente novamente com um arquivo mais legível.");
+  }
+}
+
+// ------- Server functions -----------------------------------------------
+
+/**
+ * Envia o arquivo à IA, retorna { tipo, ...campos } + arquivoPath no Storage.
+ * Faz upload primeiro para termos rastreabilidade, mesmo que a extração falhe.
+ */
+export const extrairContrato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => extractInput.parse(v))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const bytes = toBuffer(data.fileBase64);
+
+    // 1) Upload para Storage
+    const safeName = data.fileName.replace(/[^a-zA-Z0-9._-]+/g, "_");
+    const path = `${context.userId}/${crypto.randomUUID()}-${safeName}`;
+    const { error: upErr } = await context.supabase.storage
+      .from("contratos")
+      .upload(path, bytes, { contentType: data.mimeType, upsert: false });
+    if (upErr) throw new Error(`Falha ao salvar arquivo: ${upErr.message}`);
+
+    // 2) Extrair texto local
+    const isDocx =
+      data.mimeType.includes("wordprocessingml") ||
+      data.fileName.toLowerCase().endsWith(".docx");
+    const isPdf =
+      data.mimeType === "application/pdf" ||
+      data.fileName.toLowerCase().endsWith(".pdf");
+
+    let textoLocal = "";
+    try {
+      if (isDocx) textoLocal = await extrairTextoDoDocx(bytes);
+      else if (isPdf) textoLocal = await extrairTextoDoPdf(bytes);
+    } catch (e) {
+      console.warn("[extrair-contrato] extração local falhou:", (e as Error).message);
+    }
+
+    // 3) Escolher payload da IA: texto quando temos, PDF direto quando não temos
+    const usaVisao = isPdf && textoLocal.length < 400;
+    const userContent = usaVisao
+      ? [
+          {
+            type: "text",
+            text: "Analise este contrato e devolva o JSON conforme instruções do system prompt.",
+          },
+          {
+            type: "file",
+            file: {
+              filename: data.fileName,
+              file_data: `data:${data.mimeType};base64,${data.fileBase64}`,
+            },
+          },
+        ]
+      : [
+          {
+            type: "text",
+            text: `Analise o conteúdo do contrato abaixo e devolva o JSON conforme instruções.\n\n=== CONTRATO ===\n${textoLocal.slice(0, 60000)}`,
+          },
+        ];
+
+    const raw = await callGateway({
+      model: MODEL,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userContent },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0,
+    });
+
+    const parsed = extrairJsonDoTexto(raw) as { tipo?: string };
+    if (!parsed || (parsed.tipo !== "locacao" && parsed.tipo !== "administracao")) {
+      throw new Error("Não foi possível identificar o tipo do contrato. Verifique se o arquivo é um contrato de locação ou de administração.");
+    }
+    return {
+      arquivoPath: path,
+      usouVisao: usaVisao,
+      extrai: parsed,
+    };
+  });
+
+// --------------- Helpers de coerção segura ------------------------------
+function toStr(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s ? s : null;
+}
+function toNum(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function toInt(v: unknown): number | null {
+  const n = toNum(v);
+  return n === null ? null : Math.round(n);
+}
+function toBool(v: unknown, def = false): boolean {
+  if (v === null || v === undefined) return def;
+  if (typeof v === "boolean") return v;
+  const s = String(v).toLowerCase().trim();
+  return ["true", "sim", "s", "1", "yes", "y"].includes(s);
+}
+function toDate(v: unknown): string | null {
+  const s = toStr(v);
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // dd/mm/aaaa
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  const d = new Date(s);
+  return Number.isFinite(d.getTime()) ? d.toISOString().slice(0, 10) : null;
+}
+
+/** Grava importação de contrato de locação (proprietário + imóvel + contrato + caução). */
+export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => salvarLocInput.parse(v))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const owner = context.userId;
+    const sb = context.supabase;
+
+    // 1) Proprietário
+    let proprietarioId = data.proprietario_id ?? null;
+    if (!proprietarioId) {
+      const p = data.proprietario as Record<string, unknown>;
+      const nome = toStr(p.nome);
+      if (!nome) throw new Error("Nome do proprietário é obrigatório");
+      const { data: ins, error } = await sb.from("proprietarios").insert({
+        owner_admin_id: owner,
+        nome,
+        cpf: toStr(p.cpf),
+        estado_civil: toStr(p.estado_civil),
+        profissao: toStr(p.profissao),
+        rg: toStr(p.rg),
+        endereco: toStr(p.endereco),
+        email: toStr(p.email),
+        telefone: toStr(p.telefone),
+        banco: toStr(p.banco),
+        agencia: toStr(p.agencia),
+        conta: toStr(p.conta),
+        pix: toStr(p.pix),
+      }).select("id").single();
+      if (error) throw new Error(`Proprietário: ${error.message}`);
+      proprietarioId = ins.id as string;
+    }
+
+    // 2) Imóvel
+    let imovelId = data.imovel_id ?? null;
+    if (!imovelId) {
+      const im = data.imovel as Record<string, unknown>;
+      const { data: ins, error } = await sb.from("imoveis").insert({
+        owner_admin_id: owner,
+        proprietario_id: proprietarioId,
+        descricao: toStr(im.descricao),
+        endereco: toStr(im.endereco),
+        edificio: toStr(im.edificio),
+        numero_unidade: toStr(im.numero_unidade),
+        cep: toStr(im.cep),
+        cidade: toStr(im.cidade),
+        uf: toStr(im.uf),
+        quartos: toInt(im.quartos),
+        vaga_garagem: toBool(im.vaga_garagem, false),
+      }).select("id").single();
+      if (error) throw new Error(`Imóvel: ${error.message}`);
+      imovelId = ins.id as string;
+    }
+
+    // 3) Contrato de locação
+    const inq = data.inquilino as Record<string, unknown>;
+    const loc = data.locacao as Record<string, unknown>;
+    const enc = (loc.encargos_inquilino as Record<string, unknown>) ?? {};
+    const { data: contratoIns, error: eContrato } = await sb.from("contratos_locacao").insert({
+      owner_admin_id: owner,
+      imovel_id: imovelId,
+      inquilino_nome: toStr(inq.nome),
+      inquilino_cpf: toStr(inq.cpf),
+      inquilino_estado_civil: toStr(inq.estado_civil),
+      inquilino_profissao: toStr(inq.profissao),
+      inquilino_rg: toStr(inq.rg),
+      inquilino_email: toStr(inq.email),
+      inquilino_telefone: toStr(inq.telefone),
+      inquilino_endereco: toStr(inq.endereco),
+      valor_aluguel: toNum(loc.valor_aluguel),
+      dia_vencimento: toInt(loc.dia_vencimento),
+      data_contrato_original: toDate(loc.data_contrato_original),
+      data_inicio_vigencia: toDate(loc.data_inicio_vigencia),
+      prazo_meses: toInt(loc.prazo_meses),
+      indice_reajuste: toStr(loc.indice_reajuste) ?? "IGP-M",
+      periodicidade_reajuste_meses: toInt(loc.periodicidade_reajuste_meses) ?? 12,
+      mes_base_reajuste: toInt(loc.mes_base_reajuste),
+      encargos_inquilino: {
+        condominio: toBool(enc.condominio, true),
+        agua: toBool(enc.agua, true),
+        luz: toBool(enc.luz, true),
+        iptu: toBool(enc.iptu, true),
+        tcr: toBool(enc.tcr, true),
+      },
+      multa_mora_percent: toNum(loc.multa_mora_percent) ?? 2,
+      juros_mora_mensal_percent: toNum(loc.juros_mora_mensal_percent) ?? 1,
+      multa_rescisoria_multiplicador: toNum(loc.multa_rescisoria_multiplicador) ?? 3,
+      multa_rescisoria_proporcional: toBool(loc.multa_rescisoria_proporcional, true),
+      aviso_previo_dias: toInt(loc.aviso_previo_dias) ?? 30,
+      foro: toStr(loc.foro),
+      status: "ativo",
+      arquivo_contrato_url: data.arquivoPath ?? null,
+    }).select("id").single();
+    if (eContrato) throw new Error(`Contrato: ${eContrato.message}`);
+    const contratoId = contratoIns.id as string;
+
+    // 4) Caução
+    const c = data.caucao as Record<string, unknown>;
+    if (toBool(c.possui, false)) {
+      const { error: eC } = await sb.from("caucoes").insert({
+        owner_admin_id: owner,
+        contrato_locacao_id: contratoId,
+        possui: true,
+        valor_depositado: toNum(c.valor_depositado),
+        tipo: toStr(c.tipo),
+        corrige_com_rendimento: toBool(c.corrige_com_rendimento, true),
+        data_deposito: toDate(c.data_deposito),
+      });
+      if (eC) throw new Error(`Caução: ${eC.message}`);
+    }
+
+    return { contrato_id: contratoId, proprietario_id: proprietarioId, imovel_id: imovelId };
+  });
+
+/** Grava importação de contrato de administração (proprietário + contrato + imóveis administrados). */
+export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => salvarAdmInput.parse(v))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const owner = context.userId;
+    const sb = context.supabase;
+
+    // 1) Proprietário
+    let proprietarioId = data.proprietario_id ?? null;
+    if (!proprietarioId) {
+      const p = data.proprietario as Record<string, unknown>;
+      const nome = toStr(p.nome);
+      if (!nome) throw new Error("Nome do proprietário é obrigatório");
+      const { data: ins, error } = await sb.from("proprietarios").insert({
+        owner_admin_id: owner,
+        nome,
+        cpf: toStr(p.cpf),
+        endereco: toStr(p.endereco),
+        email: toStr(p.email),
+        telefone: toStr(p.telefone),
+      }).select("id").single();
+      if (error) throw new Error(`Proprietário: ${error.message}`);
+      proprietarioId = ins.id as string;
+    }
+
+    // 2) Contrato de administração
+    const adm = data.administrador as Record<string, unknown>;
+    const hon = data.honorarios as Record<string, unknown>;
+    const vig = data.vigencia as Record<string, unknown>;
+    const { data: contratoIns, error: eC } = await sb.from("contratos_administracao").insert({
+      owner_admin_id: owner,
+      proprietario_id: proprietarioId,
+      administrador_nome: toStr(adm.nome),
+      administrador_documento: toStr(adm.documento),
+      administrador_oab: toStr(adm.oab),
+      pix_recebimento: toStr(adm.pix),
+      banco_recebimento: toStr(adm.banco),
+      agencia_recebimento: toStr(adm.agencia),
+      conta_recebimento: toStr(adm.conta),
+      percent_honorario_renovacao: toNum(hon.percent_honorario_renovacao) ?? 50,
+      percent_honorario_mensal: toNum(hon.percent_honorario_mensal) ?? 10,
+      mora_multa_percent: toNum(hon.mora_multa_percent) ?? 2,
+      mora_juros_mensal_percent: toNum(hon.mora_juros_mensal_percent) ?? 1,
+      mora_indice: toStr(hon.mora_indice) ?? "IGP-M",
+      data_inicio: toDate(vig.data_inicio),
+      prazo_meses: toInt(vig.prazo_meses) ?? 24,
+      status: "ativo",
+      arquivo_contrato_url: data.arquivoPath ?? null,
+    }).select("id").single();
+    if (eC) throw new Error(`Contrato de administração: ${eC.message}`);
+
+    // 3) Imóveis administrados — grava como imóveis do proprietário
+    if (data.imoveis_administrados.length > 0) {
+      const rows = data.imoveis_administrados.map((im) => ({
+        owner_admin_id: owner,
+        proprietario_id: proprietarioId!,
+        descricao: toStr((im as Record<string, unknown>).descricao),
+        endereco: toStr((im as Record<string, unknown>).endereco),
+        edificio: toStr((im as Record<string, unknown>).edificio),
+        numero_unidade: toStr((im as Record<string, unknown>).numero_unidade),
+      }));
+      const { error: eImv } = await sb.from("imoveis").insert(rows);
+      if (eImv) throw new Error(`Imóveis administrados: ${eImv.message}`);
+    }
+
+    return { contrato_id: contratoIns.id as string, proprietario_id: proprietarioId };
+  });
