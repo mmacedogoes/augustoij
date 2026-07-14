@@ -7,7 +7,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { ImoveisNav } from "@/components/admin/ImoveisNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, LayoutDashboard } from "lucide-react";
 import { listContratosLocacao, removeContratoLocacao } from "@/lib/imoveis/contratos-locacao.functions";
 import { formatBRL, formatDateBR } from "@/lib/imoveis/masks";
 import {
@@ -69,6 +69,9 @@ function Page() {
                   </p>
                 </div>
                 <span className="text-xs rounded-full bg-muted px-2 py-0.5">{r.status}</span>
+                <Link to="/app/admin/imoveis/locacao/$id/painel" params={{ id: r.id }}>
+                  <Button size="sm" variant="secondary"><LayoutDashboard className="h-4 w-4 mr-1" /> Painel</Button>
+                </Link>
                 <Link to="/app/admin/imoveis/locacao/$id" params={{ id: r.id }}>
                   <Button size="sm" variant="outline"><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
                 </Link>
