@@ -63,11 +63,30 @@ function toBuffer(base64: string): Uint8Array {
 
 async function extrairTextoDoDocx(bytes: Uint8Array): Promise<string> {
   const mammoth = await import("mammoth");
-  // mammoth aceita { arrayBuffer } no Node/edge; passamos ArrayBuffer.
-  const buf = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buf).set(bytes);
-  const { value } = await mammoth.extractRawText({ arrayBuffer: buf });
-  return (value ?? "").trim();
+  // No runtime do Worker (nodejs_compat), o build Node do mammoth exige
+  // `buffer: Buffer` — usar `arrayBuffer` dispara "Could not find file in
+  // options" e o texto volta vazio. Passamos Buffer.from(bytes) e caímos
+  // para convertToHtml → strip como fallback quando extractRawText falhar.
+  const nodeBuffer = Buffer.from(bytes);
+  try {
+    const { value } = await mammoth.extractRawText({ buffer: nodeBuffer });
+    const txt = (value ?? "").trim();
+    if (txt) return txt;
+  } catch (e) {
+    console.warn("[extrair-contrato] mammoth.extractRawText:", (e as Error).message);
+  }
+  try {
+    const { value } = await mammoth.convertToHtml({ buffer: nodeBuffer });
+    return (value ?? "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch (e) {
+    console.warn("[extrair-contrato] mammoth.convertToHtml:", (e as Error).message);
+    return "";
+  }
 }
 
 async function extrairTextoDoPdf(bytes: Uint8Array): Promise<string> {
