@@ -59,7 +59,8 @@ function toBuffer(base64: string): Uint8Array {
 async function extrairTextoDoDocx(bytes: Uint8Array): Promise<string> {
   const mammoth = await import("mammoth");
   // mammoth aceita { arrayBuffer } no Node/edge; passamos ArrayBuffer.
-  const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  const buf = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buf).set(bytes);
   const { value } = await mammoth.extractRawText({ arrayBuffer: buf });
   return (value ?? "").trim();
 }
