@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS honorarios_uniq ON public.honorarios (contrato_administracao_id, contrato_locacao_id, tipo, competencia);
