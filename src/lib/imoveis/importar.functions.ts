@@ -75,7 +75,9 @@ async function extrairTextoDoPdf(bytes: Uint8Array): Promise<string> {
 const SYSTEM_PROMPT = `Você é um extrator de dados jurídicos brasileiros especializado em contratos de locação residencial e contratos de administração de imóveis.
 
 REGRAS:
-- Detecte primeiro o TIPO do documento: "locacao" ou "administracao".
+- Detecte primeiro o TIPO do documento: "locacao" ou "administracao" (use null se realmente não conseguir decidir).
+- Detecte também o SUBTIPO: "original" ou "renovacao". Considere "renovacao" quando aparecerem termos como "RENOVAÇÃO", "renovar a locação", "aditivo de renovação", ou frases como "contrato firmado em ... considerando o interesse ... em renovar".
+- Devolva "confianca" (0-100) — o quão certo você está do TIPO detectado.
 - Retorne SOMENTE JSON válido, SEM markdown, SEM comentários, SEM texto antes ou depois.
 - Valores monetários como número (ex.: 1750.00, sem "R$" nem separador de milhar).
 - Datas no formato aaaa-mm-dd.
@@ -86,6 +88,8 @@ REGRAS:
 ESQUEMA quando tipo = "locacao":
 {
   "tipo":"locacao",
+  "subtipo":"original",
+  "confianca":0,
   "proprietario":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null,"banco":null,"agencia":null,"conta":null,"titular":null,"pix":null},
   "inquilino":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null},
   "imovel":{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null,"cep":null,"cidade":null,"uf":null,"quartos":null,"vaga_garagem":null},
@@ -93,9 +97,16 @@ ESQUEMA quando tipo = "locacao":
   "caucao":{"possui":null,"valor_depositado":null,"tipo":null,"corrige_com_rendimento":null,"data_deposito":null}
 }
 
+No subtipo "renovacao", preencha em "locacao":
+- "data_contrato_original" com a data do contrato de locação inicial (a que está sendo renovada).
+- "data_inicio_vigencia" com a data de início da nova vigência (data da renovação).
+- "prazo_meses" com o prazo da renovação (ex.: 24 ou 30).
+
 ESQUEMA quando tipo = "administracao":
 {
   "tipo":"administracao",
+  "subtipo":"original",
+  "confianca":0,
   "proprietario":{"nome":null,"cpf":null,"email":null,"telefone":null,"endereco":null},
   "administrador":{"nome":null,"documento":null,"oab":null,"pix":null,"banco":null,"agencia":null,"conta":null},
   "honorarios":{"percent_honorario_renovacao":null,"percent_honorario_mensal":null,"mora_multa_percent":null,"mora_juros_mensal_percent":null,"mora_indice":null},
