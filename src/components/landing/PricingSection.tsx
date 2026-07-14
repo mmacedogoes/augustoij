@@ -30,7 +30,7 @@ type Plan = {
   fixedPrice?: string;
 };
 
-const CONTACT_HREF = "mailto:contato@augusto.ij?subject=Plano%20Augusto.IJ";
+const CONTACT_HREF = "mailto:suporte@augustoij.com.br?subject=Plano%20Augusto.IJ";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", {
