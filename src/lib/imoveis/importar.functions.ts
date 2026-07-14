@@ -63,11 +63,30 @@ function toBuffer(base64: string): Uint8Array {
 
 async function extrairTextoDoDocx(bytes: Uint8Array): Promise<string> {
   const mammoth = await import("mammoth");
-  // mammoth aceita { arrayBuffer } no Node/edge; passamos ArrayBuffer.
-  const buf = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buf).set(bytes);
-  const { value } = await mammoth.extractRawText({ arrayBuffer: buf });
-  return (value ?? "").trim();
+  // No runtime do Worker (nodejs_compat), o build Node do mammoth exige
+  // `buffer: Buffer` — usar `arrayBuffer` dispara "Could not find file in
+  // options" e o texto volta vazio. Passamos Buffer.from(bytes) e caímos
+  // para convertToHtml → strip como fallback quando extractRawText falhar.
+  const nodeBuffer = Buffer.from(bytes);
+  try {
+    const { value } = await mammoth.extractRawText({ buffer: nodeBuffer });
+    const txt = (value ?? "").trim();
+    if (txt) return txt;
+  } catch (e) {
+    console.warn("[extrair-contrato] mammoth.extractRawText:", (e as Error).message);
+  }
+  try {
+    const { value } = await mammoth.convertToHtml({ buffer: nodeBuffer });
+    return (value ?? "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch (e) {
+    console.warn("[extrair-contrato] mammoth.convertToHtml:", (e as Error).message);
+    return "";
+  }
 }
 
 async function extrairTextoDoPdf(bytes: Uint8Array): Promise<string> {
@@ -112,12 +131,22 @@ ESQUEMA quando tipo = "administracao":
   "tipo":"administracao",
   "subtipo":"original",
   "confianca":0,
-  "proprietario":{"nome":null,"cpf":null,"email":null,"telefone":null,"endereco":null},
-  "administrador":{"nome":null,"documento":null,"oab":null,"pix":null,"banco":null,"agencia":null,"conta":null},
+  "proprietario":{"nome":null,"cpf":null,"rg":null,"estado_civil":null,"profissao":null,"email":null,"telefone":null,"endereco":null,"banco":null,"agencia":null,"conta":null,"pix":null},
+  "administrador":{"nome":null,"documento":null,"oab":null,"endereco":null,"pix":null,"banco":null,"agencia":null,"conta":null},
   "honorarios":{"percent_honorario_renovacao":null,"percent_honorario_mensal":null,"mora_multa_percent":null,"mora_juros_mensal_percent":null,"mora_indice":null},
   "imoveis_administrados":[{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null}],
   "vigencia":{"data_inicio":null,"prazo_meses":null}
-}`;
+}
+
+DICAS PARA CONTRATOS DE ADMINISTRAÇÃO (Brasil):
+- CONTRATANTE = proprietário; CONTRATADO/ADMINISTRADOR = escritório/advogado.
+- Extraia CPF, RG, estado civil, profissão, endereço do proprietário quando aparecerem na qualificação inicial.
+- OAB do administrador costuma vir junto ao nome ("OAB/XX 12345").
+- Honorários: percentuais mencionados sobre "aluguel", "locação mensal", "renovação" ou "novo contrato" → percent_honorario_mensal / percent_honorario_renovacao. Se aparecer "10% (dez por cento) sobre o valor mensal do aluguel", use 10.
+- Mora: multa costuma ser 2%, juros 1% ao mês; extraia se explícito.
+- Vigência: procure "prazo de vigência", "vigorará por", "renovação automática".
+- imoveis_administrados: se o contrato listar bens/imóveis administrados, extraia cada um; caso contrário devolva [].
+- NUNCA devolva a estrutura vazia por medo de errar — preencha tudo que aparece literalmente no texto.`;
 
 async function callGateway(body: unknown): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
@@ -617,9 +646,16 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
         owner_admin_id: owner,
         nome,
         cpf: toStr(p.cpf),
+        rg: toStr(p.rg),
+        estado_civil: toStr(p.estado_civil),
+        profissao: toStr(p.profissao),
         endereco: toStr(p.endereco),
         email: toStr(p.email),
         telefone: toStr(p.telefone),
+        banco: toStr(p.banco),
+        agencia: toStr(p.agencia),
+        conta: toStr(p.conta),
+        pix: toStr(p.pix),
       }).select("id").single();
       if (error) throw new Error(`Proprietário: ${error.message}`);
       proprietarioId = ins.id as string;
