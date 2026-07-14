@@ -36,6 +36,11 @@ const salvarLocInput = z.object({
   // Se o usuário selecionou um proprietário/imóvel já existente, mandamos o id
   proprietario_id: z.string().uuid().nullable().optional(),
   imovel_id: z.string().uuid().nullable().optional(),
+  subtipo: z.enum(["original", "renovacao"]).nullable().optional(),
+  // Se o usuário confirmou criar imóvel novo mesmo com duplicata detectada
+  forcar_novo_imovel: z.boolean().optional(),
+  // Se subtipo=renovacao e o usuário aceitou atualizar contrato existente
+  contrato_existente_id: z.string().uuid().nullable().optional(),
 });
 
 const salvarAdmInput = z.object({
