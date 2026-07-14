@@ -237,15 +237,127 @@ export const extrairContrato = createServerFn({ method: "POST" })
     });
 
     const parsed = extrairJsonDoTexto(raw) as { tipo?: string };
-    if (!parsed || (parsed.tipo !== "locacao" && parsed.tipo !== "administracao")) {
-      throw new Error("Não foi possível identificar o tipo do contrato. Verifique se o arquivo é um contrato de locação ou de administração.");
+    // Nunca bloquear: se o tipo veio nulo, aplicamos heurística por palavras-chave
+    // para sugerir um tipo. O usuário confirma/corrige na tela de revisão.
+    const p = parsed as Record<string, unknown>;
+    const tipoAtual = String(p.tipo ?? "").toLowerCase();
+    if (tipoAtual !== "locacao" && tipoAtual !== "administracao") {
+      const guess = detectarTipoPorTexto(textoLocal);
+      p.tipo = guess.tipo; // pode continuar null
+      p.confianca = Math.max(Number(p.confianca ?? 0), guess.confianca);
+    }
+    // Subtipo por palavras-chave se a IA não classificou
+    const subtipoAtual = String(p.subtipo ?? "").toLowerCase();
+    if (subtipoAtual !== "original" && subtipoAtual !== "renovacao") {
+      p.subtipo = detectarSubtipoPorTexto(textoLocal);
     }
     return {
       arquivoPath: path,
       usouVisao: usaVisao,
+      textoExtraido: textoLocal.slice(0, 4000),
       extrai: parsed,
     };
   });
+
+// --------------- Heurísticas de tipo (fallback quando IA falha) ---------
+function normText(s: string): string {
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+function detectarTipoPorTexto(texto: string): { tipo: string | null; confianca: number } {
+  const t = normText(texto);
+  if (!t) return { tipo: null, confianca: 0 };
+  const kwLoc = ["locador", "locadora", "locatario", "locataria", "aluguel", "locacao", "caucao"];
+  const kwAdm = ["administracao de bens imoveis", "administracao de imoveis", "honorarios", "contratado", "contratante", "prestacao de servicos"];
+  const scoreLoc = kwLoc.reduce((s, k) => s + (t.includes(k) ? 1 : 0), 0);
+  const scoreAdm = kwAdm.reduce((s, k) => s + (t.includes(k) ? 1 : 0), 0);
+  if (scoreLoc === 0 && scoreAdm === 0) return { tipo: null, confianca: 0 };
+  if (scoreLoc >= scoreAdm) return { tipo: "locacao", confianca: Math.min(100, 30 + scoreLoc * 15) };
+  return { tipo: "administracao", confianca: Math.min(100, 30 + scoreAdm * 15) };
+}
+function detectarSubtipoPorTexto(texto: string): "original" | "renovacao" {
+  const t = normText(texto);
+  if (/renovacao|renovar a locacao|aditivo de renovacao|interesse.*renovar/.test(t)) return "renovacao";
+  return "original";
+}
+
+// --------------- De-duplicação de imóvel --------------------------------
+function normalizeKey(s: unknown): string {
+  return normText(String(s ?? "")).replace(/\s+/g, " ").trim();
+}
+async function buscarImovelDuplicado(
+  sb: {
+    from: (
+      t: string,
+    ) => {
+      select: (
+        c: string,
+      ) => {
+        eq: (col: string, v: string) => { maybeSingle?: unknown } & Record<string, unknown>;
+      };
+    };
+  },
+  proprietarioId: string,
+  im: Record<string, unknown>,
+): Promise<{ id: string; label: string } | null> {
+  // Busca todos os imóveis do proprietário e compara em memória (poucos registros).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (sb as any)
+    .from("imoveis")
+    .select("id, endereco, edificio, numero_unidade, cep")
+    .eq("proprietario_id", proprietarioId);
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  const alvoEd = normalizeKey(im.edificio);
+  const alvoEnd = normalizeKey(im.endereco);
+  const alvoCep = normalizeKey(im.cep);
+  const alvoNu = normalizeKey(im.numero_unidade);
+  for (const r of rows) {
+    const rEd = normalizeKey(r.edificio);
+    const rEnd = normalizeKey(r.endereco);
+    const rCep = normalizeKey(r.cep);
+    const rNu = normalizeKey(r.numero_unidade);
+    if (!alvoNu || !rNu || alvoNu !== rNu) continue;
+    const casaEdificio = alvoEd && rEd && alvoEd === rEd;
+    const casaEndereco = alvoEnd && rEnd && alvoEnd === rEnd;
+    const casaCep = alvoCep && rCep && alvoCep === rCep;
+    if (casaEdificio || casaEndereco || casaCep) {
+      const label = [r.edificio, r.numero_unidade].filter(Boolean).join(" ").trim()
+        || String(r.endereco ?? "");
+      return { id: String(r.id), label };
+    }
+  }
+  return null;
+}
+
+// Preview de duplicatas antes de gravar (usado pelo review no frontend).
+export const checarDuplicataImovel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) =>
+    z.object({
+      proprietario_id: z.string().uuid(),
+      imovel: anyRecord,
+    }).parse(v),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    return await buscarImovelDuplicado(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      context.supabase as any,
+      data.proprietario_id,
+      data.imovel,
+    );
+  });
+
+function addMonths(iso: string, months: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  const day = d.getUTCDate();
+  d.setUTCMonth(d.getUTCMonth() + months);
+  // ajuste de fim de mês (30/01 + 1m → 28/02)
+  if (d.getUTCDate() < day) d.setUTCDate(0);
+  return d.toISOString().slice(0, 10);
+}
 
 // --------------- Helpers de coerção segura ------------------------------
 function toStr(v: unknown): string | null {
