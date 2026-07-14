@@ -47,6 +47,10 @@ import { Route as AuthenticatedAppAdminUsuariosIndexRouteImport } from './routes
 import { Route as AuthenticatedAppAdminImoveisIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.index'
 import { Route as AuthenticatedAppAjudaPerfilPerfilRouteImport } from './routes/_authenticated/app.ajuda.perfil.$perfil'
 import { Route as AuthenticatedAppAdminUsuariosUserIdRouteImport } from './routes/_authenticated/app.admin.usuarios.$userId'
+import { Route as AuthenticatedAppAdminImoveisUnidadesIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.index'
+import { Route as AuthenticatedAppAdminImoveisProprietariosIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.index'
+import { Route as AuthenticatedAppAdminImoveisUnidadesIdRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.$id'
+import { Route as AuthenticatedAppAdminImoveisProprietariosIdRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.$id'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -256,6 +260,30 @@ const AuthenticatedAppAdminUsuariosUserIdRoute =
     path: '/usuarios/$userId',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
+const AuthenticatedAppAdminImoveisUnidadesIndexRoute =
+  AuthenticatedAppAdminImoveisUnidadesIndexRouteImport.update({
+    id: '/unidades/',
+    path: '/unidades/',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisProprietariosIndexRoute =
+  AuthenticatedAppAdminImoveisProprietariosIndexRouteImport.update({
+    id: '/proprietarios/',
+    path: '/proprietarios/',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisUnidadesIdRoute =
+  AuthenticatedAppAdminImoveisUnidadesIdRouteImport.update({
+    id: '/unidades/$id',
+    path: '/unidades/$id',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisProprietariosIdRoute =
+  AuthenticatedAppAdminImoveisProprietariosIdRouteImport.update({
+    id: '/proprietarios/$id',
+    path: '/proprietarios/$id',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -295,6 +323,10 @@ export interface FileRoutesByFullPath {
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
   '/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
   '/app/admin/usuarios/': typeof AuthenticatedAppAdminUsuariosIndexRoute
+  '/app/admin/imoveis/proprietarios/$id': typeof AuthenticatedAppAdminImoveisProprietariosIdRoute
+  '/app/admin/imoveis/unidades/$id': typeof AuthenticatedAppAdminImoveisUnidadesIdRoute
+  '/app/admin/imoveis/proprietarios/': typeof AuthenticatedAppAdminImoveisProprietariosIndexRoute
+  '/app/admin/imoveis/unidades/': typeof AuthenticatedAppAdminImoveisUnidadesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -331,6 +363,10 @@ export interface FileRoutesByTo {
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
   '/app/admin/imoveis': typeof AuthenticatedAppAdminImoveisIndexRoute
   '/app/admin/usuarios': typeof AuthenticatedAppAdminUsuariosIndexRoute
+  '/app/admin/imoveis/proprietarios/$id': typeof AuthenticatedAppAdminImoveisProprietariosIdRoute
+  '/app/admin/imoveis/unidades/$id': typeof AuthenticatedAppAdminImoveisUnidadesIdRoute
+  '/app/admin/imoveis/proprietarios': typeof AuthenticatedAppAdminImoveisProprietariosIndexRoute
+  '/app/admin/imoveis/unidades': typeof AuthenticatedAppAdminImoveisUnidadesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -372,6 +408,10 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
   '/_authenticated/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
   '/_authenticated/app/admin/usuarios/': typeof AuthenticatedAppAdminUsuariosIndexRoute
+  '/_authenticated/app/admin/imoveis/proprietarios/$id': typeof AuthenticatedAppAdminImoveisProprietariosIdRoute
+  '/_authenticated/app/admin/imoveis/unidades/$id': typeof AuthenticatedAppAdminImoveisUnidadesIdRoute
+  '/_authenticated/app/admin/imoveis/proprietarios/': typeof AuthenticatedAppAdminImoveisProprietariosIndexRoute
+  '/_authenticated/app/admin/imoveis/unidades/': typeof AuthenticatedAppAdminImoveisUnidadesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -413,6 +453,10 @@ export interface FileRouteTypes {
     | '/app/ajuda/perfil/$perfil'
     | '/app/admin/imoveis/'
     | '/app/admin/usuarios/'
+    | '/app/admin/imoveis/proprietarios/$id'
+    | '/app/admin/imoveis/unidades/$id'
+    | '/app/admin/imoveis/proprietarios/'
+    | '/app/admin/imoveis/unidades/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -449,6 +493,10 @@ export interface FileRouteTypes {
     | '/app/ajuda/perfil/$perfil'
     | '/app/admin/imoveis'
     | '/app/admin/usuarios'
+    | '/app/admin/imoveis/proprietarios/$id'
+    | '/app/admin/imoveis/unidades/$id'
+    | '/app/admin/imoveis/proprietarios'
+    | '/app/admin/imoveis/unidades'
   id:
     | '__root__'
     | '/'
@@ -489,6 +537,10 @@ export interface FileRouteTypes {
     | '/_authenticated/app/ajuda/perfil/$perfil'
     | '/_authenticated/app/admin/imoveis/'
     | '/_authenticated/app/admin/usuarios/'
+    | '/_authenticated/app/admin/imoveis/proprietarios/$id'
+    | '/_authenticated/app/admin/imoveis/unidades/$id'
+    | '/_authenticated/app/admin/imoveis/proprietarios/'
+    | '/_authenticated/app/admin/imoveis/unidades/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -776,17 +828,57 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminUsuariosUserIdRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
+    '/_authenticated/app/admin/imoveis/unidades/': {
+      id: '/_authenticated/app/admin/imoveis/unidades/'
+      path: '/unidades'
+      fullPath: '/app/admin/imoveis/unidades/'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisUnidadesIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/imoveis/proprietarios/': {
+      id: '/_authenticated/app/admin/imoveis/proprietarios/'
+      path: '/proprietarios'
+      fullPath: '/app/admin/imoveis/proprietarios/'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisProprietariosIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/imoveis/unidades/$id': {
+      id: '/_authenticated/app/admin/imoveis/unidades/$id'
+      path: '/unidades/$id'
+      fullPath: '/app/admin/imoveis/unidades/$id'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisUnidadesIdRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/imoveis/proprietarios/$id': {
+      id: '/_authenticated/app/admin/imoveis/proprietarios/$id'
+      path: '/proprietarios/$id'
+      fullPath: '/app/admin/imoveis/proprietarios/$id'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisProprietariosIdRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
   }
 }
 
 interface AuthenticatedAppAdminImoveisRouteChildren {
   AuthenticatedAppAdminImoveisIndexRoute: typeof AuthenticatedAppAdminImoveisIndexRoute
+  AuthenticatedAppAdminImoveisProprietariosIdRoute: typeof AuthenticatedAppAdminImoveisProprietariosIdRoute
+  AuthenticatedAppAdminImoveisUnidadesIdRoute: typeof AuthenticatedAppAdminImoveisUnidadesIdRoute
+  AuthenticatedAppAdminImoveisProprietariosIndexRoute: typeof AuthenticatedAppAdminImoveisProprietariosIndexRoute
+  AuthenticatedAppAdminImoveisUnidadesIndexRoute: typeof AuthenticatedAppAdminImoveisUnidadesIndexRoute
 }
 
 const AuthenticatedAppAdminImoveisRouteChildren: AuthenticatedAppAdminImoveisRouteChildren =
   {
     AuthenticatedAppAdminImoveisIndexRoute:
       AuthenticatedAppAdminImoveisIndexRoute,
+    AuthenticatedAppAdminImoveisProprietariosIdRoute:
+      AuthenticatedAppAdminImoveisProprietariosIdRoute,
+    AuthenticatedAppAdminImoveisUnidadesIdRoute:
+      AuthenticatedAppAdminImoveisUnidadesIdRoute,
+    AuthenticatedAppAdminImoveisProprietariosIndexRoute:
+      AuthenticatedAppAdminImoveisProprietariosIndexRoute,
+    AuthenticatedAppAdminImoveisUnidadesIndexRoute:
+      AuthenticatedAppAdminImoveisUnidadesIndexRoute,
   }
 
 const AuthenticatedAppAdminImoveisRouteWithChildren =
