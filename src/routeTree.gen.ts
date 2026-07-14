@@ -58,6 +58,7 @@ import { Route as AuthenticatedAppAdminImoveisProprietariosIdRouteImport } from 
 import { Route as AuthenticatedAppAdminImoveisLocacaoIdRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id'
 import { Route as AuthenticatedAppAdminImoveisAdministracaoIdRouteImport } from './routes/_authenticated/app.admin.imoveis.administracao.$id'
 import { Route as AuthenticatedAppAdminImoveisLocacaoIdPainelRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id.painel'
+import { Route as AuthenticatedAppAdminImoveisLocacaoIdAditivoRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id.aditivo'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -333,6 +334,12 @@ const AuthenticatedAppAdminImoveisLocacaoIdPainelRoute =
     path: '/painel',
     getParentRoute: () => AuthenticatedAppAdminImoveisLocacaoIdRoute,
   } as any)
+const AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute =
+  AuthenticatedAppAdminImoveisLocacaoIdAditivoRouteImport.update({
+    id: '/aditivo',
+    path: '/aditivo',
+    getParentRoute: () => AuthenticatedAppAdminImoveisLocacaoIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -382,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/imoveis/locacao/': typeof AuthenticatedAppAdminImoveisLocacaoIndexRoute
   '/app/admin/imoveis/proprietarios/': typeof AuthenticatedAppAdminImoveisProprietariosIndexRoute
   '/app/admin/imoveis/unidades/': typeof AuthenticatedAppAdminImoveisUnidadesIndexRoute
+  '/app/admin/imoveis/locacao/$id/aditivo': typeof AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute
   '/app/admin/imoveis/locacao/$id/painel': typeof AuthenticatedAppAdminImoveisLocacaoIdPainelRoute
 }
 export interface FileRoutesByTo {
@@ -429,6 +437,7 @@ export interface FileRoutesByTo {
   '/app/admin/imoveis/locacao': typeof AuthenticatedAppAdminImoveisLocacaoIndexRoute
   '/app/admin/imoveis/proprietarios': typeof AuthenticatedAppAdminImoveisProprietariosIndexRoute
   '/app/admin/imoveis/unidades': typeof AuthenticatedAppAdminImoveisUnidadesIndexRoute
+  '/app/admin/imoveis/locacao/$id/aditivo': typeof AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute
   '/app/admin/imoveis/locacao/$id/painel': typeof AuthenticatedAppAdminImoveisLocacaoIdPainelRoute
 }
 export interface FileRoutesById {
@@ -481,6 +490,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/imoveis/locacao/': typeof AuthenticatedAppAdminImoveisLocacaoIndexRoute
   '/_authenticated/app/admin/imoveis/proprietarios/': typeof AuthenticatedAppAdminImoveisProprietariosIndexRoute
   '/_authenticated/app/admin/imoveis/unidades/': typeof AuthenticatedAppAdminImoveisUnidadesIndexRoute
+  '/_authenticated/app/admin/imoveis/locacao/$id/aditivo': typeof AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute
   '/_authenticated/app/admin/imoveis/locacao/$id/painel': typeof AuthenticatedAppAdminImoveisLocacaoIdPainelRoute
 }
 export interface FileRouteTypes {
@@ -533,6 +543,7 @@ export interface FileRouteTypes {
     | '/app/admin/imoveis/locacao/'
     | '/app/admin/imoveis/proprietarios/'
     | '/app/admin/imoveis/unidades/'
+    | '/app/admin/imoveis/locacao/$id/aditivo'
     | '/app/admin/imoveis/locacao/$id/painel'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -580,6 +591,7 @@ export interface FileRouteTypes {
     | '/app/admin/imoveis/locacao'
     | '/app/admin/imoveis/proprietarios'
     | '/app/admin/imoveis/unidades'
+    | '/app/admin/imoveis/locacao/$id/aditivo'
     | '/app/admin/imoveis/locacao/$id/painel'
   id:
     | '__root__'
@@ -631,6 +643,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/imoveis/locacao/'
     | '/_authenticated/app/admin/imoveis/proprietarios/'
     | '/_authenticated/app/admin/imoveis/unidades/'
+    | '/_authenticated/app/admin/imoveis/locacao/$id/aditivo'
     | '/_authenticated/app/admin/imoveis/locacao/$id/painel'
   fileRoutesById: FileRoutesById
 }
@@ -996,15 +1009,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdPainelRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdRoute
     }
+    '/_authenticated/app/admin/imoveis/locacao/$id/aditivo': {
+      id: '/_authenticated/app/admin/imoveis/locacao/$id/aditivo'
+      path: '/aditivo'
+      fullPath: '/app/admin/imoveis/locacao/$id/aditivo'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdAditivoRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdRoute
+    }
   }
 }
 
 interface AuthenticatedAppAdminImoveisLocacaoIdRouteChildren {
+  AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute
   AuthenticatedAppAdminImoveisLocacaoIdPainelRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdPainelRoute
 }
 
 const AuthenticatedAppAdminImoveisLocacaoIdRouteChildren: AuthenticatedAppAdminImoveisLocacaoIdRouteChildren =
   {
+    AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute:
+      AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute,
     AuthenticatedAppAdminImoveisLocacaoIdPainelRoute:
       AuthenticatedAppAdminImoveisLocacaoIdPainelRoute,
   }
