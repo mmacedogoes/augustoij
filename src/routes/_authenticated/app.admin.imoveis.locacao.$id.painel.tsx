@@ -8,14 +8,23 @@ import { ImoveisNav } from "@/components/admin/ImoveisNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Check, X, ArrowLeft } from "lucide-react";
+import { Pencil, Check, X, ArrowLeft, TrendingUp, Wallet } from "lucide-react";
 import {
   listPagamentosContrato,
   togglePagamento,
   updatePagamento,
   calcularMora,
 } from "@/lib/imoveis/pagamentos.functions";
+import {
+  calcularReajuste,
+  aplicarReajuste,
+  listReajustes,
+  getCaucaoAtualizada,
+} from "@/lib/imoveis/reajustes.functions";
 import { formatBRL, formatDateBR, parseBRL } from "@/lib/imoveis/masks";
 
 export const Route = createFileRoute("/_authenticated/app/admin/imoveis/locacao/$id/painel")({
