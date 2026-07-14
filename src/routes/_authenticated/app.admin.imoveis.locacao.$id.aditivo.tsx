@@ -416,7 +416,7 @@ function GerarAditivo() {
                 <Field label="Valor do aluguel (R$)">
                   <Input
                     value={formatBRL(form.valor_aluguel)}
-                    onChange={(e) => set("valor_aluguel", parseBRL(e.target.value))}
+                    onChange={(e) => set("valor_aluguel", parseBRL(e.target.value) ?? 0)}
                   />
                 </Field>
                 <Field label="Aluguel por extenso"><Input value={form.valor_aluguel_extenso} onChange={(e) => set("valor_aluguel_extenso", e.target.value)} /></Field>
@@ -426,7 +426,7 @@ function GerarAditivo() {
                 <Field label="Caução (R$)">
                   <Input
                     value={formatBRL(form.caucao_valor)}
-                    onChange={(e) => set("caucao_valor", parseBRL(e.target.value))}
+                    onChange={(e) => set("caucao_valor", parseBRL(e.target.value) ?? 0)}
                   />
                 </Field>
                 <Field label="Texto da garantia" full><Input value={form.caucao_texto} onChange={(e) => set("caucao_texto", e.target.value)} /></Field>
