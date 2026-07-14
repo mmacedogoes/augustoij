@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      aditivos: {
+        Row: {
+          contrato_locacao_id: string
+          created_at: string
+          dados: Json
+          gerado_em: string
+          id: string
+          owner_admin_id: string
+          pdf_url: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          contrato_locacao_id: string
+          created_at?: string
+          dados?: Json
+          gerado_em?: string
+          id?: string
+          owner_admin_id?: string
+          pdf_url?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          contrato_locacao_id?: string
+          created_at?: string
+          dados?: Json
+          gerado_em?: string
+          id?: string
+          owner_admin_id?: string
+          pdf_url?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aditivos_contrato_locacao_id_fkey"
+            columns: ["contrato_locacao_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_locacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -242,6 +286,59 @@ export type Database = {
           },
         ]
       }
+      caucoes: {
+        Row: {
+          contrato_locacao_id: string
+          corrige_com_rendimento: boolean
+          created_at: string
+          data_deposito: string | null
+          id: string
+          observacoes: string | null
+          owner_admin_id: string
+          possui: boolean
+          tipo: string | null
+          updated_at: string
+          valor_atual_override: number | null
+          valor_depositado: number | null
+        }
+        Insert: {
+          contrato_locacao_id: string
+          corrige_com_rendimento?: boolean
+          created_at?: string
+          data_deposito?: string | null
+          id?: string
+          observacoes?: string | null
+          owner_admin_id?: string
+          possui?: boolean
+          tipo?: string | null
+          updated_at?: string
+          valor_atual_override?: number | null
+          valor_depositado?: number | null
+        }
+        Update: {
+          contrato_locacao_id?: string
+          corrige_com_rendimento?: boolean
+          created_at?: string
+          data_deposito?: string | null
+          id?: string
+          observacoes?: string | null
+          owner_admin_id?: string
+          possui?: boolean
+          tipo?: string | null
+          updated_at?: string
+          valor_atual_override?: number | null
+          valor_depositado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caucoes_contrato_locacao_id_fkey"
+            columns: ["contrato_locacao_id"]
+            isOneToOne: true
+            referencedRelation: "contratos_locacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_cache: {
         Row: {
           condominio_id: string
@@ -449,6 +546,193 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      contratos_administracao: {
+        Row: {
+          administrador_documento: string | null
+          administrador_nome: string | null
+          administrador_oab: string | null
+          agencia_recebimento: string | null
+          arquivo_contrato_url: string | null
+          banco_recebimento: string | null
+          conta_recebimento: string | null
+          created_at: string
+          data_inicio: string | null
+          id: string
+          mora_indice: string
+          mora_juros_mensal_percent: number
+          mora_multa_percent: number
+          owner_admin_id: string
+          percent_honorario_mensal: number
+          percent_honorario_renovacao: number
+          pix_recebimento: string | null
+          prazo_meses: number
+          proprietario_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          administrador_documento?: string | null
+          administrador_nome?: string | null
+          administrador_oab?: string | null
+          agencia_recebimento?: string | null
+          arquivo_contrato_url?: string | null
+          banco_recebimento?: string | null
+          conta_recebimento?: string | null
+          created_at?: string
+          data_inicio?: string | null
+          id?: string
+          mora_indice?: string
+          mora_juros_mensal_percent?: number
+          mora_multa_percent?: number
+          owner_admin_id?: string
+          percent_honorario_mensal?: number
+          percent_honorario_renovacao?: number
+          pix_recebimento?: string | null
+          prazo_meses?: number
+          proprietario_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          administrador_documento?: string | null
+          administrador_nome?: string | null
+          administrador_oab?: string | null
+          agencia_recebimento?: string | null
+          arquivo_contrato_url?: string | null
+          banco_recebimento?: string | null
+          conta_recebimento?: string | null
+          created_at?: string
+          data_inicio?: string | null
+          id?: string
+          mora_indice?: string
+          mora_juros_mensal_percent?: number
+          mora_multa_percent?: number
+          owner_admin_id?: string
+          percent_honorario_mensal?: number
+          percent_honorario_renovacao?: number
+          pix_recebimento?: string | null
+          prazo_meses?: number
+          proprietario_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_administracao_proprietario_id_fkey"
+            columns: ["proprietario_id"]
+            isOneToOne: false
+            referencedRelation: "proprietarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contratos_locacao: {
+        Row: {
+          arquivo_contrato_url: string | null
+          aviso_previo_dias: number
+          created_at: string
+          data_contrato_original: string | null
+          data_inicio_vigencia: string | null
+          dia_vencimento: number | null
+          encargos_inquilino: Json
+          foro: string | null
+          id: string
+          imovel_id: string
+          indice_reajuste: string
+          inquilino_cpf: string | null
+          inquilino_email: string | null
+          inquilino_endereco: string | null
+          inquilino_estado_civil: string | null
+          inquilino_nome: string | null
+          inquilino_profissao: string | null
+          inquilino_rg: string | null
+          inquilino_telefone: string | null
+          juros_mora_mensal_percent: number
+          mes_base_reajuste: number | null
+          multa_mora_percent: number
+          multa_rescisoria_multiplicador: number
+          multa_rescisoria_proporcional: boolean
+          owner_admin_id: string
+          periodicidade_reajuste_meses: number
+          prazo_meses: number | null
+          status: string
+          updated_at: string
+          valor_aluguel: number | null
+        }
+        Insert: {
+          arquivo_contrato_url?: string | null
+          aviso_previo_dias?: number
+          created_at?: string
+          data_contrato_original?: string | null
+          data_inicio_vigencia?: string | null
+          dia_vencimento?: number | null
+          encargos_inquilino?: Json
+          foro?: string | null
+          id?: string
+          imovel_id: string
+          indice_reajuste?: string
+          inquilino_cpf?: string | null
+          inquilino_email?: string | null
+          inquilino_endereco?: string | null
+          inquilino_estado_civil?: string | null
+          inquilino_nome?: string | null
+          inquilino_profissao?: string | null
+          inquilino_rg?: string | null
+          inquilino_telefone?: string | null
+          juros_mora_mensal_percent?: number
+          mes_base_reajuste?: number | null
+          multa_mora_percent?: number
+          multa_rescisoria_multiplicador?: number
+          multa_rescisoria_proporcional?: boolean
+          owner_admin_id?: string
+          periodicidade_reajuste_meses?: number
+          prazo_meses?: number | null
+          status?: string
+          updated_at?: string
+          valor_aluguel?: number | null
+        }
+        Update: {
+          arquivo_contrato_url?: string | null
+          aviso_previo_dias?: number
+          created_at?: string
+          data_contrato_original?: string | null
+          data_inicio_vigencia?: string | null
+          dia_vencimento?: number | null
+          encargos_inquilino?: Json
+          foro?: string | null
+          id?: string
+          imovel_id?: string
+          indice_reajuste?: string
+          inquilino_cpf?: string | null
+          inquilino_email?: string | null
+          inquilino_endereco?: string | null
+          inquilino_estado_civil?: string | null
+          inquilino_nome?: string | null
+          inquilino_profissao?: string | null
+          inquilino_rg?: string | null
+          inquilino_telefone?: string | null
+          juros_mora_mensal_percent?: number
+          mes_base_reajuste?: number | null
+          multa_mora_percent?: number
+          multa_rescisoria_multiplicador?: number
+          multa_rescisoria_proporcional?: boolean
+          owner_admin_id?: string
+          periodicidade_reajuste_meses?: number
+          prazo_meses?: number | null
+          status?: string
+          updated_at?: string
+          valor_aluguel?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_locacao_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversas: {
         Row: {
@@ -795,6 +1079,143 @@ export type Database = {
           },
         ]
       }
+      honorarios: {
+        Row: {
+          base_calculo: number | null
+          competencia: string | null
+          contrato_administracao_id: string
+          contrato_locacao_id: string | null
+          created_at: string
+          data_pagamento: string | null
+          id: string
+          observacoes: string | null
+          owner_admin_id: string
+          pago: boolean
+          percentual: number | null
+          tipo: string
+          updated_at: string
+          valor: number | null
+          vencimento: string | null
+        }
+        Insert: {
+          base_calculo?: number | null
+          competencia?: string | null
+          contrato_administracao_id: string
+          contrato_locacao_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          owner_admin_id?: string
+          pago?: boolean
+          percentual?: number | null
+          tipo: string
+          updated_at?: string
+          valor?: number | null
+          vencimento?: string | null
+        }
+        Update: {
+          base_calculo?: number | null
+          competencia?: string | null
+          contrato_administracao_id?: string
+          contrato_locacao_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          owner_admin_id?: string
+          pago?: boolean
+          percentual?: number | null
+          tipo?: string
+          updated_at?: string
+          valor?: number | null
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "honorarios_contrato_administracao_id_fkey"
+            columns: ["contrato_administracao_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_administracao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honorarios_contrato_locacao_id_fkey"
+            columns: ["contrato_locacao_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_locacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imoveis: {
+        Row: {
+          area: number | null
+          cep: string | null
+          cidade: string | null
+          created_at: string
+          descricao: string | null
+          edificio: string | null
+          endereco: string | null
+          id: string
+          matricula: string | null
+          numero_unidade: string | null
+          observacoes: string | null
+          owner_admin_id: string
+          proprietario_id: string
+          quartos: number | null
+          uf: string | null
+          updated_at: string
+          vaga_garagem: boolean
+        }
+        Insert: {
+          area?: number | null
+          cep?: string | null
+          cidade?: string | null
+          created_at?: string
+          descricao?: string | null
+          edificio?: string | null
+          endereco?: string | null
+          id?: string
+          matricula?: string | null
+          numero_unidade?: string | null
+          observacoes?: string | null
+          owner_admin_id?: string
+          proprietario_id: string
+          quartos?: number | null
+          uf?: string | null
+          updated_at?: string
+          vaga_garagem?: boolean
+        }
+        Update: {
+          area?: number | null
+          cep?: string | null
+          cidade?: string | null
+          created_at?: string
+          descricao?: string | null
+          edificio?: string | null
+          endereco?: string | null
+          id?: string
+          matricula?: string | null
+          numero_unidade?: string | null
+          observacoes?: string | null
+          owner_admin_id?: string
+          proprietario_id?: string
+          quartos?: number | null
+          uf?: string | null
+          updated_at?: string
+          vaga_garagem?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imoveis_proprietario_id_fkey"
+            columns: ["proprietario_id"]
+            isOneToOne: false
+            referencedRelation: "proprietarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kb_chunks: {
         Row: {
           conteudo: string
@@ -872,6 +1293,65 @@ export type Database = {
         }
         Relationships: []
       }
+      manutencoes: {
+        Row: {
+          anexos: Json
+          created_at: string
+          custo_estimado: number | null
+          custo_final: number | null
+          data_conclusao: string | null
+          data_solicitacao: string
+          descricao: string | null
+          id: string
+          imovel_id: string
+          owner_admin_id: string
+          responsavel: string | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          anexos?: Json
+          created_at?: string
+          custo_estimado?: number | null
+          custo_final?: number | null
+          data_conclusao?: string | null
+          data_solicitacao?: string
+          descricao?: string | null
+          id?: string
+          imovel_id: string
+          owner_admin_id?: string
+          responsavel?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          anexos?: Json
+          created_at?: string
+          custo_estimado?: number | null
+          custo_final?: number | null
+          data_conclusao?: string | null
+          data_solicitacao?: string
+          descricao?: string | null
+          id?: string
+          imovel_id?: string
+          owner_admin_id?: string
+          responsavel?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manutencoes_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mensagens: {
         Row: {
           conteudo: string
@@ -942,6 +1422,59 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pagamentos: {
+        Row: {
+          competencia: string | null
+          contrato_locacao_id: string
+          created_at: string
+          data_pagamento: string | null
+          id: string
+          observacoes: string | null
+          owner_admin_id: string
+          pago: boolean
+          tipo: string
+          updated_at: string
+          valor: number | null
+          vencimento: string | null
+        }
+        Insert: {
+          competencia?: string | null
+          contrato_locacao_id: string
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          owner_admin_id?: string
+          pago?: boolean
+          tipo: string
+          updated_at?: string
+          valor?: number | null
+          vencimento?: string | null
+        }
+        Update: {
+          competencia?: string | null
+          contrato_locacao_id?: string
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          owner_admin_id?: string
+          pago?: boolean
+          tipo?: string
+          updated_at?: string
+          valor?: number | null
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_contrato_locacao_id_fkey"
+            columns: ["contrato_locacao_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_locacao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       planos: {
         Row: {
@@ -1079,6 +1612,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      proprietarios: {
+        Row: {
+          agencia: string | null
+          banco: string | null
+          conta: string | null
+          cpf: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          estado_civil: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          owner_admin_id: string
+          pix: string | null
+          profissao: string | null
+          rg: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          banco?: string | null
+          conta?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado_civil?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          owner_admin_id?: string
+          pix?: string | null
+          profissao?: string | null
+          rg?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          banco?: string | null
+          conta?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado_civil?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          owner_admin_id?: string
+          pix?: string | null
+          profissao?: string | null
+          rg?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       solicitacoes_exclusao_conta: {
         Row: {
