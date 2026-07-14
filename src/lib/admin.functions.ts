@@ -375,7 +375,9 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       serieRes,
       condosAtivosRes,
     ] = await Promise.all([
-      supabaseAdmin.from("subscriptions").select("plano_id, plano_config_id, status, cortesia"),
+      supabaseAdmin
+        .from("subscriptions")
+        .select("plano_id, plano_config_id, status, cortesia, created_at, updated_at, current_period_end"),
       supabaseAdmin.from("planos").select("id, nome, preco_mensal"),
       supabaseAdmin
         .from("profiles")
@@ -423,11 +425,35 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       const m = String(u.mes_ano);
       custoPorMes[m] = (custoPorMes[m] ?? 0) + Number(u.custo_estimado_brl ?? 0);
     }
-    const serie_receita_custo = meses.map((m) => ({
-      mes: m,
-      receita: mrr, // MRR corrente projetado no histórico — sem histórico de plano por sub
-      custo: Number((custoPorMes[m] ?? 0).toFixed(2)),
-    }));
+    // Receita histórica: soma dos preços dos planos das assinaturas que estavam
+    // ativas em cada mês (aproximação — não temos histórico de mudanças de plano
+    // por assinatura). Considera-se ativa no mês m se a assinatura foi criada
+    // até o fim de m e ainda não estava cancelada no início de m.
+    const subs = subsRes.data ?? [];
+    const serie_receita_custo = meses.map((m) => {
+      const [yy, mm] = m.split("-").map((v) => Number(v));
+      const inicioMes = new Date(Date.UTC(yy, mm - 1, 1));
+      const fimMes = new Date(Date.UTC(yy, mm, 1));
+      let receitaMes = 0;
+      for (const s of subs) {
+        if (s.cortesia) continue;
+        const criadoEm = s.created_at ? new Date(s.created_at) : null;
+        if (!criadoEm || criadoEm >= fimMes) continue;
+        if (s.status === "canceled") {
+          const fimEm = s.updated_at ? new Date(s.updated_at) : null;
+          if (!fimEm || fimEm < inicioMes) continue;
+        } else if (s.status !== "active") {
+          continue;
+        }
+        const plano = s.plano_id ? planosById[s.plano_id] : undefined;
+        receitaMes += plano?.preco ?? 0;
+      }
+      return {
+        mes: m,
+        receita: Number(receitaMes.toFixed(2)),
+        custo: Number((custoPorMes[m] ?? 0).toFixed(2)),
+      };
+    });
 
     const custo_lovable_mes = custoPorMes[mesAtual] ?? 0;
     const despesas_mes = (despesasRes.data ?? [])
