@@ -130,6 +130,36 @@ export type Database = {
         }
         Relationships: []
       }
+      alertas_resolvidos: {
+        Row: {
+          chave: string
+          created_at: string
+          id: string
+          observacao: string | null
+          owner_admin_id: string
+          resolvido_em: string
+          updated_at: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          owner_admin_id: string
+          resolvido_em?: string
+          updated_at?: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          owner_admin_id?: string
+          resolvido_em?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       alertas_uso: {
         Row: {
           disparado_em: string
