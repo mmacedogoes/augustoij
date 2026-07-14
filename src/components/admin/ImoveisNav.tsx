@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Users, Building, FileText, Briefcase } from "lucide-react";
+import { Home, Users, Building, FileText, Briefcase, Upload } from "lucide-react";
 
 type Item = {
   to:
@@ -7,7 +7,8 @@ type Item = {
     | "/app/admin/imoveis/proprietarios"
     | "/app/admin/imoveis/unidades"
     | "/app/admin/imoveis/locacao"
-    | "/app/admin/imoveis/administracao";
+    | "/app/admin/imoveis/administracao"
+    | "/app/admin/imoveis/importar";
   label: string;
   icon: typeof Home;
   exact?: boolean;
@@ -19,6 +20,7 @@ const items: Item[] = [
   { to: "/app/admin/imoveis/unidades", label: "Imóveis", icon: Building },
   { to: "/app/admin/imoveis/locacao", label: "Contratos de locação", icon: FileText },
   { to: "/app/admin/imoveis/administracao", label: "Contratos de administração", icon: Briefcase },
+  { to: "/app/admin/imoveis/importar", label: "Importar contrato", icon: Upload },
 ];
 
 export function ImoveisNav() {
