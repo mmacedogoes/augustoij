@@ -2,11 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureSuperAdmin } from "./guard";
-import {
-  SERIES_BCB,
-  acumularPercentualMensal,
-  consultarSerieBcb,
-} from "./indices.functions";
+import { SERIES_BCB, acumularPercentualMensal, fetchSerieBcb } from "./indices-core";
 
 /**
  * Calcula sugestão de reajuste para o contrato:
@@ -48,9 +44,8 @@ export const calcularReajuste = createServerFn({ method: "POST" })
     let mesIni = mesFim - 11;
     while (mesIni < 1) { mesIni += 12; anoIni -= 1; }
 
-    // Chama a função IGP-M via context.supabase (evitamos import cycle chamando fetch direto).
-    const igpm = await consultarSerieBcb({
-      data: { serie: SERIES_BCB.IGPM, anoIni, mesIni, anoFim, mesFim },
+    const igpm = await fetchSerieBcb(context.supabase, {
+      serie: SERIES_BCB.IGPM, anoIni, mesIni, anoFim, mesFim,
     });
     const acumIgpm = acumularPercentualMensal(igpm.pontos);
 
@@ -59,8 +54,8 @@ export const calcularReajuste = createServerFn({ method: "POST" })
     let acumIpca: number | null = null;
 
     if (acumIgpm < 0) {
-      const ipca = await consultarSerieBcb({
-        data: { serie: SERIES_BCB.IPCA, anoIni, mesIni, anoFim, mesFim },
+      const ipca = await fetchSerieBcb(context.supabase, {
+        serie: SERIES_BCB.IPCA, anoIni, mesIni, anoFim, mesFim,
       });
       acumIpca = acumularPercentualMensal(ipca.pontos);
       indiceUsado = "IPCA";
@@ -203,8 +198,8 @@ export const getCaucaoAtualizada = createServerFn({ method: "POST" })
       };
     }
 
-    const poup = await consultarSerieBcb({
-      data: { serie: SERIES_BCB.POUPANCA, anoIni, mesIni, anoFim, mesFim },
+    const poup = await fetchSerieBcb(context.supabase, {
+      serie: SERIES_BCB.POUPANCA, anoIni, mesIni, anoFim, mesFim,
     });
     const acum = acumularPercentualMensal(poup.pontos);
     const valorAtual = valorDep * (1 + acum / 100);
