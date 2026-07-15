@@ -162,6 +162,19 @@ function SignupPage() {
         });
       }
 
+      // Envia e-mail de boas-vindas (fire-and-forget). Não bloqueia o cadastro.
+      try {
+        supabase.functions
+          .invoke("send-welcome-email", {
+            body: { email: parsed.data.email, nome: parsed.data.nome },
+          })
+          .then(({ error: sendErr }) => {
+            if (sendErr) console.warn("[signup] falha ao enviar boas-vindas", sendErr);
+          });
+      } catch (e) {
+        console.warn("[signup] exceção ao chamar send-welcome-email", e);
+      }
+
       toast.success("Conta criada com sucesso! Bem-vindo(a).");
       navigate({ to: "/onboarding" });
     } catch (err) {
