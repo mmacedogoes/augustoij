@@ -472,30 +472,15 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       const p = data.proprietario as Record<string, unknown>;
       const nome = toStr(p.nome);
       if (!nome) throw new Error("Nome do proprietário é obrigatório");
-      const { data: ins, error } = await sb.from("proprietarios").insert({
-        owner_admin_id: owner,
-        nome,
-        cpf: toStr(p.cpf),
-        estado_civil: toStr(p.estado_civil),
-        profissao: toStr(p.profissao),
-        rg: toStr(p.rg),
-        endereco: toStr(p.endereco),
-        email: toStr(p.email),
-        telefone: toStr(p.telefone),
-        banco: toStr(p.banco),
-        agencia: toStr(p.agencia),
-        conta: toStr(p.conta),
-        pix: toStr(p.pix),
-      }).select("id").single();
-      if (error) throw new Error(`Proprietário: ${error.message}`);
-      proprietarioId = ins.id as string;
+      proprietarioId = await upsertProprietarioPorCpf(sb, owner, p);
     }
 
     // 2) Imóvel — com de-duplicação por (edificio|endereco|cep) + numero_unidade
     let imovelId = data.imovel_id ?? null;
     let imovelDuplicado: { id: string; label: string } | null = null;
     if (!imovelId) {
-      const im = data.imovel as Record<string, unknown>;
+      const imRaw = data.imovel as Record<string, unknown>;
+      const im = normalizarImovel(imRaw);
       if (!data.forcar_novo_imovel && proprietarioId) {
         imovelDuplicado = await buscarImovelDuplicado(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -514,6 +499,7 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
         endereco: toStr(im.endereco),
         edificio: toStr(im.edificio),
         numero_unidade: toStr(im.numero_unidade),
+        bloco: toStr(im.bloco),
         cep: toStr(im.cep),
         cidade: toStr(im.cidade),
         uf: toStr(im.uf),
@@ -679,23 +665,7 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
       const p = data.proprietario as Record<string, unknown>;
       const nome = toStr(p.nome);
       if (!nome) throw new Error("Nome do proprietário é obrigatório");
-      const { data: ins, error } = await sb.from("proprietarios").insert({
-        owner_admin_id: owner,
-        nome,
-        cpf: toStr(p.cpf),
-        rg: toStr(p.rg),
-        estado_civil: toStr(p.estado_civil),
-        profissao: toStr(p.profissao),
-        endereco: toStr(p.endereco),
-        email: toStr(p.email),
-        telefone: toStr(p.telefone),
-        banco: toStr(p.banco),
-        agencia: toStr(p.agencia),
-        conta: toStr(p.conta),
-        pix: toStr(p.pix),
-      }).select("id").single();
-      if (error) throw new Error(`Proprietário: ${error.message}`);
-      proprietarioId = ins.id as string;
+      proprietarioId = await upsertProprietarioPorCpf(sb, owner, p);
     }
 
     // 2) Contrato de administração
@@ -728,7 +698,7 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
     const criados: Array<{ id: string; label: string }> = [];
     const vinculados: Array<{ id: string; label: string }> = [];
     for (const raw of data.imoveis_administrados) {
-      const im = raw as Record<string, unknown>;
+      const im = normalizarImovel(raw as Record<string, unknown>);
       const dup = await buscarImovelDuplicado(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sb as any,
@@ -747,6 +717,7 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
         endereco: toStr(im.endereco),
         edificio: toStr(im.edificio),
         numero_unidade: toStr(im.numero_unidade),
+        bloco: toStr(im.bloco),
       }).select("id, edificio, numero_unidade, endereco").single();
       if (eImv) throw new Error(`Imóveis administrados: ${eImv.message}`);
       const label = [ins.edificio, ins.numero_unidade].filter(Boolean).join(" ").trim()
