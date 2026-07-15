@@ -1190,6 +1190,7 @@ export type Database = {
       imoveis: {
         Row: {
           area: number | null
+          bloco: string | null
           cep: string | null
           cidade: string | null
           created_at: string
@@ -1209,6 +1210,7 @@ export type Database = {
         }
         Insert: {
           area?: number | null
+          bloco?: string | null
           cep?: string | null
           cidade?: string | null
           created_at?: string
@@ -1228,6 +1230,7 @@ export type Database = {
         }
         Update: {
           area?: number | null
+          bloco?: string | null
           cep?: string | null
           cidade?: string | null
           created_at?: string
@@ -2154,6 +2157,9 @@ export type Database = {
           titulo: string
         }[]
       }
+      normalize_cpf: { Args: { _v: string }; Returns: string }
+      normalize_edificio: { Args: { _v: string }; Returns: string }
+      normalize_unidade: { Args: { _v: string }; Returns: string }
       refresh_custos_cliente_mensal: {
         Args: { _mes_ano: string; _user_id: string }
         Returns: undefined
