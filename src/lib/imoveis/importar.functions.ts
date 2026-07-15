@@ -457,6 +457,108 @@ function toDate(v: unknown): string | null {
   return Number.isFinite(d.getTime()) ? d.toISOString().slice(0, 10) : null;
 }
 
+/** Normaliza um objeto de imóvel: extrai só-dígitos da unidade e separa o bloco. */
+function normalizarImovel(im: Record<string, unknown>): Record<string, unknown> {
+  const bru = String(im.numero_unidade ?? "").trim();
+  const blocoExtraido = extrairBloco(bru);
+  const unidade = normUnidade(bru);
+  const bloco = toStr(im.bloco) ?? blocoExtraido;
+  return { ...im, numero_unidade: unidade, bloco };
+}
+
+/**
+ * Localiza proprietário existente por CPF (dígitos) ou por nome+telefone.
+ * Se encontrar, completa campos vazios sem sobrescrever; caso contrário, insere.
+ */
+async function upsertProprietarioPorCpf(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any,
+  ownerAdminId: string,
+  p: Record<string, unknown>,
+): Promise<string> {
+  const nome = toStr(p.nome);
+  if (!nome) throw new Error("Nome do proprietário é obrigatório");
+  const cpfDigits = normCpf(p.cpf);
+  const telefone = toStr(p.telefone);
+
+  let existente: { id: string; row: Record<string, unknown> } | null = null;
+  if (cpfDigits) {
+    const { data } = await sb
+      .from("proprietarios")
+      .select("*")
+      .eq("owner_admin_id", ownerAdminId);
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    const hit = rows.find(
+      (r) => String(r.cpf ?? "").replace(/\D+/g, "") === cpfDigits,
+    );
+    if (hit) existente = { id: String(hit.id), row: hit };
+  }
+  if (!existente && !cpfDigits && telefone) {
+    // Fallback: sem CPF, tenta nome + telefone (dígitos) — muito conservador.
+    const telDigits = telefone.replace(/\D+/g, "");
+    const { data } = await sb
+      .from("proprietarios")
+      .select("*")
+      .eq("owner_admin_id", ownerAdminId)
+      .ilike("nome", nome);
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    const hit = rows.find(
+      (r) => String(r.telefone ?? "").replace(/\D+/g, "") === telDigits,
+    );
+    if (hit) existente = { id: String(hit.id), row: hit };
+  }
+
+  if (existente) {
+    // Completa apenas os campos vazios do registro existente.
+    const cur = existente.row;
+    const patch: Record<string, unknown> = {};
+    const put = (k: string, v: unknown) => {
+      if (!isBlank(v) && isBlank(cur[k])) patch[k] = v;
+    };
+    put("cpf", toStr(p.cpf));
+    put("estado_civil", toStr(p.estado_civil));
+    put("profissao", toStr(p.profissao));
+    put("rg", toStr(p.rg));
+    put("email", toStr(p.email));
+    put("telefone", toStr(p.telefone));
+    put("endereco", toStr(p.endereco));
+    put("banco", toStr(p.banco));
+    put("agencia", toStr(p.agencia));
+    put("conta", toStr(p.conta));
+    put("pix", toStr(p.pix));
+    if (Object.keys(patch).length > 0) {
+      await sb.from("proprietarios").update(patch).eq("id", existente.id);
+    }
+    return existente.id;
+  }
+
+  const { data: ins, error } = await sb
+    .from("proprietarios")
+    .insert({
+      owner_admin_id: ownerAdminId,
+      nome,
+      cpf: toStr(p.cpf),
+      estado_civil: toStr(p.estado_civil),
+      profissao: toStr(p.profissao),
+      rg: toStr(p.rg),
+      email: toStr(p.email),
+      telefone: toStr(p.telefone),
+      endereco: toStr(p.endereco),
+      banco: toStr(p.banco),
+      agencia: toStr(p.agencia),
+      conta: toStr(p.conta),
+      pix: toStr(p.pix),
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(`Proprietário: ${error.message}`);
+  return ins.id as string;
+}
+
+function isBlank(v: unknown): boolean {
+  return v === null || v === undefined || String(v).trim() === "";
+}
+
 /** Grava importação de contrato de locação (proprietário + imóvel + contrato + caução). */
 export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
