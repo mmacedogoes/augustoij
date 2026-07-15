@@ -301,6 +301,30 @@ function normText(s: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 }
+
+// Normalização específica das chaves de dedup.
+function normCpf(v: unknown): string | null {
+  const s = String(v ?? "").replace(/\D+/g, "");
+  return s ? s : null;
+}
+function normUnidade(v: unknown): string | null {
+  const s = String(v ?? "").replace(/\D+/g, "");
+  return s ? s : null;
+}
+function extrairBloco(v: unknown): string | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  // Padrões: "406B", "406-B", "406 B", "406/A", "406 bloco A", "bloco A"
+  const m1 = s.match(/^\s*\d+\s*[\/\-\s]?\s*([A-Za-z0-9])\s*$/);
+  if (m1) return m1[1].toUpperCase();
+  const m2 = s.match(/bloco\s*([A-Za-z0-9]+)/i);
+  if (m2) return m2[1].toUpperCase();
+  return null;
+}
+function normBloco(v: unknown): string {
+  return String(v ?? "").trim().toLowerCase();
+}
+
 function detectarTipoPorTexto(texto: string): { tipo: string | null; confianca: number } {
   const t = normText(texto);
   if (!t) return { tipo: null, confianca: 0 };
@@ -337,29 +361,36 @@ async function buscarImovelDuplicado(
   proprietarioId: string,
   im: Record<string, unknown>,
 ): Promise<{ id: string; label: string } | null> {
-  // Busca todos os imóveis do proprietário e compara em memória (poucos registros).
+  // Chave forte: (edifício, unidade só-dígitos, bloco). Secundária: (endereço, unidade, bloco).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (sb as any)
     .from("imoveis")
-    .select("id, endereco, edificio, numero_unidade, cep")
+    .select("id, endereco, edificio, numero_unidade, bloco, cep")
     .eq("proprietario_id", proprietarioId);
   const rows = (data ?? []) as Array<Record<string, unknown>>;
   const alvoEd = normalizeKey(im.edificio);
   const alvoEnd = normalizeKey(im.endereco);
   const alvoCep = normalizeKey(im.cep);
-  const alvoNu = normalizeKey(im.numero_unidade);
+  const alvoNu = normUnidade(im.numero_unidade);
+  const alvoBl = normBloco(im.bloco ?? extrairBloco(im.numero_unidade));
+  if (!alvoNu) return null;
   for (const r of rows) {
     const rEd = normalizeKey(r.edificio);
     const rEnd = normalizeKey(r.endereco);
     const rCep = normalizeKey(r.cep);
-    const rNu = normalizeKey(r.numero_unidade);
-    if (!alvoNu || !rNu || alvoNu !== rNu) continue;
+    const rNu = normUnidade(r.numero_unidade);
+    const rBl = normBloco(r.bloco);
+    if (!rNu || rNu !== alvoNu) continue;
+    if (rBl !== alvoBl) continue;
     const casaEdificio = alvoEd && rEd && alvoEd === rEd;
     const casaEndereco = alvoEnd && rEnd && alvoEnd === rEnd;
     const casaCep = alvoCep && rCep && alvoCep === rCep;
     if (casaEdificio || casaEndereco || casaCep) {
-      const label = [r.edificio, r.numero_unidade].filter(Boolean).join(" ").trim()
-        || String(r.endereco ?? "");
+      const label =
+        [r.edificio, r.numero_unidade, r.bloco ? `bloco ${r.bloco}` : null]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || String(r.endereco ?? "");
       return { id: String(r.id), label };
     }
   }
