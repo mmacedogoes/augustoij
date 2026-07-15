@@ -500,7 +500,18 @@ function LocacaoReview(props: {
           <Input value={im.edificio ?? ""} onChange={(e) => setPath(["imovel","edificio"], e.target.value)} />
         </AiField>
         <AiField label="Unidade" aiFilled={wasAiFilled(["imovel","numero_unidade"])}>
-          <Input value={im.numero_unidade ?? ""} onChange={(e) => setPath(["imovel","numero_unidade"], e.target.value)} />
+          <Input
+            placeholder="somente o número, ex.: 406"
+            value={im.numero_unidade ?? ""}
+            onChange={(e) => setPath(["imovel","numero_unidade"], e.target.value)}
+          />
+        </AiField>
+        <AiField label="Bloco" aiFilled={wasAiFilled(["imovel","bloco"])}>
+          <Input
+            placeholder="ex.: A, B, 2 (opcional)"
+            value={im.bloco ?? ""}
+            onChange={(e) => setPath(["imovel","bloco"], e.target.value)}
+          />
         </AiField>
         <AiField label="CEP" aiFilled={wasAiFilled(["imovel","cep"])}>
           <Input value={im.cep ?? ""} onChange={(e) => setPath(["imovel","cep"], e.target.value)} />
@@ -767,7 +778,19 @@ function AdministracaoReview(props: {
             </div>
             <div>
               <Label>Unidade</Label>
-              <Input value={im.numero_unidade ?? ""} onChange={(e) => setPath(["imoveis_administrados", String(i), "numero_unidade"], e.target.value)} />
+              <Input
+                placeholder="somente o número, ex.: 406"
+                value={im.numero_unidade ?? ""}
+                onChange={(e) => setPath(["imoveis_administrados", String(i), "numero_unidade"], e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Bloco</Label>
+              <Input
+                placeholder="ex.: A, B (opcional)"
+                value={im.bloco ?? ""}
+                onChange={(e) => setPath(["imoveis_administrados", String(i), "bloco"], e.target.value)}
+              />
             </div>
           </div>
         ))}
