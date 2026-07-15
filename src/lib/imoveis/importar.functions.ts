@@ -116,7 +116,7 @@ ESQUEMA quando tipo = "locacao":
   "confianca":0,
   "proprietario":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null,"banco":null,"agencia":null,"conta":null,"titular":null,"pix":null},
   "inquilino":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null},
-  "imovel":{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null,"cep":null,"cidade":null,"uf":null,"quartos":null,"vaga_garagem":null},
+  "imovel":{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null,"bloco":null,"cep":null,"cidade":null,"uf":null,"quartos":null,"vaga_garagem":null},
   "locacao":{"data_contrato_original":null,"data_inicio_vigencia":null,"prazo_meses":null,"valor_aluguel":null,"dia_vencimento":null,"indice_reajuste":null,"periodicidade_reajuste_meses":null,"mes_base_reajuste":null,"encargos_inquilino":{"condominio":null,"agua":null,"luz":null,"iptu":null,"tcr":null},"multa_mora_percent":null,"juros_mora_mensal_percent":null,"multa_rescisoria_multiplicador":null,"multa_rescisoria_proporcional":null,"aviso_previo_dias":null,"foro":null},
   "caucao":{"possui":null,"valor_depositado":null,"tipo":null,"corrige_com_rendimento":null,"data_deposito":null}
 }
@@ -134,7 +134,7 @@ ESQUEMA quando tipo = "administracao":
   "proprietario":{"nome":null,"cpf":null,"rg":null,"estado_civil":null,"profissao":null,"email":null,"telefone":null,"endereco":null,"banco":null,"agencia":null,"conta":null,"pix":null},
   "administrador":{"nome":null,"documento":null,"oab":null,"endereco":null,"pix":null,"banco":null,"agencia":null,"conta":null},
   "honorarios":{"percent_honorario_renovacao":null,"percent_honorario_mensal":null,"mora_multa_percent":null,"mora_juros_mensal_percent":null,"mora_indice":null},
-  "imoveis_administrados":[{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null}],
+  "imoveis_administrados":[{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null,"bloco":null}],
   "vigencia":{"data_inicio":null,"prazo_meses":null}
 }
 
@@ -146,7 +146,13 @@ DICAS PARA CONTRATOS DE ADMINISTRAÇÃO (Brasil):
 - Mora: multa costuma ser 2%, juros 1% ao mês; extraia se explícito.
 - Vigência: procure "prazo de vigência", "vigorará por", "renovação automática".
 - imoveis_administrados: se o contrato listar bens/imóveis administrados, extraia cada um; caso contrário devolva [].
-- NUNCA devolva a estrutura vazia por medo de errar — preencha tudo que aparece literalmente no texto.`;
+- NUNCA devolva a estrutura vazia por medo de errar — preencha tudo que aparece literalmente no texto.
+
+REGRAS DE IMÓVEL (obrigatório):
+- "numero_unidade" deve conter APENAS o número da unidade, sem prefixo. Exemplos válidos: "406", "1905", "2006". NUNCA escreva "Apto 406", "Unidade 406", "406B" ou endereço aqui.
+- "bloco" (se houver): apenas a letra/número do bloco, ex.: "A", "B", "2". Se o contrato trouxer "406B", devolva numero_unidade="406" e bloco="B". Se não houver bloco, use null.
+- "edificio": apenas o nome do prédio (ex.: "Luna Plaza Residence", "Edf. Rio Içá"), sem endereço.
+- "endereco": logradouro, número e bairro do prédio, sem repetir edifício, unidade ou bloco.`;
 
 async function callGateway(body: unknown): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
@@ -295,6 +301,30 @@ function normText(s: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 }
+
+// Normalização específica das chaves de dedup.
+function normCpf(v: unknown): string | null {
+  const s = String(v ?? "").replace(/\D+/g, "");
+  return s ? s : null;
+}
+function normUnidade(v: unknown): string | null {
+  const s = String(v ?? "").replace(/\D+/g, "");
+  return s ? s : null;
+}
+function extrairBloco(v: unknown): string | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  // Padrões: "406B", "406-B", "406 B", "406/A", "406 bloco A", "bloco A"
+  const m1 = s.match(/^\s*\d+\s*[\/\-\s]?\s*([A-Za-z0-9])\s*$/);
+  if (m1) return m1[1].toUpperCase();
+  const m2 = s.match(/bloco\s*([A-Za-z0-9]+)/i);
+  if (m2) return m2[1].toUpperCase();
+  return null;
+}
+function normBloco(v: unknown): string {
+  return String(v ?? "").trim().toLowerCase();
+}
+
 function detectarTipoPorTexto(texto: string): { tipo: string | null; confianca: number } {
   const t = normText(texto);
   if (!t) return { tipo: null, confianca: 0 };
@@ -331,29 +361,36 @@ async function buscarImovelDuplicado(
   proprietarioId: string,
   im: Record<string, unknown>,
 ): Promise<{ id: string; label: string } | null> {
-  // Busca todos os imóveis do proprietário e compara em memória (poucos registros).
+  // Chave forte: (edifício, unidade só-dígitos, bloco). Secundária: (endereço, unidade, bloco).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (sb as any)
     .from("imoveis")
-    .select("id, endereco, edificio, numero_unidade, cep")
+    .select("id, endereco, edificio, numero_unidade, bloco, cep")
     .eq("proprietario_id", proprietarioId);
   const rows = (data ?? []) as Array<Record<string, unknown>>;
   const alvoEd = normalizeKey(im.edificio);
   const alvoEnd = normalizeKey(im.endereco);
   const alvoCep = normalizeKey(im.cep);
-  const alvoNu = normalizeKey(im.numero_unidade);
+  const alvoNu = normUnidade(im.numero_unidade);
+  const alvoBl = normBloco(im.bloco ?? extrairBloco(im.numero_unidade));
+  if (!alvoNu) return null;
   for (const r of rows) {
     const rEd = normalizeKey(r.edificio);
     const rEnd = normalizeKey(r.endereco);
     const rCep = normalizeKey(r.cep);
-    const rNu = normalizeKey(r.numero_unidade);
-    if (!alvoNu || !rNu || alvoNu !== rNu) continue;
+    const rNu = normUnidade(r.numero_unidade);
+    const rBl = normBloco(r.bloco);
+    if (!rNu || rNu !== alvoNu) continue;
+    if (rBl !== alvoBl) continue;
     const casaEdificio = alvoEd && rEd && alvoEd === rEd;
     const casaEndereco = alvoEnd && rEnd && alvoEnd === rEnd;
     const casaCep = alvoCep && rCep && alvoCep === rCep;
     if (casaEdificio || casaEndereco || casaCep) {
-      const label = [r.edificio, r.numero_unidade].filter(Boolean).join(" ").trim()
-        || String(r.endereco ?? "");
+      const label =
+        [r.edificio, r.numero_unidade, r.bloco ? `bloco ${r.bloco}` : null]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || String(r.endereco ?? "");
       return { id: String(r.id), label };
     }
   }
@@ -420,6 +457,108 @@ function toDate(v: unknown): string | null {
   return Number.isFinite(d.getTime()) ? d.toISOString().slice(0, 10) : null;
 }
 
+/** Normaliza um objeto de imóvel: extrai só-dígitos da unidade e separa o bloco. */
+function normalizarImovel(im: Record<string, unknown>): Record<string, unknown> {
+  const bru = String(im.numero_unidade ?? "").trim();
+  const blocoExtraido = extrairBloco(bru);
+  const unidade = normUnidade(bru);
+  const bloco = toStr(im.bloco) ?? blocoExtraido;
+  return { ...im, numero_unidade: unidade, bloco };
+}
+
+/**
+ * Localiza proprietário existente por CPF (dígitos) ou por nome+telefone.
+ * Se encontrar, completa campos vazios sem sobrescrever; caso contrário, insere.
+ */
+async function upsertProprietarioPorCpf(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any,
+  ownerAdminId: string,
+  p: Record<string, unknown>,
+): Promise<string> {
+  const nome = toStr(p.nome);
+  if (!nome) throw new Error("Nome do proprietário é obrigatório");
+  const cpfDigits = normCpf(p.cpf);
+  const telefone = toStr(p.telefone);
+
+  let existente: { id: string; row: Record<string, unknown> } | null = null;
+  if (cpfDigits) {
+    const { data } = await sb
+      .from("proprietarios")
+      .select("*")
+      .eq("owner_admin_id", ownerAdminId);
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    const hit = rows.find(
+      (r) => String(r.cpf ?? "").replace(/\D+/g, "") === cpfDigits,
+    );
+    if (hit) existente = { id: String(hit.id), row: hit };
+  }
+  if (!existente && !cpfDigits && telefone) {
+    // Fallback: sem CPF, tenta nome + telefone (dígitos) — muito conservador.
+    const telDigits = telefone.replace(/\D+/g, "");
+    const { data } = await sb
+      .from("proprietarios")
+      .select("*")
+      .eq("owner_admin_id", ownerAdminId)
+      .ilike("nome", nome);
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    const hit = rows.find(
+      (r) => String(r.telefone ?? "").replace(/\D+/g, "") === telDigits,
+    );
+    if (hit) existente = { id: String(hit.id), row: hit };
+  }
+
+  if (existente) {
+    // Completa apenas os campos vazios do registro existente.
+    const cur = existente.row;
+    const patch: Record<string, unknown> = {};
+    const put = (k: string, v: unknown) => {
+      if (!isBlank(v) && isBlank(cur[k])) patch[k] = v;
+    };
+    put("cpf", toStr(p.cpf));
+    put("estado_civil", toStr(p.estado_civil));
+    put("profissao", toStr(p.profissao));
+    put("rg", toStr(p.rg));
+    put("email", toStr(p.email));
+    put("telefone", toStr(p.telefone));
+    put("endereco", toStr(p.endereco));
+    put("banco", toStr(p.banco));
+    put("agencia", toStr(p.agencia));
+    put("conta", toStr(p.conta));
+    put("pix", toStr(p.pix));
+    if (Object.keys(patch).length > 0) {
+      await sb.from("proprietarios").update(patch).eq("id", existente.id);
+    }
+    return existente.id;
+  }
+
+  const { data: ins, error } = await sb
+    .from("proprietarios")
+    .insert({
+      owner_admin_id: ownerAdminId,
+      nome,
+      cpf: toStr(p.cpf),
+      estado_civil: toStr(p.estado_civil),
+      profissao: toStr(p.profissao),
+      rg: toStr(p.rg),
+      email: toStr(p.email),
+      telefone: toStr(p.telefone),
+      endereco: toStr(p.endereco),
+      banco: toStr(p.banco),
+      agencia: toStr(p.agencia),
+      conta: toStr(p.conta),
+      pix: toStr(p.pix),
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(`Proprietário: ${error.message}`);
+  return ins.id as string;
+}
+
+function isBlank(v: unknown): boolean {
+  return v === null || v === undefined || String(v).trim() === "";
+}
+
 /** Grava importação de contrato de locação (proprietário + imóvel + contrato + caução). */
 export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -435,30 +574,15 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
       const p = data.proprietario as Record<string, unknown>;
       const nome = toStr(p.nome);
       if (!nome) throw new Error("Nome do proprietário é obrigatório");
-      const { data: ins, error } = await sb.from("proprietarios").insert({
-        owner_admin_id: owner,
-        nome,
-        cpf: toStr(p.cpf),
-        estado_civil: toStr(p.estado_civil),
-        profissao: toStr(p.profissao),
-        rg: toStr(p.rg),
-        endereco: toStr(p.endereco),
-        email: toStr(p.email),
-        telefone: toStr(p.telefone),
-        banco: toStr(p.banco),
-        agencia: toStr(p.agencia),
-        conta: toStr(p.conta),
-        pix: toStr(p.pix),
-      }).select("id").single();
-      if (error) throw new Error(`Proprietário: ${error.message}`);
-      proprietarioId = ins.id as string;
+      proprietarioId = await upsertProprietarioPorCpf(sb, owner, p);
     }
 
     // 2) Imóvel — com de-duplicação por (edificio|endereco|cep) + numero_unidade
     let imovelId = data.imovel_id ?? null;
     let imovelDuplicado: { id: string; label: string } | null = null;
     if (!imovelId) {
-      const im = data.imovel as Record<string, unknown>;
+      const imRaw = data.imovel as Record<string, unknown>;
+      const im = normalizarImovel(imRaw);
       if (!data.forcar_novo_imovel && proprietarioId) {
         imovelDuplicado = await buscarImovelDuplicado(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -477,6 +601,7 @@ export const salvarImportacaoLocacao = createServerFn({ method: "POST" })
         endereco: toStr(im.endereco),
         edificio: toStr(im.edificio),
         numero_unidade: toStr(im.numero_unidade),
+        bloco: toStr(im.bloco),
         cep: toStr(im.cep),
         cidade: toStr(im.cidade),
         uf: toStr(im.uf),
@@ -642,23 +767,7 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
       const p = data.proprietario as Record<string, unknown>;
       const nome = toStr(p.nome);
       if (!nome) throw new Error("Nome do proprietário é obrigatório");
-      const { data: ins, error } = await sb.from("proprietarios").insert({
-        owner_admin_id: owner,
-        nome,
-        cpf: toStr(p.cpf),
-        rg: toStr(p.rg),
-        estado_civil: toStr(p.estado_civil),
-        profissao: toStr(p.profissao),
-        endereco: toStr(p.endereco),
-        email: toStr(p.email),
-        telefone: toStr(p.telefone),
-        banco: toStr(p.banco),
-        agencia: toStr(p.agencia),
-        conta: toStr(p.conta),
-        pix: toStr(p.pix),
-      }).select("id").single();
-      if (error) throw new Error(`Proprietário: ${error.message}`);
-      proprietarioId = ins.id as string;
+      proprietarioId = await upsertProprietarioPorCpf(sb, owner, p);
     }
 
     // 2) Contrato de administração
@@ -691,7 +800,7 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
     const criados: Array<{ id: string; label: string }> = [];
     const vinculados: Array<{ id: string; label: string }> = [];
     for (const raw of data.imoveis_administrados) {
-      const im = raw as Record<string, unknown>;
+      const im = normalizarImovel(raw as Record<string, unknown>);
       const dup = await buscarImovelDuplicado(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sb as any,
@@ -710,6 +819,7 @@ export const salvarImportacaoAdministracao = createServerFn({ method: "POST" })
         endereco: toStr(im.endereco),
         edificio: toStr(im.edificio),
         numero_unidade: toStr(im.numero_unidade),
+        bloco: toStr(im.bloco),
       }).select("id, edificio, numero_unidade, endereco").single();
       if (eImv) throw new Error(`Imóveis administrados: ${eImv.message}`);
       const label = [ins.edificio, ins.numero_unidade].filter(Boolean).join(" ").trim()

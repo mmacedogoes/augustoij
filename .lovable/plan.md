@@ -1,77 +1,39 @@
-# Fase 1 — Fundação do módulo "Administração de Imóveis"
+# Correção de duplicidade — proprietários e imóveis
 
-Módulo restrito ao super admin (advogado/administrador) para gerir proprietários, imóveis e contratos. Nesta fase, só cadastro manual — sem IA.
+## Causa raiz
+- Import de contrato faz `INSERT` direto em `proprietarios` sem consultar CPF; não há índice único → cada contrato do mesmo dono cria um novo proprietário.
+- Dedup de imóvel exige `numero_unidade` igual em string; a IA grava variações ("406", "Apto 406", "406 - bloco A", com endereço embutido), então nunca casa e cria novo imóvel.
+- Não há campo `bloco` separado nem normalização de CPF/unidade.
 
-## Reuso do que já existe
+## O que fazer
 
-O projeto já tem controle de papéis via enum `papel_sistema` e as funções `is_super_admin(uuid)` / `has_role(uuid, app_role)`. **Não vou criar `user_roles`** — vou reaproveitar `is_super_admin` para RLS e o layout `_authenticated/app.admin.tsx` que já bloqueia não-admins. As rotas ficarão sob `/app/admin/imoveis/*` seguindo o padrão existente (mesmo shell, sidebar, tokens de design).
+### 1. Banco (migração única)
+- `imoveis.bloco text` (novo).
+- Função `public.normalize_unidade(text)` (só dígitos).
+- Índice único parcial `proprietarios(owner_admin_id, regexp_replace(cpf,'\D','','g'))` quando CPF não é nulo.
+- Índice único parcial `imoveis(owner_admin_id, lower(edificio), normalize_unidade(numero_unidade), coalesce(lower(bloco),''))` quando edifício e unidade não são nulos.
+- **Backfill de unificação** por `owner_admin_id`:
+  - Proprietários: manter o mais antigo por CPF-dígitos; consolidar campos vazios; reapontar `imoveis.proprietario_id` e `contratos_administracao.proprietario_id`; apagar duplicados.
+  - Imóveis: manter o mais antigo por (edifício, unidade-dígitos, bloco); reapontar `contratos_locacao.imovel_id`, `manutencoes.imovel_id` (e demais FKs relevantes); apagar duplicados.
 
-## 1. Schema (uma única migration)
+### 2. Extração (src/lib/imoveis/importar.functions.ts)
+- Ajustar `SYSTEM_PROMPT`: `numero_unidade` só o número; adicionar `bloco` no JSON; `edificio` só o nome do prédio; `endereco` só logradouro/nº do prédio.
+- Após parse: normalizar CPF (só dígitos); extrair só-dígitos para `numero_unidade`; separar bloco quando vier embutido.
 
-Todas as tabelas em `public`, todas com `id uuid pk`, `owner_admin_id uuid not null default auth.uid()`, `created_at`, `updated_at` (trigger `tg_set_updated_at`), RLS habilitada, GRANTs para `authenticated`/`service_role`, e política única `FOR ALL USING (public.is_super_admin(auth.uid()) AND owner_admin_id = auth.uid()) WITH CHECK (mesma cond.)` — cada super admin só enxerga o que ele mesmo cadastrou.
+### 3. Dedup no salvamento
+- Proprietário: se `proprietario_id` não vier, buscar por CPF-dígitos do admin; se achar, reutilizar id e completar apenas campos vazios. Fallback por nome+telefone quando CPF nulo.
+- Imóvel: reescrever `buscarImovelDuplicado` usando chave forte (edifício, unidade-dígitos, bloco) e chave secundária (endereço, unidade-dígitos, bloco). Manter `forcar_novo_imovel` como escape.
+- Mesmo tratamento no laço de `imoveis_administrados`.
 
-Tabelas (campos exatamente como pedido):
+### 4. UX de revisão (src/routes/_authenticated/app.admin.imoveis.importar.tsx)
+- Aviso "Proprietário já cadastrado (CPF X) — Vincular / Criar novo".
+- Campo Bloco visível; placeholder "somente o número, ex.: 406" em `numero_unidade`.
+- Reaproveitar dialog de duplicata de imóvel com a nova chave.
 
-- `proprietarios` — nome, cpf, estado_civil, profissao, rg, email, telefone, endereco, banco, agencia, conta, pix, observacoes
-- `imoveis` — proprietario_id fk→proprietarios, descricao, endereco, edificio, numero_unidade, cep, cidade, uf, matricula, quartos, vaga_garagem bool, area numeric, observacoes
-- `contratos_locacao` — imovel_id fk, todos os campos do inquilino, valor_aluguel, dia_vencimento (check 1-31), datas, prazo_meses, indice_reajuste default 'IGP-M', periodicidade_reajuste_meses default 12, mes_base_reajuste (check 1-12), encargos_inquilino jsonb, multa_mora_percent default 2, juros_mora_mensal_percent default 1, multa_rescisoria_multiplicador default 3, multa_rescisoria_proporcional default true, aviso_previo_dias default 30, foro, status default 'ativo' (check ativo|encerrado|renovado), arquivo_contrato_url
-- `caucoes` — contrato_locacao_id fk unique, possui, valor_depositado, tipo (poupanca|dinheiro|seguro|outro), corrige_com_rendimento default true, data_deposito, valor_atual_override, observacoes
-- `contratos_administracao` — proprietario_id fk, dados do administrador, dados bancários, percent_honorario_renovacao default 50, percent_honorario_mensal default 10, mora_multa_percent default 2, mora_juros_mensal_percent default 1, mora_indice default 'IGP-M', data_inicio, prazo_meses default 24, status default 'ativo', arquivo_contrato_url
-- `pagamentos` — contrato_locacao_id fk, tipo (aluguel|condominio|iptu|agua|luz|tcr|outro), competencia text, valor, vencimento, pago default false, data_pagamento, observacoes
-- `manutencoes` — imovel_id fk, titulo, descricao, status (solicitada|em_andamento|concluida|cancelada), responsavel (proprietario|inquilino|administrador|condominio), custo_estimado, custo_final, data_solicitacao, data_conclusao, anexos jsonb default '[]'
-- `honorarios` — contrato_administracao_id fk, contrato_locacao_id fk null, tipo (mensal|renovacao), competencia, base_calculo, percentual, valor, vencimento, pago default false, data_pagamento, observacoes
-- `aditivos` — contrato_locacao_id fk, tipo default 'renovacao', dados jsonb, pdf_url null, gerado_em timestamptz default now()
+### 5. Verificação
+- Após migração, conferir 1 proprietário e 4 imóveis com contratos/caução/honorários intactos.
+- Reimportar um dos contratos e confirmar que não gera novo registro.
 
-Índices em toda fk e em `(owner_admin_id, ...)` para listagens.
-
-## 2. Camada de dados (server functions)
-
-Um arquivo `.functions.ts` por entidade em `src/lib/imoveis/`, todos usando `.middleware([requireSupabaseAuth])`:
-
-- `proprietarios.functions.ts` — list, get, upsert, remove
-- `imoveis.functions.ts` — list (com join proprietário), get, upsert, remove
-- `contratos-locacao.functions.ts` — list (join imóvel/proprietário), get (com caução), upsert (grava contrato + caução na mesma chamada), remove
-- `contratos-administracao.functions.ts` — list, get, upsert, remove
-
-Todas as escritas com validação Zod. `owner_admin_id` vem do `context.userId` no servidor, nunca do cliente.
-
-## 3. Rotas e telas (shadcn/ui, pt-BR, BRL)
-
-Estrutura sob `_authenticated/app.admin.imoveis.*` — herda o gate de admin já existente:
-
-```text
-app.admin.imoveis.tsx               → layout com sub-tabs
-app.admin.imoveis.index.tsx         → visão geral / atalhos
-app.admin.imoveis.proprietarios.index.tsx  → lista
-app.admin.imoveis.proprietarios.$id.tsx    → form novo/editar ("novo" como id sentinela)
-app.admin.imoveis.unidades.index.tsx        → lista de imóveis
-app.admin.imoveis.unidades.$id.tsx          → form
-app.admin.imoveis.locacao.index.tsx         → lista contratos de locação
-app.admin.imoveis.locacao.$id.tsx           → form (contrato + bloco caução embutido)
-app.admin.imoveis.administracao.index.tsx   → lista contratos de administração
-app.admin.imoveis.administracao.$id.tsx     → form
-```
-
-Item de menu "Administração de Imóveis" adicionado ao sidebar admin (visível só quando `is_super_admin`, condição já usada pelos itens de admin atuais).
-
-## 4. Utilidades de formulário
-
-`src/lib/imoveis/masks.ts`:
-- máscara CPF (`000.000.000-00`) e CNPJ, CEP, telefone
-- máscara moeda BRL (input controlado, guarda `number`)
-- helpers de data (input `type="date"` isoladamente + formatação `dd/MM/yyyy` na exibição via `date-fns` pt-BR)
-
-Schemas Zod compartilhados em `src/lib/imoveis/schemas.ts` (usados no client via `react-hook-form` e no server nas server functions).
-
-## 5. Design system
-
-Reuso total dos tokens/componentes existentes (`Card`, `Table`, `Button`, `Input`, `Select`, `Textarea`, `Checkbox`, `Dialog` de confirmação de exclusão). Sem cores ou fontes novas.
-
-## Fora do escopo desta fase
-
-- Extração por IA a partir do PDF do contrato
-- Upload dos PDFs para Storage (`arquivo_contrato_url` fica como campo de texto opcional; o upload real vem numa próxima fase)
-- Geração automática de parcelas em `pagamentos`/`honorarios`
-- Aditivos e cálculo de reajuste
-
-Aguardando aprovação para executar a migration e criar os arquivos.
+## Fora do escopo
+- Merge de proprietários com CPFs distintos (requer decisão humana).
+- Dedup por nome quando ambos os lados têm CPF diferente.
