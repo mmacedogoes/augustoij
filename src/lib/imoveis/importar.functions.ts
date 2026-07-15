@@ -116,7 +116,7 @@ ESQUEMA quando tipo = "locacao":
   "confianca":0,
   "proprietario":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null,"banco":null,"agencia":null,"conta":null,"titular":null,"pix":null},
   "inquilino":{"nome":null,"cpf":null,"estado_civil":null,"profissao":null,"rg":null,"endereco":null,"email":null,"telefone":null},
-  "imovel":{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null,"cep":null,"cidade":null,"uf":null,"quartos":null,"vaga_garagem":null},
+  "imovel":{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null,"bloco":null,"cep":null,"cidade":null,"uf":null,"quartos":null,"vaga_garagem":null},
   "locacao":{"data_contrato_original":null,"data_inicio_vigencia":null,"prazo_meses":null,"valor_aluguel":null,"dia_vencimento":null,"indice_reajuste":null,"periodicidade_reajuste_meses":null,"mes_base_reajuste":null,"encargos_inquilino":{"condominio":null,"agua":null,"luz":null,"iptu":null,"tcr":null},"multa_mora_percent":null,"juros_mora_mensal_percent":null,"multa_rescisoria_multiplicador":null,"multa_rescisoria_proporcional":null,"aviso_previo_dias":null,"foro":null},
   "caucao":{"possui":null,"valor_depositado":null,"tipo":null,"corrige_com_rendimento":null,"data_deposito":null}
 }
@@ -134,7 +134,7 @@ ESQUEMA quando tipo = "administracao":
   "proprietario":{"nome":null,"cpf":null,"rg":null,"estado_civil":null,"profissao":null,"email":null,"telefone":null,"endereco":null,"banco":null,"agencia":null,"conta":null,"pix":null},
   "administrador":{"nome":null,"documento":null,"oab":null,"endereco":null,"pix":null,"banco":null,"agencia":null,"conta":null},
   "honorarios":{"percent_honorario_renovacao":null,"percent_honorario_mensal":null,"mora_multa_percent":null,"mora_juros_mensal_percent":null,"mora_indice":null},
-  "imoveis_administrados":[{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null}],
+  "imoveis_administrados":[{"descricao":null,"endereco":null,"edificio":null,"numero_unidade":null,"bloco":null}],
   "vigencia":{"data_inicio":null,"prazo_meses":null}
 }
 
@@ -146,7 +146,13 @@ DICAS PARA CONTRATOS DE ADMINISTRAÇÃO (Brasil):
 - Mora: multa costuma ser 2%, juros 1% ao mês; extraia se explícito.
 - Vigência: procure "prazo de vigência", "vigorará por", "renovação automática".
 - imoveis_administrados: se o contrato listar bens/imóveis administrados, extraia cada um; caso contrário devolva [].
-- NUNCA devolva a estrutura vazia por medo de errar — preencha tudo que aparece literalmente no texto.`;
+- NUNCA devolva a estrutura vazia por medo de errar — preencha tudo que aparece literalmente no texto.
+
+REGRAS DE IMÓVEL (obrigatório):
+- "numero_unidade" deve conter APENAS o número da unidade, sem prefixo. Exemplos válidos: "406", "1905", "2006". NUNCA escreva "Apto 406", "Unidade 406", "406B" ou endereço aqui.
+- "bloco" (se houver): apenas a letra/número do bloco, ex.: "A", "B", "2". Se o contrato trouxer "406B", devolva numero_unidade="406" e bloco="B". Se não houver bloco, use null.
+- "edificio": apenas o nome do prédio (ex.: "Luna Plaza Residence", "Edf. Rio Içá"), sem endereço.
+- "endereco": logradouro, número e bairro do prédio, sem repetir edifício, unidade ou bloco.`;
 
 async function callGateway(body: unknown): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
