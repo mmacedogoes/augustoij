@@ -654,7 +654,7 @@ function AdministracaoReview(props: {
   const addImovel = () => {
     props.setPath(["imoveis_administrados"], [
       ...imoveis,
-      { descricao: null, endereco: null, edificio: null, numero_unidade: null },
+      { descricao: null, endereco: null, edificio: null, numero_unidade: null, bloco: null },
     ]);
   };
   const removeImovel = (i: number) => {
