@@ -85,6 +85,8 @@ function SignupPage() {
     const m = message.toLowerCase();
     if (m.includes("already registered") || m.includes("already been registered") || m.includes("user already"))
       return "E-mail já cadastrado. Tente fazer login.";
+    if (m.includes("pwned") || m.includes("known to be weak") || m.includes("easy to guess") || m.includes("data breach"))
+      return "Essa senha aparece em vazamentos públicos conhecidos e não pode ser usada. Escolha uma senha única, que você não usa em outros sites.";
     if (m.includes("password") && (m.includes("weak") || m.includes("short") || m.includes("at least")))
       return "Senha fraca. Use ao menos 8 caracteres, com letras e números.";
     if (m.includes("invalid email")) return "E-mail inválido.";
@@ -284,6 +286,9 @@ function SignupPage() {
               <ReqItem ok={checks.letter}>Contém uma letra</ReqItem>
               <ReqItem ok={checks.num}>Contém um número</ReqItem>
             </ul>
+            <p className="text-xs text-muted-foreground mt-1">
+              Dica: evite senhas reutilizadas de outros sites — senhas presentes em vazamentos públicos são bloqueadas por segurança.
+            </p>
             <FieldError name="password" />
           </div>
           <div className="space-y-1.5">
