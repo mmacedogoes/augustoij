@@ -286,6 +286,9 @@ function SignupPage() {
               <ReqItem ok={checks.letter}>Contém uma letra</ReqItem>
               <ReqItem ok={checks.num}>Contém um número</ReqItem>
             </ul>
+            <p className="text-xs text-muted-foreground mt-1">
+              Dica: evite senhas reutilizadas de outros sites — senhas presentes em vazamentos públicos são bloqueadas por segurança.
+            </p>
             <FieldError name="password" />
           </div>
           <div className="space-y-1.5">
