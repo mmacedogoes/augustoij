@@ -20,7 +20,7 @@ function escapeHtml(input: string): string {
 
 function buildHtml(nome: string): string {
   const URL_LOGO_LIGHT =
-    "https://augustoij.com.br/__l5e/assets-v1/433aa7d4-da9c-4507-bd2c-07bced7c4694/logo-completo-escuro.jpg";
+    "https://augustoij.com.br/__l5e/assets-v1/4cf5bb71-7fb6-4d4e-8e3b-c4ae0dcbc058/augusto-ij-logo-full-dark-v3.png";
   const link_dashboard = "https://augustoij.com.br/app";
   const nomeSafe = escapeHtml(nome || "");
   return `<!DOCTYPE html>
@@ -36,8 +36,8 @@ function buildHtml(nome: string): string {
 <tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF;max-width:600px;width:100%;">
   <tr>
-    <td style="padding:8px 8px 24px;border-bottom:1px solid #E4E1D8;">
-      <img src="${URL_LOGO_LIGHT}" width="150" alt="Augusto.IJ" border="0" style="display:block;max-width:150px;height:auto;">
+    <td align="center" bgcolor="#00512B" style="background-color:#00512B;padding:28px 8px;">
+      <img src="${URL_LOGO_LIGHT}" width="200" alt="Augusto.IJ" border="0" style="display:block;margin:0 auto;max-width:200px;height:auto;">
     </td>
   </tr>
   <tr>
