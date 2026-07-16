@@ -1,39 +1,33 @@
-# Correção de duplicidade — proprietários e imóveis
+## Objetivo
+Substituir o corpo do e-mail de boas-vindas (`send-welcome-email`) pelo HTML exato enviado no arquivo `email-1-boas-vindas.html`, usando o novo logo `augusto-ij-logo-full-dark-FINAL.png` como imagem do cabeçalho.
 
-## Causa raiz
-- Import de contrato faz `INSERT` direto em `proprietarios` sem consultar CPF; não há índice único → cada contrato do mesmo dono cria um novo proprietário.
-- Dedup de imóvel exige `numero_unidade` igual em string; a IA grava variações ("406", "Apto 406", "406 - bloco A", com endereço embutido), então nunca casa e cria novo imóvel.
-- Não há campo `bloco` separado nem normalização de CPF/unidade.
+## Passos
 
-## O que fazer
+1. **Publicar o novo logo no CDN**
+   - Fazer upload de `user-uploads://augusto-ij-logo-full-dark-FINAL.png` via `lovable-assets create`.
+   - Salvar o pointer em `src/assets/email/augusto-ij-logo-full-dark-FINAL.png.asset.json`.
+   - Guardar a URL absoluta pública (`https://augustoij.com.br/__l5e/assets-v1/<asset_id>/augusto-ij-logo-full-dark-FINAL.png`).
 
-### 1. Banco (migração única)
-- `imoveis.bloco text` (novo).
-- Função `public.normalize_unidade(text)` (só dígitos).
-- Índice único parcial `proprietarios(owner_admin_id, regexp_replace(cpf,'\D','','g'))` quando CPF não é nulo.
-- Índice único parcial `imoveis(owner_admin_id, lower(edificio), normalize_unidade(numero_unidade), coalesce(lower(bloco),''))` quando edifício e unidade não são nulos.
-- **Backfill de unificação** por `owner_admin_id`:
-  - Proprietários: manter o mais antigo por CPF-dígitos; consolidar campos vazios; reapontar `imoveis.proprietario_id` e `contratos_administracao.proprietario_id`; apagar duplicados.
-  - Imóveis: manter o mais antigo por (edifício, unidade-dígitos, bloco); reapontar `contratos_locacao.imovel_id`, `manutencoes.imovel_id` (e demais FKs relevantes); apagar duplicados.
+2. **Reescrever o HTML da Edge Function**
+   - Arquivo: `supabase/functions/send-welcome-email/index.ts`.
+   - Substituir a função `buildHtml(nome)` pelo HTML do arquivo anexo, **letra por letra**, apenas trocando:
+     - `{{URL_LOGO_COMPLETO}}` → URL absoluta do novo logo publicado.
+     - `{{nome}}` → nome do destinatário (com escape HTML).
+     - `{{link_dashboard}}` → `https://augustoij.com.br/app` (mesma URL do CTA atual).
+   - Nenhum outro elemento (cores, tabelas, estilos inline, textos, footer) será modificado.
 
-### 2. Extração (src/lib/imoveis/importar.functions.ts)
-- Ajustar `SYSTEM_PROMPT`: `numero_unidade` só o número; adicionar `bloco` no JSON; `edificio` só o nome do prédio; `endereco` só logradouro/nº do prédio.
-- Após parse: normalizar CPF (só dígitos); extrair só-dígitos para `numero_unidade`; separar bloco quando vier embutido.
+3. **Redeploy e teste**
+   - Deploy da função `send-welcome-email`.
+   - Enviar um e-mail de teste para `mmacedogoes@gmail.com` (nome "Matheus") para validar renderização.
 
-### 3. Dedup no salvamento
-- Proprietário: se `proprietario_id` não vier, buscar por CPF-dígitos do admin; se achar, reutilizar id e completar apenas campos vazios. Fallback por nome+telefone quando CPF nulo.
-- Imóvel: reescrever `buscarImovelDuplicado` usando chave forte (edifício, unidade-dígitos, bloco) e chave secundária (endereço, unidade-dígitos, bloco). Manter `forcar_novo_imovel` como escape.
-- Mesmo tratamento no laço de `imoveis_administrados`.
+4. **Limpar asset antigo (opcional)**
+   - Manter os assets antigos (`augusto-ij-icon-dark-FINAL.png`, `logo-completo-escuro.jpg`) por enquanto — não são mais referenciados pelo e-mail, mas ficam disponíveis para outros usos. Confirmar antes de deletar.
 
-### 4. UX de revisão (src/routes/_authenticated/app.admin.imoveis.importar.tsx)
-- Aviso "Proprietário já cadastrado (CPF X) — Vincular / Criar novo".
-- Campo Bloco visível; placeholder "somente o número, ex.: 406" em `numero_unidade`.
-- Reaproveitar dialog de duplicata de imóvel com a nova chave.
+## Detalhes técnicos
+- O HTML anexo já inclui o cabeçalho verde (`#00512B`) que combina com o fundo verde do logo — nenhum ajuste de contraste é necessário.
+- O `{{link_dashboard}}` não aparece no HTML como token separado no seu arquivo? **Confirmar**: no arquivo enviado, o botão usa `href="{{link_dashboard}}"`. Vou substituir por `https://augustoij.com.br/app` (destino atual). Se preferir outra URL, me avise.
+- O footer permanece o mesmo texto ("Dura lex, sed Augusto." e razão social).
 
-### 5. Verificação
-- Após migração, conferir 1 proprietário e 4 imóveis com contratos/caução/honorários intactos.
-- Reimportar um dos contratos e confirmar que não gera novo registro.
-
-## Fora do escopo
-- Merge de proprietários com CPFs distintos (requer decisão humana).
-- Dedup por nome quando ambos os lados têm CPF diferente.
+## Arquivos alterados
+- `src/assets/email/augusto-ij-logo-full-dark-FINAL.png.asset.json` (novo)
+- `supabase/functions/send-welcome-email/index.ts` (HTML substituído)
