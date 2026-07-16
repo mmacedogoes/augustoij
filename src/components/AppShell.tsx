@@ -15,7 +15,7 @@ import { TrialExpiredBanner } from "@/components/gates/PlanGates";
 import { UsageThresholdBanner } from "@/components/gates/UsageThresholdBanner";
 
 const baseNav = [
-  { to: "/app", label: "Dashboard", icon: LayoutDashboard, tour: "nav-dashboard" },
+  { to: "/app", label: "Início", icon: LayoutDashboard, tour: "nav-dashboard" },
   { to: "/app/condominios", label: "Condomínios", icon: Building, tour: "nav-condominios" },
   { to: "/app/conta", label: "Conta", icon: User, tour: "nav-conta" },
 ] as const;
