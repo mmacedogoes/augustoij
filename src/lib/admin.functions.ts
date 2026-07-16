@@ -556,14 +556,11 @@ export const setUserRole = createServerFn({ method: "POST" })
       .eq("id", data.userId);
     if (error) throw new Error(error.message);
 
-    const { ip, ua } = getAuditContext();
-    await supabaseAdmin.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "role.set",
-      target_user_id: data.userId,
+      targetUserId: data.userId,
       metadata: { papel: data.papel },
-      ip_address: ip,
-      user_agent: ua,
     });
 
     return { ok: true };
@@ -707,11 +704,10 @@ export const adminCreateUser = createServerFn({ method: "POST" })
       { onConflict: "user_id" },
     );
 
-    const { ip, ua } = getAuditContext();
-    await supabaseAdmin.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "user.create",
-      target_user_id: newUserId,
+      targetUserId: newUserId,
       metadata: {
         email: data.email,
         papel: data.papel,
@@ -719,8 +715,6 @@ export const adminCreateUser = createServerFn({ method: "POST" })
         plano_config_id: planoConfigId,
         cortesia,
       },
-      ip_address: ip,
-      user_agent: ua,
     });
 
     return { ok: true, userId: newUserId };
@@ -783,14 +777,11 @@ export const setUserAtivo = createServerFn({ method: "POST" })
       console.warn("[setUserAtivo] auth.updateUserById falhou:", e);
     }
 
-    const { ip, ua } = getAuditContext();
-    await supabaseAdmin.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: data.ativo ? "user.activate" : "user.deactivate",
-      target_user_id: data.userId,
+      targetUserId: data.userId,
       metadata: { ativo: data.ativo },
-      ip_address: ip,
-      user_agent: ua,
     });
 
     return { ok: true };
