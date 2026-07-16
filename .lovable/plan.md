@@ -1,73 +1,101 @@
-## Objetivo
-Adicionar campo "cidade" ao cadastro de condomínios, alertar o super admin sobre cidades novas e mostrar disclaimer ao usuário quando cadastrar condomínio em cidade ainda não coberta pela legislação local.
 
-## Cidades já cobertas (whitelist)
-- João Pessoa/PB
-- Cabedelo/PB
-- Campina Grande/PB
+# Atualização do Manual do Augusto.IJ
 
-Normalização: comparação case-insensitive, sem acentos, com UF. Ex.: `joao pessoa|PB`.
+Objetivo: revisar o manual (`/app/ajuda`) para refletir o sistema como ele está hoje, tornando cada seção mais completa e explicativa. **Não** entram no manual: módulo "Administração de Imóveis", painel Admin, cidades novas (painel admin), treinamento da IA, gestão de usuários — tudo que é exclusivo do super admin/admin.
 
-## Alterações no banco
+## O que muda na navegação lateral (`AjudaShell`)
 
-1. **`condominios`**: adicionar coluna `cidade TEXT`.
-2. **Nova tabela `cidades_cobertas`** (seed com as 3 cidades acima):
-   - `cidade`, `uf`, `slug` (normalizado), `created_at`
-   - RLS: SELECT para authenticated; escrita apenas super_admin.
-3. **Nova tabela `cidades_novas_alertas`** — registra cidades cadastradas fora da whitelist:
-   - `cidade`, `uf`, `slug`, `primeiro_condominio_id`, `owner_id`, `status` (`pendente` | `resolvida`), `created_at`, `resolvida_em`
-   - Unique em `slug` para não duplicar alertas por cidade.
-   - RLS: apenas super_admin lê/atualiza; INSERT via server function (SECURITY DEFINER ou usando `supabaseAdmin` dentro do handler após validação).
+Sidebar reorganizada em 5 grupos (hoje são 4):
 
-## Backend (server functions)
+1. **Primeiros passos**
+   - Visão geral (atualizada)
+   - Cadastrar condomínio (inclui novo campo **Cidade** e o aviso de cidade nova)
+   - Carregar documentos
+   - Primeira conversa com a IA
+   - *Novo:* Tour guiado e onboarding
 
-Em `src/lib/condominios.functions.ts`:
+2. **Usando o sistema**
+   - *Novo:* Início (antigo Dashboard) — o que aparece e como usar
+   - Chat com IA (renomeada para "Interação com a IA")
+   - *Novo:* Histórico de conversas
+   - Documentos
+   - *Novo:* Unidades do condomínio
+   - Configurações do condomínio
+   - *Novo:* Operadores (para contas PJ / administradoras)
 
-- **`createCondominio` / `updateCondominio`**: aceitar `cidade` no schema Zod. Ao criar/atualizar:
-  1. Normalizar `cidade+uf` → slug.
-  2. Se slug ∈ whitelist (3 cidades PB) → nada além do save.
-  3. Se slug ∈ `cidades_cobertas` → nada além do save.
-  4. Caso contrário → `upsert` em `cidades_novas_alertas` (ignora conflito de slug para não duplicar) e retornar flag `cidadeNova: true` ao cliente.
-- Retornar `{ row, cidadeNova }` para o front decidir se mostra o disclaimer.
+3. **Sua conta**
+   - *Novo:* Dados pessoais e segurança (senha, sessão)
+   - *Novo:* Plano e limites (o que muda por plano)
+   - *Novo:* Privacidade e LGPD (baixar dados, corrigir dados, e-mails de marketing, excluir conta, DPO)
 
-Nova função em `src/lib/admin.functions.ts`:
-- **`listCidadesNovasAlertas`** (protegida por `ensureSuperAdmin` / `isAdminInternoServer`).
-- **`marcarCidadeResolvida`** (super admin): move o slug para `cidades_cobertas` e marca alerta como `resolvida`.
+4. **Por perfil** (mantida, textos ampliados)
+   - Síndico morador, Síndico profissional, Administradora, Advogado, Conselheiro
 
-## Frontend
+5. **IA e FAQ**
+   - Dicas de interação com a IA (ampliada: notificações, atas, pareceres, análise contratual, jurisprudência, limites da IA)
+   - Perguntas frequentes (ampliada com novas perguntas)
 
-### `src/routes/_authenticated/app.condominios.index.tsx` (form de cadastro)
-- Novo campo obrigatório **Cidade** no `Dialog` de novo condomínio (input texto, validação min 2).
-- Após `create()`, se `cidadeNova === true`, abrir um `Dialog`/`AlertDialog` com o texto:
-  > "Seja bem-vindo! Verifiquei que a cidade do seu condomínio é nova em meu banco de dados. Por isso, em até 3 dias, terei a atualização de toda a legislação condominial local. Meu banco de jurisprudência e legislações federais e estaduais já está a sua disposição."
-- Também exibir `cidade` no card de listagem (ex.: `Cidade/UF • N unidades`).
+## Alterações por arquivo
 
-### `src/routes/_authenticated/app.condominios.$id.tsx` (edição)
-- Adicionar o mesmo campo Cidade e mesma lógica de disclaimer se a cidade nova aparecer via update.
+### `src/components/ajuda/AjudaShell.tsx`
+- Substituir o array `SECOES` pela nova estrutura de 5 grupos acima.
+- Adicionar novas rotas de destino (ver abaixo).
 
-### Painel super admin
-- Nova rota **`src/routes/_authenticated/app.admin.cidades-novas.tsx`**:
-  - Lista alertas pendentes (`cidade`, `uf`, data, owner, condomínio).
-  - Botão "Marcar como atualizada" → chama `marcarCidadeResolvida`, some da lista.
-- Adicionar link no `AdminNav` ("Cidades novas") com badge de contagem pendente (opcional).
+### `src/routes/_authenticated/app.ajuda.index.tsx` — Visão geral
+Reescrever para descrever, em linguagem clara:
+- O que é o Augusto.IJ (assistente jurídico condominial com IA, base de legislação federal/estadual + jurisprudência).
+- Os 3 pilares: **Condomínios**, **Documentos**, **Interação com a IA**.
+- Roteiro sugerido: cadastrar condomínio → carregar Convenção/Regimento/atas → conversar com a IA na tela **Início**.
+- Trocar a menção "Dashboard" por **Início** (a aba foi renomeada).
+- Caixa "Dica de ouro" mantida, ampliada.
 
-### `src/routes/_authenticated/app.admin.condominios.tsx`
-- Exibir a coluna `cidade` junto com UF.
+### `src/routes/_authenticated/app.ajuda.$secao.tsx` — Conteúdo textual
+Ampliar cada verbete existente (título, descrição, passo a passo mais detalhado) e adicionar novos verbetes. Chaves finais:
 
-## Detalhes técnicos
+- `cadastro-condominio` — inclui o novo **campo Cidade obrigatório** e explica que, ao cadastrar uma cidade fora de João Pessoa/Cabedelo/Campina Grande (PB), o sistema mostra um aviso informando que a legislação municipal será incorporada em até 3 dias úteis. Enquanto isso, legislação federal/estadual e jurisprudência já estão disponíveis.
+- `carregar-documentos` — tipos aceitos, OCR de escaneados, limite de 15 MB, até 10 arquivos por upload, detecção de duplicidade, status "Pronto" antes de usar no chat.
+- `primeira-conversa` — trocar "Dashboard" por "Início"; explicar seletor de condomínio, quebras de linha (Shift+Enter), reabrir conversa em Histórico.
+- `chat-ia` — o que pedir (notificações, atas, pareceres, análises contratuais, dúvidas operacionais), como fornecer contexto, referências a documentos anexados.
+- **Novo** `inicio` — o que aparece na tela Início, atalho para conversar, seleção de condomínio ativo.
+- **Novo** `historico` — como reabrir conversas antigas por condomínio, buscar por título/data.
+- `documentos` — mesmo verbete atual, ampliado.
+- **Novo** `unidades` — cadastro de unidades, uso em notificações endereçadas.
+- `configuracoes` — quem pode editar, papéis (dono, operador leitura), auditoria de ações.
+- **Novo** `operadores` — apenas contas PJ: criar operador com login próprio, vincular a um ou mais condomínios, remover operador, escopo de leitura.
+- **Novo** `onboarding` — o passo a passo do onboarding inicial e como refazer o tour guiado.
+- **Novo** `conta-dados` — editar dados pessoais, trocar senha, encerrar sessão.
+- **Novo** `conta-plano` — o que cada plano permite (nº de condomínios, tamanho de arquivos, operadores) e como fazer upgrade.
+- **Novo** `privacidade` — direitos LGPD implementados na tela **Conta**: baixar meus dados, corrigir meus dados, e-mails de marketing, excluir minha conta, contato do DPO.
 
-- Whitelist e normalização isolados em `src/lib/cidades-cobertas.ts`:
-  ```ts
-  export const CIDADES_WHITELIST = new Set([
-    "joao pessoa|PB", "cabedelo|PB", "campina grande|PB",
-  ]);
-  export function slugCidade(cidade: string, uf: string) {
-    return `${cidade.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim()}|${uf.toUpperCase()}`;
-  }
-  ```
-- Migração faz INSERT nas 3 cidades em `cidades_cobertas`.
-- Categoria e demais campos do form permanecem inalterados.
+Ampliar também o objeto `PERFIS` com bullets mais concretos por perfil (2–3 exemplos de prompts prontos por perfil).
 
-## Fora do escopo
-- Notificação por e-mail ao super admin (o alerta aparece na UI). Se quiser e-mail, sinalizar depois.
-- Ingestão automática da legislação da cidade — o super admin faz manualmente após ver o alerta.
+### `src/routes/_authenticated/app.ajuda.faq.tsx`
+Adicionar novas perguntas:
+- "Cadastrei uma cidade nova — a IA já entende a legislação local?"
+- "O que muda entre os planos?"
+- "Sou administradora — como dou acesso ao meu time?"
+- "A IA guarda meus documentos para treinar modelos?" (não — uso restrito ao condomínio).
+- "Como excluo minha conta e meus dados?"
+- "Posso usar as respostas da IA como peça jurídica final?" (não, revisar sempre).
+
+Ampliar as respostas existentes (mais contexto, sem inventar recursos).
+
+### `src/routes/_authenticated/app.ajuda.dicas-ia.tsx`
+Ampliar com:
+- Estrutura recomendada de prompt: contexto → fato → pedido → formato de saída.
+- Exemplos prontos de prompts (notificação de barulho, ata de assembleia ordinária, parecer sobre inadimplência, análise de contrato de portaria).
+- Como pedir citação de artigos e onde validar (link para consulta oficial).
+- Limites: a IA não substitui advogado; sempre revisar antes de enviar/assinar.
+
+### `src/routes/_authenticated/app.ajuda.perfil.$perfil.tsx`
+Nenhuma alteração estrutural — vai consumir o `PERFIS` ampliado.
+
+## Fora do escopo (não entram no manual)
+- Painel Admin, métricas, financeiro, treinamento da IA, gestão de usuários, cidades novas (visão do super admin), logs.
+- Módulo Administração de Imóveis (`/app/admin/imoveis/...`) e todo o submódulo de locação.
+
+## Impacto técnico
+- 100% conteúdo (texto/JSX estático) + reorganização de sidebar. Sem mudanças em banco, server functions ou dependências.
+- Novas chaves de rota `$secao` (`inicio`, `historico`, `unidades`, `operadores`, `onboarding`, `conta-dados`, `conta-plano`, `privacidade`) são cobertas pela rota dinâmica existente `app.ajuda.$secao.tsx` — não precisa criar rotas novas.
+
+Confirma que posso aplicar essas mudanças?
