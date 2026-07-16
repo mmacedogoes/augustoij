@@ -138,26 +138,100 @@ async function verificarCidadeNova(
     .eq("slug", slug)
     .maybeSingle();
   if (coberta) return false;
-  // Registra alerta via admin (bypass RLS) — a tabela é lida apenas por super admin.
+  // Registra alerta via admin (bypass RLS) e notifica super admin por e-mail
+  // apenas na primeira vez que a cidade aparece.
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin
+    const { data: jaAlertada } = await supabaseAdmin
       .from("cidades_novas_alertas")
-      .upsert(
-        {
-          cidade: cidade.trim(),
-          uf: uf.trim().toUpperCase(),
-          slug,
-          primeiro_condominio_id: row.id,
-          owner_id: context.userId,
-          status: "pendente",
-        },
-        { onConflict: "slug", ignoreDuplicates: true },
-      );
-  } catch {
-    // Se falhar, ainda retornamos true para exibir o disclaimer.
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!jaAlertada) {
+      await supabaseAdmin.from("cidades_novas_alertas").insert({
+        cidade: cidade.trim(),
+        uf: uf.trim().toUpperCase(),
+        slug,
+        primeiro_condominio_id: row.id,
+        owner_id: context.userId,
+        status: "pendente",
+      });
+      // Busca dados do usuário que cadastrou (best effort).
+      const { data: prof } = await supabaseAdmin
+        .from("profiles")
+        .select("nome, email")
+        .eq("id", context.userId)
+        .maybeSingle();
+      await enviarEmailCidadeNova({
+        cidade: cidade.trim(),
+        uf: uf.trim().toUpperCase(),
+        usuarioNome: prof?.nome ?? null,
+        usuarioEmail: prof?.email ?? null,
+      });
+    }
+  } catch (e) {
+    console.error("[verificarCidadeNova] falhou:", e);
   }
   return true;
+}
+
+async function enviarEmailCidadeNova(params: {
+  cidade: string;
+  uf: string;
+  usuarioNome: string | null;
+  usuarioEmail: string | null;
+}): Promise<void> {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_API_KEY) {
+    console.warn("[enviarEmailCidadeNova] RESEND_API_KEY ausente");
+    return;
+  }
+  const { cidade, uf, usuarioNome, usuarioEmail } = params;
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background-color:#FFFFFF;font-family:Arial,Helvetica,sans-serif;color:#1F2937;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
+  <tr><td align="center" bgcolor="#00512B" style="background-color:#00512B;padding:20px 8px;color:#FFFFFF;">
+    <h1 style="font-size:18px;margin:0;color:#FFFFFF;">Augusto.IJ — Nova cidade cadastrada</h1>
+  </td></tr>
+  <tr><td style="padding:24px 20px;">
+    <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">Um usuário cadastrou um condomínio em uma cidade que ainda não tem legislação municipal indexada.</p>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 6px;"><strong>Cidade:</strong> ${escapeHtml(cidade)} / ${escapeHtml(uf)}</p>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 6px;"><strong>Usuário:</strong> ${escapeHtml(usuarioNome ?? "—")}${usuarioEmail ? ` &lt;${escapeHtml(usuarioEmail)}&gt;` : ""}</p>
+    <p style="font-size:15px;line-height:1.6;margin:16px 0 0;">Acesse o painel para marcar como atualizada assim que a legislação local for indexada:</p>
+    <p style="margin:12px 0 0;"><a href="https://augustoij.com.br/app/admin/cidades-novas" style="color:#00512B;font-weight:bold;">Abrir painel de cidades novas</a></p>
+  </td></tr>
+</table></td></tr></table></body></html>`;
+  try {
+    const resp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Augusto.IJ <naoresponda@mail.augustoij.com.br>",
+        to: ["mmacedogoes@gmail.com"],
+        subject: `[Augusto.IJ] Nova cidade cadastrada: ${cidade}/${uf}`,
+        html,
+      }),
+    });
+    if (!resp.ok) {
+      console.error("[enviarEmailCidadeNova] Resend falhou", resp.status, await resp.text());
+    }
+  } catch (e) {
+    console.error("[enviarEmailCidadeNova] erro:", e);
+  }
+}
+
+function escapeHtml(v: string): string {
+  return v
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export const getProfile = createServerFn({ method: "GET" })
