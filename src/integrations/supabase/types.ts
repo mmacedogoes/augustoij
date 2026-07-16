@@ -413,6 +413,74 @@ export type Database = {
           },
         ]
       }
+      cidades_cobertas: {
+        Row: {
+          cidade: string
+          created_at: string
+          id: string
+          slug: string
+          uf: string
+        }
+        Insert: {
+          cidade: string
+          created_at?: string
+          id?: string
+          slug: string
+          uf: string
+        }
+        Update: {
+          cidade?: string
+          created_at?: string
+          id?: string
+          slug?: string
+          uf?: string
+        }
+        Relationships: []
+      }
+      cidades_novas_alertas: {
+        Row: {
+          cidade: string
+          created_at: string
+          id: string
+          owner_id: string | null
+          primeiro_condominio_id: string | null
+          resolvida_em: string | null
+          slug: string
+          status: string
+          uf: string
+        }
+        Insert: {
+          cidade: string
+          created_at?: string
+          id?: string
+          owner_id?: string | null
+          primeiro_condominio_id?: string | null
+          resolvida_em?: string | null
+          slug: string
+          status?: string
+          uf: string
+        }
+        Update: {
+          cidade?: string
+          created_at?: string
+          id?: string
+          owner_id?: string | null
+          primeiro_condominio_id?: string | null
+          resolvida_em?: string | null
+          slug?: string
+          status?: string
+          uf?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cidades_novas_alertas_primeiro_condominio_id_fkey"
+            columns: ["primeiro_condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       condominio_members: {
         Row: {
           condominio_id: string
@@ -451,6 +519,7 @@ export type Database = {
       condominios: {
         Row: {
           categoria: string
+          cidade: string | null
           cnpj: string | null
           created_at: string
           endereco: string | null
@@ -463,6 +532,7 @@ export type Database = {
         }
         Insert: {
           categoria?: string
+          cidade?: string | null
           cnpj?: string | null
           created_at?: string
           endereco?: string | null
@@ -475,6 +545,7 @@ export type Database = {
         }
         Update: {
           categoria?: string
+          cidade?: string | null
           cnpj?: string | null
           created_at?: string
           endereco?: string | null
