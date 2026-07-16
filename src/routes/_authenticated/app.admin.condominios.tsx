@@ -16,6 +16,7 @@ type Row = {
   id: string;
   nome: string;
   uf: string | null;
+  cidade: string | null;
   qtd_unidades: number | null;
   owner_id: string;
   created_at: string;
@@ -48,7 +49,7 @@ function Page() {
                 <div className="flex-1 min-w-[220px]">
                   <p className="font-medium text-primary">{c.nome}</p>
                   <p className="text-xs text-muted-foreground">
-                    {c.uf ?? "—"} • {c.qtd_unidades ?? 0} unidades
+                    {c.cidade ? `${c.cidade}${c.uf ? "/" + c.uf : ""}` : c.uf ?? "—"} • {c.qtd_unidades ?? 0} unidades
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground">

@@ -28,6 +28,15 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   CATEGORIAS_CONDOMINIO,
   type CategoriaCondominio,
   getCategoriaMeta,
@@ -63,7 +72,7 @@ function CondominioDetail() {
   const fetchProfile = useServerFn(getProfile);
   const checkAdmin = useServerFn(isCurrentUserAdmin);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [condo, setCondo] = useState<{ nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; categoria?: string | null; owner_id?: string } | null>(null);
+  const [condo, setCondo] = useState<{ nome: string; uf: string | null; cidade: string | null; qtd_unidades: number | null; cnpj: string | null; endereco: string | null; categoria?: string | null; owner_id?: string } | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -72,9 +81,11 @@ function CondominioDetail() {
     cnpj: string;
     endereco: string;
     uf: string;
+    cidade: string;
     qtd_unidades: number;
     categoria: CategoriaCondominio;
-  }>({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: 0, categoria: "predio" });
+  }>({ nome: "", cnpj: "", endereco: "", uf: "", cidade: "", qtd_unidades: 0, categoria: "predio" });
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [conversaAtiva, setConversaAtiva] = useState<string | null>(null);
   // chave usada como `key` do ChatPanel para forçar remount limpo
   // ao trocar entre "nova conversa" e abrir uma conversa do histórico.
@@ -121,6 +132,7 @@ function CondominioDetail() {
             cnpj: row.cnpj ?? "",
             endereco: row.endereco ?? "",
             uf: row.uf ?? "",
+            cidade: row.cidade ?? "",
             qtd_unidades: row.qtd_unidades ?? 0,
             categoria: normalizeCategoria(row.categoria),
           });
@@ -302,6 +314,7 @@ function CondominioDetail() {
                     <p><strong>CNPJ:</strong> {condo?.cnpj ?? "—"}</p>
                     <p><strong>Endereço:</strong> {condo?.endereco ?? "—"}</p>
                     <p><strong>UF:</strong> {condo?.uf ?? "—"}</p>
+                    <p><strong>Cidade:</strong> {condo?.cidade ?? "—"}</p>
                     <p>
                       <strong>Tipo:</strong>{" "}
                       {getCategoriaMeta(condo?.categoria).label}
@@ -324,6 +337,10 @@ function CondominioDetail() {
                     <div className="space-y-1.5">
                       <Label>UF</Label>
                       <Input maxLength={2} value={form.uf} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Cidade</Label>
+                      <Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} placeholder="Ex.: João Pessoa" />
                     </div>
                     <div className="sm:col-span-2 space-y-1.5">
                       <Label>Endereço</Label>
@@ -372,6 +389,7 @@ function CondominioDetail() {
                               cnpj: condo.cnpj ?? "",
                               endereco: condo.endereco ?? "",
                               uf: condo.uf ?? "",
+                              cidade: condo.cidade ?? "",
                               qtd_unidades: condo.qtd_unidades ?? 0,
                               categoria: normalizeCategoria(condo.categoria),
                             });
@@ -392,13 +410,16 @@ function CondominioDetail() {
                                 cnpj: form.cnpj.trim() || null,
                                 endereco: form.endereco.trim() || null,
                                 uf: form.uf.trim() ? form.uf.trim().toUpperCase() : null,
+                                cidade: form.cidade.trim() || null,
                                 qtd_unidades: form.qtd_unidades,
                                 categoria: form.categoria,
                               },
                             });
-                            setCondo(saved as typeof condo);
+                            const savedRow = saved as (typeof condo & { cidadeNova?: boolean }) | null;
+                            setCondo(savedRow);
                             setEditing(false);
                             toast.success("Dados atualizados");
+                            if (savedRow?.cidadeNova) setShowDisclaimer(true);
                           } catch (e) {
                             toast.error(e instanceof Error ? e.message : "Falha ao salvar");
                           } finally {
@@ -560,6 +581,21 @@ function CondominioDetail() {
           </TabsContent>
         </Tabs>
       </div>
+      <AlertDialog open={showDisclaimer} onOpenChange={setShowDisclaimer}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bem-vindo!</AlertDialogTitle>
+            <AlertDialogDescription>
+              Verifiquei que a cidade do seu condomínio é nova em meu banco de dados. Por isso, em
+              até 3 dias, terei a atualização de toda a legislação condominial local. Meu banco de
+              jurisprudência e legislações federais e estaduais já está a sua disposição.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

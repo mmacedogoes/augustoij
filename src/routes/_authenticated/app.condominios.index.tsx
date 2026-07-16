@@ -9,6 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { listCondominios, createCondominio } from "@/lib/condominios.functions";
 import { usePlanContext } from "@/hooks/usePlanContext";
 import { gateMessages } from "@/lib/plan-gates";
@@ -27,6 +36,7 @@ const schema = z.object({
   nome: z.string().trim().min(2, "Informe o nome").max(120),
   cnpj: z.string().trim().max(20).optional(),
   uf: z.string().trim().length(2, "UF deve ter 2 letras").optional().or(z.literal("")),
+  cidade: z.string().trim().min(2, "Informe a cidade").max(120),
   qtd_unidades: z.coerce.number().int().min(0).max(100000).optional(),
   categoria: z.enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"]),
 });
@@ -35,15 +45,17 @@ function CondominiosPage() {
   const fetchList = useServerFn(listCondominios);
   const create = useServerFn(createCondominio);
   const { data: plano, refetch: refetchPlano } = usePlanContext();
-  const [items, setItems] = useState<Array<{ id: string; nome: string; uf: string | null; qtd_unidades: number | null; cnpj: string | null }>>([]);
+  const [items, setItems] = useState<Array<{ id: string; nome: string; uf: string | null; cidade: string | null; qtd_unidades: number | null; cnpj: string | null }>>([]);
   const [open, setOpen] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [form, setForm] = useState<{
     nome: string;
     cnpj: string;
     uf: string;
+    cidade: string;
     qtd_unidades: string;
     categoria: CategoriaCondominio;
-  }>({ nome: "", cnpj: "", uf: "", qtd_unidades: "", categoria: "predio" });
+  }>({ nome: "", cnpj: "", uf: "", cidade: "", qtd_unidades: "", categoria: "predio" });
   const [loading, setLoading] = useState(false);
 
   async function reload() {
@@ -58,18 +70,22 @@ function CondominiosPage() {
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setLoading(true);
     try {
-      await create({ data: {
+      const res = await create({ data: {
         nome: parsed.data.nome,
         cnpj: parsed.data.cnpj || null,
         uf: parsed.data.uf ? parsed.data.uf.toUpperCase() : null,
+        cidade: parsed.data.cidade,
         qtd_unidades: parsed.data.qtd_unidades ?? null,
         categoria: parsed.data.categoria,
       }});
       toast.success("Condomínio criado!");
       setOpen(false);
-      setForm({ nome: "", cnpj: "", uf: "", qtd_unidades: "", categoria: "predio" });
+      setForm({ nome: "", cnpj: "", uf: "", cidade: "", qtd_unidades: "", categoria: "predio" });
       reload();
       refetchPlano();
+      if ((res as { cidadeNova?: boolean } | null)?.cidadeNova) {
+        setShowDisclaimer(true);
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally { setLoading(false); }
@@ -140,6 +156,16 @@ function CondominiosPage() {
                   <div className="space-y-2"><Label htmlFor="uf">UF</Label><Input id="uf" value={form.uf} maxLength={2} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} placeholder="SP" /></div>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="cidade">Cidade *</Label>
+                  <Input
+                    id="cidade"
+                    value={form.cidade}
+                    onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+                    placeholder="Ex.: João Pessoa"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="qtd">{getCategoriaMeta(form.categoria).vocab.unidade}s</Label>
                   <Input id="qtd" type="number" min={0} value={form.qtd_unidades} onChange={(e) => setForm({ ...form, qtd_unidades: e.target.value })} />
                 </div>
@@ -148,6 +174,22 @@ function CondominiosPage() {
             </DialogContent>
           </Dialog>
         </div>
+
+        <AlertDialog open={showDisclaimer} onOpenChange={setShowDisclaimer}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Bem-vindo!</AlertDialogTitle>
+              <AlertDialogDescription>
+                Verifiquei que a cidade do seu condomínio é nova em meu banco de dados. Por isso, em
+                até 3 dias, terei a atualização de toda a legislação condominial local. Meu banco
+                de jurisprudência e legislações federais e estaduais já está a sua disposição.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction>Entendi</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {noLimite && plano && max !== null && (
           <div className="mt-4 flex flex-col gap-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -178,7 +220,9 @@ function CondominiosPage() {
                   <div className="rounded-md bg-accent/10 p-2"><Building className="h-5 w-5 text-accent" /></div>
                   <div className="min-w-0">
                     <p className="font-medium text-primary truncate">{c.nome}</p>
-                    <p className="text-xs text-muted-foreground">{c.uf ?? "—"} • {c.qtd_unidades ?? 0} unidades {c.cnpj ? `• ${c.cnpj}` : ""}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {c.cidade ? `${c.cidade}${c.uf ? "/" + c.uf : ""}` : c.uf ?? "—"} • {c.qtd_unidades ?? 0} unidades {c.cnpj ? `• ${c.cnpj}` : ""}
+                    </p>
                   </div>
                 </div>
               </Card>

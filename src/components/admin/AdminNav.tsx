@@ -1,9 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { BarChart3, Users, Building2, GraduationCap, Megaphone, History, DollarSign, Newspaper, Activity, Home } from "lucide-react";
+import { BarChart3, Users, Building2, GraduationCap, Megaphone, History, DollarSign, Newspaper, Activity, Home, MapPin } from "lucide-react";
 import { countAlertasPendentes } from "@/lib/admin-uso.functions";
 import { isCurrentUserAdmin } from "@/lib/admin.functions";
+import { countCidadesNovasPendentes } from "@/lib/cidades-novas.functions";
 
 type AdminNavItem = {
   to:
@@ -16,6 +17,7 @@ type AdminNavItem = {
     | "/app/admin/treinamento"
     | "/app/admin/orientacoes"
     | "/app/admin/auditoria"
+    | "/app/admin/cidades-novas"
     | "/app/admin/imoveis";
   label: string;
   icon: typeof BarChart3;
@@ -33,21 +35,27 @@ const items: AdminNavItem[] = [
   { to: "/app/admin/treinamento", label: "Treinar IA", icon: GraduationCap },
   { to: "/app/admin/orientacoes", label: "Orientações", icon: Megaphone },
   { to: "/app/admin/auditoria", label: "Auditoria", icon: History },
+  { to: "/app/admin/cidades-novas", label: "Cidades novas", icon: MapPin, superAdminOnly: true },
   { to: "/app/admin/imoveis", label: "Administração de Imóveis", icon: Home, superAdminOnly: true },
 ];
 
 export function AdminNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const countFn = useServerFn(countAlertasPendentes);
+  const countCidadesFn = useServerFn(countCidadesNovasPendentes);
   const adminInfoFn = useServerFn(isCurrentUserAdmin);
   const [alertas, setAlertas] = useState(0);
+  const [cidadesNovas, setCidadesNovas] = useState(0);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   useEffect(() => {
     countFn({ data: undefined as never })
       .then((r) => setAlertas(r.count))
       .catch(() => {});
+    countCidadesFn()
+      .then((r) => setCidadesNovas(r.count))
+      .catch(() => {});
     adminInfoFn().then((r) => setIsSuperAdmin(r?.papel === "super_admin")).catch(() => {});
-  }, [countFn, adminInfoFn]);
+  }, [countFn, countCidadesFn, adminInfoFn]);
   return (
     <nav className="flex flex-wrap gap-1 border-b border-border pb-3 mb-6">
       {items.filter((i) => !i.superAdminOnly || isSuperAdmin).map((i) => {
@@ -67,6 +75,11 @@ export function AdminNav() {
             {i.to === "/app/admin/uso" && alertas > 0 ? (
               <span className="ml-1 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] px-1.5 py-0.5 min-w-[18px]">
                 {alertas}
+              </span>
+            ) : null}
+            {i.to === "/app/admin/cidades-novas" && cidadesNovas > 0 ? (
+              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] px-1.5 py-0.5 min-w-[18px]">
+                {cidadesNovas}
               </span>
             ) : null}
           </Link>
