@@ -18,45 +18,50 @@ function escapeHtml(input: string): string {
 
 function buildHtml(nome: string): string {
   const safe = escapeHtml(nome || "usuário(a)");
-  const ICON_URL =
-    "https://augustoij.com.br/__l5e/assets-v1/433aa7d4-da9c-4507-bd2c-07bced7c4694/logo-completo-escuro.jpg";
-  return `<!doctype html>
+  const URL_LOGO_COMPLETO =
+    "https://augustoij.com.br/__l5e/assets-v1/598c4b3d-6b9f-4b5a-a484-6e195d698b48/augusto-ij-logo-full-dark-FINAL.png";
+  const link_dashboard = "https://augustoij.com.br/app";
+  return `<!DOCTYPE html>
 <html lang="pt-BR">
-  <body style="margin:0;padding:0;background:#f5f5f4;font-family:Georgia,'Times New Roman',serif;color:#1c1917;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;padding:32px 0;">
-      <tr><td align="center">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e7e5e4;border-radius:8px;padding:40px;">
-          <tr><td style="text-align:center;padding-bottom:24px;border-bottom:1px solid #e7e5e4;">
-            <img src="${ICON_URL}" alt="Augusto.IJ" width="280" style="display:block;margin:0 auto;max-width:280px;height:auto;" />
-          </td></tr>
-          <tr><td style="padding:32px 0 8px;">
-            <h2 style="margin:0 0 16px;font-size:22px;color:#1c1917;">Bem-vindo, ${safe}.</h2>
-            <p style="margin:0 0 20px;font-size:16px;line-height:1.6;">
-              Sua conta no Augusto.IJ já está ativa e seu período gratuito de 30 dias começou agora.
-            </p>
-            <p style="margin:0 0 12px;font-size:16px;line-height:1.6;"><strong>Os próximos passos mais úteis:</strong></p>
-            <ol style="margin:0 0 24px 20px;padding:0;font-size:16px;line-height:1.8;">
-              <li>Cadastre seu primeiro condomínio</li>
-              <li>Envie a convenção e o regimento interno</li>
-              <li>Faça sua primeira pergunta no chat</li>
-            </ol>
-            <div style="text-align:center;margin:32px 0;">
-              <a href="https://augustoij.com.br/app" style="display:inline-block;background:#78350f;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:16px;font-weight:600;">Acessar minha conta</a>
-            </div>
-            <p style="margin:24px 0 0;font-size:14px;color:#57534e;text-align:center;">
-              Dúvidas? Escreva para <a href="mailto:suporte@augustoij.com.br" style="color:#78350f;">suporte@augustoij.com.br</a>
-            </p>
-          </td></tr>
-          <tr><td style="padding-top:24px;border-top:1px solid #e7e5e4;text-align:center;">
-            <p style="margin:0 0 8px;font-style:italic;color:#78350f;font-size:14px;">Dura lex, sed Augusto.</p>
-            <p style="margin:0;font-size:12px;color:#78716c;">
-              Augusto.IJ Tecnologia LTDA — Inteligência Jurídica para Condomínios
-            </p>
-          </td></tr>
-        </table>
-      </td></tr>
-    </table>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Augusto.IJ</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F4F3F2;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F4F3F2" style="background-color:#F4F3F2;">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF;max-width:600px;width:100%;">
+  <tr>
+    <td align="center" bgcolor="#00512B" style="background-color:#00512B;padding:36px 40px;">
+      <img src="${URL_LOGO_COMPLETO}" width="240" alt="Augusto.IJ — Inteligência Jurídica para Condomínios" border="0" style="display:block;margin:0 auto;max-width:240px;height:auto;">
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:40px;color:#1F2937;font-family:Arial,Helvetica,sans-serif;">
+      <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:bold;font-size:24px;color:#00512B;margin:0 0 16px;">Bem-vindo, ${safe}.</h1>
+      <p style="font-size:15px;line-height:1.65;color:#1F2937;margin:0 0 14px;">Sua conta no Augusto.IJ já está ativa e seu período gratuito de 30 dias começou agora.</p>
+      <p style="font-size:15px;line-height:1.65;color:#1F2937;margin:0 0 14px;">Os próximos passos mais úteis:</p>
+      <p style="font-size:15px;line-height:1.65;color:#1F2937;margin:0 0 14px;">1. Cadastre seu primeiro condomínio<br>2. Envie a convenção e o regimento interno<br>3. Faça sua primeira pergunta no chat</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px auto;">
+        <tr><td align="center" bgcolor="#B8935A" style="background-color:#B8935A;border-radius:4px;">
+          <a href="${link_dashboard}" style="display:inline-block;padding:14px 34px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-decoration:none;">Acessar minha conta</a>
+        </td></tr>
+      </table>
+      <p style="font-size:13px;color:#475569;margin:0;">Dúvidas? Este endereço não recebe respostas — escreva para suporte@augustoij.com.br</p>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" bgcolor="#F4F3F2" style="background-color:#F4F3F2;padding:22px 40px;border-top:1px solid #E4E1D8;">
+      <p style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:13px;color:#475569;margin:0 0 6px;">Dura lex, sed Augusto.</p>
+      <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#475569;margin:0;">Augusto.IJ Tecnologia LTDA — Inteligência Jurídica para Condomínios</p>
+    </td>
+  </tr>
+</table>
+</td></tr>
+</table>
+</body>
 </html>`;
 }
 
