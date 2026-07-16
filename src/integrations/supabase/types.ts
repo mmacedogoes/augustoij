@@ -982,6 +982,7 @@ export type Database = {
           descricao: string
           id: string
           metadata: Json
+          owner_admin_id: string | null
           periodicidade: string
           recorrente: boolean
           updated_at: string
@@ -996,6 +997,7 @@ export type Database = {
           descricao: string
           id?: string
           metadata?: Json
+          owner_admin_id?: string | null
           periodicidade?: string
           recorrente?: boolean
           updated_at?: string
@@ -1010,6 +1012,7 @@ export type Database = {
           descricao?: string
           id?: string
           metadata?: Json
+          owner_admin_id?: string | null
           periodicidade?: string
           recorrente?: boolean
           updated_at?: string

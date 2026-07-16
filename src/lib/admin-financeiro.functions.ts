@@ -40,7 +40,8 @@ export const getFinanceiroResumo = createServerFn({ method: "GET" })
     const { data: despesas } = await supabaseAdmin
       .from("despesas")
       .select("valor")
-      .gte("data", `${mes}-01`);
+      .gte("data", `${mes}-01`)
+      .eq("owner_admin_id", context.userId);
     const despesasTotal = (despesas ?? []).reduce((a, d) => a + Number(d.valor), 0);
 
     return {
@@ -83,6 +84,7 @@ export const listDespesas = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("despesas")
       .select("id, descricao, categoria, valor, data, recorrente, periodicidade")
+      .eq("owner_admin_id", context.userId)
       .order("data", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
@@ -114,6 +116,7 @@ export const createDespesa = createServerFn({ method: "POST" })
       recorrente: data.recorrente,
       periodicidade: data.periodicidade,
       created_by: context.userId,
+      owner_admin_id: context.userId,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -125,7 +128,11 @@ export const deleteDespesa = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("despesas").delete().eq("id", data.id);
+    const { error } = await supabaseAdmin
+      .from("despesas")
+      .delete()
+      .eq("id", data.id)
+      .eq("owner_admin_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
