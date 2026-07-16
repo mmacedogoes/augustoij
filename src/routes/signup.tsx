@@ -177,6 +177,19 @@ function SignupPage() {
         console.warn("[signup] exceção ao chamar send-welcome-email", e);
       }
 
+      // Agenda e-mail de dicas para 24h após o cadastro (delay nativo do Resend).
+      try {
+        supabase.functions
+          .invoke("send-tips-email", {
+            body: { email: parsed.data.email, nome: parsed.data.nome, delay_hours: 24 },
+          })
+          .then(({ error: sendErr }) => {
+            if (sendErr) console.warn("[signup] falha ao agendar dicas", sendErr);
+          });
+      } catch (e) {
+        console.warn("[signup] exceção ao chamar send-tips-email", e);
+      }
+
       toast.success("Conta criada com sucesso! Bem-vindo(a).");
       navigate({ to: "/onboarding" });
     } catch (err) {
