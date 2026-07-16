@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
+import { logAdminAction } from "./audit.server";
 
 function mesAtual(): { mes: string; primeiroDia: string } {
   const d = new Date();
@@ -246,6 +247,17 @@ export const updateConfigAlertas = createServerFn({ method: "POST" })
       })
       .eq("id", 1);
     if (error) throw new Error(error.message);
+    await logAdminAction({
+      actorUserId: context.userId,
+      action: "config_alertas.update",
+      metadata: {
+        thresholds: data.thresholds,
+        notificar_admin: data.notificar_admin,
+        notificar_usuarios: data.notificar_usuarios,
+        custo_storage_mb_brl: data.custo_storage_mb_brl,
+        credito_brl: data.credito_brl,
+      },
+    });
     return { ok: true };
   });
 

@@ -1,28 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
+import { logAdminAction } from "./audit.server";
 import { PLAN_IDS, PLANS, type PlanId } from "@/config/plans";
 
 const PlanoConfigEnum = z.enum(PLAN_IDS as [PlanId, ...PlanId[]]);
-
-/** Captura IP + UA da requisição atual para a trilha de auditoria. */
-function getAuditContext(): { ip: string | null; ua: string | null } {
-  let ip: string | null = null;
-  let ua: string | null = null;
-  try {
-    ip = getRequestIP({ xForwardedFor: true }) ?? null;
-  } catch {
-    ip = null;
-  }
-  try {
-    ua = getRequestHeader("user-agent") ?? null;
-  } catch {
-    ua = null;
-  }
-  return { ip, ua };
-}
 
 export const isCurrentUserAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -284,14 +267,11 @@ export const adminUpdateSubscription = createServerFn({ method: "POST" })
       .upsert({ user_id: data.userId, ...patch }, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
 
-    const { ip, ua } = getAuditContext();
-    await supabaseAdmin.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "subscription.update",
-      target_user_id: data.userId,
-      metadata: patch as Record<string, unknown> as never,
-      ip_address: ip,
-      user_agent: ua,
+      targetUserId: data.userId,
+      metadata: patch as Record<string, unknown>,
     });
 
     return { ok: true };
@@ -576,14 +556,11 @@ export const setUserRole = createServerFn({ method: "POST" })
       .eq("id", data.userId);
     if (error) throw new Error(error.message);
 
-    const { ip, ua } = getAuditContext();
-    await supabaseAdmin.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "role.set",
-      target_user_id: data.userId,
+      targetUserId: data.userId,
       metadata: { papel: data.papel },
-      ip_address: ip,
-      user_agent: ua,
     });
 
     return { ok: true };
@@ -727,11 +704,10 @@ export const adminCreateUser = createServerFn({ method: "POST" })
       { onConflict: "user_id" },
     );
 
-    const { ip, ua } = getAuditContext();
-    await supabaseAdmin.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "user.create",
-      target_user_id: newUserId,
+      targetUserId: newUserId,
       metadata: {
         email: data.email,
         papel: data.papel,
@@ -739,8 +715,6 @@ export const adminCreateUser = createServerFn({ method: "POST" })
         plano_config_id: planoConfigId,
         cortesia,
       },
-      ip_address: ip,
-      user_agent: ua,
     });
 
     return { ok: true, userId: newUserId };
@@ -803,14 +777,11 @@ export const setUserAtivo = createServerFn({ method: "POST" })
       console.warn("[setUserAtivo] auth.updateUserById falhou:", e);
     }
 
-    const { ip, ua } = getAuditContext();
-    await supabaseAdmin.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: data.ativo ? "user.activate" : "user.deactivate",
-      target_user_id: data.userId,
+      targetUserId: data.userId,
       metadata: { ativo: data.ativo },
-      ip_address: ip,
-      user_agent: ua,
     });
 
     return { ok: true };

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { logAdminAction } from "./audit.server";
 
 function readIp(): string | null {
   try {
@@ -87,10 +88,10 @@ export const solicitarExclusaoConta = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     // Registro no log de auditoria interno
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "privacidade.exclusao_solicitada",
+      targetUserId: context.userId,
       metadata: { ip },
     });
     return { ok: true, token: data.token_confirmacao as string };
@@ -123,9 +124,10 @@ export const confirmarExclusaoConta = createServerFn({ method: "POST" })
       })
       .eq("id", pedido.id);
     if (updErr) throw new Error(updErr.message);
-    await supabaseAdmin.from("admin_audit_log").insert({
-      actor_user_id: pedido.user_id,
+    await logAdminAction({
+      actorUserId: pedido.user_id,
       action: "privacidade.exclusao_confirmada",
+      targetUserId: pedido.user_id,
       metadata: { excluir_em: excluirEm.toISOString() },
     });
     return { ok: true, ja: false };
