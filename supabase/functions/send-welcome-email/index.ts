@@ -18,6 +18,8 @@ function escapeHtml(input: string): string {
 
 function buildHtml(nome: string): string {
   const safe = escapeHtml(nome || "usuário(a)");
+  const ICON_URL =
+    "https://augustoij.com.br/__l5e/assets-v1/31038779-27f9-4f9a-85a8-50beb5bddfbf/augusto-ij-icon-dark-FINAL.png";
   return `<!doctype html>
 <html lang="pt-BR">
   <body style="margin:0;padding:0;background:#f5f5f4;font-family:Georgia,'Times New Roman',serif;color:#1c1917;">
@@ -25,6 +27,7 @@ function buildHtml(nome: string): string {
       <tr><td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e7e5e4;border-radius:8px;padding:40px;">
           <tr><td style="text-align:center;padding-bottom:24px;border-bottom:1px solid #e7e5e4;">
+            <img src="${ICON_URL}" alt="Augusto.IJ" width="200" style="display:block;margin:0 auto 12px;max-width:200px;height:auto;" />
             <h1 style="margin:0;font-size:28px;color:#78350f;letter-spacing:0.5px;">Augusto.IJ</h1>
           </td></tr>
           <tr><td style="padding:32px 0 8px;">
