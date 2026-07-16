@@ -41,6 +41,7 @@ import { Route as AuthenticatedAppAdminOrientacoesRouteImport } from './routes/_
 import { Route as AuthenticatedAppAdminImoveisRouteImport } from './routes/_authenticated/app.admin.imoveis'
 import { Route as AuthenticatedAppAdminFinanceiroRouteImport } from './routes/_authenticated/app.admin.financeiro'
 import { Route as AuthenticatedAppAdminCondominiosRouteImport } from './routes/_authenticated/app.admin.condominios'
+import { Route as AuthenticatedAppAdminCidadesNovasRouteImport } from './routes/_authenticated/app.admin.cidades-novas'
 import { Route as AuthenticatedAppAdminBlogRouteImport } from './routes/_authenticated/app.admin.blog'
 import { Route as AuthenticatedAppAdminAuditoriaRouteImport } from './routes/_authenticated/app.admin.auditoria'
 import { Route as AuthenticatedAppAdminUsuariosIndexRouteImport } from './routes/_authenticated/app.admin.usuarios.index'
@@ -232,6 +233,12 @@ const AuthenticatedAppAdminCondominiosRoute =
     path: '/condominios',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
+const AuthenticatedAppAdminCidadesNovasRoute =
+  AuthenticatedAppAdminCidadesNovasRouteImport.update({
+    id: '/cidades-novas',
+    path: '/cidades-novas',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
 const AuthenticatedAppAdminBlogRoute =
   AuthenticatedAppAdminBlogRouteImport.update({
     id: '/blog',
@@ -362,6 +369,7 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
   '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
+  '/app/admin/cidades-novas': typeof AuthenticatedAppAdminCidadesNovasRoute
   '/app/admin/condominios': typeof AuthenticatedAppAdminCondominiosRoute
   '/app/admin/financeiro': typeof AuthenticatedAppAdminFinanceiroRoute
   '/app/admin/imoveis': typeof AuthenticatedAppAdminImoveisRouteWithChildren
@@ -411,6 +419,7 @@ export interface FileRoutesByTo {
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
   '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
+  '/app/admin/cidades-novas': typeof AuthenticatedAppAdminCidadesNovasRoute
   '/app/admin/condominios': typeof AuthenticatedAppAdminCondominiosRoute
   '/app/admin/financeiro': typeof AuthenticatedAppAdminFinanceiroRoute
   '/app/admin/orientacoes': typeof AuthenticatedAppAdminOrientacoesRoute
@@ -463,6 +472,7 @@ export interface FileRoutesById {
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
   '/_authenticated/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
+  '/_authenticated/app/admin/cidades-novas': typeof AuthenticatedAppAdminCidadesNovasRoute
   '/_authenticated/app/admin/condominios': typeof AuthenticatedAppAdminCondominiosRoute
   '/_authenticated/app/admin/financeiro': typeof AuthenticatedAppAdminFinanceiroRoute
   '/_authenticated/app/admin/imoveis': typeof AuthenticatedAppAdminImoveisRouteWithChildren
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/admin/auditoria'
     | '/app/admin/blog'
+    | '/app/admin/cidades-novas'
     | '/app/admin/condominios'
     | '/app/admin/financeiro'
     | '/app/admin/imoveis'
@@ -565,6 +576,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/admin/auditoria'
     | '/app/admin/blog'
+    | '/app/admin/cidades-novas'
     | '/app/admin/condominios'
     | '/app/admin/financeiro'
     | '/app/admin/orientacoes'
@@ -616,6 +628,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/'
     | '/_authenticated/app/admin/auditoria'
     | '/_authenticated/app/admin/blog'
+    | '/_authenticated/app/admin/cidades-novas'
     | '/_authenticated/app/admin/condominios'
     | '/_authenticated/app/admin/financeiro'
     | '/_authenticated/app/admin/imoveis'
@@ -890,6 +903,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminCondominiosRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
+    '/_authenticated/app/admin/cidades-novas': {
+      id: '/_authenticated/app/admin/cidades-novas'
+      path: '/cidades-novas'
+      fullPath: '/app/admin/cidades-novas'
+      preLoaderRoute: typeof AuthenticatedAppAdminCidadesNovasRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
     '/_authenticated/app/admin/blog': {
       id: '/_authenticated/app/admin/blog'
       path: '/blog'
@@ -1085,6 +1105,7 @@ const AuthenticatedAppAdminImoveisRouteWithChildren =
 interface AuthenticatedAppAdminRouteChildren {
   AuthenticatedAppAdminAuditoriaRoute: typeof AuthenticatedAppAdminAuditoriaRoute
   AuthenticatedAppAdminBlogRoute: typeof AuthenticatedAppAdminBlogRoute
+  AuthenticatedAppAdminCidadesNovasRoute: typeof AuthenticatedAppAdminCidadesNovasRoute
   AuthenticatedAppAdminCondominiosRoute: typeof AuthenticatedAppAdminCondominiosRoute
   AuthenticatedAppAdminFinanceiroRoute: typeof AuthenticatedAppAdminFinanceiroRoute
   AuthenticatedAppAdminImoveisRoute: typeof AuthenticatedAppAdminImoveisRouteWithChildren
@@ -1099,6 +1120,8 @@ interface AuthenticatedAppAdminRouteChildren {
 const AuthenticatedAppAdminRouteChildren: AuthenticatedAppAdminRouteChildren = {
   AuthenticatedAppAdminAuditoriaRoute: AuthenticatedAppAdminAuditoriaRoute,
   AuthenticatedAppAdminBlogRoute: AuthenticatedAppAdminBlogRoute,
+  AuthenticatedAppAdminCidadesNovasRoute:
+    AuthenticatedAppAdminCidadesNovasRoute,
   AuthenticatedAppAdminCondominiosRoute: AuthenticatedAppAdminCondominiosRoute,
   AuthenticatedAppAdminFinanceiroRoute: AuthenticatedAppAdminFinanceiroRoute,
   AuthenticatedAppAdminImoveisRoute:
