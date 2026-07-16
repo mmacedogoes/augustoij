@@ -12,14 +12,27 @@ const SECOES: { titulo: string; links: SecaoLink[] }[] = [
       { to: "/app/ajuda/cadastro-condominio", label: "Cadastrar condomínio" },
       { to: "/app/ajuda/carregar-documentos", label: "Carregar documentos" },
       { to: "/app/ajuda/primeira-conversa", label: "Primeira conversa com a IA" },
+      { to: "/app/ajuda/onboarding", label: "Tour guiado e onboarding" },
     ],
   },
   {
-    titulo: "Funcionalidades",
+    titulo: "Usando o sistema",
     links: [
-      { to: "/app/ajuda/chat-ia", label: "Chat com IA" },
+      { to: "/app/ajuda/inicio", label: "Tela Início" },
+      { to: "/app/ajuda/chat-ia", label: "Interação com a IA" },
+      { to: "/app/ajuda/historico", label: "Histórico de conversas" },
       { to: "/app/ajuda/documentos", label: "Documentos" },
+      { to: "/app/ajuda/unidades", label: "Unidades do condomínio" },
       { to: "/app/ajuda/configuracoes", label: "Configurações do condomínio" },
+      { to: "/app/ajuda/operadores", label: "Operadores (contas PJ)" },
+    ],
+  },
+  {
+    titulo: "Sua conta",
+    links: [
+      { to: "/app/ajuda/conta-dados", label: "Dados pessoais e segurança" },
+      { to: "/app/ajuda/conta-plano", label: "Plano e limites" },
+      { to: "/app/ajuda/privacidade", label: "Privacidade e LGPD" },
     ],
   },
   {
