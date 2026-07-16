@@ -523,7 +523,7 @@ export const listCondominiosAdmin = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("condominios")
-      .select("id, nome, uf, qtd_unidades, owner_id, created_at")
+      .select("id, nome, uf, cidade, qtd_unidades, owner_id, created_at")
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
