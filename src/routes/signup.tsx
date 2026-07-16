@@ -85,6 +85,8 @@ function SignupPage() {
     const m = message.toLowerCase();
     if (m.includes("already registered") || m.includes("already been registered") || m.includes("user already"))
       return "E-mail já cadastrado. Tente fazer login.";
+    if (m.includes("pwned") || m.includes("known to be weak") || m.includes("easy to guess") || m.includes("data breach"))
+      return "Essa senha aparece em vazamentos públicos conhecidos e não pode ser usada. Escolha uma senha única, que você não usa em outros sites.";
     if (m.includes("password") && (m.includes("weak") || m.includes("short") || m.includes("at least")))
       return "Senha fraca. Use ao menos 8 caracteres, com letras e números.";
     if (m.includes("invalid email")) return "E-mail inválido.";
