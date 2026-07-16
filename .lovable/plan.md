@@ -1,33 +1,73 @@
 ## Objetivo
-Substituir o corpo do e-mail de boas-vindas (`send-welcome-email`) pelo HTML exato enviado no arquivo `email-1-boas-vindas.html`, usando o novo logo `augusto-ij-logo-full-dark-FINAL.png` como imagem do cabeçalho.
+Adicionar campo "cidade" ao cadastro de condomínios, alertar o super admin sobre cidades novas e mostrar disclaimer ao usuário quando cadastrar condomínio em cidade ainda não coberta pela legislação local.
 
-## Passos
+## Cidades já cobertas (whitelist)
+- João Pessoa/PB
+- Cabedelo/PB
+- Campina Grande/PB
 
-1. **Publicar o novo logo no CDN**
-   - Fazer upload de `user-uploads://augusto-ij-logo-full-dark-FINAL.png` via `lovable-assets create`.
-   - Salvar o pointer em `src/assets/email/augusto-ij-logo-full-dark-FINAL.png.asset.json`.
-   - Guardar a URL absoluta pública (`https://augustoij.com.br/__l5e/assets-v1/<asset_id>/augusto-ij-logo-full-dark-FINAL.png`).
+Normalização: comparação case-insensitive, sem acentos, com UF. Ex.: `joao pessoa|PB`.
 
-2. **Reescrever o HTML da Edge Function**
-   - Arquivo: `supabase/functions/send-welcome-email/index.ts`.
-   - Substituir a função `buildHtml(nome)` pelo HTML do arquivo anexo, **letra por letra**, apenas trocando:
-     - `{{URL_LOGO_COMPLETO}}` → URL absoluta do novo logo publicado.
-     - `{{nome}}` → nome do destinatário (com escape HTML).
-     - `{{link_dashboard}}` → `https://augustoij.com.br/app` (mesma URL do CTA atual).
-   - Nenhum outro elemento (cores, tabelas, estilos inline, textos, footer) será modificado.
+## Alterações no banco
 
-3. **Redeploy e teste**
-   - Deploy da função `send-welcome-email`.
-   - Enviar um e-mail de teste para `mmacedogoes@gmail.com` (nome "Matheus") para validar renderização.
+1. **`condominios`**: adicionar coluna `cidade TEXT`.
+2. **Nova tabela `cidades_cobertas`** (seed com as 3 cidades acima):
+   - `cidade`, `uf`, `slug` (normalizado), `created_at`
+   - RLS: SELECT para authenticated; escrita apenas super_admin.
+3. **Nova tabela `cidades_novas_alertas`** — registra cidades cadastradas fora da whitelist:
+   - `cidade`, `uf`, `slug`, `primeiro_condominio_id`, `owner_id`, `status` (`pendente` | `resolvida`), `created_at`, `resolvida_em`
+   - Unique em `slug` para não duplicar alertas por cidade.
+   - RLS: apenas super_admin lê/atualiza; INSERT via server function (SECURITY DEFINER ou usando `supabaseAdmin` dentro do handler após validação).
 
-4. **Limpar asset antigo (opcional)**
-   - Manter os assets antigos (`augusto-ij-icon-dark-FINAL.png`, `logo-completo-escuro.jpg`) por enquanto — não são mais referenciados pelo e-mail, mas ficam disponíveis para outros usos. Confirmar antes de deletar.
+## Backend (server functions)
+
+Em `src/lib/condominios.functions.ts`:
+
+- **`createCondominio` / `updateCondominio`**: aceitar `cidade` no schema Zod. Ao criar/atualizar:
+  1. Normalizar `cidade+uf` → slug.
+  2. Se slug ∈ whitelist (3 cidades PB) → nada além do save.
+  3. Se slug ∈ `cidades_cobertas` → nada além do save.
+  4. Caso contrário → `upsert` em `cidades_novas_alertas` (ignora conflito de slug para não duplicar) e retornar flag `cidadeNova: true` ao cliente.
+- Retornar `{ row, cidadeNova }` para o front decidir se mostra o disclaimer.
+
+Nova função em `src/lib/admin.functions.ts`:
+- **`listCidadesNovasAlertas`** (protegida por `ensureSuperAdmin` / `isAdminInternoServer`).
+- **`marcarCidadeResolvida`** (super admin): move o slug para `cidades_cobertas` e marca alerta como `resolvida`.
+
+## Frontend
+
+### `src/routes/_authenticated/app.condominios.index.tsx` (form de cadastro)
+- Novo campo obrigatório **Cidade** no `Dialog` de novo condomínio (input texto, validação min 2).
+- Após `create()`, se `cidadeNova === true`, abrir um `Dialog`/`AlertDialog` com o texto:
+  > "Seja bem-vindo! Verifiquei que a cidade do seu condomínio é nova em meu banco de dados. Por isso, em até 3 dias, terei a atualização de toda a legislação condominial local. Meu banco de jurisprudência e legislações federais e estaduais já está a sua disposição."
+- Também exibir `cidade` no card de listagem (ex.: `Cidade/UF • N unidades`).
+
+### `src/routes/_authenticated/app.condominios.$id.tsx` (edição)
+- Adicionar o mesmo campo Cidade e mesma lógica de disclaimer se a cidade nova aparecer via update.
+
+### Painel super admin
+- Nova rota **`src/routes/_authenticated/app.admin.cidades-novas.tsx`**:
+  - Lista alertas pendentes (`cidade`, `uf`, data, owner, condomínio).
+  - Botão "Marcar como atualizada" → chama `marcarCidadeResolvida`, some da lista.
+- Adicionar link no `AdminNav` ("Cidades novas") com badge de contagem pendente (opcional).
+
+### `src/routes/_authenticated/app.admin.condominios.tsx`
+- Exibir a coluna `cidade` junto com UF.
 
 ## Detalhes técnicos
-- O HTML anexo já inclui o cabeçalho verde (`#00512B`) que combina com o fundo verde do logo — nenhum ajuste de contraste é necessário.
-- O `{{link_dashboard}}` não aparece no HTML como token separado no seu arquivo? **Confirmar**: no arquivo enviado, o botão usa `href="{{link_dashboard}}"`. Vou substituir por `https://augustoij.com.br/app` (destino atual). Se preferir outra URL, me avise.
-- O footer permanece o mesmo texto ("Dura lex, sed Augusto." e razão social).
 
-## Arquivos alterados
-- `src/assets/email/augusto-ij-logo-full-dark-FINAL.png.asset.json` (novo)
-- `supabase/functions/send-welcome-email/index.ts` (HTML substituído)
+- Whitelist e normalização isolados em `src/lib/cidades-cobertas.ts`:
+  ```ts
+  export const CIDADES_WHITELIST = new Set([
+    "joao pessoa|PB", "cabedelo|PB", "campina grande|PB",
+  ]);
+  export function slugCidade(cidade: string, uf: string) {
+    return `${cidade.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim()}|${uf.toUpperCase()}`;
+  }
+  ```
+- Migração faz INSERT nas 3 cidades em `cidades_cobertas`.
+- Categoria e demais campos do form permanecem inalterados.
+
+## Fora do escopo
+- Notificação por e-mail ao super admin (o alerta aparece na UI). Se quiser e-mail, sinalizar depois.
+- Ingestão automática da legislação da cidade — o super admin faz manualmente após ver o alerta.
