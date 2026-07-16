@@ -581,6 +581,21 @@ function CondominioDetail() {
           </TabsContent>
         </Tabs>
       </div>
+      <AlertDialog open={showDisclaimer} onOpenChange={setShowDisclaimer}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bem-vindo!</AlertDialogTitle>
+            <AlertDialogDescription>
+              Verifiquei que a cidade do seu condomínio é nova em meu banco de dados. Por isso, em
+              até 3 dias, terei a atualização de toda a legislação condominial local. Meu banco de
+              jurisprudência e legislações federais e estaduais já está a sua disposição.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
