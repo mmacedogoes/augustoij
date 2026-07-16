@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
+import { logAdminAction } from "./audit.server";
 
 const BUCKET = "kb-documentos";
 const kbTipo = z.enum(["jurisprudencia", "doutrina", "lei", "peca", "orientacao", "outro"]);
@@ -96,10 +97,10 @@ export const createKbDocumento = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    await context.supabase.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "kb.create",
-      target_kb_id: row.id,
+      targetKbId: row.id,
       metadata: { titulo: data.titulo, tipo: data.tipo },
     });
 
@@ -122,11 +123,10 @@ export const deleteKbDocumento = createServerFn({ method: "POST" })
     }
     const { error } = await context.supabase.from("kb_documentos").delete().eq("id", doc.id);
     if (error) throw new Error(error.message);
-    await context.supabase.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "kb.delete",
-      target_kb_id: doc.id,
-      metadata: {},
+      targetKbId: doc.id,
     });
     return { ok: true };
   });
@@ -235,6 +235,13 @@ export const processKbDocumento = createServerFn({ method: "POST" })
         .update({ status_processamento: "pronto" })
         .eq("id", doc.id);
 
+      await logAdminAction({
+        actorUserId: context.userId,
+        action: "kb.process",
+        targetKbId: doc.id,
+        metadata: { chunks: chunks.length, titulo: doc.titulo },
+      });
+
       return { ok: true, chunks: chunks.length };
     } catch (e) {
       const ing = humanizeIngestError(e, "leitura");
@@ -291,8 +298,8 @@ export const upsertOrientacao = createServerFn({ method: "POST" })
         })
         .eq("id", data.id);
       if (error) throw new Error(error.message);
-      await context.supabase.from("admin_audit_log").insert({
-        actor_user_id: context.userId,
+      await logAdminAction({
+        actorUserId: context.userId,
         action: "orientacao.update",
         metadata: { id: data.id, titulo: data.titulo },
       });
@@ -310,8 +317,8 @@ export const upsertOrientacao = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    await context.supabase.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "orientacao.create",
       metadata: { id: row.id, titulo: data.titulo },
     });
@@ -325,8 +332,8 @@ export const deleteOrientacao = createServerFn({ method: "POST" })
     await ensureAdmin(context);
     const { error } = await context.supabase.from("ai_orientacoes").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
-    await context.supabase.from("admin_audit_log").insert({
-      actor_user_id: context.userId,
+    await logAdminAction({
+      actorUserId: context.userId,
       action: "orientacao.delete",
       metadata: { id: data.id },
     });
