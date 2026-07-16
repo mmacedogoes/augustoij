@@ -2180,6 +2180,10 @@ export type Database = {
         Returns: Json
       }
       check_alertas_uso: { Args: { _user_id: string }; Returns: undefined }
+      get_papel_sistema: {
+        Args: { _id: string }
+        Returns: Database["public"]["Enums"]["papel_sistema"]
+      }
       has_papel_sistema: {
         Args: {
           _papeis: Database["public"]["Enums"]["papel_sistema"][]
