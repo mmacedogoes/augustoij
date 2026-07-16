@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
+import { logAdminAction } from "./audit.server";
 
 export const getFinanceiroResumo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -108,7 +109,7 @@ export const createDespesa = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("despesas").insert({
+    const { data: row, error } = await supabaseAdmin.from("despesas").insert({
       descricao: data.descricao,
       categoria: data.categoria,
       valor: data.valor,
@@ -117,8 +118,19 @@ export const createDespesa = createServerFn({ method: "POST" })
       periodicidade: data.periodicidade,
       created_by: context.userId,
       owner_admin_id: context.userId,
-    });
+    }).select("id").single();
     if (error) throw new Error(error.message);
+    await logAdminAction({
+      actorUserId: context.userId,
+      action: "despesa.create",
+      metadata: {
+        id: row?.id,
+        descricao: data.descricao,
+        categoria: data.categoria,
+        valor: data.valor,
+        data: data.data,
+      },
+    });
     return { ok: true };
   });
 
@@ -134,5 +146,10 @@ export const deleteDespesa = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("owner_admin_id", context.userId);
     if (error) throw new Error(error.message);
+    await logAdminAction({
+      actorUserId: context.userId,
+      action: "despesa.delete",
+      metadata: { id: data.id },
+    });
     return { ok: true };
   });
