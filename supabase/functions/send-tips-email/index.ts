@@ -19,12 +19,10 @@ function escapeHtml(input: string): string {
 }
 
 function buildHtml(nome: string): string {
-  // `nome` não é usado no corpo do HTML fornecido pelo cliente, mas
-  // mantemos o escape/parâmetro para compatibilidade futura.
-  void escapeHtml(nome);
-  const URL_LOGO_COMPLETO =
-    "https://augustoij.com.br/__l5e/assets-v1/598c4b3d-6b9f-4b5a-a484-6e195d698b48/augusto-ij-logo-full-dark-FINAL.png";
+  const URL_LOGO_LIGHT =
+    "https://augustoij.com.br/__l5e/assets-v1/433aa7d4-da9c-4507-bd2c-07bced7c4694/logo-completo-escuro.jpg";
   const link_dashboard = "https://augustoij.com.br/app";
+  const nomeSafe = escapeHtml(nome || "");
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -33,56 +31,30 @@ function buildHtml(nome: string): string {
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Augusto.IJ</title>
 </head>
-<body style="margin:0;padding:0;background-color:#F4F3F2;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F4F3F2" style="background-color:#F4F3F2;">
+<body style="margin:0;padding:0;background-color:#FFFFFF;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF;">
 <tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF;max-width:600px;width:100%;">
   <tr>
-    <td align="center" bgcolor="#00512B" style="background-color:#00512B;padding:36px 40px;">
-      <img src="${URL_LOGO_COMPLETO}" width="240" alt="Augusto.IJ — Inteligência Jurídica para Condomínios" border="0" style="display:block;margin:0 auto;max-width:240px;height:auto;">
+    <td style="padding:8px 8px 24px;border-bottom:1px solid #E4E1D8;">
+      <img src="${URL_LOGO_LIGHT}" width="150" alt="Augusto.IJ" border="0" style="display:block;max-width:150px;height:auto;">
     </td>
   </tr>
   <tr>
-    <td style="padding:40px;color:#1F2937;font-family:Arial,Helvetica,sans-serif;">
-      <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:bold;font-size:24px;color:#00512B;margin:0 0 16px;">4 formas de aproveitar melhor o Augusto</h1>
-      <p style="font-size:15px;line-height:1.65;color:#1F2937;margin:0 0 18px;">Você já tem um dia de conta. Aqui estão os recursos que a maioria dos síndicos descobre tarde demais:</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
-        <tr>
-          <td width="3" bgcolor="#B8935A" style="background-color:#B8935A;"></td>
-          <td style="padding:2px 0 2px 16px;">
-            <p style="font-size:14px;font-weight:bold;color:#1F2937;margin:0 0 4px;">Peça modelos prontos</p>
-            <p style="font-size:13px;color:#475569;margin:0;">"Gere uma notificação de multa para o apartamento 302 por barulho após as 22h."</p>
-          </td>
-        </tr>
-      </table>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
-        <tr>
-          <td width="3" bgcolor="#B8935A" style="background-color:#B8935A;"></td>
-          <td style="padding:2px 0 2px 16px;">
-            <p style="font-size:14px;font-weight:bold;color:#1F2937;margin:0 0 4px;">Envie fotos de documentos escaneados</p>
-            <p style="font-size:13px;color:#475569;margin:0;">Não precisa ser PDF perfeito — o Augusto lê imagens direto.</p>
-          </td>
-        </tr>
-      </table>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
-        <tr>
-          <td width="3" bgcolor="#B8935A" style="background-color:#B8935A;"></td>
-          <td style="padding:2px 0 2px 16px;">
-            <p style="font-size:14px;font-weight:bold;color:#1F2937;margin:0 0 4px;">Volte às conversas antigas</p>
-            <p style="font-size:13px;color:#475569;margin:0;">O histórico guarda o contexto — você não precisa reexplicar o caso.</p>
-          </td>
-        </tr>
-      </table>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px auto 0;">
-        <tr><td align="center" bgcolor="#B8935A" style="background-color:#B8935A;border-radius:4px;">
-          <a href="${link_dashboard}" style="display:inline-block;padding:14px 34px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-decoration:none;">Explorar agora</a>
-        </td></tr>
-      </table>
+    <td style="padding:28px 8px;color:#1F2937;font-family:Arial,Helvetica,sans-serif;">
+      <p style="font-size:15px;line-height:1.7;color:#1F2937;margin:0 0 14px;">Olá, ${nomeSafe}.</p>
+      <p style="font-size:15px;line-height:1.7;color:#1F2937;margin:0 0 14px;">Você criou sua conta ontem, então imagino que ainda esteja conhecendo o Augusto. Três coisas que a maioria dos síndicos só descobre depois de semanas — e que valem a pena testar já no primeiro uso:</p>
+      <p style="font-size:15px;line-height:1.7;color:#1F2937;margin:0 0 14px;"><strong>1. Peça documentos prontos.</strong> Em vez de perguntar "posso multar por barulho?", experimente: "gere uma notificação de multa para o apartamento 302 por barulho após as 22h". O Augusto entrega o documento redigido, não só a resposta.</p>
+      <p style="font-size:15px;line-height:1.7;color:#1F2937;margin:0 0 14px;"><strong>2. Envie fotos de documentos escaneados.</strong> Não precisa ser PDF perfeito — uma foto legível da convenção ou da ata já funciona.</p>
+      <p style="font-size:15px;line-height:1.7;color:#1F2937;margin:0 0 14px;"><strong>3. Continue conversas antigas.</strong> O histórico guarda o contexto de cada caso — você não precisa reexplicar a situação toda vez.</p>
+      <p style="font-size:15px;line-height:1.7;color:#1F2937;margin:0 0 14px;">Para testar agora: <a href="${link_dashboard}" style="color:#00512B;font-weight:bold;">acesse sua conta aqui</a>.</p>
+      <p style="font-size:15px;line-height:1.7;color:#1F2937;margin:24px 0 0;">Qualquer dúvida, escreva para suporte@augustoij.com.br — a equipe responde pessoalmente.</p>
+      <p style="font-size:15px;line-height:1.7;color:#1F2937;margin:14px 0 0;">Equipe Augusto.IJ</p>
     </td>
   </tr>
   <tr>
-    <td align="center" bgcolor="#F4F3F2" style="background-color:#F4F3F2;padding:20px 40px;border-top:1px solid #E4E1D8;">
-      <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#475569;margin:0;">Augusto.IJ Tecnologia LTDA</p>
+    <td style="padding:20px 8px;border-top:1px solid #E4E1D8;">
+      <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#475569;margin:0;">Augusto.IJ Tecnologia LTDA — Inteligência Jurídica para Condomínios</p>
     </td>
   </tr>
 </table>
