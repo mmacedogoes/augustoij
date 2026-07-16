@@ -4,13 +4,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PLANS } from "@/config/plans";
 import { resolvePlanId, isTrialExpired, gateMessages, efetivoPlanoId } from "@/lib/plan-gates";
 import { isAdminInternoServer } from "@/lib/admin-bypass";
+import { slugCidade, isCidadeWhitelist } from "@/lib/cidades-cobertas";
 
 export const listCondominios = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("condominios")
-      .select("id, nome, cnpj, uf, qtd_unidades, created_at")
+      .select("id, nome, cnpj, uf, cidade, qtd_unidades, created_at")
       .eq("owner_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -22,6 +23,7 @@ const createSchema = z.object({
   cnpj: z.string().trim().max(20).optional().nullable(),
   endereco: z.string().trim().max(255).optional().nullable(),
   uf: z.string().trim().length(2).optional().nullable(),
+  cidade: z.string().trim().min(2).max(120).optional().nullable(),
   qtd_unidades: z.number().int().min(0).max(100000).optional().nullable(),
   categoria: z
     .enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"])
@@ -63,7 +65,8 @@ export const createCondominio = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    return row;
+    const cidadeNova = await verificarCidadeNova(context, row, data.cidade, data.uf);
+    return { ...row, cidadeNova };
   });
 
 export const getCondominio = createServerFn({ method: "GET" })
@@ -85,6 +88,7 @@ const updateSchema = z.object({
   cnpj: z.string().trim().max(20).optional().nullable(),
   endereco: z.string().trim().max(255).optional().nullable(),
   uf: z.string().trim().length(2).optional().nullable(),
+  cidade: z.string().trim().min(2).max(120).optional().nullable(),
   qtd_unidades: z.number().int().min(0).max(100000).optional().nullable(),
   categoria: z
     .enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"])
@@ -114,8 +118,47 @@ export const updateCondominio = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    return row;
+    const cidadeNova = await verificarCidadeNova(context, row, data.cidade, data.uf);
+    return { ...row, cidadeNova };
   });
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function verificarCidadeNova(
+  context: { supabase: any; userId: string },
+  row: { id: string },
+  cidade?: string | null,
+  uf?: string | null,
+): Promise<boolean> {
+  if (!cidade || !uf) return false;
+  if (isCidadeWhitelist(cidade, uf)) return false;
+  const slug = slugCidade(cidade, uf);
+  const { data: coberta } = await context.supabase
+    .from("cidades_cobertas")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (coberta) return false;
+  // Registra alerta via admin (bypass RLS) — a tabela é lida apenas por super admin.
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("cidades_novas_alertas")
+      .upsert(
+        {
+          cidade: cidade.trim(),
+          uf: uf.trim().toUpperCase(),
+          slug,
+          primeiro_condominio_id: row.id,
+          owner_id: context.userId,
+          status: "pendente",
+        },
+        { onConflict: "slug", ignoreDuplicates: true },
+      );
+  } catch {
+    // Se falhar, ainda retornamos true para exibir o disclaimer.
+  }
+  return true;
+}
 
 export const getProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
