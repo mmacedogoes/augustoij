@@ -16,6 +16,7 @@ import {
   listDespesas,
   createDespesa,
   deleteDespesa,
+  listCancelamentos,
 } from "@/lib/admin-financeiro.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/financeiro")({
@@ -43,6 +44,7 @@ function FinanceiroPage() {
             <TabsTrigger value="custos">Custos</TabsTrigger>
             <TabsTrigger value="margem">Margem</TabsTrigger>
             <TabsTrigger value="despesas">Despesas</TabsTrigger>
+            <TabsTrigger value="cancelamentos">Cancelamentos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="receita" className="mt-4">
@@ -56,6 +58,9 @@ function FinanceiroPage() {
           </TabsContent>
           <TabsContent value="despesas" className="mt-4">
             <DespesasTab />
+          </TabsContent>
+          <TabsContent value="cancelamentos" className="mt-4">
+            <CancelamentosTab />
           </TabsContent>
         </Tabs>
       </div>
