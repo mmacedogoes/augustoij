@@ -190,6 +190,12 @@ export async function cancelSubscription(subscriptionId: string): Promise<void> 
   await asaasFetch(`/subscriptions/${subscriptionId}`, { method: "DELETE" });
 }
 
+export async function getSubscription(subscriptionId: string): Promise<
+  AsaasSubscription & { nextDueDate: string; deleted?: boolean }
+> {
+  return asaasFetch(`/subscriptions/${subscriptionId}`);
+}
+
 /**
  * Helper: data no formato YYYY-MM-DD para "amanhã" no fuso America/Sao_Paulo.
  * Asaas exige que `nextDueDate` seja no futuro.

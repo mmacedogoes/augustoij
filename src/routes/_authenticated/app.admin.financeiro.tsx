@@ -16,6 +16,7 @@ import {
   listDespesas,
   createDespesa,
   deleteDespesa,
+  listCancelamentos,
 } from "@/lib/admin-financeiro.functions";
 
 export const Route = createFileRoute("/_authenticated/app/admin/financeiro")({
@@ -43,6 +44,7 @@ function FinanceiroPage() {
             <TabsTrigger value="custos">Custos</TabsTrigger>
             <TabsTrigger value="margem">Margem</TabsTrigger>
             <TabsTrigger value="despesas">Despesas</TabsTrigger>
+            <TabsTrigger value="cancelamentos">Cancelamentos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="receita" className="mt-4">
@@ -56,6 +58,9 @@ function FinanceiroPage() {
           </TabsContent>
           <TabsContent value="despesas" className="mt-4">
             <DespesasTab />
+          </TabsContent>
+          <TabsContent value="cancelamentos" className="mt-4">
+            <CancelamentosTab />
           </TabsContent>
         </Tabs>
       </div>
@@ -278,6 +283,66 @@ function DespesasTab() {
               >
                 <Trash2 className="h-4 w-4 text-red-400" />
               </Button>
+            </div>
+          ))
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function CancelamentosTab() {
+  const fn = useServerFn(listCancelamentos);
+  const [data, setData] = useState<Awaited<ReturnType<typeof listCancelamentos>> | null>(null);
+  useEffect(() => {
+    fn({ data: undefined as never })
+      .then((x) => setData(x as typeof data))
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
+  }, [fn]);
+
+  if (!data) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-5">
+        <p className="text-xs uppercase text-muted-foreground mb-3">Motivos declarados</p>
+        {data.agregado.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum cancelamento registrado.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {data.agregado.map((a) => (
+              <div key={a.motivo} className="flex items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+                <span className="text-sm">{a.motivo}</span>
+                <span className="text-sm font-semibold text-primary">{a.total}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+      <Card className="divide-y">
+        <div className="p-4 text-xs uppercase text-muted-foreground grid grid-cols-12 gap-2">
+          <div className="col-span-4">Cliente</div>
+          <div className="col-span-2">Plano</div>
+          <div className="col-span-3">Motivo</div>
+          <div className="col-span-3">Data</div>
+        </div>
+        {data.rows.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">—</p>
+        ) : (
+          data.rows.map((c) => (
+            <div key={c.id} className="p-4 grid grid-cols-12 gap-2 items-start text-sm">
+              <div className="col-span-4">
+                <p className="font-medium text-primary">{c.profile?.nome ?? "—"}</p>
+                <p className="text-xs text-muted-foreground">{c.profile?.email ?? c.user_id}</p>
+              </div>
+              <div className="col-span-2 text-muted-foreground">{c.plano_config_id ?? "—"}</div>
+              <div className="col-span-3">
+                <p>{c.motivo}</p>
+                {c.detalhes && <p className="text-xs text-muted-foreground mt-1">{c.detalhes}</p>}
+              </div>
+              <div className="col-span-3 text-muted-foreground">
+                {new Date(c.created_at).toLocaleString("pt-BR")}
+              </div>
             </div>
           ))
         )}
