@@ -215,7 +215,7 @@ function SignupPage() {
       </Link>
       <div className="w-full max-w-[440px] rounded-xl border border-border bg-card text-card-foreground p-10 shadow-sm">
         <h1 className="text-2xl font-bold tracking-tight text-center">Criar conta</h1>
-        <p className="mt-2 text-sm text-muted-foreground text-center">3 dias de teste grátis. Sem cartão.</p>
+        <p className="mt-2 text-sm text-muted-foreground text-center">7 dias de teste grátis. Sem cartão.</p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div className="space-y-1.5">
