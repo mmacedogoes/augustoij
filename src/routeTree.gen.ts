@@ -28,6 +28,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
 import { Route as ApiPublicAuthCheckRouteImport } from './routes/api/public/auth-check'
+import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
 import { Route as AuthenticatedAppAssinaturaRouteImport } from './routes/_authenticated/app.assinatura'
 import { Route as AuthenticatedAppAjudaRouteImport } from './routes/_authenticated/app.ajuda'
@@ -158,6 +159,11 @@ const ApiPublicDemoChatRoute = ApiPublicDemoChatRouteImport.update({
 const ApiPublicAuthCheckRoute = ApiPublicAuthCheckRouteImport.update({
   id: '/api/public/auth-check',
   path: '/api/public/auth-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
+  id: '/api/public/asaas-webhook',
+  path: '/api/public/asaas-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
@@ -400,6 +406,7 @@ export interface FileRoutesByFullPath {
   '/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/app/': typeof AuthenticatedAppIndexRoute
@@ -455,6 +462,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRoute
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -513,6 +521,7 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/_authenticated/app/assinatura': typeof AuthenticatedAppAssinaturaRoute
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
@@ -572,6 +581,7 @@ export interface FileRouteTypes {
     | '/app/ajuda'
     | '/app/assinatura'
     | '/app/conta'
+    | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
     | '/app/'
@@ -627,6 +637,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/app/assinatura'
     | '/app/conta'
+    | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
     | '/app'
@@ -684,6 +695,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/ajuda'
     | '/_authenticated/app/assinatura'
     | '/_authenticated/app/conta'
+    | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
     | '/_authenticated/app/'
@@ -738,6 +750,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
   ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -876,6 +889,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/auth-check'
       fullPath: '/api/public/auth-check'
       preLoaderRoute: typeof ApiPublicAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/asaas-webhook': {
+      id: '/api/public/asaas-webhook'
+      path: '/api/public/asaas-webhook'
+      fullPath: '/api/public/asaas-webhook'
+      preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/conta': {
@@ -1305,6 +1325,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   BlogSlugRoute: BlogSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,
   ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
