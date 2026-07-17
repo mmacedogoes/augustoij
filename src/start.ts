@@ -5,6 +5,7 @@ import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
+  const { request } = (globalThis as unknown as { __unused?: never }) as never;
   try {
     return await next();
   } catch (error) {
