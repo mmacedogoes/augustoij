@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, X } from "lucide-react";
+import { Check, X, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { registrarAceiteTermos } from "@/lib/privacidade.functions";
@@ -82,7 +82,20 @@ function SignupPage() {
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [confirmSent, setConfirmSent] = useState<null | { email: string }>(null);
+  const [countdown, setCountdown] = useState(10);
+  const [resending, setResending] = useState(false);
   const registrarAceite = useServerFn(registrarAceiteTermos);
+
+  useEffect(() => {
+    if (!confirmSent) return;
+    if (countdown <= 0) {
+      navigate({ to: "/login" });
+      return;
+    }
+    const t = window.setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [confirmSent, countdown, navigate]);
 
   const pwd = form.password;
   const checks = useMemo(
@@ -148,7 +161,13 @@ function SignupPage() {
         password: parsed.data.password,
         options: {
           emailRedirectTo:
-            typeof window !== "undefined" ? `${window.location.origin}/onboarding` : undefined,
+            typeof window !== "undefined"
+              ? `${window.location.origin}/auth/confirmar${
+                  search.plano
+                    ? `?plano=${search.plano}&ciclo=${search.ciclo ?? "mensal"}`
+                    : ""
+                }`
+              : undefined,
           data: {
             nome: parsed.data.nome,
             telefone: parsed.data.telefone,
@@ -170,6 +189,19 @@ function SignupPage() {
         if (/email/i.test(error.message)) setErrors((prev) => ({ ...prev, email: friendly }));
         if (/password|senha/i.test(error.message)) setErrors((prev) => ({ ...prev, password: friendly }));
         return;
+      }
+
+      // Persistir intenção de plano como fallback (caso o provedor de e-mail
+      // remova query params do link de confirmação).
+      if (typeof window !== "undefined" && search.plano) {
+        try {
+          window.localStorage.setItem(
+            "ij:plano_pos_confirmacao",
+            JSON.stringify({ plano: search.plano, ciclo: search.ciclo ?? "mensal" }),
+          );
+        } catch {
+          /* storage indisponível */
+        }
       }
 
       if (data?.session) {
@@ -204,15 +236,8 @@ function SignupPage() {
         console.warn("[signup] exceção ao chamar send-tips-email", e);
       }
 
-      toast.success("Conta criada com sucesso! Bem-vindo(a).");
-      if (search.plano) {
-        navigate({
-          to: "/app/assinatura",
-          search: { plano: search.plano, ciclo: search.ciclo ?? "mensal" },
-        });
-      } else {
-        navigate({ to: "/onboarding" });
-      }
+      toast.success("Enviamos um e-mail de confirmação para você.");
+      setConfirmSent({ email: parsed.data.email });
     } catch (err) {
       console.error("[signup] exceção inesperada", err);
       const msg = err instanceof Error ? err.message : String(err);
@@ -220,6 +245,76 @@ function SignupPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function resendConfirmation() {
+    if (!confirmSent) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: confirmSent.email,
+        options: {
+          emailRedirectTo:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/auth/confirmar${
+                  search.plano
+                    ? `?plano=${search.plano}&ciclo=${search.ciclo ?? "mensal"}`
+                    : ""
+                }`
+              : undefined,
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("E-mail reenviado. Confira sua caixa de entrada.");
+      setCountdown(10);
+    } finally {
+      setResending(false);
+    }
+  }
+
+  if (confirmSent) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center px-4 py-12">
+        <Link to="/" className="flex justify-center mb-8">
+          <AugustoLogo variant="stacked" theme="light" size={200} showTagline />
+        </Link>
+        <div className="w-full max-w-[440px] rounded-xl border border-border bg-card text-card-foreground p-10 shadow-sm text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <MailCheck className="h-7 w-7" />
+          </div>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight">Falta pouco!</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Enviamos um link de confirmação para{" "}
+            <span className="font-medium text-foreground">{confirmSent.email}</span>.
+            Clique no link para ativar sua conta{search.plano ? " e concluir a assinatura" : ""}.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Não encontrou? Verifique também a pasta de spam.
+          </p>
+
+          <div className="mt-6 rounded-md bg-muted/40 border border-border px-3 py-2 text-xs text-muted-foreground">
+            Redirecionando para a tela de login em <span className="font-semibold text-foreground">{countdown}s</span>…
+          </div>
+
+          <div className="mt-6 flex flex-col gap-2">
+            <Button
+              variant="outline"
+              onClick={resendConfirmation}
+              disabled={resending}
+            >
+              {resending ? "Reenviando…" : "Reenviar e-mail"}
+            </Button>
+            <Button variant="ghost" onClick={() => navigate({ to: "/login" })}>
+              Ir para o login agora
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   function FieldError({ name }: { name: string }) {
