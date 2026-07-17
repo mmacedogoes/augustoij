@@ -164,6 +164,22 @@ export const getAssinaturaPendente = createServerFn({ method: "GET" })
   });
 
 /**
+ * Perfil resumido para exibir na página de assinatura, confirmando ao usuário
+ * que a assinatura será vinculada à conta atual.
+ */
+export const getPerfilParaAssinatura = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data } = await supabase
+      .from("profiles")
+      .select("nome, email, cpf_cnpj, telefone, tipo_pessoa, razao_social")
+      .eq("id", userId)
+      .maybeSingle();
+    return data;
+  });
+
+/**
  * Detalhes de pagamento da assinatura ativa (valor, próxima renovação, forma).
  * Consulta Asaas em tempo real quando há `asaas_subscription_id`.
  */
