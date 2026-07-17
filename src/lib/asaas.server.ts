@@ -157,6 +157,7 @@ export async function createSubscription(input: {
   nextDueDate: string; // YYYY-MM-DD
   description: string;
   externalReference?: string;
+  callbackUrl?: string;
 }): Promise<AsaasSubscription> {
   return asaasFetch<AsaasSubscription>(`/subscriptions`, {
     method: "POST",
@@ -168,6 +169,9 @@ export async function createSubscription(input: {
       nextDueDate: input.nextDueDate,
       description: input.description,
       externalReference: input.externalReference,
+      callback: input.callbackUrl
+        ? { successUrl: input.callbackUrl, autoRedirect: true }
+        : undefined,
     },
   });
 }
