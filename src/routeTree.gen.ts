@@ -15,6 +15,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HistoriaRouteImport } from './routes/historia'
+import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as ConfirmarExclusaoRouteImport } from './routes/confirmar-exclusao'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -89,6 +90,11 @@ const LoginRoute = LoginRouteImport.update({
 const HistoriaRoute = HistoriaRouteImport.update({
   id: '/historia',
   path: '/historia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfirmarExclusaoRoute = ConfirmarExclusaoRouteImport.update({
@@ -351,6 +357,7 @@ const AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/confirmar-exclusao': typeof ConfirmarExclusaoRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
@@ -403,6 +410,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/confirmar-exclusao': typeof ConfirmarExclusaoRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
@@ -454,6 +462,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/confirmar-exclusao': typeof ConfirmarExclusaoRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
@@ -508,6 +517,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/confirmar-exclusao'
+    | '/esqueci-senha'
     | '/historia'
     | '/login'
     | '/manifesto'
@@ -560,6 +570,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/confirmar-exclusao'
+    | '/esqueci-senha'
     | '/historia'
     | '/login'
     | '/manifesto'
@@ -610,6 +621,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/confirmar-exclusao'
+    | '/esqueci-senha'
     | '/historia'
     | '/login'
     | '/manifesto'
@@ -664,6 +676,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   ConfirmarExclusaoRoute: typeof ConfirmarExclusaoRoute
+  EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   HistoriaRoute: typeof HistoriaRoute
   LoginRoute: typeof LoginRoute
   ManifestoRoute: typeof ManifestoRoute
@@ -719,6 +732,13 @@ declare module '@tanstack/react-router' {
       path: '/historia'
       fullPath: '/historia'
       preLoaderRoute: typeof HistoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/esqueci-senha': {
+      id: '/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/esqueci-senha'
+      preLoaderRoute: typeof EsqueciSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/confirmar-exclusao': {
@@ -1190,6 +1210,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   ConfirmarExclusaoRoute: ConfirmarExclusaoRoute,
+  EsqueciSenhaRoute: EsqueciSenhaRoute,
   HistoriaRoute: HistoriaRoute,
   LoginRoute: LoginRoute,
   ManifestoRoute: ManifestoRoute,
