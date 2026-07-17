@@ -13,10 +13,34 @@ import { useHashScroll } from "@/hooks/use-hash-scroll";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Augusto.IJ, IA para síndicos e administradoras de condomínios" },
+      { title: "Augusto.IJ · IA jurídica para condomínios" },
       { name: "description", content: "Plataforma de IA com apoio jurídico, gestão de documentos e respostas instantâneas para o dia a dia do seu condomínio. Teste grátis por 7 dias." },
-      { property: "og:title", content: "Augusto.IJ, IA para condomínios" },
+      { property: "og:title", content: "Augusto.IJ · IA jurídica para condomínios" },
       { property: "og:description", content: "Apoio inteligente para síndicos e administradoras." },
+      { property: "og:url", content: "https://augustoij.com.br/" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://augustoij.com.br/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Augusto.IJ",
+          url: "https://augustoij.com.br",
+          logo: "https://augustoij.com.br/favicon-256.png",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Augusto.IJ",
+          url: "https://augustoij.com.br",
+        }),
+      },
     ],
   }),
   component: Landing,
