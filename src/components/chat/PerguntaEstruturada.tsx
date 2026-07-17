@@ -7,9 +7,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export type PerguntaItem = {
   id?: string;
-  /** Texto da pergunta. Aceita `label` (formato antigo) ou `pergunta` (formato novo). */
+  /** Texto da pergunta. Aceita `label` (formato antigo), `pergunta` (formato novo)
+   *  ou `pregunta` (tolerância a variação/typo em espanhol emitido pela IA). */
   label?: string;
   pergunta?: string;
+  pregunta?: string;
   modo?: "unica" | "multipla";
   opcoes?: string[];
   permite_outro?: boolean;
@@ -32,7 +34,7 @@ function keyFor(p: PerguntaItem, i: number) {
 }
 
 function labelDe(p: PerguntaItem, i: number): string {
-  return (p.pergunta ?? p.label ?? `Pergunta ${i + 1}`).toString();
+  return (p.pergunta ?? p.pregunta ?? p.label ?? `Pergunta ${i + 1}`).toString();
 }
 
 export function PerguntaEstruturada({
@@ -225,7 +227,7 @@ function tentarParse(candidato: string): PerguntaEstruturadaDados | null {
     if (parsed.perguntas.length === 0) return null;
     const perguntasValidas = parsed.perguntas.every((p: PerguntaItem) =>
       p
-      && (typeof p.pergunta === "string" || typeof p.label === "string")
+      && (typeof p.pergunta === "string" || typeof p.pregunta === "string" || typeof p.label === "string")
       && (p.modo === undefined || p.modo === "unica" || p.modo === "multipla")
       && Array.isArray(p.opcoes)
       && p.opcoes.length > 0,
