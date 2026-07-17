@@ -18,7 +18,7 @@ export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
       { title: "Criar conta — Augusto.IJ" },
-      { name: "description", content: "Teste grátis por 3 dias o assistente jurídico para condomínios." },
+      { name: "description", content: "Teste grátis por 7 dias o assistente jurídico para condomínios." },
     ],
   }),
   component: SignupPage,
