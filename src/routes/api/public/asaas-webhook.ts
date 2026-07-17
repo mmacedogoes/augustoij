@@ -23,6 +23,8 @@ const payloadSchema = z.object({
       status: z.string().optional(),
       value: z.number().optional(),
       nextDueDate: z.string().optional(),
+      invoiceUrl: z.string().optional(),
+      bankSlipUrl: z.string().optional(),
     })
     .partial()
     .optional(),
