@@ -2068,6 +2068,7 @@ export type Database = {
           creditos_mensagens_extras: number
           current_period_end: string | null
           id: string
+          overdue_desde: string | null
           pending_desde: string | null
           pending_plano_config_id: string | null
           plano: Database["public"]["Enums"]["plano_assinatura"] | null
@@ -2076,6 +2077,7 @@ export type Database = {
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          suspenso_em: string | null
           tipo_assinatura: string
           trial_end: string | null
           updated_at: string
@@ -2096,6 +2098,7 @@ export type Database = {
           creditos_mensagens_extras?: number
           current_period_end?: string | null
           id?: string
+          overdue_desde?: string | null
           pending_desde?: string | null
           pending_plano_config_id?: string | null
           plano?: Database["public"]["Enums"]["plano_assinatura"] | null
@@ -2104,6 +2107,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          suspenso_em?: string | null
           tipo_assinatura?: string
           trial_end?: string | null
           updated_at?: string
@@ -2124,6 +2128,7 @@ export type Database = {
           creditos_mensagens_extras?: number
           current_period_end?: string | null
           id?: string
+          overdue_desde?: string | null
           pending_desde?: string | null
           pending_plano_config_id?: string | null
           plano?: Database["public"]["Enums"]["plano_assinatura"] | null
@@ -2132,6 +2137,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          suspenso_em?: string | null
           tipo_assinatura?: string
           trial_end?: string | null
           updated_at?: string
