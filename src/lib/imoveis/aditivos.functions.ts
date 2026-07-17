@@ -51,7 +51,7 @@ export const salvarAditivo = createServerFn({ method: "POST" })
     // Decodifica base64 e faz upload.
     const b64 = data.pdfBase64.replace(/^data:application\/pdf;base64,/, "");
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const path = `aditivos/${data.contratoLocacaoId}/${aditivoId}.pdf`;
+    const path = `${context.userId}/aditivos/${data.contratoLocacaoId}/${aditivoId}.pdf`;
     const { error: eUp } = await context.supabase
       .storage
       .from("contratos")
