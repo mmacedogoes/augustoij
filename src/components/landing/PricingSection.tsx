@@ -43,7 +43,7 @@ const PLANS: Plan[] = [
   {
     id: "gratuito",
     name: "Gratuito",
-    sublabel: "Teste por 30 dias, sem cartão de crédito",
+    sublabel: "Teste por 7 dias, sem cartão de crédito",
     monthly: null,
     annualPerMonth: null,
     annualTotal: null,
@@ -60,7 +60,7 @@ const PLANS: Plan[] = [
     ctaLabel: "Experimentar grátis",
     ctaVariant: "outline",
     ctaKind: "signup",
-    badge: { label: "30 dias grátis", tone: "success" },
+    badge: { label: "7 dias grátis", tone: "success" },
   },
   {
     id: "essencial",
@@ -215,7 +215,7 @@ export function PricingSection() {
         <SectionHeader
           eyebrow="Planos"
           title="Inteligência jurídica ao alcance."
-          subtitle="Do síndico morador à administradora com carteira ampla. Comece grátis por 30 dias."
+          subtitle="Do síndico morador à administradora com carteira ampla. Comece grátis por 7 dias."
         />
 
         {/* Billing toggle */}
