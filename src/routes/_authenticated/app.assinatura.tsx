@@ -38,7 +38,9 @@ const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function AssinaturaPage() {
-  const { plano, ciclo: cicloInicial } = useSearch({ from: "/_authenticated/app/assinatura" });
+  const { plano, ciclo: cicloInicial } = useSearch({
+    from: "/_authenticated/app/assinatura",
+  }) as { plano: keyof typeof PLAN_PRICES; ciclo: "mensal" | "anual" };
   const navigate = useNavigate();
   const [ciclo, setCiclo] = useState<"mensal" | "anual">(cicloInicial);
   const [billingType, setBillingType] =
