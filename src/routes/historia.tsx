@@ -7,7 +7,12 @@ export const Route = createFileRoute("/historia")({
     meta: [
       { title: "A História, Augusto.IJ" },
       { name: "description", content: "A história fundadora do Augusto.IJ, inteligência jurídica para condomínios." },
+      { property: "og:title", content: "A História, Augusto.IJ" },
+      { property: "og:description", content: "A história fundadora do Augusto.IJ, inteligência jurídica para condomínios." },
+      { property: "og:url", content: "https://augustoij.com.br/historia" },
+      { property: "og:type", content: "article" },
     ],
+    links: [{ rel: "canonical", href: "https://augustoij.com.br/historia" }],
   }),
   component: HistoriaPage,
 });
