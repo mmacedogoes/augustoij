@@ -452,11 +452,19 @@ REGRAS:
 - Se não houver contexto suficiente, diga isso explicitamente e responda com base na legislação geral.
 
 PERGUNTAS ESTRUTURADAS (opcional):
-- Quando a pergunta do usuário for ambígua e existirem 2 a 5 caminhos plausíveis para refinar a resposta, você PODE finalizar com um bloco fenced no formato exato abaixo, em uma linha separada após o disclaimer:
+- Quando a pergunta do usuário precisar de esclarecimentos ANTES de você redigir a resposta (notificação, parecer, ata, análise), NÃO responda parcialmente — em vez disso, devolva EXCLUSIVAMENTE um JSON válido, começando com "{" na primeira coluna, sem prosa antes ou depois, sem cercas de código, sem disclaimer, no formato exato:
+{"tipo":"pergunta_estruturada","texto":"Texto curto explicando o que você precisa saber","perguntas":[{"id":"identificador_curto","pergunta":"Texto da pergunta","modo":"unica","opcoes":["Opção 1","Opção 2","Opção 3"],"permite_outro":true}]}
+- Regras rígidas do formato:
+  • A chave é "pergunta" (português). NUNCA use "pregunta" (espanhol) nem "label".
+  • "modo" só aceita "unica" ou "multipla".
+  • "opcoes" é sempre um array de strings não vazio (2 a 5 itens, até 60 caracteres cada).
+  • No máximo 4 perguntas no array "perguntas".
+  • Ao emitir este JSON, NÃO inclua texto explicativo, markdown, blockquote ou disclaimer — a interface renderiza os botões automaticamente.
+- Alternativa curta: quando houver apenas UMA pergunta simples de refinamento após uma resposta completa, você PODE finalizar com um bloco fenced após o disclaimer:
 \`\`\`pergunta-estruturada
 {"pergunta": "Texto curto da escolha", "opcoes": ["Opção 1", "Opção 2", "Opção 3"]}
 \`\`\`
-- Use no máximo 4 opções, cada uma com até 60 caracteres. Não use este bloco se a pergunta já estiver clara.
+- Não use nenhum destes formatos se a pergunta já estiver clara.
 
 ${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${blocoContextoCondominial(
             { contexto, temBaseCondominial },
