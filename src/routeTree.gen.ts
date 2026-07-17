@@ -33,6 +33,7 @@ import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
 import { Route as AuthenticatedAppAjudaIndexRouteImport } from './routes/_authenticated/app.ajuda.index'
 import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authenticated/app.admin.index'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
 import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
 import { Route as AuthenticatedAppAjudaDicasIaRouteImport } from './routes/_authenticated/app.ajuda.dicas-ia'
@@ -184,6 +185,12 @@ const AuthenticatedAppAdminIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedAppCondominiosIdRoute =
   AuthenticatedAppCondominiosIdRouteImport.update({
@@ -394,6 +401,7 @@ export interface FileRoutesByFullPath {
   '/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
@@ -445,6 +453,7 @@ export interface FileRoutesByTo {
   '/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/admin': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
@@ -501,6 +510,7 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
   '/_authenticated/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/_authenticated/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
@@ -557,6 +567,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/dicas-ia'
     | '/app/ajuda/faq'
     | '/app/condominios/$id'
+    | '/lovable/email/queue/process'
     | '/app/admin/'
     | '/app/ajuda/'
     | '/app/condominios/'
@@ -608,6 +619,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/dicas-ia'
     | '/app/ajuda/faq'
     | '/app/condominios/$id'
+    | '/lovable/email/queue/process'
     | '/app/admin'
     | '/app/ajuda'
     | '/app/condominios'
@@ -663,6 +675,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/ajuda/dicas-ia'
     | '/_authenticated/app/ajuda/faq'
     | '/_authenticated/app/condominios/$id'
+    | '/lovable/email/queue/process'
     | '/_authenticated/app/admin/'
     | '/_authenticated/app/ajuda/'
     | '/_authenticated/app/condominios/'
@@ -701,6 +714,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
   ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -872,6 +886,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/admin/'
       preLoaderRoute: typeof AuthenticatedAppAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/condominios/$id': {
       id: '/_authenticated/app/condominios/$id'
@@ -1243,17 +1264,8 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,
   ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
