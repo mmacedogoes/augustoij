@@ -24,6 +24,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AuthConfirmarRouteImport } from './routes/auth.confirmar'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
@@ -140,6 +141,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthConfirmarRoute = AuthConfirmarRouteImport.update({
+  id: '/auth/confirmar',
+  path: '/auth/confirmar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -407,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
+  '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
@@ -466,6 +473,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
+  '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog': typeof BlogIndexRoute
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRoute
@@ -524,6 +532,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
+  '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
@@ -585,6 +594,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/onboarding'
     | '/api/chat'
+    | '/auth/confirmar'
     | '/blog/$slug'
     | '/blog/'
     | '/app/admin'
@@ -644,6 +654,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/onboarding'
     | '/api/chat'
+    | '/auth/confirmar'
     | '/blog/$slug'
     | '/blog'
     | '/app/assinatura'
@@ -701,6 +712,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/_authenticated/onboarding'
     | '/api/chat'
+    | '/auth/confirmar'
     | '/blog/$slug'
     | '/blog/'
     | '/_authenticated/app/admin'
@@ -761,6 +773,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
   ApiChatRoute: typeof ApiChatRoute
+  AuthConfirmarRoute: typeof AuthConfirmarRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
@@ -874,6 +887,13 @@ declare module '@tanstack/react-router' {
       path: '/blog/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/confirmar': {
+      id: '/auth/confirmar'
+      path: '/auth/confirmar'
+      fullPath: '/auth/confirmar'
+      preLoaderRoute: typeof AuthConfirmarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -1344,6 +1364,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
   ApiChatRoute: ApiChatRoute,
+  AuthConfirmarRoute: AuthConfirmarRoute,
   BlogSlugRoute: BlogSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,

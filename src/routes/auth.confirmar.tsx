@@ -46,18 +46,18 @@ function ConfirmarPage() {
       let session = data.session;
       if (!session) {
         await new Promise<void>((resolve) => {
-          const timer = window.setTimeout(() => {
-            sub.subscription.unsubscribe();
-            resolve();
-          }, 4000);
           const sub = supabase.auth.onAuthStateChange((_ev, s) => {
             if (s) {
-              window.clearTimeout(timer);
               session = s;
-              sub.subscription.unsubscribe();
+              sub.data.subscription.unsubscribe();
+              window.clearTimeout(timer);
               resolve();
             }
           });
+          const timer = window.setTimeout(() => {
+            sub.data.subscription.unsubscribe();
+            resolve();
+          }, 4000);
         });
       }
 
