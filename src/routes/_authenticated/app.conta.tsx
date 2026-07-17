@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { Sparkles, Download, PencilLine, MailX, Trash2, Shield, ExternalLink, Loader2 } from "lucide-react";
+import { Sparkles, Download, PencilLine, MailX, Trash2, Shield, ExternalLink, Loader2, XCircle, CreditCard } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +40,7 @@ import {
 import { getProfile } from "@/lib/condominios.functions";
 import { updateMyProfile } from "@/lib/onboarding.functions";
 import { getUsoAtual } from "@/lib/uso.functions";
+import { getAssinaturaDetalhes, cancelarAssinaturaAsaas } from "@/lib/asaas.functions";
 import { UsageMeter } from "@/components/gates/UsageMeter";
 import type { UsoAtual } from "@/lib/uso-limits";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +76,8 @@ function ContaPage() {
   const [saving, setSaving] = useState(false);
   const [plano, setPlano] = useState<{ nome: string; status: string; trial_end: string | null } | null>(null);
   const [novaSenha, setNovaSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [alterandoSenha, setAlterandoSenha] = useState(false);
 
   const { data: uso } = useQuery<UsoAtual>({
     queryKey: ["uso-atual"],
@@ -119,13 +138,20 @@ function ContaPage() {
       toast.error("A senha precisa ter ao menos 8 caracteres.");
       return;
     }
+    if (novaSenha !== confirmarSenha) {
+      toast.error("A confirmação não confere com a nova senha.");
+      return;
+    }
+    setAlterandoSenha(true);
     const { error } = await supabase.auth.updateUser({ password: novaSenha });
+    setAlterandoSenha(false);
     if (error) {
       toast.error(error.message);
       return;
     }
     toast.success("Senha alterada");
     setNovaSenha("");
+    setConfirmarSenha("");
   }
 
   return (
@@ -223,12 +249,17 @@ function ContaPage() {
                 ) : null}
               </p>
             </div>
-            <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <Link to="/" hash="pricing">
-                <Sparkles className="h-3.5 w-3.5" /> Fazer upgrade
-              </Link>
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link to="/" hash="pricing">
+                  <Sparkles className="h-3.5 w-3.5" /> Fazer upgrade
+                </Link>
+              </Button>
+              <AssinaturaAcoes planoId={uso?.planoId ?? null} />
+            </div>
           </div>
+
+          <PagamentoInfo />
 
           {uso && (uso.limiteMes !== null || uso.limiteDia !== null) && (
             <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
@@ -259,12 +290,37 @@ function ContaPage() {
 
         <Card className="p-6 space-y-3">
           <h2 className="font-semibold">Segurança</h2>
-          <div className="space-y-1.5 max-w-sm">
-            <Label>Nova senha</Label>
-            <Input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="Mín. 8 caracteres" />
+          <div className="grid sm:grid-cols-2 gap-4 max-w-xl">
+            <div className="space-y-1.5">
+              <Label>Nova senha</Label>
+              <Input
+                type="password"
+                value={novaSenha}
+                onChange={(e) => setNovaSenha(e.target.value)}
+                placeholder="Mín. 8 caracteres"
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Confirmar nova senha</Label>
+              <Input
+                type="password"
+                value={confirmarSenha}
+                onChange={(e) => setConfirmarSenha(e.target.value)}
+                placeholder="Digite novamente"
+                autoComplete="new-password"
+              />
+              {confirmarSenha && novaSenha !== confirmarSenha && (
+                <p className="text-xs text-destructive">As senhas não conferem.</p>
+              )}
+            </div>
           </div>
-          <Button variant="outline" onClick={handlePasswordChange} disabled={!novaSenha}>
-            Alterar senha
+          <Button
+            variant="outline"
+            onClick={handlePasswordChange}
+            disabled={!novaSenha || !confirmarSenha || alterandoSenha}
+          >
+            {alterandoSenha ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Alterando…</> : "Alterar senha"}
           </Button>
         </Card>
 
