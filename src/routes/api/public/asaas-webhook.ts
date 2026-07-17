@@ -115,6 +115,18 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
                   console.log(
                     `[asaas-webhook] plano liberado user=${sub.user_id} plano=${novoPlano}`,
                   );
+                  // Envia e-mail de confirmação de pagamento (não bloqueia o webhook)
+                  try {
+                    await enviarEmailPagamentoConfirmado({
+                      supabaseAdmin,
+                      userId: sub.user_id,
+                      planoId: novoPlano,
+                      valorCentavos: parsed.payment?.value,
+                      proximaData: parsed.payment?.nextDueDate,
+                    });
+                  } catch (mailErr) {
+                    console.error("[asaas-webhook] falha ao enviar e-mail", mailErr);
+                  }
                 }
               } else if (event === "PAYMENT_OVERDUE") {
                 const { error: upErr } = await supabaseAdmin
