@@ -249,7 +249,7 @@ function OnboardingPage() {
           <div>
             <div className="mb-6 rounded-md border border-emerald-700/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
               <Sparkles className="inline h-4 w-4 mr-1.5 mb-0.5" />
-              Você tem 3 dias de teste grátis. Não cobramos nada agora — você só será cobrado quando a integração de pagamento for ativada.
+              Você tem 7 dias de teste grátis. Não cobramos nada agora — você só será cobrado quando a integração de pagamento for ativada.
             </div>
             <h2 className="text-2xl font-bold">Escolha seu plano {tipoLabel}</h2>
             <p className="text-slate-400 text-sm mt-1">Você pode trocar de plano a qualquer momento em sua conta.</p>

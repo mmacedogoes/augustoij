@@ -50,7 +50,7 @@ export const assinarPlano = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ plano_id: z.string().min(1) }).parse(input))
   .handler(async ({ data, context }) => {
-    const trialEnd = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     // upsert sem usar a coluna legada `plano`
     const { error } = await context.supabase.from("subscriptions").upsert(
       {
