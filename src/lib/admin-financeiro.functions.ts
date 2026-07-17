@@ -153,3 +153,41 @@ export const deleteDespesa = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+/**
+ * Cancelamentos: motivos declarados pelos clientes, agregados para acompanhamento.
+ */
+export const listCancelamentos = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("cancelamentos")
+      .select("id, user_id, plano_config_id, motivo, detalhes, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+
+    const ids = Array.from(new Set((data ?? []).map((d) => d.user_id)));
+    let nomes: Record<string, { nome: string | null; email: string | null }> = {};
+    if (ids.length) {
+      const { data: p } = await supabaseAdmin
+        .from("profiles")
+        .select("id, nome, email")
+        .in("id", ids);
+      nomes = Object.fromEntries((p ?? []).map((x) => [x.id, { nome: x.nome, email: x.email }]));
+    }
+
+    const porMotivo = new Map<string, number>();
+    for (const c of data ?? []) {
+      porMotivo.set(c.motivo, (porMotivo.get(c.motivo) ?? 0) + 1);
+    }
+
+    return {
+      rows: (data ?? []).map((r) => ({ ...r, profile: nomes[r.user_id] ?? null })),
+      agregado: Array.from(porMotivo.entries())
+        .map(([motivo, total]) => ({ motivo, total }))
+        .sort((a, b) => b.total - a.total),
+    };
+  });
