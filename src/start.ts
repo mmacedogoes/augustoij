@@ -4,7 +4,10 @@ import { setResponseHeaders } from "@tanstack/react-start/server";
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
-const errorMiddleware = createMiddleware().server(async ({ next }) => {
+const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
+  if (new URL(request.url).pathname.startsWith("/lovable/")) {
+    return next();
+  }
   try {
     return await next();
   } catch (error) {
@@ -20,7 +23,10 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 });
 
 // Adiciona headers de segurança a todas as respostas (SSR, server routes, server fns).
-const securityHeadersMiddleware = createMiddleware().server(async ({ next }) => {
+const securityHeadersMiddleware = createMiddleware().server(async ({ next, request }) => {
+  if (new URL(request.url).pathname.startsWith("/lovable/")) {
+    return next();
+  }
   try {
     setResponseHeaders({
       "strict-transport-security": "max-age=31536000; includeSubDomains",
