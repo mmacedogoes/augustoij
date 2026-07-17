@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,16 @@ import { TERMOS_VERSAO } from "@/config/legal";
 
 export const Route = createFileRoute("/signup")({
   ssr: false,
+  validateSearch: (s: Record<string, unknown>) => {
+    const planoRaw = typeof s.plano === "string" ? s.plano : "";
+    const cicloRaw = typeof s.ciclo === "string" ? s.ciclo : "";
+    const planosPagos = ["essencial", "profissional", "gestao", "administradora"] as const;
+    const plano = (planosPagos as readonly string[]).includes(planoRaw)
+      ? (planoRaw as typeof planosPagos[number])
+      : undefined;
+    const ciclo = cicloRaw === "anual" ? "anual" : cicloRaw === "mensal" ? "mensal" : undefined;
+    return { plano, ciclo };
+  },
   head: () => ({
     meta: [
       { title: "Criar conta — Augusto.IJ" },
@@ -53,6 +63,10 @@ function ReqItem({ ok, children }: { ok: boolean; children: React.ReactNode }) {
 
 function SignupPage() {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/signup" }) as {
+    plano?: "essencial" | "profissional" | "gestao" | "administradora";
+    ciclo?: "mensal" | "anual";
+  };
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -191,7 +205,14 @@ function SignupPage() {
       }
 
       toast.success("Conta criada com sucesso! Bem-vindo(a).");
-      navigate({ to: "/onboarding" });
+      if (search.plano) {
+        navigate({
+          to: "/app/assinatura",
+          search: { plano: search.plano, ciclo: search.ciclo ?? "mensal" },
+        });
+      } else {
+        navigate({ to: "/onboarding" });
+      }
     } catch (err) {
       console.error("[signup] exceção inesperada", err);
       const msg = err instanceof Error ? err.message : String(err);

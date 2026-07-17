@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 import { SectionHeader } from "./SectionHeader";
 import { PricingCard, type PricingBadge, type PricingFeature } from "./PricingCard";
 import { cn } from "@/lib/utils";
@@ -29,8 +30,6 @@ type Plan = {
   badge?: PricingBadge;
   fixedPrice?: string;
 };
-
-const CONTACT_HREF = "mailto:suporte@augustoij.com.br?subject=Plano%20Augusto.IJ";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -180,14 +179,32 @@ export function PricingSection() {
   const [billing, setBilling] = useState<Billing>("monthly");
   const navigate = useNavigate();
 
-  const handleCta = (plan: Plan) => {
+  const handleCta = async (plan: Plan) => {
     if (plan.ctaKind === "contact") {
-      window.location.href = CONTACT_HREF;
+      navigate({ to: "/contato" } as never);
       return;
+    }
+    const ciclo = billing === "annual" ? "anual" : "mensal";
+
+    // Plano gratuito: sempre pelo signup.
+    if (plan.id === "gratuito") {
+      navigate({ to: "/signup", search: { plano: plan.id, ciclo } } as never);
+      return;
+    }
+
+    // Planos pagos: se já estiver logado, pula o signup e vai direto ao checkout.
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate({ to: "/app/assinatura", search: { plano: plan.id, ciclo } } as never);
+        return;
+      }
+    } catch {
+      /* fallback abaixo */
     }
     navigate({
       to: "/signup",
-      search: { plano: plan.id, ciclo: billing === "annual" ? "anual" : "mensal" },
+      search: { plano: plan.id, ciclo },
     } as never);
   };
 
@@ -301,8 +318,9 @@ export function PricingSection() {
                 Converse com a gente e montamos um plano para o seu volume e necessidades
                 específicas.
               </p>
-              <a
-                href={CONTACT_HREF}
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/contato" } as never)}
                 className={cn(
                   "mt-6 inline-flex items-center justify-center rounded-md bg-augusto-green px-5 py-2.5 text-sm font-medium text-augusto-cream shadow-sm transition-all duration-200",
                   "hover:bg-augusto-green-dark hover:shadow",
@@ -311,7 +329,7 @@ export function PricingSection() {
                 )}
               >
                 Agendar conversa
-              </a>
+              </button>
             </div>
             <ul className="grid grid-cols-1 gap-2 self-center rounded-xl bg-augusto-cream/60 p-6 sm:grid-cols-2">
               {[
