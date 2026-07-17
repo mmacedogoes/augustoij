@@ -1,0 +1,17 @@
+# Augusto.IJ
+
+> Inteligência jurídica com IA para síndicos, administradoras e advogados condominiais no Brasil.
+
+## Pages
+
+- [Home](/): Visão geral do produto, planos e benefícios.
+- [História](/historia): A história fundadora do Augusto.IJ.
+- [Manifesto](/manifesto): Missão, visão e valores.
+- [Blog](/blog): Artigos sobre gestão condominial e direito.
+- [Privacidade](/privacidade): Política de privacidade.
+- [Termos](/termos): Termos de uso.
+
+## Optional
+
+- [Entrar](/login): Acesso à plataforma.
+- [Criar conta](/signup): Cadastro com 7 dias grátis.
