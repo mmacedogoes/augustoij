@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LoginRouteImport } from './routes/login'
@@ -70,6 +71,11 @@ const TermosRoute = TermosRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
@@ -362,6 +368,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
@@ -415,6 +422,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
@@ -467,6 +475,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/signup': typeof SignupRoute
   '/termos': typeof TermosRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
@@ -522,6 +531,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/manifesto'
     | '/privacidade'
+    | '/redefinir-senha'
     | '/signup'
     | '/termos'
     | '/onboarding'
@@ -575,6 +585,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/manifesto'
     | '/privacidade'
+    | '/redefinir-senha'
     | '/signup'
     | '/termos'
     | '/onboarding'
@@ -626,6 +637,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/manifesto'
     | '/privacidade'
+    | '/redefinir-senha'
     | '/signup'
     | '/termos'
     | '/_authenticated/onboarding'
@@ -681,6 +693,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ManifestoRoute: typeof ManifestoRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
+  RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   SignupRoute: typeof SignupRoute
   TermosRoute: typeof TermosRoute
   ApiChatRoute: typeof ApiChatRoute
@@ -704,6 +717,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/redefinir-senha': {
+      id: '/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/redefinir-senha'
+      preLoaderRoute: typeof RedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidade': {
@@ -1215,6 +1235,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ManifestoRoute: ManifestoRoute,
   PrivacidadeRoute: PrivacidadeRoute,
+  RedefinirSenhaRoute: RedefinirSenhaRoute,
   SignupRoute: SignupRoute,
   TermosRoute: TermosRoute,
   ApiChatRoute: ApiChatRoute,
