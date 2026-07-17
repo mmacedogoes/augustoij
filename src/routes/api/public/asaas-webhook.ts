@@ -362,20 +362,44 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
                   }
                 }
               } else if (event === "PAYMENT_OVERDUE") {
-                const { error: upErr } = await supabaseAdmin
+                const { data: updatedRows, error: upErr } = await supabaseAdmin
                   .from("subscriptions")
                   .update({
                     overdue_desde: new Date().toISOString(),
                     asaas_status: parsed.payment?.status ?? "OVERDUE",
                   })
                   .eq("id", sub.id)
-                  .is("overdue_desde", null);
+                  .is("overdue_desde", null)
+                  .select("id");
                 if (upErr) {
                   console.error("[asaas-webhook] erro ao marcar overdue", upErr);
                 } else {
                   console.log(
                     `[asaas-webhook] overdue registrado user=${sub.user_id} (tolerância 2 dias)`,
                   );
+                }
+                // Envia e-mail de aviso apenas na primeira marcação, para não
+                // repetir a cada webhook. Se já estava overdue, o update acima
+                // não afeta nenhuma linha.
+                if (!upErr && Array.isArray(updatedRows) && updatedRows.length > 0) {
+                  const linkPagamento =
+                    parsed.payment?.invoiceUrl ||
+                    parsed.payment?.bankSlipUrl ||
+                    "https://augustoij.com.br/app/assinatura";
+                  try {
+                    await enviarEmailPagamentoPendente({
+                      supabaseAdmin,
+                      userId: sub.user_id,
+                      planoId: sub.plano_config_id ?? sub.pending_plano_config_id ?? null,
+                      valorCentavos: parsed.payment?.value,
+                      linkPagamento,
+                    });
+                  } catch (mailErr) {
+                    console.error(
+                      "[asaas-webhook] falha ao enviar e-mail (overdue)",
+                      mailErr,
+                    );
+                  }
                 }
               }
             }
