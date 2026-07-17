@@ -41,7 +41,7 @@ function buildHtml(nome: string): string {
   <tr>
     <td style="padding:40px;color:#1F2937;font-family:Arial,Helvetica,sans-serif;">
       <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:bold;font-size:24px;color:#00512B;margin:0 0 16px;">Bem-vindo, ${safe}.</h1>
-      <p style="font-size:15px;line-height:1.65;color:#1F2937;margin:0 0 14px;">Sua conta no Augusto.IJ já está ativa e seu período gratuito de 30 dias começou agora.</p>
+      <p style="font-size:15px;line-height:1.65;color:#1F2937;margin:0 0 14px;">Sua conta no Augusto.IJ já está ativa e seu período gratuito de 7 dias começou agora.</p>
       <p style="font-size:15px;line-height:1.65;color:#1F2937;margin:0 0 14px;">Os próximos passos mais úteis:</p>
       <p style="font-size:15px;line-height:1.65;color:#1F2937;margin:0 0 14px;">1. Cadastre seu primeiro condomínio<br>2. Envie a convenção e o regimento interno<br>3. Faça sua primeira pergunta no chat</p>
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px auto;">
