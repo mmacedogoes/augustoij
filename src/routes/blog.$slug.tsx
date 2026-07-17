@@ -8,6 +8,53 @@ import { Button } from "@/components/ui/button";
 import { getPostPublico } from "@/lib/blog.functions";
 
 export const Route = createFileRoute("/blog/$slug")({
+  loader: async ({ params }) => {
+    try {
+      const post = await getPostPublico({ data: { slug: params.slug } });
+      return { post };
+    } catch {
+      return { post: null };
+    }
+  },
+  head: ({ params, loaderData }) => {
+    const post = loaderData?.post ?? null;
+    const url = `https://augustoij.com.br/blog/${params.slug}`;
+    const title = post?.titulo ? `${post.titulo} — Blog do Augusto.IJ` : "Artigo — Blog do Augusto.IJ";
+    const description = post?.resumo ?? "Artigo do Blog do Augusto.IJ sobre gestão condominial.";
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:url", content: url },
+      { property: "og:type", content: "article" },
+    ];
+    if (post?.imagem_capa) {
+      meta.push({ property: "og:image", content: post.imagem_capa });
+      meta.push({ name: "twitter:image", content: post.imagem_capa });
+    }
+    const scripts = post
+      ? [
+          {
+            type: "application/ld+json",
+            children: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Article",
+              headline: post.titulo,
+              datePublished: post.publicado_em ?? undefined,
+              author: post.autor ? { "@type": "Person", name: post.autor } : undefined,
+              image: post.imagem_capa ?? undefined,
+              mainEntityOfPage: url,
+            }),
+          },
+        ]
+      : undefined;
+    return {
+      meta,
+      links: [{ rel: "canonical", href: url }],
+      scripts,
+    };
+  },
   component: BlogPostPage,
 });
 

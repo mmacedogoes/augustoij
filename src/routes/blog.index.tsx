@@ -12,6 +12,23 @@ export const Route = createFileRoute("/blog/")({
     meta: [
       { title: "Blog do Augusto.IJ — gestão condominial inteligente" },
       { name: "description", content: "Artigos sobre gestão de condomínios, jurisprudência e direito condominial." },
+      { property: "og:title", content: "Blog do Augusto.IJ — gestão condominial inteligente" },
+      { property: "og:description", content: "Artigos sobre gestão de condomínios, jurisprudência e direito condominial." },
+      { property: "og:url", content: "https://augustoij.com.br/blog" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://augustoij.com.br/blog" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Blog do Augusto.IJ",
+          url: "https://augustoij.com.br/blog",
+          description: "Artigos sobre gestão de condomínios, jurisprudência e direito condominial.",
+        }),
+      },
     ],
   }),
   component: BlogIndex,

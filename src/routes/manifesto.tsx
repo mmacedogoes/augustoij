@@ -8,7 +8,12 @@ export const Route = createFileRoute("/manifesto")({
     meta: [
       { title: "Manifesto, Augusto.IJ" },
       { name: "description", content: "Manifesto institucional do Augusto.IJ. Missão, visão e valores." },
+      { property: "og:title", content: "Manifesto, Augusto.IJ" },
+      { property: "og:description", content: "Manifesto institucional do Augusto.IJ. Missão, visão e valores." },
+      { property: "og:url", content: "https://augustoij.com.br/manifesto" },
+      { property: "og:type", content: "article" },
     ],
+    links: [{ rel: "canonical", href: "https://augustoij.com.br/manifesto" }],
   }),
   component: ManifestoPage,
 });
