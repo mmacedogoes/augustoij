@@ -77,7 +77,7 @@ function TermosPage() {
             A plataforma oferece planos gratuito e pagos, com funcionalidades e limites distintos conforme descritos na página de planos.
           </p>
           <ul className={`${ul} mt-3`}>
-            <li><strong>Plano Gratuito:</strong> válido por 30 dias a partir do cadastro, limitado a 10 mensagens por dia e 1 condomínio.</li>
+            <li><strong>Plano Gratuito:</strong> válido por 7 dias a partir do cadastro, limitado a 10 mensagens por dia e 1 condomínio.</li>
             <li><strong>Planos pagos:</strong> cobrados mensalmente ou anualmente, conforme escolha do usuário no momento da contratação.</li>
             <li>O cancelamento pode ser realizado a qualquer tempo, sem multa, com efeito ao final do período já pago.</li>
             <li>Não há reembolso proporcional por dias não utilizados, salvo disposição legal em contrário.</li>
