@@ -82,6 +82,9 @@ function LoginPage() {
             </div>
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</Button>
         </form>
+        <p className="mt-4 text-center text-sm">
+          <Link to="/esqueci-senha" className="text-primary font-medium hover:underline">Esqueci minha senha</Link>
+        </p>
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Ainda não tem conta? <Link to="/signup" className="text-primary font-medium hover:underline">Criar conta</Link>
         </p>
