@@ -196,6 +196,48 @@ export type Database = {
         }
         Relationships: []
       }
+      asaas_webhook_events: {
+        Row: {
+          customer_id: string | null
+          erro: string | null
+          event_id: string | null
+          event_type: string | null
+          id: string
+          payload: Json
+          payment_id: string | null
+          processado_em: string | null
+          received_at: string
+          status: string | null
+          subscription_id: string | null
+        }
+        Insert: {
+          customer_id?: string | null
+          erro?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          payload: Json
+          payment_id?: string | null
+          processado_em?: string | null
+          received_at?: string
+          status?: string | null
+          subscription_id?: string | null
+        }
+        Update: {
+          customer_id?: string | null
+          erro?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json
+          payment_id?: string | null
+          processado_em?: string | null
+          received_at?: string
+          status?: string | null
+          subscription_id?: string | null
+        }
+        Relationships: []
+      }
       auth_rate_limits: {
         Row: {
           bloqueado_ate: string | null
@@ -2012,6 +2054,13 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          asaas_ambiente: string | null
+          asaas_billing_type: string | null
+          asaas_ciclo: string | null
+          asaas_customer_id: string | null
+          asaas_payment_url: string | null
+          asaas_status: string | null
+          asaas_subscription_id: string | null
           cortesia: boolean
           cortesia_concedida_por: string | null
           cortesia_observacao: string | null
@@ -2019,6 +2068,8 @@ export type Database = {
           creditos_mensagens_extras: number
           current_period_end: string | null
           id: string
+          pending_desde: string | null
+          pending_plano_config_id: string | null
           plano: Database["public"]["Enums"]["plano_assinatura"] | null
           plano_config_id: string
           plano_id: string | null
@@ -2031,6 +2082,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          asaas_ambiente?: string | null
+          asaas_billing_type?: string | null
+          asaas_ciclo?: string | null
+          asaas_customer_id?: string | null
+          asaas_payment_url?: string | null
+          asaas_status?: string | null
+          asaas_subscription_id?: string | null
           cortesia?: boolean
           cortesia_concedida_por?: string | null
           cortesia_observacao?: string | null
@@ -2038,6 +2096,8 @@ export type Database = {
           creditos_mensagens_extras?: number
           current_period_end?: string | null
           id?: string
+          pending_desde?: string | null
+          pending_plano_config_id?: string | null
           plano?: Database["public"]["Enums"]["plano_assinatura"] | null
           plano_config_id?: string
           plano_id?: string | null
@@ -2050,6 +2110,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          asaas_ambiente?: string | null
+          asaas_billing_type?: string | null
+          asaas_ciclo?: string | null
+          asaas_customer_id?: string | null
+          asaas_payment_url?: string | null
+          asaas_status?: string | null
+          asaas_subscription_id?: string | null
           cortesia?: boolean
           cortesia_concedida_por?: string | null
           cortesia_observacao?: string | null
@@ -2057,6 +2124,8 @@ export type Database = {
           creditos_mensagens_extras?: number
           current_period_end?: string | null
           id?: string
+          pending_desde?: string | null
+          pending_plano_config_id?: string | null
           plano?: Database["public"]["Enums"]["plano_assinatura"] | null
           plano_config_id?: string
           plano_id?: string | null

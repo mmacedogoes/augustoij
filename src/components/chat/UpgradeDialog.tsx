@@ -131,7 +131,14 @@ export function UpgradeDialog({
       window.location.href = "mailto:contato@augusto.ij?subject=Plano%20Personalizado";
       return;
     }
-    navigate({ to: "/signup", search: { plano: id, ciclo: "mensal" } } as never);
+    if (id === "gratuito") {
+      navigate({ to: "/signup", search: { plano: id, ciclo: "mensal" } } as never);
+      return;
+    }
+    navigate({
+      to: "/app/assinatura",
+      search: { plano: id, ciclo: "mensal" },
+    } as never);
   };
 
   return (
