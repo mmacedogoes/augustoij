@@ -358,6 +358,36 @@ export type Database = {
           },
         ]
       }
+      cancelamentos: {
+        Row: {
+          asaas_subscription_id: string | null
+          created_at: string
+          detalhes: string | null
+          id: string
+          motivo: string
+          plano_config_id: string | null
+          user_id: string
+        }
+        Insert: {
+          asaas_subscription_id?: string | null
+          created_at?: string
+          detalhes?: string | null
+          id?: string
+          motivo: string
+          plano_config_id?: string | null
+          user_id: string
+        }
+        Update: {
+          asaas_subscription_id?: string | null
+          created_at?: string
+          detalhes?: string | null
+          id?: string
+          motivo?: string
+          plano_config_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       caucoes: {
         Row: {
           contrato_locacao_id: string
@@ -2061,6 +2091,8 @@ export type Database = {
           asaas_payment_url: string | null
           asaas_status: string | null
           asaas_subscription_id: string | null
+          cancelado_em: string | null
+          cancelamento_motivo: string | null
           cortesia: boolean
           cortesia_concedida_por: string | null
           cortesia_observacao: string | null
@@ -2091,6 +2123,8 @@ export type Database = {
           asaas_payment_url?: string | null
           asaas_status?: string | null
           asaas_subscription_id?: string | null
+          cancelado_em?: string | null
+          cancelamento_motivo?: string | null
           cortesia?: boolean
           cortesia_concedida_por?: string | null
           cortesia_observacao?: string | null
@@ -2121,6 +2155,8 @@ export type Database = {
           asaas_payment_url?: string | null
           asaas_status?: string | null
           asaas_subscription_id?: string | null
+          cancelado_em?: string | null
+          cancelamento_motivo?: string | null
           cortesia?: boolean
           cortesia_concedida_por?: string | null
           cortesia_observacao?: string | null
