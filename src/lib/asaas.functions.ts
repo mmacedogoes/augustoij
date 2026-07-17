@@ -27,6 +27,7 @@ const criarSchema = z.object({
   ]),
   ciclo: z.enum(["mensal", "anual"]).default("mensal"),
   billing_type: z.enum(["UNDEFINED", "PIX", "BOLETO", "CREDIT_CARD"]).default("UNDEFINED"),
+  callback_url: z.string().url().optional(),
 });
 
 export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
@@ -94,6 +95,7 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
       nextDueDate: asaas.tomorrowIsoDate(),
       description: `Assinatura ${preco.nome} — Augusto.IJ (${data.ciclo})`,
       externalReference: `${userId}:${data.plano_id}:${data.ciclo}`,
+      callbackUrl: data.callback_url,
     });
 
     // 5) Primeira cobrança (para pegar invoiceUrl)
@@ -177,6 +179,33 @@ export const getPerfilParaAssinatura = createServerFn({ method: "GET" })
       .eq("id", userId)
       .maybeSingle();
     return data;
+  });
+
+/**
+ * Status atual da assinatura + se o usuário já possui algum condomínio.
+ * Usado pela tela de retorno pós-pagamento (`/app/assinatura/retorno`) para
+ * fazer polling até o webhook do Asaas promover `plano_config_id`.
+ */
+export const getStatusAssinaturaAtual = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("plano_config_id, status, pending_plano_config_id, asaas_status")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const { count } = await supabase
+      .from("condominios")
+      .select("id", { head: true, count: "exact" })
+      .eq("owner_id", userId);
+    return {
+      plano_config_id: sub?.plano_config_id ?? null,
+      status: sub?.status ?? null,
+      pending_plano_config_id: sub?.pending_plano_config_id ?? null,
+      asaas_status: sub?.asaas_status ?? null,
+      tem_condominio: (count ?? 0) > 0,
+    };
   });
 
 /**
