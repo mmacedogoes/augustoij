@@ -24,6 +24,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AuthConfirmarRouteImport } from './routes/auth.confirmar'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
@@ -39,6 +40,7 @@ import { Route as AuthenticatedAppAjudaIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authenticated/app.admin.index'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
+import { Route as AuthenticatedAppAssinaturaRetornoRouteImport } from './routes/_authenticated/app.assinatura.retorno'
 import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
 import { Route as AuthenticatedAppAjudaDicasIaRouteImport } from './routes/_authenticated/app.ajuda.dicas-ia'
 import { Route as AuthenticatedAppAjudaSecaoRouteImport } from './routes/_authenticated/app.ajuda.$secao'
@@ -142,6 +144,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthConfirmarRoute = AuthConfirmarRouteImport.update({
+  id: '/auth/confirmar',
+  path: '/auth/confirmar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -222,6 +229,12 @@ const AuthenticatedAppCondominiosIdRoute =
     id: '/app/condominios/$id',
     path: '/app/condominios/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppAssinaturaRetornoRoute =
+  AuthenticatedAppAssinaturaRetornoRouteImport.update({
+    id: '/retorno',
+    path: '/retorno',
+    getParentRoute: () => AuthenticatedAppAssinaturaRoute,
   } as any)
 const AuthenticatedAppAjudaFaqRoute =
   AuthenticatedAppAjudaFaqRouteImport.update({
@@ -407,11 +420,12 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
+  '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
-  '/app/assinatura': typeof AuthenticatedAppAssinaturaRoute
+  '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
@@ -429,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/app/ajuda/$secao': typeof AuthenticatedAppAjudaSecaoRoute
   '/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
+  '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
@@ -466,9 +481,10 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
+  '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog': typeof BlogIndexRoute
-  '/app/assinatura': typeof AuthenticatedAppAssinaturaRoute
+  '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
@@ -485,6 +501,7 @@ export interface FileRoutesByTo {
   '/app/ajuda/$secao': typeof AuthenticatedAppAjudaSecaoRoute
   '/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
+  '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/admin': typeof AuthenticatedAppAdminIndexRoute
@@ -524,11 +541,12 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
+  '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
-  '/_authenticated/app/assinatura': typeof AuthenticatedAppAssinaturaRoute
+  '/_authenticated/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
@@ -546,6 +564,7 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda/$secao': typeof AuthenticatedAppAjudaSecaoRoute
   '/_authenticated/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
   '/_authenticated/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
+  '/_authenticated/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
@@ -585,6 +604,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/onboarding'
     | '/api/chat'
+    | '/auth/confirmar'
     | '/blog/$slug'
     | '/blog/'
     | '/app/admin'
@@ -607,6 +627,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/$secao'
     | '/app/ajuda/dicas-ia'
     | '/app/ajuda/faq'
+    | '/app/assinatura/retorno'
     | '/app/condominios/$id'
     | '/lovable/email/queue/process'
     | '/app/admin/'
@@ -644,6 +665,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/onboarding'
     | '/api/chat'
+    | '/auth/confirmar'
     | '/blog/$slug'
     | '/blog'
     | '/app/assinatura'
@@ -663,6 +685,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/$secao'
     | '/app/ajuda/dicas-ia'
     | '/app/ajuda/faq'
+    | '/app/assinatura/retorno'
     | '/app/condominios/$id'
     | '/lovable/email/queue/process'
     | '/app/admin'
@@ -701,6 +724,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/_authenticated/onboarding'
     | '/api/chat'
+    | '/auth/confirmar'
     | '/blog/$slug'
     | '/blog/'
     | '/_authenticated/app/admin'
@@ -723,6 +747,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/ajuda/$secao'
     | '/_authenticated/app/ajuda/dicas-ia'
     | '/_authenticated/app/ajuda/faq'
+    | '/_authenticated/app/assinatura/retorno'
     | '/_authenticated/app/condominios/$id'
     | '/lovable/email/queue/process'
     | '/_authenticated/app/admin/'
@@ -761,6 +786,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
   ApiChatRoute: typeof ApiChatRoute
+  AuthConfirmarRoute: typeof AuthConfirmarRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
@@ -876,6 +902,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/confirmar': {
+      id: '/auth/confirmar'
+      path: '/auth/confirmar'
+      fullPath: '/auth/confirmar'
+      preLoaderRoute: typeof AuthConfirmarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -980,6 +1013,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/condominios/$id'
       preLoaderRoute: typeof AuthenticatedAppCondominiosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/assinatura/retorno': {
+      id: '/_authenticated/app/assinatura/retorno'
+      path: '/retorno'
+      fullPath: '/app/assinatura/retorno'
+      preLoaderRoute: typeof AuthenticatedAppAssinaturaRetornoRouteImport
+      parentRoute: typeof AuthenticatedAppAssinaturaRoute
     }
     '/_authenticated/app/ajuda/faq': {
       id: '/_authenticated/app/ajuda/faq'
@@ -1304,11 +1344,26 @@ const AuthenticatedAppAjudaRouteWithChildren =
     AuthenticatedAppAjudaRouteChildren,
   )
 
+interface AuthenticatedAppAssinaturaRouteChildren {
+  AuthenticatedAppAssinaturaRetornoRoute: typeof AuthenticatedAppAssinaturaRetornoRoute
+}
+
+const AuthenticatedAppAssinaturaRouteChildren: AuthenticatedAppAssinaturaRouteChildren =
+  {
+    AuthenticatedAppAssinaturaRetornoRoute:
+      AuthenticatedAppAssinaturaRetornoRoute,
+  }
+
+const AuthenticatedAppAssinaturaRouteWithChildren =
+  AuthenticatedAppAssinaturaRoute._addFileChildren(
+    AuthenticatedAppAssinaturaRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
   AuthenticatedAppAjudaRoute: typeof AuthenticatedAppAjudaRouteWithChildren
-  AuthenticatedAppAssinaturaRoute: typeof AuthenticatedAppAssinaturaRoute
+  AuthenticatedAppAssinaturaRoute: typeof AuthenticatedAppAssinaturaRouteWithChildren
   AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
@@ -1319,7 +1374,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedAppAdminRoute: AuthenticatedAppAdminRouteWithChildren,
   AuthenticatedAppAjudaRoute: AuthenticatedAppAjudaRouteWithChildren,
-  AuthenticatedAppAssinaturaRoute: AuthenticatedAppAssinaturaRoute,
+  AuthenticatedAppAssinaturaRoute: AuthenticatedAppAssinaturaRouteWithChildren,
   AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
@@ -1344,6 +1399,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
   ApiChatRoute: ApiChatRoute,
+  AuthConfirmarRoute: AuthConfirmarRoute,
   BlogSlugRoute: BlogSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,

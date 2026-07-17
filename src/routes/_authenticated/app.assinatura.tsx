@@ -66,14 +66,24 @@ function AssinaturaPage() {
 
   const mutation = useMutation({
     mutationFn: () =>
-      criar({ data: { plano_id: plano, ciclo, billing_type: billingType } }),
+      criar({
+        data: {
+          plano_id: plano,
+          ciclo,
+          billing_type: billingType,
+          callback_url:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/app/assinatura/retorno`
+              : undefined,
+        },
+      }),
     onSuccess: (res) => {
       if (res.payment_url) {
         toast.success("Assinatura criada. Redirecionando para pagamento…");
         window.location.href = res.payment_url;
       } else {
-        toast.success("Assinatura criada. Aguardando link de pagamento.");
-        pendente.refetch();
+        toast.success("Assinatura criada. Aguardando confirmação de pagamento.");
+        navigate({ to: "/app/assinatura/retorno" });
       }
     },
     onError: (err) => {
