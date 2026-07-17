@@ -160,6 +160,105 @@ async function enviarEmailPagamentoConfirmado(args: {
   }
 }
 
+function buildPagamentoPendenteHtml(params: {
+  nomePlano: string;
+  valor: string;
+  linkPagamento: string;
+}): string {
+  const nome = escapeHtml(params.nomePlano);
+  const valor = escapeHtml(params.valor);
+  const link = escapeHtml(params.linkPagamento);
+  const URL_LOGO_COMPLETO =
+    "https://augustoij.com.br/__l5e/assets-v1/598c4b3d-6b9f-4b5a-a484-6e195d698b48/augusto-ij-logo-full-dark-FINAL.png";
+  return `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="X-UA-Compatible" content="IE=edge"><title>Augusto.IJ</title></head>
+<body style="margin:0;padding:0;background-color:#F4F3F2;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F4F3F2" style="background-color:#F4F3F2;">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF;max-width:600px;width:100%;">
+  <tr><td align="center" bgcolor="#00512B" style="background-color:#00512B;padding:36px 40px;">
+    <img src="${URL_LOGO_COMPLETO}" width="240" alt="Augusto.IJ — Inteligência Jurídica para Condomínios" border="0" style="display:block;margin:0 auto;max-width:240px;height:auto;">
+  </td></tr>
+  <tr><td style="padding:40px;color:#1F2937;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;">
+      <tr><td bgcolor="#F3EBDC" style="background-color:#F3EBDC;border-radius:20px;padding:7px 16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#8A6A3F;">PAGAMENTO PENDENTE</td></tr>
+    </table>
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:bold;font-size:24px;color:#00512B;margin:0 0 16px;">Identificamos um pagamento em aberto</h1>
+    <p style="font-size:15px;line-height:1.65;color:#1F2937;margin:0 0 14px;">O pagamento do seu plano ${nome}, no valor de ${valor}, ainda não foi confirmado. Você tem alguns dias antes de qualquer alteração no seu acesso.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px auto;">
+      <tr><td align="center" bgcolor="#00512B" style="background-color:#00512B;border-radius:4px;">
+        <a href="${link}" style="display:inline-block;padding:14px 34px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-decoration:none;">Regularizar pagamento</a>
+      </td></tr>
+    </table>
+    <p style="font-size:13px;color:#475569;margin:0;">Se você já pagou, pode ignorar este e-mail — a confirmação pode levar até 1 dia útil para boleto e Pix.</p>
+  </td></tr>
+  <tr><td align="center" bgcolor="#F4F3F2" style="background-color:#F4F3F2;padding:20px 40px;border-top:1px solid #E4E1D8;">
+    <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#475569;margin:0;">Augusto.IJ Tecnologia LTDA</p>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+}
+
+async function enviarEmailPagamentoPendente(args: {
+  supabaseAdmin: any;
+  userId: string;
+  planoId: string | null;
+  valorCentavos: number | undefined;
+  linkPagamento: string;
+}): Promise<void> {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_API_KEY) {
+    console.warn("[asaas-webhook] RESEND_API_KEY ausente — pulando e-mail");
+    return;
+  }
+
+  const { data: userRes, error: userErr } =
+    await args.supabaseAdmin.auth.admin.getUserById(args.userId);
+  const email = userRes?.user?.email;
+  if (userErr || !email) {
+    console.error("[asaas-webhook] usuário sem e-mail", userErr);
+    return;
+  }
+
+  let nomePlano = "contratado";
+  if (args.planoId) {
+    const { data: plano } = await args.supabaseAdmin
+      .from("planos")
+      .select("nome")
+      .eq("id", args.planoId)
+      .maybeSingle();
+    if (plano?.nome) nomePlano = plano.nome;
+  }
+
+  const html = buildPagamentoPendenteHtml({
+    nomePlano,
+    valor: formatBRL(args.valorCentavos ?? null),
+    linkPagamento: args.linkPagamento,
+  });
+
+  const resp = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "Augusto.IJ <naoresponda@mail.augustoij.com.br>",
+      to: [email],
+      subject: "Aviso: seu pagamento está pendente",
+      html,
+    }),
+  });
+
+  if (!resp.ok) {
+    const detail = await resp.text();
+    console.error("[asaas-webhook] Resend (overdue) falhou", resp.status, detail);
+  } else {
+    console.log("[asaas-webhook] e-mail de pagamento pendente enviado para", email);
+  }
+}
+
 export const Route = createFileRoute("/api/public/asaas-webhook")({
   server: {
     handlers: {
