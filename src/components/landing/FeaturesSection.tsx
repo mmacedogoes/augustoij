@@ -1,5 +1,6 @@
 import { SectionHeader } from "./SectionHeader";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
+import { Reveal } from "./Reveal";
 
 const FEATURES = [
   {
@@ -45,10 +46,12 @@ export function FeaturesSection() {
         />
 
         <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div
+          {FEATURES.map((f, i) => (
+            <Reveal
               key={f.title}
-              className="rounded-lg bg-white border-t-2 border-augusto-gold/60 shadow-sm p-8 hover:shadow-md transition-shadow"
+              direction="up"
+              delay={(i % 3) * 0.08}
+              className="group rounded-lg bg-white border-t-2 border-augusto-gold/60 shadow-sm p-8 transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:border-augusto-gold"
             >
               <AugustoLogo variant="icon-only" size={28} />
               <h3 className="mt-4 font-serif text-augusto-green text-[22px] leading-tight">
@@ -58,7 +61,7 @@ export function FeaturesSection() {
               <div className="mt-5 font-serif italic text-augusto-gold text-[13px] tracking-wide">
                 {f.latim}
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

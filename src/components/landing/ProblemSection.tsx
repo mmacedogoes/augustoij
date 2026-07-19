@@ -1,3 +1,5 @@
+import { Reveal } from "./Reveal";
+
 const STATS = [
   { number: "350.000+", label: "Condomínios no Brasil" },
   { number: "12 milhões", label: "Unidades habitacionais" },
@@ -21,9 +23,10 @@ export function ProblemSection() {
         </p>
 
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {STATS.map((s) => (
-            <div
+          {STATS.map((s, i) => (
+            <Reveal
               key={s.label}
+              delay={i * 0.08}
               className="group flex flex-col items-center rounded-xl bg-white border border-augusto-gold/25 shadow-sm px-6 py-10 hover:-translate-y-1 hover:shadow-md hover:border-augusto-gold transition-all duration-200"
             >
               <div className="font-serif text-augusto-green text-5xl md:text-[64px] leading-none">
@@ -36,11 +39,14 @@ export function ProblemSection() {
               <div className="mt-4 text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-slate">
                 {s.label}
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
 
-        <div className="mt-20 mx-auto max-w-[820px] rounded-2xl bg-augusto-green text-augusto-cream px-8 md:px-14 py-14 shadow-[0_30px_80px_-30px_rgba(0,81,43,0.5)] relative overflow-hidden">
+        <Reveal
+          delay={0.1}
+          className="mt-20 mx-auto max-w-[820px] rounded-2xl bg-augusto-green text-augusto-cream px-8 md:px-14 py-14 shadow-[0_30px_80px_-30px_rgba(0,81,43,0.5)] relative overflow-hidden"
+        >
           <span
             aria-hidden="true"
             className="pointer-events-none absolute left-6 top-2 font-serif text-augusto-gold/70 text-[140px] leading-none select-none"
@@ -55,7 +61,7 @@ export function ProblemSection() {
           <div className="mt-6 text-[11px] font-medium uppercase tracking-[0.24em] text-augusto-gold">
             Do manifesto Augusto.IJ
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
