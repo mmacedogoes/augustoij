@@ -213,6 +213,7 @@ export const togglePagamento = createServerFn({ method: "POST" })
     let honorarioRemovido = false;
     if (parcela.tipo === "aluguel") {
       // Descobre proprietário e contrato de administração ativo.
+      if (!parcela.contrato_locacao_id) return { ok: true, honorarioLancado: false, honorarioRemovido: false };
       const { data: loc } = await context.supabase
         .from("contratos_locacao")
         .select("id, imoveis(proprietario_id)")
@@ -276,7 +277,7 @@ export const updatePagamento = createServerFn({ method: "POST" })
     z.object({
       id: z.string().uuid(),
       valor: z.number().nullable().optional(),
-      desconto: z.number().nullable().optional(),
+      desconto: z.number().optional(),
       vencimento: z.string().nullable().optional(),
       observacoes: z.string().nullable().optional(),
     }).parse(v),
