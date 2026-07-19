@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Pencil, Check, X, ArrowLeft, TrendingUp, Wallet, FileText } from "lucide-react";
 import {
   listPagamentosContrato,
@@ -39,6 +40,7 @@ type Pagamento = {
   tipo: string;
   competencia: string;
   valor: number | null;
+  desconto: number | null;
   vencimento: string;
   pago: boolean;
   data_pagamento: string | null;
@@ -89,7 +91,7 @@ function Painel() {
   const getReajusteStatusFn = useServerFn(getReajusteStatus);
   const [contrato, setContrato] = useState<ContratoInfo | null>(null);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
-  const [editing, setEditing] = useState<{ id: string; valor: string; vencimento: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; valor: string; desconto: string; vencimento: string } | null>(null);
   const [reajustes, setReajustes] = useState<Reajuste[]>([]);
   const [reajusteStatus, setReajusteStatus] = useState<{
     proximaData: string | null; ultimoReajuste: string | null; diasParaReajuste: number | null; pendente: boolean;
@@ -278,52 +280,76 @@ function Painel() {
           </Card>
         )}
 
-        <Card className="divide-y">
-          <div className="p-4 font-medium text-primary">Parcelas ({pagamentos.length})</div>
-          {pagamentos.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">Sem parcelas geradas. Verifique se o contrato tem data de início e dia de vencimento.</p>
-          ) : pagamentos.map((p) => {
+        {(() => {
+          const grupos: Record<string, Pagamento[]> = { aluguel: [], condominio: [], iptu: [], tcr: [], outros: [] };
+          for (const p of pagamentos) {
+            if (grupos[p.tipo]) grupos[p.tipo].push(p);
+            else grupos.outros.push(p);
+          }
+          const totalPago = pagamentos
+            .filter((p) => p.pago)
+            .reduce((a, p) => a + Math.max(0, Number(p.valor ?? 0) - Number(p.desconto ?? 0)), 0);
+          const totalAberto = pagamentos
+            .filter((p) => !p.pago)
+            .reduce((a, p) => a + Math.max(0, Number(p.valor ?? 0) - Number(p.desconto ?? 0)), 0);
+          const renderRow = (p: Pagamento) => {
             const isEditing = editing?.id === p.id;
             const vencida = !p.pago && new Date(p.vencimento) < hoje;
+            const base = Math.max(0, Number(p.valor ?? 0) - Number(p.desconto ?? 0));
             const mora = vencida
-              ? calcularMora(Number(p.valor ?? 0), p.vencimento, hoje, contrato?.multa_mora_percent ?? 2, contrato?.juros_mora_mensal_percent ?? 1)
+              ? calcularMora(base, p.vencimento, hoje, contrato?.multa_mora_percent ?? 2, contrato?.juros_mora_mensal_percent ?? 1)
               : null;
             return (
               <div key={p.id} className="p-4 flex flex-wrap items-center gap-3">
-                <div className="min-w-[80px]">
-                  <span className="text-xs uppercase font-medium tracking-wide text-muted-foreground">{p.tipo}</span>
-                </div>
-                <div className="min-w-[110px]"><p className="text-sm">{p.competencia}</p></div>
+                <div className="min-w-[110px]"><p className="text-sm font-medium">{p.competencia}</p></div>
                 <div className="min-w-[130px]">
                   {isEditing ? (
                     <Input value={editing.vencimento} onChange={(e) => setEditing({ ...editing, vencimento: e.target.value })} type="date" />
                   ) : (
-                    <p className="text-sm">Venc: {formatDateBR(p.vencimento)}</p>
+                    <p className="text-xs text-muted-foreground">Venc: {formatDateBR(p.vencimento)}</p>
                   )}
                 </div>
-                <div className="min-w-[130px]">
+                <div className="min-w-[120px]">
                   {isEditing ? (
-                    <Input value={editing.valor} onChange={(e) => setEditing({ ...editing, valor: e.target.value })} placeholder="R$ 0,00" />
+                    <>
+                      <Label className="text-[10px] text-muted-foreground">Valor</Label>
+                      <Input value={editing.valor} onChange={(e) => setEditing({ ...editing, valor: e.target.value })} placeholder="R$ 0,00" />
+                    </>
                   ) : (
                     <p className="text-sm font-medium">{formatBRL(p.valor)}</p>
                   )}
                 </div>
+                <div className="min-w-[120px]">
+                  {isEditing ? (
+                    <>
+                      <Label className="text-[10px] text-muted-foreground">Desconto</Label>
+                      <Input value={editing.desconto} onChange={(e) => setEditing({ ...editing, desconto: e.target.value })} placeholder="R$ 0,00" />
+                    </>
+                  ) : (
+                    <p className="text-xs">Desc.: <b>{formatBRL(p.desconto ?? 0)}</b></p>
+                  )}
+                </div>
                 <div className="flex-1 min-w-[180px]">
                   {p.pago ? (
-                    <Badge variant="secondary">Pago em {formatDateBR(p.data_pagamento)}</Badge>
+                    <Badge variant="secondary">Pago em {formatDateBR(p.data_pagamento)}{p.desconto ? ` • líq. ${formatBRL(base)}` : ""}</Badge>
                   ) : vencida ? (
                     <span className="text-xs text-destructive">
                       Atraso {mora?.diasAtraso}d • Multa {formatBRL(mora?.multa)} • Juros {formatBRL(mora?.juros)} → Total {formatBRL(mora?.total)}
                     </span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">Em aberto</span>
+                    <span className="text-xs text-muted-foreground">Em aberto • líq. {formatBRL(base)}</span>
                   )}
                 </div>
                 {isEditing ? (
                   <>
                     <Button size="sm" onClick={async () => {
                       try {
-                        await updateFn({ data: { id: p.id, valor: parseBRL(editing.valor), vencimento: editing.vencimento || null } });
+                        await updateFn({ data: {
+                          id: p.id,
+                          valor: parseBRL(editing.valor),
+                          desconto: parseBRL(editing.desconto) ?? 0,
+                          vencimento: editing.vencimento || null,
+                        } });
                         setEditing(null); toast.success("Parcela atualizada"); reload();
                       } catch (e) { toast.error((e as Error).message); }
                     }}><Check className="h-4 w-4" /></Button>
@@ -333,20 +359,62 @@ function Painel() {
                   <>
                     <Button size="sm" variant={p.pago ? "outline" : "default"} onClick={async () => {
                       try {
-                        await toggleFn({ data: { id: p.id, pago: !p.pago } });
-                        toast.success(p.pago ? "Marcado como não pago" : "Marcado como pago");
+                        const r = await toggleFn({ data: { id: p.id, pago: !p.pago } });
+                        if (p.pago) {
+                          toast.success(r?.honorarioRemovido ? "Baixa desfeita e honorário removido" : "Marcado como não pago");
+                        } else {
+                          toast.success(r?.honorarioLancado ? "Pago — honorário lançado" : "Marcado como pago");
+                        }
                         reload();
                       } catch (e) { toast.error((e as Error).message); }
                     }}>{p.pago ? "Desfazer" : "Marcar como pago"}</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditing({ id: p.id, valor: p.valor?.toString() ?? "", vencimento: p.vencimento })}>
+                    <Button size="sm" variant="ghost" onClick={() => setEditing({ id: p.id, valor: p.valor?.toString() ?? "", desconto: p.desconto?.toString() ?? "0", vencimento: p.vencimento })}>
                       <Pencil className="h-4 w-4" />
                     </Button>
                   </>
                 )}
               </div>
             );
-          })}
-        </Card>
+          };
+          const tabs: Array<{ key: keyof typeof grupos; label: string }> = [
+            { key: "aluguel", label: "Aluguel" },
+            { key: "condominio", label: "Condomínio" },
+            { key: "iptu", label: "IPTU" },
+            { key: "tcr", label: "TCR" },
+            { key: "outros", label: "Outros" },
+          ];
+          return (
+            <Card className="mb-6">
+              <div className="p-4 flex flex-wrap items-center justify-between gap-3 border-b">
+                <div className="font-medium text-primary">Pagamentos</div>
+                <div className="text-xs text-muted-foreground">
+                  Recebido: <b className="text-emerald-600">{formatBRL(totalPago)}</b>
+                  {" • "}Em aberto: <b className="text-amber-600">{formatBRL(totalAberto)}</b>
+                </div>
+              </div>
+              {pagamentos.length === 0 ? (
+                <p className="p-6 text-sm text-muted-foreground">Sem parcelas geradas. Verifique se o contrato tem data de início e dia de vencimento.</p>
+              ) : (
+                <Tabs defaultValue="aluguel" className="p-4">
+                  <TabsList className="flex-wrap">
+                    {tabs.map((t) => (
+                      <TabsTrigger key={t.key} value={t.key} disabled={grupos[t.key].length === 0}>
+                        {t.label} ({grupos[t.key].length})
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {tabs.map((t) => (
+                    <TabsContent key={t.key} value={t.key} className="divide-y border rounded-md mt-3">
+                      {grupos[t.key].length === 0 ? (
+                        <p className="p-4 text-sm text-muted-foreground">Sem lançamentos.</p>
+                      ) : grupos[t.key].map(renderRow)}
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              )}
+            </Card>
+          );
+        })()}
 
         {contrato?.imovel_id && <ManutencoesPanel imovelId={contrato.imovel_id} />}
 

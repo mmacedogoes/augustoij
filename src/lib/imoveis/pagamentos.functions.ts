@@ -186,15 +186,93 @@ export const togglePagamento = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureSuperAdmin(context);
+    // Carrega parcela para decidir se gera honorário.
+    const { data: parcela, error: eGet } = await context.supabase
+      .from("pagamentos")
+      .select("id, tipo, valor, desconto, competencia, contrato_locacao_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (eGet) throw new Error(eGet.message);
+    if (!parcela) throw new Error("Parcela não encontrada");
+
+    const dataPag = data.pago
+      ? (data.data_pagamento ?? new Date().toISOString().slice(0, 10))
+      : null;
     const { error } = await context.supabase
       .from("pagamentos")
       .update({
         pago: data.pago,
-        data_pagamento: data.pago ? (data.data_pagamento ?? new Date().toISOString().slice(0, 10)) : null,
+        data_pagamento: dataPag,
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
-    return { ok: true };
+
+    // Ao confirmar pagamento de ALUGUEL, lança honorário mensal correspondente.
+    // Ao desfazer, remove honorário se ainda não recebido.
+    let honorarioLancado = false;
+    let honorarioRemovido = false;
+    if (parcela.tipo === "aluguel") {
+      // Descobre proprietário e contrato de administração ativo.
+      if (!parcela.contrato_locacao_id || !parcela.competencia) {
+        return { ok: true, honorarioLancado: false, honorarioRemovido: false };
+      }
+      const contratoLocacaoId = parcela.contrato_locacao_id;
+      const competencia = parcela.competencia;
+      const { data: loc } = await context.supabase
+        .from("contratos_locacao")
+        .select("id, imoveis(proprietario_id)")
+        .eq("id", contratoLocacaoId)
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const propId = (loc as any)?.imoveis?.proprietario_id as string | undefined;
+      if (propId) {
+        const { data: adm } = await context.supabase
+          .from("contratos_administracao")
+          .select("id, percent_honorario_mensal")
+          .eq("proprietario_id", propId)
+          .eq("status", "ativo")
+          .maybeSingle();
+        const perc = Number(adm?.percent_honorario_mensal ?? 0);
+        if (adm && perc > 0) {
+          if (data.pago) {
+            const base = Math.max(0, Number(parcela.valor ?? 0) - Number(parcela.desconto ?? 0));
+            const valorHon = base * (perc / 100);
+            const { error: eIns } = await context.supabase
+              .from("honorarios")
+              .upsert(
+                [{
+                  contrato_administracao_id: adm.id,
+                  contrato_locacao_id: contratoLocacaoId,
+                  owner_admin_id: context.userId,
+                  tipo: "mensal",
+                  competencia,
+                  base_calculo: base,
+                  percentual: perc,
+                  valor: valorHon,
+                  vencimento: dataPag ?? new Date().toISOString().slice(0, 10),
+                }],
+                {
+                  onConflict: "contrato_administracao_id,contrato_locacao_id,tipo,competencia",
+                  ignoreDuplicates: false,
+                },
+              );
+            if (!eIns) honorarioLancado = true;
+          } else {
+            // Desfaz o lançamento apenas se ainda não foi recebido.
+            const { error: eDel } = await context.supabase
+              .from("honorarios")
+              .delete()
+              .eq("contrato_administracao_id", adm.id)
+              .eq("contrato_locacao_id", contratoLocacaoId)
+              .eq("tipo", "mensal")
+              .eq("competencia", competencia)
+              .eq("pago", false);
+            if (!eDel) honorarioRemovido = true;
+          }
+        }
+      }
+    }
+    return { ok: true, honorarioLancado, honorarioRemovido };
   });
 
 export const updatePagamento = createServerFn({ method: "POST" })
@@ -203,6 +281,7 @@ export const updatePagamento = createServerFn({ method: "POST" })
     z.object({
       id: z.string().uuid(),
       valor: z.number().nullable().optional(),
+      desconto: z.number().optional(),
       vencimento: z.string().nullable().optional(),
       observacoes: z.string().nullable().optional(),
     }).parse(v),

@@ -1,0 +1,1 @@
+ALTER TABLE public.pagamentos ADD COLUMN IF NOT EXISTS desconto numeric NOT NULL DEFAULT 0;

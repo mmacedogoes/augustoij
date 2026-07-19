@@ -1734,6 +1734,7 @@ export type Database = {
           contrato_locacao_id: string
           created_at: string
           data_pagamento: string | null
+          desconto: number
           id: string
           observacoes: string | null
           owner_admin_id: string
@@ -1748,6 +1749,7 @@ export type Database = {
           contrato_locacao_id: string
           created_at?: string
           data_pagamento?: string | null
+          desconto?: number
           id?: string
           observacoes?: string | null
           owner_admin_id?: string
@@ -1762,6 +1764,7 @@ export type Database = {
           contrato_locacao_id?: string
           created_at?: string
           data_pagamento?: string | null
+          desconto?: number
           id?: string
           observacoes?: string | null
           owner_admin_id?: string
