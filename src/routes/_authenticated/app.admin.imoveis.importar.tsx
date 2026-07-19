@@ -204,7 +204,7 @@ function Page() {
         } else {
           toast.success("Contrato de locação importado!");
         }
-        navigate({ to: "/app/admin/imoveis/locacao/$id", params: { id: r.contrato_id } });
+        navigate({ to: "/app/admin/imoveis/locacao/$id/editar", params: { id: r.contrato_id } });
       } else if (tipo === "administracao") {
         const r = await salvarAdmFn({
           data: {
