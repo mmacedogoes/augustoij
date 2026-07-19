@@ -31,6 +31,7 @@ const empty: ContratoLocacaoInput = {
   inquilino_nome: null, inquilino_cpf: null, inquilino_estado_civil: null, inquilino_profissao: null,
   inquilino_rg: null, inquilino_email: null, inquilino_telefone: null, inquilino_endereco: null,
   valor_aluguel: null, dia_vencimento: null,
+  valor_aluguel_inicial: null,
   data_contrato_original: null, data_inicio_vigencia: null, prazo_meses: null,
   indice_reajuste: "IGP-M", periodicidade_reajuste_meses: 12, mes_base_reajuste: null,
   encargos_inquilino: { condominio: true, agua: true, luz: true, iptu: true, tcr: true },
@@ -176,13 +177,23 @@ function Page() {
           <Card className="p-6 grid gap-4 sm:grid-cols-2">
             <h2 className="text-lg font-semibold text-primary sm:col-span-2">Valores e prazo</h2>
             <div>
-              <Label>Valor do aluguel</Label>
+              <Label>Valor atual do aluguel</Label>
               <Input
                 value={valorAluguelStr}
                 onChange={(e) => { setValorAluguelStr(e.target.value); set("valor_aluguel", parseBRL(e.target.value)); }}
                 onBlur={() => setValorAluguelStr(form.valor_aluguel != null ? formatBRL(form.valor_aluguel) : "")}
                 placeholder="R$ 0,00"
               />
+              <p className="text-xs text-muted-foreground mt-1">Atualizado automaticamente pelos reajustes aplicados.</p>
+            </div>
+            <div>
+              <Label>Valor inicial do aluguel</Label>
+              <Input
+                value={form.valor_aluguel_inicial != null ? formatBRL(form.valor_aluguel_inicial) : ""}
+                onChange={(e) => set("valor_aluguel_inicial", parseBRL(e.target.value))}
+                placeholder="R$ 0,00"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Valor originalmente contratado (referência histórica).</p>
             </div>
             <div>
               <Label>Dia de vencimento (1-31)</Label>

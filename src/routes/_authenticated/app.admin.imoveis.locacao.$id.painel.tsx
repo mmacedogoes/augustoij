@@ -24,8 +24,11 @@ import {
   aplicarReajuste,
   listReajustes,
   getCaucaoAtualizada,
+  getReajusteStatus,
 } from "@/lib/imoveis/reajustes.functions";
 import { formatBRL, formatDateBR, parseBRL } from "@/lib/imoveis/masks";
+import { ManutencoesPanel } from "@/components/imoveis/ManutencoesPanel";
+import { AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/admin/imoveis/locacao/$id/painel")({
   component: Painel,
@@ -44,11 +47,16 @@ type Pagamento = {
 
 type ContratoInfo = {
   id: string;
+  imovel_id: string;
   inquilino_nome: string | null;
+  inquilino_telefone: string | null;
   valor_aluguel: number | null;
+  valor_aluguel_inicial: number | null;
   dia_vencimento: number | null;
   data_inicio_vigencia: string | null;
   prazo_meses: number | null;
+  indice_reajuste: string | null;
+  periodicidade_reajuste_meses: number | null;
   status: string;
   multa_mora_percent: number;
   juros_mora_mensal_percent: number;
@@ -78,10 +86,14 @@ function Painel() {
   const aplicarReajusteFn = useServerFn(aplicarReajuste);
   const listReajustesFn = useServerFn(listReajustes);
   const getCaucaoFn = useServerFn(getCaucaoAtualizada);
+  const getReajusteStatusFn = useServerFn(getReajusteStatus);
   const [contrato, setContrato] = useState<ContratoInfo | null>(null);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [editing, setEditing] = useState<{ id: string; valor: string; vencimento: string } | null>(null);
   const [reajustes, setReajustes] = useState<Reajuste[]>([]);
+  const [reajusteStatus, setReajusteStatus] = useState<{
+    proximaData: string | null; ultimoReajuste: string | null; diasParaReajuste: number | null; pendente: boolean;
+  } | null>(null);
   const [caucao, setCaucao] = useState<{
     caucao: CaucaoRow | null; valorAtual: number; memoria: string | null; dataReferencia: string | null;
   } | null>(null);
@@ -95,12 +107,14 @@ function Painel() {
       listFn({ data: { contratoId: id } }),
       listReajustesFn({ data: { contratoId: id } }),
       getCaucaoFn({ data: { contratoId: id } }),
+      getReajusteStatusFn({ data: { contratoId: id } }),
     ])
-      .then(([r, rj, cc]) => {
+      .then(([r, rj, cc, rs]) => {
         setContrato(r.contrato as unknown as ContratoInfo);
         setPagamentos((r.pagamentos ?? []) as unknown as Pagamento[]);
         setReajustes(rj.rows as unknown as Reajuste[]);
         setCaucao(cc as typeof caucao);
+        setReajusteStatus(rs);
       })
       .catch((e) => toast.error(e.message));
 
@@ -177,6 +191,7 @@ function Painel() {
             <div><p className="text-xs text-muted-foreground">Proprietário</p><p className="font-medium">{im?.proprietarios?.nome ?? "—"}</p></div>
             <div><p className="text-xs text-muted-foreground">Status</p><Badge>{contrato?.status}</Badge></div>
             <div><p className="text-xs text-muted-foreground">Aluguel</p><p className="font-medium">{formatBRL(contrato?.valor_aluguel)}</p></div>
+            <div><p className="text-xs text-muted-foreground">Aluguel inicial</p><p className="font-medium">{formatBRL(contrato?.valor_aluguel_inicial ?? contrato?.valor_aluguel)}</p></div>
             <div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">dia {contrato?.dia_vencimento ?? "—"}</p></div>
             <div><p className="text-xs text-muted-foreground">Início</p><p className="font-medium">{formatDateBR(contrato?.data_inicio_vigencia)}</p></div>
             <div><p className="text-xs text-muted-foreground">Fim</p><p className="font-medium">{formatDateBR(dataFim)}</p></div>
@@ -193,6 +208,34 @@ function Painel() {
             </Link>
           </div>
         </Card>
+
+        {reajusteStatus?.pendente && (
+          <Card className="p-5 mb-6 border-amber-500/50 bg-amber-500/5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-amber-900 dark:text-amber-200">Reajuste pendente</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Próxima data de reajuste: <b>{formatDateBR(reajusteStatus.proximaData)}</b>
+                  {reajusteStatus.diasParaReajuste != null && (
+                    <> — {reajusteStatus.diasParaReajuste < 0
+                      ? `${Math.abs(reajusteStatus.diasParaReajuste)} dia(s) em atraso`
+                      : `em ${reajusteStatus.diasParaReajuste} dia(s)`}</>
+                  )}
+                  {contrato?.indice_reajuste && <> • índice {contrato.indice_reajuste}</>}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Calcule o novo valor com base no índice contratado e aplique para atualizar automaticamente o valor do aluguel.
+                </p>
+                <div className="mt-3">
+                  <Button size="sm" onClick={abrirDialogoReajuste}>
+                    <TrendingUp className="h-4 w-4 mr-1" /> Calcular e aplicar reajuste
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {caucao?.caucao?.possui && (
           <Card className="p-5 mb-6 border-primary/40">
@@ -304,6 +347,8 @@ function Painel() {
             );
           })}
         </Card>
+
+        {contrato?.imovel_id && <ManutencoesPanel imovelId={contrato.imovel_id} />}
 
         <Dialog open={dlgOpen} onOpenChange={setDlgOpen}>
           <DialogContent className="max-w-lg">

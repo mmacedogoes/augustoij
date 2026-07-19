@@ -105,6 +105,38 @@ function buildParcelasEsperadas(c: ContratoParaGerar): Array<{
       });
     }
   }
+
+  // TCR — 1 por ano
+  if (c.encargos_inquilino?.tcr) {
+    for (let y = yStart; y <= yEnd; y++) {
+      parcelas.push({
+        contrato_locacao_id: c.id,
+        owner_admin_id: c.owner_admin_id,
+        tipo: "tcr",
+        competencia: `${y}`,
+        vencimento: toIsoDate(proximoDiaUtil(new Date(Date.UTC(y, 2, 15)))),
+        valor: null,
+      });
+    }
+  }
+
+  // Condomínio — mês a mês (valor definido pelo usuário)
+  if (c.encargos_inquilino?.condominio) {
+    for (let y = yStart, m = mStart; y < yEnd || (y === yEnd && m <= mEnd); ) {
+      const bruto = new Date(Date.UTC(y, m - 1, dia));
+      const venc = proximoDiaUtil(bruto);
+      parcelas.push({
+        contrato_locacao_id: c.id,
+        owner_admin_id: c.owner_admin_id,
+        tipo: "condominio",
+        competencia: competenciaMes(y, m),
+        vencimento: toIsoDate(venc),
+        valor: null,
+      });
+      m += 1;
+      if (m > 12) { m = 1; y += 1; }
+    }
+  }
   return parcelas;
 }
 
@@ -115,7 +147,7 @@ export const listPagamentosContrato = createServerFn({ method: "POST" })
     await ensureSuperAdmin(context);
     const { data: contrato, error: eC } = await context.supabase
       .from("contratos_locacao")
-      .select("id, owner_admin_id, data_inicio_vigencia, dia_vencimento, valor_aluguel, encargos_inquilino, inquilino_nome, status, prazo_meses, indice_reajuste, periodicidade_reajuste_meses, mes_base_reajuste, multa_mora_percent, juros_mora_mensal_percent, imoveis(descricao, endereco, edificio, numero_unidade, proprietarios(nome))")
+      .select("id, owner_admin_id, imovel_id, data_inicio_vigencia, dia_vencimento, valor_aluguel, valor_aluguel_inicial, encargos_inquilino, inquilino_nome, inquilino_telefone, status, prazo_meses, indice_reajuste, periodicidade_reajuste_meses, mes_base_reajuste, multa_mora_percent, juros_mora_mensal_percent, imoveis(descricao, endereco, edificio, numero_unidade, proprietarios(nome))")
       .eq("id", data.contratoId)
       .maybeSingle();
     if (eC) throw new Error(eC.message);
