@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 import { Check, X } from "lucide-react";
 
@@ -45,10 +46,10 @@ export function PricingCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col rounded-xl bg-white p-7 transition-all duration-200 ease-out",
+        "landing-panel landing-card-hover group relative flex flex-col rounded-2xl p-7",
         featured
-          ? "border-2 border-augusto-green shadow-[0_24px_60px_-24px_rgba(0,81,43,0.35)] ring-1 ring-augusto-gold/40 md:-translate-y-1"
-          : "border border-augusto-gold/20 shadow-sm hover:-translate-y-0.5 hover:border-augusto-gold/60 hover:shadow-[0_20px_44px_-22px_rgba(184,147,90,0.45)]",
+          ? "border-2 border-augusto-green ring-1 ring-augusto-gold/40 md:-translate-y-1"
+          : "border border-augusto-gold/20 hover:border-augusto-gold/60",
       )}
     >
       {badge && (
@@ -113,20 +114,17 @@ export function PricingCard({
           );
         })}
       </ul>
-      <button
+      <Button
         type="button"
         onClick={cta.onClick}
+        variant={solid ? "augusto" : "augusto-outline"}
+        size="xl"
         className={cn(
-          "mt-7 inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium transition-all duration-200",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-green/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-          "active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none",
-          solid
-            ? "bg-augusto-green text-augusto-cream hover:bg-augusto-green-dark shadow-sm hover:shadow"
-            : "border border-augusto-green/70 text-augusto-green hover:bg-augusto-green hover:text-augusto-cream",
+          "mt-7 w-full",
         )}
       >
         {cta.label}
-      </button>
+      </Button>
     </div>
   );
 }

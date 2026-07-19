@@ -227,7 +227,7 @@ export function PricingSection() {
   };
 
   return (
-    <section id="pricing" className="bg-augusto-cream border-t border-augusto-gold/15 py-24 px-6">
+    <section id="pricing" className="landing-section bg-landing-surface border-t border-landing-rule">
       <div className="mx-auto max-w-7xl">
         <SectionHeader
           eyebrow="Planos"
@@ -240,7 +240,7 @@ export function PricingSection() {
           <div
             role="tablist"
             aria-label="Ciclo de cobrança"
-            className="inline-flex items-center gap-1 rounded-full border border-augusto-gold/25 bg-white p-1 shadow-sm"
+            className="inline-flex items-center gap-1 rounded-full border border-augusto-gold/25 bg-landing-panel p-1 shadow-[var(--landing-shadow-soft)]"
           >
             {(["monthly", "annual"] as const).map((v) => {
               const active = billing === v;
@@ -305,7 +305,7 @@ export function PricingSection() {
         </p>
 
         {/* Personalizado — detailed section */}
-        <div className="mt-16 overflow-hidden rounded-2xl border border-augusto-green/15 bg-white shadow-sm">
+        <div className="landing-panel mt-16 overflow-hidden rounded-[1.75rem]">
           <div className="grid gap-8 p-8 md:grid-cols-[1.2fr_1fr] md:p-12">
             <div>
               <span className="inline-flex items-center rounded-full bg-augusto-slate/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-augusto-slate-dark ring-1 ring-augusto-slate/20">
@@ -331,7 +331,7 @@ export function PricingSection() {
                 Agendar conversa
               </button>
             </div>
-            <ul className="grid grid-cols-1 gap-2 self-center rounded-xl bg-augusto-cream/60 p-6 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-2 self-center rounded-2xl bg-landing-panel-muted/70 p-6 sm:grid-cols-2">
               {[
                 "Tudo do Administradora",
                 "Condomínios ilimitados",

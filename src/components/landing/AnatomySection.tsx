@@ -24,16 +24,16 @@ export function AnatomySection() {
   return (
     <section
       id="anatomia"
-      className="bg-augusto-cream-dark border-t border-augusto-gold/20 py-24 px-6"
+      className="landing-cream-bg landing-section border-t border-landing-rule"
     >
-      <div className="mx-auto max-w-6xl">
+      <div className="landing-container">
         <SectionHeader
           eyebrow="Como Augusto trabalha"
           title="Anatomia de uma resposta."
           subtitle="Cada resposta de Augusto segue um método jurídico estruturado, claro, fundamentado e citável."
         />
 
-        <div className="mt-20 mx-auto w-full max-w-[1240px] rounded-2xl bg-white border border-augusto-gold/30 shadow-[0_30px_80px_-30px_rgba(0,81,43,0.35)] p-6 md:p-10 lg:p-12 space-y-8">
+        <div className="landing-panel mx-auto mt-20 w-full max-w-[1240px] space-y-8 rounded-[1.75rem] p-6 md:p-10 lg:p-12">
           <PartRow id="pergunta">
             <div className="rounded-md bg-augusto-cream/70 px-5 py-4 text-[16px] text-augusto-slate">
               <span className="font-semibold text-augusto-slate-dark">Pergunta:</span>{" "}

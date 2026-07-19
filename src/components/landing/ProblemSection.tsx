@@ -9,25 +9,27 @@ const STATS = [
 
 export function ProblemSection() {
   return (
-    <section className="bg-augusto-cream-dark border-t border-augusto-gold/20 py-24 px-6">
-      <div className="mx-auto max-w-6xl text-center">
-        <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
+    <section className="landing-cream-bg landing-section border-t border-landing-rule">
+      <div className="landing-container text-center">
+        <div className="inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-augusto-gold">
+          <span className="h-px w-8 bg-augusto-gold/55" aria-hidden="true" />
           O estado atual do direito condominial
+          <span className="h-px w-8 bg-augusto-gold/55" aria-hidden="true" />
         </div>
-        <h2 className="mt-5 font-serif text-augusto-green text-4xl md:text-5xl leading-[1.1]">
+        <h2 className="mt-6 font-serif text-[clamp(2.5rem,5vw,4.5rem)] leading-[0.96] tracking-[-0.035em] text-augusto-green">
           Um mercado decidindo no improviso.
         </h2>
-        <p className="mt-5 mx-auto max-w-[600px] text-lg text-augusto-slate leading-relaxed">
+        <p className="mx-auto mt-6 max-w-[600px] text-[17px] leading-[1.75] text-augusto-slate sm:text-lg">
           O Brasil tem leis condominiais robustas. O que falta é acesso à inteligência jurídica
           que as compreenda, e esteja disponível quando você precisa.
         </p>
 
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {STATS.map((s, i) => (
             <Reveal
               key={s.label}
               delay={i * 0.08}
-              className="group flex flex-col items-center rounded-xl bg-white border border-augusto-gold/25 shadow-sm px-6 py-10 hover:-translate-y-1 hover:shadow-md hover:border-augusto-gold transition-all duration-200"
+              className="landing-panel landing-card-hover group flex flex-col items-center rounded-2xl px-6 py-10"
             >
               <div className="font-serif text-augusto-green text-5xl md:text-[64px] leading-none">
                 {s.number}
@@ -45,7 +47,7 @@ export function ProblemSection() {
 
         <Reveal
           delay={0.1}
-          className="mt-20 mx-auto max-w-[820px] rounded-2xl bg-augusto-green text-augusto-cream px-8 md:px-14 py-14 shadow-[0_30px_80px_-30px_rgba(0,81,43,0.5)] relative overflow-hidden"
+          className="relative mx-auto mt-20 max-w-[820px] overflow-hidden rounded-[1.75rem] bg-augusto-green px-8 py-14 text-augusto-cream shadow-[var(--landing-shadow-deep)] md:px-14"
         >
           <span
             aria-hidden="true"

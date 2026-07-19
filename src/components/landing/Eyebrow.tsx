@@ -13,12 +13,14 @@ export function Eyebrow({
   return (
     <div
       className={cn(
-        "text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold",
+        "inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-augusto-gold",
         align === "center" && "text-center",
         className,
       )}
     >
+      <span className="h-px w-8 bg-augusto-gold/55" aria-hidden="true" />
       {children}
+      {align === "center" && <span className="h-px w-8 bg-augusto-gold/55" aria-hidden="true" />}
     </div>
   );
 }
