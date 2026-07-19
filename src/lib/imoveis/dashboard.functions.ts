@@ -89,6 +89,16 @@ export const listAlertas = createServerFn({ method: "GET" })
       .select("id, inquilino_nome, data_inicio_vigencia, prazo_meses, mes_base_reajuste, periodicidade_reajuste_meses, status")
       .eq("owner_admin_id", owner)
       .eq("status", "ativo");
+    // Último reajuste por contrato — usado para próxima data de reajuste
+    const { data: reajustesRows } = await context.supabase
+      .from("reajustes")
+      .select("contrato_locacao_id, data")
+      .eq("owner_admin_id", owner)
+      .order("data", { ascending: false });
+    const ultimoReajuste = new Map<string, string>();
+    for (const r of reajustesRows ?? []) {
+      if (!ultimoReajuste.has(r.contrato_locacao_id)) ultimoReajuste.set(r.contrato_locacao_id, r.data);
+    }
     for (const c of contratos ?? []) {
       if (c.data_inicio_vigencia && c.prazo_meses) {
         const inicio = new Date(c.data_inicio_vigencia + "T00:00:00Z");
@@ -105,15 +115,24 @@ export const listAlertas = createServerFn({ method: "GET" })
           });
         }
       }
-      // Reajuste devido neste mês
-      if (c.mes_base_reajuste && c.mes_base_reajuste === hoje.getUTCMonth() + 1) {
-        alertas.push({
-          chave: `reajuste_devido:${c.id}:${hoje.getUTCFullYear()}-${c.mes_base_reajuste}`,
-          tipo: "reajuste_devido",
-          titulo: `Reajuste devido — ${c.inquilino_nome ?? ""}`,
-          descricao: `Mês base de reajuste atingido (${c.mes_base_reajuste}).`,
-          contratoId: c.id,
-        });
+      // Reajuste devido (próxima data ≤ 30 dias ou já vencida) — atualização de valor pendente
+      const base = ultimoReajuste.get(c.id) ?? c.data_inicio_vigencia;
+      const periodicidade = c.periodicidade_reajuste_meses ?? 12;
+      if (base) {
+        const dBase = new Date(base + "T00:00:00Z");
+        dBase.setUTCMonth(dBase.getUTCMonth() + periodicidade);
+        const diasRea = Math.floor((dBase.getTime() - hoje.getTime()) / 86400000);
+        if (diasRea <= 30) {
+          const proxIso = dBase.toISOString().slice(0, 10);
+          const status = diasRea < 0 ? `atrasado há ${Math.abs(diasRea)} dias` : `em ${diasRea} dias`;
+          alertas.push({
+            chave: `reajuste_devido:${c.id}:${proxIso}`,
+            tipo: "reajuste_devido",
+            titulo: `Atualização de valor pendente — ${c.inquilino_nome ?? ""}`,
+            descricao: `Próximo reajuste ${status} (${proxIso}). Calcule o novo valor e comunique ao inquilino.`,
+            contratoId: c.id,
+          });
+        }
       }
     }
 
