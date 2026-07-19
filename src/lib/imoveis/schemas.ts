@@ -75,6 +75,7 @@ export const contratoLocacaoSchema = z.object({
   inquilino_telefone: textOrNull,
   inquilino_endereco: textOrNull,
   valor_aluguel: numOrNull,
+  valor_aluguel_inicial: numOrNull,
   dia_vencimento: z.preprocess(
     (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
     z.number().int().min(1).max(31).nullable(),
