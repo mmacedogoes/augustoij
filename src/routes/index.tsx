@@ -8,6 +8,7 @@ import { AnatomySection } from "@/components/landing/AnatomySection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { ManifestoFooter } from "@/components/landing/ManifestoFooter";
+import { ScrollBlurOverlay } from "@/components/landing/ScrollBlurOverlay";
 import { useHashScroll } from "@/hooks/use-hash-scroll";
 
 export const Route = createFileRoute("/")({
@@ -49,7 +50,7 @@ export const Route = createFileRoute("/")({
 function Landing() {
   useHashScroll();
   return (
-    <div className="min-h-screen bg-augusto-cream text-augusto-slate-dark">
+    <div className="relative min-h-screen bg-augusto-cream text-augusto-slate-dark">
       <Nav />
       <HeroSection />
       <ProblemSection />
@@ -59,6 +60,7 @@ function Landing() {
       <FeaturesSection />
       <PricingSection />
       <ManifestoFooter />
+      <ScrollBlurOverlay />
     </div>
   );
 }
