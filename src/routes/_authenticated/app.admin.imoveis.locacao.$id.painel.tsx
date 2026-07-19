@@ -86,10 +86,14 @@ function Painel() {
   const aplicarReajusteFn = useServerFn(aplicarReajuste);
   const listReajustesFn = useServerFn(listReajustes);
   const getCaucaoFn = useServerFn(getCaucaoAtualizada);
+  const getReajusteStatusFn = useServerFn(getReajusteStatus);
   const [contrato, setContrato] = useState<ContratoInfo | null>(null);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [editing, setEditing] = useState<{ id: string; valor: string; vencimento: string } | null>(null);
   const [reajustes, setReajustes] = useState<Reajuste[]>([]);
+  const [reajusteStatus, setReajusteStatus] = useState<{
+    proximaData: string | null; ultimoReajuste: string | null; diasParaReajuste: number | null; pendente: boolean;
+  } | null>(null);
   const [caucao, setCaucao] = useState<{
     caucao: CaucaoRow | null; valorAtual: number; memoria: string | null; dataReferencia: string | null;
   } | null>(null);
@@ -103,12 +107,14 @@ function Painel() {
       listFn({ data: { contratoId: id } }),
       listReajustesFn({ data: { contratoId: id } }),
       getCaucaoFn({ data: { contratoId: id } }),
+      getReajusteStatusFn({ data: { contratoId: id } }),
     ])
-      .then(([r, rj, cc]) => {
+      .then(([r, rj, cc, rs]) => {
         setContrato(r.contrato as unknown as ContratoInfo);
         setPagamentos((r.pagamentos ?? []) as unknown as Pagamento[]);
         setReajustes(rj.rows as unknown as Reajuste[]);
         setCaucao(cc as typeof caucao);
+        setReajusteStatus(rs);
       })
       .catch((e) => toast.error(e.message));
 
