@@ -46,7 +46,7 @@ function Page() {
         <div className="mt-6"><AdminNav /></div>
         <ImoveisNav />
         <div className="flex justify-end mb-4">
-          <Link to="/app/admin/imoveis/locacao/$id" params={{ id: "novo" }}>
+          <Link to="/app/admin/imoveis/locacao/$id/editar" params={{ id: "novo" }}>
             <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Novo contrato</Button>
           </Link>
         </div>
@@ -69,10 +69,10 @@ function Page() {
                   </p>
                 </div>
                 <span className="text-xs rounded-full bg-muted px-2 py-0.5">{r.status}</span>
-                <Link to="/app/admin/imoveis/locacao/$id/painel" params={{ id: r.id }}>
+                <Link to="/app/admin/imoveis/locacao/$id" params={{ id: r.id }}>
                   <Button size="sm" variant="secondary"><LayoutDashboard className="h-4 w-4 mr-1" /> Painel</Button>
                 </Link>
-                <Link to="/app/admin/imoveis/locacao/$id" params={{ id: r.id }}>
+                <Link to="/app/admin/imoveis/locacao/$id/editar" params={{ id: r.id }}>
                   <Button size="sm" variant="outline"><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
                 </Link>
                 <Button size="sm" variant="ghost" onClick={() => setToDelete(r)}>
