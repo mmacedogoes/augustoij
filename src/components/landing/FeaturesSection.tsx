@@ -46,23 +46,38 @@ export function FeaturesSection() {
         />
 
         <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <Reveal
-              key={f.title}
-              direction="up"
-              delay={(i % 3) * 0.08}
-              className="group rounded-lg bg-white border-t-2 border-augusto-gold/60 shadow-sm p-8 transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:border-augusto-gold"
-            >
-              <AugustoLogo variant="icon-only" size={28} />
-              <h3 className="mt-4 font-serif text-augusto-green text-[22px] leading-tight">
-                {f.title}
-              </h3>
-              <p className="mt-2 text-[15px] leading-[1.6] text-augusto-slate">{f.body}</p>
-              <div className="mt-5 font-serif italic text-augusto-gold text-[13px] tracking-wide">
-                {f.latim}
-              </div>
-            </Reveal>
-          ))}
+          {FEATURES.map((f, i) => {
+            const numeral = ["I", "II", "III", "IV", "V", "VI"][i] ?? String(i + 1);
+            return (
+              <Reveal
+                key={f.title}
+                direction="up"
+                delay={(i % 3) * 0.08}
+                className="group relative overflow-hidden rounded-lg bg-white border-t-2 border-augusto-gold/60 shadow-sm p-8 transition-all duration-200 ease-out hover:-translate-y-1 hover:border-augusto-gold hover:shadow-[0_24px_50px_-24px_rgba(184,147,90,0.45)]"
+              >
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-5 top-5 font-serif italic text-augusto-gold/25 text-[28px] leading-none tracking-tight transition-colors duration-200 group-hover:text-augusto-gold/55"
+                >
+                  {numeral}
+                </span>
+                <AugustoLogo variant="icon-only" size={28} />
+                <h3 className="mt-4 font-serif text-augusto-green text-[22px] leading-tight">
+                  {f.title}
+                </h3>
+                <p className="mt-2 text-[15px] leading-[1.6] text-augusto-slate">{f.body}</p>
+                <div className="mt-5 flex items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="block h-px w-6 bg-augusto-gold/60 transition-all duration-200 group-hover:w-10 group-hover:bg-augusto-gold"
+                  />
+                  <span className="font-serif italic text-augusto-gold text-[13px] tracking-wide">
+                    {f.latim}
+                  </span>
+                </div>
+              </Reveal>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -45,10 +45,10 @@ export function PricingCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col rounded-xl bg-white p-7 transition-all duration-200",
+        "group relative flex flex-col rounded-xl bg-white p-7 transition-all duration-200 ease-out",
         featured
-          ? "border-2 border-augusto-green shadow-lg shadow-augusto-green/10 md:-translate-y-1"
-          : "border border-augusto-gold/25 shadow-sm hover:-translate-y-0.5 hover:shadow-md",
+          ? "border-2 border-augusto-green shadow-[0_24px_60px_-24px_rgba(0,81,43,0.35)] ring-1 ring-augusto-gold/40 md:-translate-y-1"
+          : "border border-augusto-gold/20 shadow-sm hover:-translate-y-0.5 hover:border-augusto-gold/60 hover:shadow-[0_20px_44px_-22px_rgba(184,147,90,0.45)]",
       )}
     >
       {badge && (
