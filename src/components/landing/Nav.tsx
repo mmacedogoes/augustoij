@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useCallback, useEffect, useState, type MouseEvent } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { Button } from "@/components/ui/button";
@@ -13,18 +13,21 @@ function scrollToId(id: string) {
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const goToSection = useCallback(
-    (id: string) => {
+  const handleSectionClick = useCallback(
+    (id: string, closeMenu = false) => (event: MouseEvent<HTMLAnchorElement>) => {
+      if (closeMenu) setOpen(false);
+
       if (pathname === "/") {
+        event.preventDefault();
+        if (window.location.hash !== `#${id}`) {
+          window.history.pushState(null, "", `#${id}`);
+        }
         scrollToId(id);
-      } else {
-        navigate({ to: "/", hash: id });
       }
     },
-    [pathname, navigate],
+    [pathname],
   );
 
   useEffect(() => {
@@ -69,18 +72,18 @@ export function Nav() {
         </Link>
 
         <nav className="hidden items-center gap-1 rounded-full border border-augusto-gold/20 bg-augusto-cream/5 p-1 md:flex">
-          <button type="button" onClick={() => goToSection("features")} className={linkCls}>
+          <Link to="/" hash="features" onClick={handleSectionClick("features")} className={linkCls}>
             Plataforma
-          </button>
+          </Link>
           <Link to="/historia" className={linkCls}>
             História
           </Link>
           <Link to="/manifesto" className={linkCls}>
             Manifesto
           </Link>
-          <button type="button" onClick={() => goToSection("pricing")} className={linkCls}>
+          <Link to="/" hash="pricing" onClick={handleSectionClick("pricing")} className={linkCls}>
             Planos
-          </button>
+          </Link>
           <Link to="/blog" className={linkCls}>
             Blog
           </Link>
@@ -107,10 +110,10 @@ export function Nav() {
 
       {open && (
         <div className="flex flex-col gap-3 border-t border-augusto-gold/25 bg-augusto-green-dark px-6 py-6 shadow-[var(--landing-shadow-deep)] md:hidden">
-          <button type="button" onClick={() => { setOpen(false); goToSection("features"); }} className={linkCls}>Plataforma</button>
+          <Link to="/" hash="features" onClick={handleSectionClick("features", true)} className={linkCls}>Plataforma</Link>
           <Link to="/historia" className={linkCls} onClick={() => setOpen(false)}>História</Link>
           <Link to="/manifesto" className={linkCls} onClick={() => setOpen(false)}>Manifesto</Link>
-          <button type="button" onClick={() => { setOpen(false); goToSection("pricing"); }} className={linkCls}>Planos</button>
+          <Link to="/" hash="pricing" onClick={handleSectionClick("pricing", true)} className={linkCls}>Planos</Link>
           <Link to="/blog" className={linkCls} onClick={() => setOpen(false)}>Blog</Link>
           <div className="h-px bg-augusto-gold/30" />
           <Link to="/login" className={linkCls} onClick={() => setOpen(false)}>Entrar</Link>
