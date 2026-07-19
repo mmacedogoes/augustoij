@@ -16,11 +16,11 @@ export function SectionHeader({
 }) {
   const isCenter = align === "center";
   return (
-    <div className={cn(isCenter ? "text-center mx-auto" : "text-left", "max-w-3xl")}>
+    <div className={cn(isCenter ? "mx-auto flex flex-col items-center text-center" : "text-left", "max-w-3xl")}>
       <Eyebrow align={align}>{eyebrow}</Eyebrow>
       <h2
         className={cn(
-          "mt-5 font-serif text-augusto-green leading-[1.1] text-4xl md:text-5xl",
+          "mt-6 font-serif text-[clamp(2.5rem,5vw,4.5rem)] leading-[0.96] tracking-[-0.035em] text-augusto-green",
           titleClassName,
         )}
       >
@@ -29,7 +29,7 @@ export function SectionHeader({
       {subtitle && (
         <p
           className={cn(
-            "mt-5 text-augusto-slate text-lg leading-relaxed",
+            "mt-6 text-[17px] leading-[1.75] text-augusto-slate sm:text-lg",
             isCenter && "mx-auto max-w-[600px]",
           )}
         >

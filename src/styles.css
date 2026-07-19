@@ -226,6 +226,14 @@
   padding-block: clamp(5rem, 8vw, 7.5rem);
 }
 
+@utility landing-hero-bg {
+  background: var(--landing-gradient-hero);
+}
+
+@utility landing-cream-bg {
+  background: var(--landing-gradient-cream);
+}
+
 @utility landing-container {
   width: 100%;
   max-width: 72rem;
@@ -245,6 +253,13 @@
   &:hover {
     transform: translateY(-0.25rem);
     box-shadow: var(--landing-shadow-card-hover);
+  }
+}
+
+@utility landing-focus {
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--augusto-gold), 0 0 0 5px color-mix(in hsl, var(--augusto-gold) 24%, transparent);
   }
 }
 
