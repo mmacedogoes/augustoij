@@ -16,9 +16,9 @@ interface AugustoLogoProps {
   className?: string;
 }
 
-const GREEN = "#00512B";
-const GOLD = "#B8935A";
-const CREAM = "#F4F3F2";
+const GREEN = "var(--augusto-green)";
+const GOLD = "var(--augusto-gold)";
+const CREAM = "var(--augusto-cream)";
 
 const DEFAULT_SIZE: Record<AugustoLogoVariant, number> = {
   "icon-only": 40,
