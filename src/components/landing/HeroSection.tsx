@@ -122,7 +122,7 @@ export function HeroSection() {
 
   return (
     <section className="relative isolate overflow-hidden bg-augusto-green text-augusto-cream">
-      <div className="absolute inset-0 bg-[image:var(--landing-gradient-hero)]" aria-hidden="true" />
+      <div className="landing-hero-bg absolute inset-0" aria-hidden="true" />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-1/2 top-20 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-augusto-gold/15 blur-3xl"
