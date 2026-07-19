@@ -125,16 +125,16 @@ export function HeroSection() {
       <div className="absolute inset-0 bg-[image:var(--landing-gradient-hero)]" aria-hidden="true" />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-20 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-augusto-gold/12 blur-3xl"
+        className="pointer-events-none absolute left-1/2 top-20 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-augusto-gold/15 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-32 bottom-4 h-[30rem] w-[30rem] rounded-full bg-augusto-cream/8 blur-3xl"
+        className="pointer-events-none absolute -right-32 bottom-4 h-[30rem] w-[30rem] rounded-full bg-augusto-cream/10 blur-3xl"
       />
       <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 md:py-20 lg:grid-cols-[minmax(0,1.02fr)_minmax(420px,0.98fr)] lg:gap-14 lg:px-8 lg:py-24">
         {/* Coluna esquerda */}
         <div className="max-w-[680px]">
-          <div className="inline-flex items-center gap-3 rounded-full border border-augusto-gold/35 bg-augusto-cream/7 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-augusto-gold-light shadow-[var(--landing-shadow-soft)] supports-[backdrop-filter]:backdrop-blur-md">
+          <div className="inline-flex items-center gap-3 rounded-full border border-augusto-gold/35 bg-augusto-cream/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-augusto-gold-light shadow-[var(--landing-shadow-soft)] supports-[backdrop-filter]:backdrop-blur-md">
             <span className="h-1.5 w-1.5 rounded-full bg-augusto-gold" aria-hidden="true" />
             Inteligência Jurídica para Condomínios
           </div>
@@ -143,7 +143,7 @@ export function HeroSection() {
             <br />
             <span className="text-augusto-gold-light">Potencializa.</span>
           </h1>
-          <p className="mt-8 max-w-[560px] text-[17px] leading-[1.75] text-augusto-cream/82 sm:text-lg">
+          <p className="mt-8 max-w-[560px] text-[17px] leading-[1.75] text-augusto-cream/80 sm:text-lg">
             Não substitui o síndico. Não substitui o administrador. Não substitui o advogado.
             Augusto potencializa cada um deles, com fundamentação, jurisprudência e clareza jurídica.
           </p>
@@ -181,13 +181,13 @@ export function HeroSection() {
             </Button>
           </div>
 
-          <div className="mt-10 grid max-w-[560px] grid-cols-3 overflow-hidden rounded-2xl border border-augusto-gold/25 bg-augusto-cream/7 shadow-[var(--landing-shadow-soft)] supports-[backdrop-filter]:backdrop-blur-md">
+          <div className="mt-10 grid max-w-[560px] grid-cols-3 overflow-hidden rounded-2xl border border-augusto-gold/25 bg-augusto-cream/10 shadow-[var(--landing-shadow-soft)] supports-[backdrop-filter]:backdrop-blur-md">
             {[
               ["3", "perguntas grátis"],
               ["24h", "disponível"],
               ["IJ", "foco jurídico"],
             ].map(([value, label]) => (
-              <div key={label} className="border-r border-augusto-gold/18 px-4 py-4 last:border-r-0">
+              <div key={label} className="border-r border-augusto-gold/20 px-4 py-4 last:border-r-0">
                 <div className="font-serif text-2xl leading-none text-augusto-gold-light">{value}</div>
                 <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-augusto-cream/70">
                   {label}
@@ -226,7 +226,7 @@ export function HeroSection() {
                 </div>
               </div>
               </div>
-              <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-augusto-green/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-augusto-green">
+              <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-augusto-green/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-augusto-green">
                 <span className="h-2 w-2 rounded-full bg-augusto-gold animate-pulse" />
                 Online
               </div>
@@ -248,7 +248,7 @@ export function HeroSection() {
                       {conversa.answer}
                     </div>
                   </div>
-                  <div className="rounded-r-xl border-l-4 border-augusto-gold bg-augusto-gold/8 px-3 py-3">
+                  <div className="rounded-r-xl border-l-4 border-augusto-gold bg-augusto-gold/10 px-3 py-3">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-augusto-gold">
                       {conversa.citation.label}
                     </div>
@@ -300,7 +300,7 @@ export function HeroSection() {
                 }
                 askAugusto(input);
               }}
-              className="mt-5 flex items-center gap-2 rounded-2xl border border-augusto-gold/30 bg-landing-panel-muted/78 px-3 py-2 transition-all duration-200 focus-within:border-augusto-green focus-within:ring-2 focus-within:ring-augusto-gold/28"
+              className="mt-5 flex items-center gap-2 rounded-2xl border border-augusto-gold/30 bg-landing-panel-muted/80 px-3 py-2 transition-all duration-200 focus-within:border-augusto-green focus-within:ring-2 focus-within:ring-augusto-gold/30"
             >
               <input
                 type="text"
@@ -344,7 +344,7 @@ export function HeroSection() {
                   setInput(chip);
                 }}
                 disabled={loading}
-                className="rounded-full border border-augusto-gold/35 bg-augusto-cream/8 px-3 py-1.5 text-sm text-augusto-cream transition-all duration-200 hover:border-augusto-gold hover:bg-augusto-gold/14 hover:text-augusto-gold-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold active:scale-[0.98] disabled:opacity-50"
+                className="rounded-full border border-augusto-gold/35 bg-augusto-cream/10 px-3 py-1.5 text-sm text-augusto-cream transition-all duration-200 hover:border-augusto-gold hover:bg-augusto-gold/15 hover:text-augusto-gold-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold active:scale-[0.98] disabled:opacity-50"
               >
                 {chip}
               </button>
