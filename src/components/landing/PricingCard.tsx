@@ -47,8 +47,8 @@ export function PricingCard({
       className={cn(
         "group relative flex flex-col rounded-xl bg-white p-7 transition-all duration-200 ease-out",
         featured
-          ? "border-2 border-augusto-green shadow-[0_20px_50px_-20px_hsl(var(--augusto-green)/0.25)] ring-1 ring-augusto-gold/40 md:-translate-y-1"
-          : "border border-augusto-gold/20 shadow-sm hover:-translate-y-0.5 hover:border-augusto-gold/50 hover:shadow-[0_16px_40px_-20px_hsl(var(--augusto-gold)/0.35)]",
+          ? "border-2 border-augusto-green shadow-[0_24px_60px_-24px_rgba(0,81,43,0.35)] ring-1 ring-augusto-gold/40 md:-translate-y-1"
+          : "border border-augusto-gold/20 shadow-sm hover:-translate-y-0.5 hover:border-augusto-gold/60 hover:shadow-[0_20px_44px_-22px_rgba(184,147,90,0.45)]",
       )}
     >
       {badge && (
