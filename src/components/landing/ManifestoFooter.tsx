@@ -27,10 +27,11 @@ export function ManifestoFooter() {
   return (
     <>
       {/* Manifesto block */}
-      <section className="bg-augusto-green py-28 px-6 text-center">
-        <div className="mx-auto max-w-4xl flex flex-col items-center">
+      <section className="relative overflow-hidden bg-augusto-green px-6 py-28 text-center">
+        <div className="landing-hero-bg absolute inset-0" aria-hidden="true" />
+        <div className="relative mx-auto flex max-w-4xl flex-col items-center">
           <AugustoLogo variant="stacked" theme="dark" size={220} />
-          <h2 className="mt-12 font-serif italic text-augusto-cream text-5xl md:text-7xl lg:text-[96px] leading-[1.05] whitespace-nowrap">
+          <h2 className="mt-12 font-serif text-[clamp(3rem,9vw,6rem)] italic leading-[0.98] tracking-[-0.035em] text-augusto-cream sm:whitespace-nowrap">
             Dura lex, sed Augusto.
           </h2>
           <div className="mt-6 text-[13px] font-medium uppercase tracking-[0.24em] text-augusto-gold">
@@ -51,7 +52,7 @@ export function ManifestoFooter() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-augusto-cream py-16 px-6 border-t border-augusto-gold/20">
+      <footer className="border-t border-landing-rule bg-landing-surface px-6 py-16">
         <div className="mx-auto max-w-6xl grid gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <AugustoLogo variant="horizontal" size={220} />
@@ -107,17 +108,17 @@ export function ManifestoFooter() {
           <div className="mt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-[13px] text-augusto-slate">
             <div>© {new Date().getFullYear()} Augusto.IJ, Todos os direitos reservados.</div>
             <div className="flex flex-wrap items-center gap-4">
-              <Link to="/privacidade" className="text-augusto-slate hover:text-augusto-green transition-colors">
+              <Link to="/privacidade" className="rounded-sm text-augusto-slate transition-colors duration-200 hover:text-augusto-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold">
                 Política de Privacidade
               </Link>
               <span className="text-augusto-slate/40">|</span>
-              <Link to="/termos" className="text-augusto-slate hover:text-augusto-green transition-colors">
+              <Link to="/termos" className="rounded-sm text-augusto-slate transition-colors duration-200 hover:text-augusto-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold">
                 Termos de Uso
               </Link>
               <span className="text-augusto-slate/40">|</span>
               <a
                 href="mailto:dpo@augustoij.com.br"
-                className="text-augusto-slate hover:text-augusto-green transition-colors"
+                className="rounded-sm text-augusto-slate transition-colors duration-200 hover:text-augusto-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold"
               >
                 Contato DPO: dpo@augustoij.com.br
               </a>
@@ -150,11 +151,11 @@ function FooterCol({ title, items }: { title: string; items: FooterItem[] }) {
         {items.map((item) => (
           <li key={item.label}>
             {item.to ? (
-              <Link to={item.to} className="text-[15px] text-augusto-slate hover:text-augusto-green transition-colors">
+              <Link to={item.to} className="rounded-sm text-[15px] text-augusto-slate transition-colors duration-200 hover:text-augusto-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold">
                 {item.label}
               </Link>
             ) : (
-              <a href={item.href} className="text-[15px] text-augusto-slate hover:text-augusto-green transition-colors">
+              <a href={item.href} className="rounded-sm text-[15px] text-augusto-slate transition-colors duration-200 hover:text-augusto-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold">
                 {item.label}
               </a>
             )}
