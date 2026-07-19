@@ -31,6 +31,7 @@ const empty: ContratoLocacaoInput = {
   inquilino_nome: null, inquilino_cpf: null, inquilino_estado_civil: null, inquilino_profissao: null,
   inquilino_rg: null, inquilino_email: null, inquilino_telefone: null, inquilino_endereco: null,
   valor_aluguel: null, dia_vencimento: null,
+  valor_aluguel_inicial: null,
   data_contrato_original: null, data_inicio_vigencia: null, prazo_meses: null,
   indice_reajuste: "IGP-M", periodicidade_reajuste_meses: 12, mes_base_reajuste: null,
   encargos_inquilino: { condominio: true, agua: true, luz: true, iptu: true, tcr: true },
