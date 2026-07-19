@@ -213,11 +213,15 @@ export const togglePagamento = createServerFn({ method: "POST" })
     let honorarioRemovido = false;
     if (parcela.tipo === "aluguel") {
       // Descobre proprietário e contrato de administração ativo.
-      if (!parcela.contrato_locacao_id) return { ok: true, honorarioLancado: false, honorarioRemovido: false };
+      if (!parcela.contrato_locacao_id || !parcela.competencia) {
+        return { ok: true, honorarioLancado: false, honorarioRemovido: false };
+      }
+      const contratoLocacaoId = parcela.contrato_locacao_id;
+      const competencia = parcela.competencia;
       const { data: loc } = await context.supabase
         .from("contratos_locacao")
         .select("id, imoveis(proprietario_id)")
-        .eq("id", parcela.contrato_locacao_id)
+        .eq("id", contratoLocacaoId)
         .maybeSingle();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const propId = (loc as any)?.imoveis?.proprietario_id as string | undefined;
@@ -238,10 +242,10 @@ export const togglePagamento = createServerFn({ method: "POST" })
               .upsert(
                 [{
                   contrato_administracao_id: adm.id,
-                  contrato_locacao_id: parcela.contrato_locacao_id,
+                  contrato_locacao_id: contratoLocacaoId,
                   owner_admin_id: context.userId,
                   tipo: "mensal",
-                  competencia: parcela.competencia,
+                  competencia,
                   base_calculo: base,
                   percentual: perc,
                   valor: valorHon,
@@ -259,9 +263,9 @@ export const togglePagamento = createServerFn({ method: "POST" })
               .from("honorarios")
               .delete()
               .eq("contrato_administracao_id", adm.id)
-              .eq("contrato_locacao_id", parcela.contrato_locacao_id)
+              .eq("contrato_locacao_id", contratoLocacaoId)
               .eq("tipo", "mensal")
-              .eq("competencia", parcela.competencia)
+              .eq("competencia", competencia)
               .eq("pago", false);
             if (!eDel) honorarioRemovido = true;
           }
