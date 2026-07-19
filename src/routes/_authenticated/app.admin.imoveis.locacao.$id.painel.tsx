@@ -24,8 +24,11 @@ import {
   aplicarReajuste,
   listReajustes,
   getCaucaoAtualizada,
+  getReajusteStatus,
 } from "@/lib/imoveis/reajustes.functions";
 import { formatBRL, formatDateBR, parseBRL } from "@/lib/imoveis/masks";
+import { ManutencoesPanel } from "@/components/imoveis/ManutencoesPanel";
+import { AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/admin/imoveis/locacao/$id/painel")({
   component: Painel,
@@ -44,11 +47,16 @@ type Pagamento = {
 
 type ContratoInfo = {
   id: string;
+  imovel_id: string;
   inquilino_nome: string | null;
+  inquilino_telefone: string | null;
   valor_aluguel: number | null;
+  valor_aluguel_inicial: number | null;
   dia_vencimento: number | null;
   data_inicio_vigencia: string | null;
   prazo_meses: number | null;
+  indice_reajuste: string | null;
+  periodicidade_reajuste_meses: number | null;
   status: string;
   multa_mora_percent: number;
   juros_mora_mensal_percent: number;
