@@ -10,8 +10,7 @@
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
  *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
+ * The :root and .dark blocks define the actual color values using HSL tokens.
  *
  * To add a new semantic color:
  * 1. Add the variable to :root (light value) and .dark (dark value)
@@ -68,6 +67,13 @@
   --color-augusto-cream-dark: var(--augusto-cream-dark);
   --color-augusto-slate: var(--augusto-slate);
   --color-augusto-slate-dark: var(--augusto-slate-dark);
+  --color-landing-surface: var(--landing-surface);
+  --color-landing-surface-alt: var(--landing-surface-alt);
+  --color-landing-panel: var(--landing-panel);
+  --color-landing-panel-muted: var(--landing-panel-muted);
+  --color-landing-ink: var(--landing-ink);
+  --color-landing-muted: var(--landing-muted);
+  --color-landing-rule: var(--landing-rule);
   --color-usage-ok: var(--usage-ok);
   --color-usage-warn: var(--usage-warn);
   --color-usage-alert: var(--usage-alert);
@@ -75,16 +81,30 @@
 
 :root {
   --radius: 0.5rem;
-  /* Augusto.IJ — Verde Floresta #00512B · Dourado Fosco #B8935A · Off-white #F4F3F2 */
-  --augusto-green: #00512B;
-  --augusto-green-dark: #003D20;
-  --augusto-green-light: #1A6B45;
-  --augusto-gold: #B8935A;
-  --augusto-gold-light: #D4B585;
-  --augusto-cream: #F4F3F2;
-  --augusto-cream-dark: #E5E0D8;
-  --augusto-slate: #475569;
-  --augusto-slate-dark: #1F2937;
+  /* Augusto.IJ — semantic HSL tokens */
+  --augusto-green: hsl(152 100% 16%);
+  --augusto-green-dark: hsl(151 100% 12%);
+  --augusto-green-light: hsl(150 61% 26%);
+  --augusto-gold: hsl(35 35% 54%);
+  --augusto-gold-light: hsl(36 48% 68%);
+  --augusto-cream: hsl(30 8% 95%);
+  --augusto-cream-dark: hsl(36 18% 87%);
+  --augusto-slate: hsl(215 20% 34%);
+  --augusto-slate-dark: hsl(215 29% 17%);
+  --landing-surface: hsl(38 24% 96%);
+  --landing-surface-alt: hsl(39 27% 91%);
+  --landing-panel: hsl(0 0% 100%);
+  --landing-panel-muted: hsl(42 26% 94%);
+  --landing-ink: hsl(152 100% 14%);
+  --landing-muted: hsl(213 16% 38%);
+  --landing-rule: hsl(35 35% 54% / 0.24);
+  --landing-gradient-hero: radial-gradient(circle at 12% 10%, hsl(35 35% 54% / 0.22), transparent 32%), radial-gradient(circle at 90% 18%, hsl(150 61% 26% / 0.22), transparent 34%), linear-gradient(135deg, var(--augusto-green-dark), var(--augusto-green) 52%, hsl(151 84% 13%));
+  --landing-gradient-cream: radial-gradient(circle at 12% 0%, hsl(35 35% 54% / 0.16), transparent 30%), linear-gradient(180deg, var(--landing-surface), var(--landing-surface-alt));
+  --landing-gradient-card: linear-gradient(180deg, hsl(0 0% 100% / 0.96), hsl(42 26% 94% / 0.92));
+  --landing-shadow-soft: 0 18px 48px -30px hsl(152 100% 10% / 0.32);
+  --landing-shadow-card: 0 24px 70px -36px hsl(152 100% 10% / 0.28), 0 1px 0 hsl(0 0% 100% / 0.84) inset;
+  --landing-shadow-card-hover: 0 30px 80px -34px hsl(35 35% 38% / 0.42), 0 1px 0 hsl(0 0% 100% / 0.9) inset;
+  --landing-shadow-deep: 0 38px 90px -42px hsl(152 100% 7% / 0.58);
 
   --background: oklch(0.96 0.005 60);          /* #F4F3F2 off-white */
   --foreground: oklch(0.32 0.09 152);          /* #00512B verde floresta */
@@ -127,6 +147,22 @@
 }
 
 .dark {
+  --augusto-green: hsl(152 100% 16%);
+  --augusto-green-dark: hsl(151 100% 10%);
+  --augusto-green-light: hsl(150 46% 34%);
+  --augusto-gold: hsl(35 37% 60%);
+  --augusto-gold-light: hsl(36 52% 72%);
+  --augusto-cream: hsl(40 18% 92%);
+  --augusto-cream-dark: hsl(38 14% 82%);
+  --augusto-slate: hsl(217 16% 74%);
+  --augusto-slate-dark: hsl(40 18% 92%);
+  --landing-surface: hsl(151 67% 10%);
+  --landing-surface-alt: hsl(151 61% 13%);
+  --landing-panel: hsl(152 42% 16%);
+  --landing-panel-muted: hsl(151 43% 13%);
+  --landing-ink: hsl(40 18% 92%);
+  --landing-muted: hsl(40 12% 78%);
+  --landing-rule: hsl(35 37% 60% / 0.26);
   --background: oklch(0.27 0.07 152);          /* verde floresta como fundo */
   --foreground: oklch(0.96 0.005 60);
   --card: oklch(0.32 0.09 152);
@@ -180,6 +216,35 @@
     font-family: var(--font-serif);
     font-weight: 500;
     letter-spacing: -0.01em;
+  }
+}
+
+@utility landing-section {
+  position: relative;
+  overflow: hidden;
+  padding-inline: 1.5rem;
+  padding-block: clamp(5rem, 8vw, 7.5rem);
+}
+
+@utility landing-container {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+@utility landing-panel {
+  border: 1px solid var(--landing-rule);
+  background: var(--landing-gradient-card);
+  box-shadow: var(--landing-shadow-card);
+}
+
+@utility landing-card-hover {
+  transition-property: transform, box-shadow, border-color, background-color, color, opacity;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  &:hover {
+    transform: translateY(-0.25rem);
+    box-shadow: var(--landing-shadow-card-hover);
   }
 }
 
