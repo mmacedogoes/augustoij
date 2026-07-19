@@ -17,8 +17,10 @@ export function Nav() {
     const onScroll = () => {
       setScrolled((prev) => {
         const y = window.scrollY;
-        if (prev && y < 8) return false;
-        if (!prev && y > 40) return true;
+        // Wide hysteresis band avoids re-triggering when the header's own
+        // resize causes a tiny scroll delta near the threshold.
+        if (prev && y < 12) return false;
+        if (!prev && y > 72) return true;
         return prev;
       });
     };
@@ -33,24 +35,23 @@ export function Nav() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 bg-augusto-green backdrop-blur transition-all duration-300",
+        // Header height stays constant — only the surface treatment
+        // (background, border, shadow) changes on scroll, so there is no
+        // layout thrash that could re-cross the scroll threshold.
+        "sticky top-0 z-50 transition-[background-color,box-shadow,border-color,backdrop-filter] duration-300 ease-out",
         scrolled
-          ? "shadow-[0_6px_20px_-12px_rgba(0,0,0,0.6)] border-b border-augusto-gold/40"
-          : "border-b border-transparent",
+          ? "bg-augusto-green/85 supports-[backdrop-filter]:backdrop-blur-md shadow-[0_10px_30px_-18px_rgba(0,0,0,0.55)] border-b border-augusto-gold/40"
+          : "bg-augusto-green border-b border-transparent",
       )}
     >
       <div
         className={cn(
-          "mx-auto max-w-6xl px-6 flex items-center justify-between gap-6 transition-all duration-200 ease-out",
-          scrolled ? "py-3" : "py-6",
+          "mx-auto max-w-6xl px-6 flex items-center justify-between gap-6 py-4",
         )}
       >
         <Link to="/" className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold rounded-sm">
-          <AugustoLogo
-            variant="horizontal"
-            theme="dark"
-            size={scrolled ? 180 : 260}
-          />
+          {/* Fixed logo width keeps the header height stable across scroll */}
+          <AugustoLogo variant="horizontal" theme="dark" size={200} />
         </Link>
 
         <nav className="hidden md:flex items-center gap-7">
