@@ -31,7 +31,7 @@ export function Nav() {
   }, []);
 
   const linkCls =
-    "rounded-full px-3 py-2 text-[14px] font-medium text-augusto-cream/86 transition-all duration-200 hover:bg-augusto-cream/8 hover:text-augusto-gold-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold";
+    "rounded-full px-3 py-2 text-[14px] font-medium text-augusto-cream/85 transition-all duration-200 hover:bg-augusto-cream/10 hover:text-augusto-gold-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold";
 
   return (
     <header
@@ -42,7 +42,7 @@ export function Nav() {
         "sticky top-0 z-50 transition-[background-color,box-shadow,border-color,backdrop-filter] duration-300 ease-out",
         scrolled
           ? "border-b border-augusto-gold/35 bg-augusto-green/88 shadow-[var(--landing-shadow-deep)] supports-[backdrop-filter]:backdrop-blur-xl"
-          : "border-b border-augusto-gold/12 bg-augusto-green",
+          : "border-b border-augusto-gold/15 bg-augusto-green",
       )}
     >
       <div
@@ -55,7 +55,7 @@ export function Nav() {
           <AugustoLogo variant="horizontal" theme="dark" size={188} />
         </Link>
 
-        <nav className="hidden items-center gap-1 rounded-full border border-augusto-gold/18 bg-augusto-cream/5 p-1 md:flex">
+        <nav className="hidden items-center gap-1 rounded-full border border-augusto-gold/20 bg-augusto-cream/5 p-1 md:flex">
           <button type="button" onClick={() => scrollToId("features")} className={linkCls}>
             Plataforma
           </button>
@@ -81,7 +81,7 @@ export function Nav() {
 
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-augusto-gold/30 text-augusto-cream transition-colors duration-200 hover:bg-augusto-cream/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-augusto-gold/30 text-augusto-cream transition-colors duration-200 hover:bg-augusto-cream/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold md:hidden"
           onClick={() => setOpen((v) => !v)}
           aria-label="Abrir menu"
         >
