@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function scrollToId(id: string) {
@@ -30,7 +31,7 @@ export function Nav() {
   }, []);
 
   const linkCls =
-    "text-[15px] font-medium text-augusto-cream/90 hover:text-augusto-gold-light transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold rounded-sm";
+    "rounded-full px-3 py-2 text-[14px] font-medium text-augusto-cream/86 transition-all duration-200 hover:bg-augusto-cream/8 hover:text-augusto-gold-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold";
 
   return (
     <header
@@ -40,21 +41,21 @@ export function Nav() {
         // layout thrash that could re-cross the scroll threshold.
         "sticky top-0 z-50 transition-[background-color,box-shadow,border-color,backdrop-filter] duration-300 ease-out",
         scrolled
-          ? "bg-augusto-green/85 supports-[backdrop-filter]:backdrop-blur-md shadow-[0_10px_30px_-18px_rgba(0,0,0,0.55)] border-b border-augusto-gold/40"
-          : "bg-augusto-green border-b border-transparent",
+          ? "border-b border-augusto-gold/35 bg-augusto-green/88 shadow-[var(--landing-shadow-deep)] supports-[backdrop-filter]:backdrop-blur-xl"
+          : "border-b border-augusto-gold/12 bg-augusto-green",
       )}
     >
       <div
         className={cn(
-          "mx-auto max-w-6xl px-6 flex items-center justify-between gap-6 py-4",
+          "mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8",
         )}
       >
-        <Link to="/" className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold rounded-sm">
+        <Link to="/" className="flex min-w-0 items-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold">
           {/* Fixed logo width keeps the header height stable across scroll */}
-          <AugustoLogo variant="horizontal" theme="dark" size={200} />
+          <AugustoLogo variant="horizontal" theme="dark" size={188} />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-7">
+        <nav className="hidden items-center gap-1 rounded-full border border-augusto-gold/18 bg-augusto-cream/5 p-1 md:flex">
           <button type="button" onClick={() => scrollToId("features")} className={linkCls}>
             Plataforma
           </button>
@@ -69,21 +70,18 @@ export function Nav() {
           </button>
         </nav>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden items-center gap-2 md:flex">
           <Link to="/login" className={linkCls}>
             Entrar
           </Link>
-          <Link
-            to="/signup"
-            className="rounded-md bg-augusto-gold px-4 py-2 text-sm font-semibold text-augusto-green hover:bg-augusto-gold-light active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-cream"
-          >
-            Começar grátis
-          </Link>
+          <Button asChild variant="augusto-gold" size="lg" className="h-10 px-4">
+            <Link to="/signup">Começar grátis</Link>
+          </Button>
         </div>
 
         <button
           type="button"
-          className="md:hidden text-augusto-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold rounded-sm"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-augusto-gold/30 text-augusto-cream transition-colors duration-200 hover:bg-augusto-cream/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold md:hidden"
           onClick={() => setOpen((v) => !v)}
           aria-label="Abrir menu"
         >
@@ -92,7 +90,7 @@ export function Nav() {
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-augusto-gold/30 bg-augusto-green-dark px-6 py-6 flex flex-col gap-4">
+        <div className="flex flex-col gap-3 border-t border-augusto-gold/25 bg-augusto-green-dark px-6 py-6 shadow-[var(--landing-shadow-deep)] md:hidden">
           <button type="button" onClick={() => { setOpen(false); scrollToId("features"); }} className={linkCls}>Plataforma</button>
           <Link to="/historia" className={linkCls} onClick={() => setOpen(false)}>História</Link>
           <Link to="/manifesto" className={linkCls} onClick={() => setOpen(false)}>Manifesto</Link>
@@ -102,7 +100,7 @@ export function Nav() {
           <Link
             to="/signup"
             onClick={() => setOpen(false)}
-            className="rounded-md bg-augusto-gold px-4 py-2 text-sm font-semibold text-augusto-green text-center"
+            className="rounded-md bg-augusto-gold px-4 py-2.5 text-center text-sm font-semibold text-augusto-green transition-all duration-200 hover:bg-augusto-gold-light active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-cream"
           >
             Começar grátis
           </Link>
