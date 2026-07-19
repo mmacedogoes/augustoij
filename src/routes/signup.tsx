@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { registrarAceiteTermos } from "@/lib/privacidade.functions";
 import { TERMOS_VERSAO } from "@/config/legal";
+import { GoogleAuthButton, OrDivider } from "@/components/auth/GoogleAuthButton";
 
 export const Route = createFileRoute("/signup")({
   ssr: false,
@@ -333,7 +334,14 @@ function SignupPage() {
         <h1 className="text-2xl font-bold tracking-tight text-center">Criar conta</h1>
         <p className="mt-2 text-sm text-muted-foreground text-center">7 dias de teste grátis. Sem cartão.</p>
 
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <div className="mt-6">
+          <GoogleAuthButton
+            label="Continuar com Google"
+            redirectTo={search.plano ? "/app/assinatura" : "/app"}
+          />
+          <OrDivider />
+        </div>
+        <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="nome" className="text-xs uppercase tracking-wide text-muted-foreground">Nome completo</Label>
             <Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />

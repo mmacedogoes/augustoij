@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { toast } from "sonner";
+import { GoogleAuthButton, OrDivider } from "@/components/auth/GoogleAuthButton";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -71,7 +72,11 @@ function LoginPage() {
         </Link>
         <h1 className="text-3xl font-serif font-medium text-foreground tracking-tight text-center">Bem-vindo</h1>
         <p className="mt-2 text-sm text-muted-foreground text-center">Entre para conversar com o Augusto.</p>
-        <form onSubmit={onSubmit} className="mt-8 space-y-5">
+        <div className="mt-8">
+          <GoogleAuthButton label="Continuar com Google" redirectTo="/app" />
+          <OrDivider />
+        </div>
+        <form onSubmit={onSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">E-mail</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
