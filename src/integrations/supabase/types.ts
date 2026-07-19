@@ -835,6 +835,7 @@ export type Database = {
           status: string
           updated_at: string
           valor_aluguel: number | null
+          valor_aluguel_inicial: number | null
         }
         Insert: {
           arquivo_contrato_url?: string | null
@@ -870,6 +871,7 @@ export type Database = {
           status?: string
           updated_at?: string
           valor_aluguel?: number | null
+          valor_aluguel_inicial?: number | null
         }
         Update: {
           arquivo_contrato_url?: string | null
@@ -905,6 +907,7 @@ export type Database = {
           status?: string
           updated_at?: string
           valor_aluguel?: number | null
+          valor_aluguel_inicial?: number | null
         }
         Relationships: [
           {
