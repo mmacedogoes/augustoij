@@ -348,6 +348,8 @@ function Painel() {
           })}
         </Card>
 
+        {contrato?.imovel_id && <ManutencoesPanel imovelId={contrato.imovel_id} />}
+
         <Dialog open={dlgOpen} onOpenChange={setDlgOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Calcular reajuste</DialogTitle></DialogHeader>
