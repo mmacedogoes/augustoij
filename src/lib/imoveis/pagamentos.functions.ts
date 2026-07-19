@@ -105,6 +105,38 @@ function buildParcelasEsperadas(c: ContratoParaGerar): Array<{
       });
     }
   }
+
+  // TCR — 1 por ano
+  if (c.encargos_inquilino?.tcr) {
+    for (let y = yStart; y <= yEnd; y++) {
+      parcelas.push({
+        contrato_locacao_id: c.id,
+        owner_admin_id: c.owner_admin_id,
+        tipo: "tcr",
+        competencia: `${y}`,
+        vencimento: toIsoDate(proximoDiaUtil(new Date(Date.UTC(y, 2, 15)))),
+        valor: null,
+      });
+    }
+  }
+
+  // Condomínio — mês a mês (valor definido pelo usuário)
+  if (c.encargos_inquilino?.condominio) {
+    for (let y = yStart, m = mStart; y < yEnd || (y === yEnd && m <= mEnd); ) {
+      const bruto = new Date(Date.UTC(y, m - 1, dia));
+      const venc = proximoDiaUtil(bruto);
+      parcelas.push({
+        contrato_locacao_id: c.id,
+        owner_admin_id: c.owner_admin_id,
+        tipo: "condominio",
+        competencia: competenciaMes(y, m),
+        vencimento: toIsoDate(venc),
+        valor: null,
+      });
+      m += 1;
+      if (m > 12) { m = 1; y += 1; }
+    }
+  }
   return parcelas;
 }
 
