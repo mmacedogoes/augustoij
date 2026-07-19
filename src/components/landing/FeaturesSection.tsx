@@ -37,15 +37,15 @@ const FEATURES = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="bg-augusto-cream border-t border-augusto-gold/15 py-24 px-6">
-      <div className="mx-auto max-w-6xl">
+    <section id="features" className="landing-section bg-landing-surface border-t border-landing-rule">
+      <div className="landing-container">
         <SectionHeader
           eyebrow="O que Augusto faz"
           title="Seis capacidades. Uma especialidade."
           subtitle="Direito Condominial brasileiro, nada mais. Faz uma coisa só e faz com excelência."
         />
 
-        <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => {
             const numeral = ["I", "II", "III", "IV", "V", "VI"][i] ?? String(i + 1);
             return (
@@ -53,7 +53,7 @@ export function FeaturesSection() {
                 key={f.title}
                 direction="up"
                 delay={(i % 3) * 0.08}
-                className="group relative overflow-hidden rounded-lg bg-white border-t-2 border-augusto-gold/60 shadow-sm p-8 transition-all duration-200 ease-out hover:-translate-y-1 hover:border-augusto-gold hover:shadow-[0_24px_50px_-24px_rgba(184,147,90,0.45)]"
+                className="landing-panel landing-card-hover group relative overflow-hidden rounded-2xl border-t-2 border-t-augusto-gold/60 p-8"
               >
                 <span
                   aria-hidden="true"

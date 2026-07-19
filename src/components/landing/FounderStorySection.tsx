@@ -3,12 +3,12 @@ import { AugustoLogo } from "@/components/brand/AugustoLogo";
 
 export function FounderStorySection() {
   return (
-    <section className="relative bg-augusto-cream border-t border-augusto-gold/20 py-24 px-6 overflow-hidden">
+    <section className="landing-section bg-landing-surface border-t border-landing-rule">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-augusto-gold/60 to-transparent"
       />
-      <div className="mx-auto max-w-6xl grid gap-16 lg:grid-cols-5 items-start">
+      <div className="landing-container grid items-start gap-16 lg:grid-cols-5">
         {/* Coluna esquerda (2/5), retrato tipográfico */}
         <div className="lg:col-span-2">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
@@ -20,8 +20,8 @@ export function FounderStorySection() {
             Nasceu em um escritório de advocacia.
           </h2>
 
-          <div className="mt-10 rounded-2xl bg-white border-2 border-augusto-gold/40 shadow-[0_20px_60px_-25px_rgba(0,81,43,0.35)] p-8 flex flex-col items-center text-center">
-            <div className="h-24 w-24 rounded-full bg-augusto-green flex items-center justify-center font-serif text-augusto-gold text-[42px] leading-none">
+          <div className="landing-panel mt-10 flex flex-col items-center rounded-[1.75rem] border-2 border-augusto-gold/40 p-8 text-center">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-augusto-green font-serif text-[42px] leading-none text-augusto-gold shadow-[var(--landing-shadow-soft)]">
               MG
             </div>
             <div className="mt-5 font-serif text-augusto-green text-[22px] leading-tight">

@@ -42,19 +42,19 @@ const CARDS = [
 
 export function ForWhomSection() {
   return (
-    <section className="bg-augusto-cream border-t border-augusto-gold/15 py-24 px-6">
-      <div className="mx-auto max-w-6xl">
+    <section className="landing-section bg-landing-surface border-t border-landing-rule">
+      <div className="landing-container">
         <SectionHeader
           eyebrow="Para quem Augusto existe"
           title="Três públicos. Três realidades. Uma inteligência."
           subtitle="Augusto adapta o tom e a profundidade técnica ao seu interlocutor, síndico, administrador ou advogado."
         />
 
-        <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {CARDS.map((c) => (
             <div
               key={c.label}
-              className="rounded-lg bg-white border-t-2 border-augusto-gold shadow-md p-10 transition-transform hover:-translate-y-1"
+              className="landing-panel landing-card-hover rounded-2xl border-t-2 border-t-augusto-gold p-8 lg:p-10"
             >
               <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-augusto-gold">
                 {c.label}
@@ -73,7 +73,7 @@ export function ForWhomSection() {
               </ul>
               <Link
                 to={c.href}
-                className="mt-6 inline-block text-[14px] font-medium text-augusto-green hover:underline"
+                className="mt-6 inline-block rounded-sm text-[14px] font-semibold text-augusto-green transition-colors duration-200 hover:text-augusto-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold"
               >
                 Ver casos de uso →
               </Link>
