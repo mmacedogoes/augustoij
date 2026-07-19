@@ -147,7 +147,7 @@ export const listPagamentosContrato = createServerFn({ method: "POST" })
     await ensureSuperAdmin(context);
     const { data: contrato, error: eC } = await context.supabase
       .from("contratos_locacao")
-      .select("id, owner_admin_id, data_inicio_vigencia, dia_vencimento, valor_aluguel, encargos_inquilino, inquilino_nome, status, prazo_meses, indice_reajuste, periodicidade_reajuste_meses, mes_base_reajuste, multa_mora_percent, juros_mora_mensal_percent, imoveis(descricao, endereco, edificio, numero_unidade, proprietarios(nome))")
+      .select("id, owner_admin_id, imovel_id, data_inicio_vigencia, dia_vencimento, valor_aluguel, valor_aluguel_inicial, encargos_inquilino, inquilino_nome, inquilino_telefone, status, prazo_meses, indice_reajuste, periodicidade_reajuste_meses, mes_base_reajuste, multa_mora_percent, juros_mora_mensal_percent, imoveis(descricao, endereco, edificio, numero_unidade, proprietarios(nome))")
       .eq("id", data.contratoId)
       .maybeSingle();
     if (eC) throw new Error(eC.message);
