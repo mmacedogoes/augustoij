@@ -17,7 +17,7 @@ import { listImoveis } from "@/lib/imoveis/imoveis.functions";
 import { contratoLocacaoSchema, type ContratoLocacaoInput } from "@/lib/imoveis/schemas";
 import { maskCpf, maskTelefone, parseBRL, formatBRL } from "@/lib/imoveis/masks";
 
-export const Route = createFileRoute("/_authenticated/app/admin/imoveis/locacao/$id")({
+export const Route = createFileRoute("/_authenticated/app/admin/imoveis/locacao/$id/editar")({
   component: Page,
 });
 

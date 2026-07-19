@@ -31,7 +31,7 @@ import { formatBRL, formatDateBR, parseBRL } from "@/lib/imoveis/masks";
 import { ManutencoesPanel } from "@/components/imoveis/ManutencoesPanel";
 import { AlertTriangle } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/app/admin/imoveis/locacao/$id/painel")({
+export const Route = createFileRoute("/_authenticated/app/admin/imoveis/locacao/$id/")({
   component: Painel,
 });
 
