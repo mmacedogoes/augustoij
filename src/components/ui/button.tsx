@@ -23,7 +23,7 @@ const buttonVariants = cva(
         "augusto-outline":
           "border border-augusto-green/35 bg-landing-panel/70 text-augusto-green shadow-sm hover:border-augusto-gold hover:bg-augusto-green hover:text-augusto-cream focus-visible:ring-augusto-gold",
         "augusto-ghost":
-          "text-augusto-green hover:bg-augusto-green/8 hover:text-augusto-green-dark focus-visible:ring-augusto-gold",
+          "text-augusto-green hover:bg-augusto-green/10 hover:text-augusto-green-dark focus-visible:ring-augusto-gold",
       },
       size: {
         default: "h-9 px-4 py-2",
