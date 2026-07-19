@@ -127,6 +127,96 @@ export const listReajustes = createServerFn({ method: "POST" })
     return { rows: rows ?? [] };
   });
 
+/** Calcula a data do próximo reajuste. Base = último reajuste OU início da vigência. */
+function proximaDataReajuste(inicio: string | null, ultimo: string | null, periodicidade: number): string | null {
+  const base = ultimo ?? inicio;
+  if (!base) return null;
+  const d = new Date(base + "T00:00:00Z");
+  d.setUTCMonth(d.getUTCMonth() + (periodicidade || 12));
+  return d.toISOString().slice(0, 10);
+}
+
+/** Retorna contratos ativos cuja próxima data de reajuste é ≤ hoje + janelaDias. */
+export const listReajustesPendentes = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureSuperAdmin(context);
+    const { data: contratos, error } = await context.supabase
+      .from("contratos_locacao")
+      .select("id, inquilino_nome, data_inicio_vigencia, periodicidade_reajuste_meses, indice_reajuste, valor_aluguel, imoveis(descricao, edificio, numero_unidade)")
+      .eq("owner_admin_id", context.userId)
+      .eq("status", "ativo");
+    if (error) throw new Error(error.message);
+    const { data: reajustes } = await context.supabase
+      .from("reajustes")
+      .select("contrato_locacao_id, data")
+      .eq("owner_admin_id", context.userId)
+      .order("data", { ascending: false });
+    const ultimoPorContrato = new Map<string, string>();
+    for (const r of reajustes ?? []) {
+      if (!ultimoPorContrato.has(r.contrato_locacao_id)) ultimoPorContrato.set(r.contrato_locacao_id, r.data);
+    }
+    const hoje = new Date();
+    const limite = new Date(hoje);
+    limite.setUTCDate(limite.getUTCDate() + 30);
+    const rows: Array<{
+      contratoId: string; inquilinoNome: string | null; imovelLabel: string;
+      proximaData: string; diasParaReajuste: number; indice: string; valorAtual: number | null;
+    }> = [];
+    for (const c of contratos ?? []) {
+      const proxima = proximaDataReajuste(
+        c.data_inicio_vigencia,
+        ultimoPorContrato.get(c.id) ?? null,
+        c.periodicidade_reajuste_meses ?? 12,
+      );
+      if (!proxima) continue;
+      const dProx = new Date(proxima + "T00:00:00Z");
+      if (dProx.getTime() > limite.getTime()) continue;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const im = c.imoveis as any;
+      rows.push({
+        contratoId: c.id,
+        inquilinoNome: c.inquilino_nome,
+        imovelLabel: [im?.edificio, im?.descricao, im?.numero_unidade ? `un. ${im.numero_unidade}` : null].filter(Boolean).join(" — ") || "Imóvel",
+        proximaData: proxima,
+        diasParaReajuste: Math.floor((dProx.getTime() - hoje.getTime()) / 86400000),
+        indice: c.indice_reajuste ?? "IGP-M",
+        valorAtual: c.valor_aluguel,
+      });
+    }
+    return { rows };
+  });
+
+/** Retorna a próxima data de reajuste para um único contrato, junto com o último reajuste conhecido. */
+export const getReajusteStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { data: c } = await context.supabase
+      .from("contratos_locacao")
+      .select("data_inicio_vigencia, periodicidade_reajuste_meses")
+      .eq("id", data.contratoId)
+      .maybeSingle();
+    const { data: r } = await context.supabase
+      .from("reajustes")
+      .select("data")
+      .eq("contrato_locacao_id", data.contratoId)
+      .order("data", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const proxima = proximaDataReajuste(
+      c?.data_inicio_vigencia ?? null,
+      r?.data ?? null,
+      c?.periodicidade_reajuste_meses ?? 12,
+    );
+    const hoje = new Date();
+    const dias = proxima
+      ? Math.floor((new Date(proxima + "T00:00:00Z").getTime() - hoje.getTime()) / 86400000)
+      : null;
+    return { proximaData: proxima, ultimoReajuste: r?.data ?? null, diasParaReajuste: dias, pendente: dias != null && dias <= 30 };
+  });
+
 // -------- Caução --------
 
 export type CaucaoInfo = {
