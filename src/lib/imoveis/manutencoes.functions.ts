@@ -41,6 +41,7 @@ export const upsertManutencao = createServerFn({ method: "POST" })
     const payload = { ...data, owner_admin_id: context.userId };
     if (data.id) {
       const { id, ...patch } = payload;
+      if (!id) throw new Error("ID inválido");
       const { error } = await context.supabase.from("manutencoes").update(patch).eq("id", id);
       if (error) throw new Error(error.message);
       return { id };
