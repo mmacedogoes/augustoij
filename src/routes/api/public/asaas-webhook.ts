@@ -19,12 +19,12 @@ const payloadSchema = z.object({
     .object({
       id: z.string().optional(),
       subscription: z.string().nullish(),
-      customer: z.string().optional(),
-      status: z.string().optional(),
-      value: z.number().optional(),
-      nextDueDate: z.string().optional(),
-      invoiceUrl: z.string().optional(),
-      bankSlipUrl: z.string().optional(),
+      customer: z.string().nullish(),
+      status: z.string().nullish(),
+      value: z.number().nullish(),
+      nextDueDate: z.string().nullish(),
+      invoiceUrl: z.string().nullish(),
+      bankSlipUrl: z.string().nullish(),
     })
     .partial()
     .optional(),
@@ -354,8 +354,8 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
                       supabaseAdmin,
                       userId: sub.user_id,
                       planoId: novoPlano,
-                      valorCentavos: parsed.payment?.value,
-                      proximaData: parsed.payment?.nextDueDate,
+                      valorCentavos: parsed.payment?.value ?? undefined,
+                      proximaData: parsed.payment?.nextDueDate ?? undefined,
                     });
                   } catch (mailErr) {
                     console.error("[asaas-webhook] falha ao enviar e-mail", mailErr);
@@ -391,7 +391,7 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
                       supabaseAdmin,
                       userId: sub.user_id,
                       planoId: sub.plano_config_id ?? sub.pending_plano_config_id ?? null,
-                      valorCentavos: parsed.payment?.value,
+                      valorCentavos: parsed.payment?.value ?? undefined,
                       linkPagamento,
                     });
                   } catch (mailErr) {
