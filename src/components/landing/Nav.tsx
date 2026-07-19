@@ -68,6 +68,9 @@ export function Nav() {
           <button type="button" onClick={() => scrollToId("pricing")} className={linkCls}>
             Planos
           </button>
+          <Link to="/blog" className={linkCls}>
+            Blog
+          </Link>
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -95,6 +98,7 @@ export function Nav() {
           <Link to="/historia" className={linkCls} onClick={() => setOpen(false)}>História</Link>
           <Link to="/manifesto" className={linkCls} onClick={() => setOpen(false)}>Manifesto</Link>
           <button type="button" onClick={() => { setOpen(false); scrollToId("pricing"); }} className={linkCls}>Planos</button>
+          <Link to="/blog" className={linkCls} onClick={() => setOpen(false)}>Blog</Link>
           <div className="h-px bg-augusto-gold/30" />
           <Link to="/login" className={linkCls} onClick={() => setOpen(false)}>Entrar</Link>
           <Link

@@ -90,6 +90,7 @@ export function ManifestoFooter() {
             items={[
               { label: "A História", to: "/historia" },
               { label: "Manifesto", to: "/manifesto" },
+              { label: "Blog", to: "/blog" },
               { label: "Contato", href: "mailto:suporte@augustoij.com.br" },
             ]}
           />
