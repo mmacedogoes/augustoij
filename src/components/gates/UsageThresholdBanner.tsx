@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getUsoAtual } from "@/lib/uso.functions";
 import type { UsoAtual } from "@/lib/uso-limits";
+import { supabase } from "@/integrations/supabase/client";
 
 type Threshold = 80 | 95;
 
@@ -18,11 +19,26 @@ type Threshold = 80 | 95;
  */
 export function UsageThresholdBanner() {
   const fetchUso = useServerFn(getUsoAtual);
+  const [hasSession, setHasSession] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setHasSession(!!data.session);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (mounted) setHasSession(!!session);
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
   const { data } = useQuery<UsoAtual>({
     queryKey: ["uso-atual"],
     queryFn: () => fetchUso() as unknown as Promise<UsoAtual>,
     staleTime: 30_000,
     refetchOnWindowFocus: true,
+    enabled: hasSession,
   });
 
   const info = useMemo(() => computarThreshold(data), [data]);
