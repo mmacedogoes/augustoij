@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Pencil, Check, X, ArrowLeft, TrendingUp, Wallet, FileText } from "lucide-react";
 import {
   listPagamentosContrato,
@@ -39,6 +40,7 @@ type Pagamento = {
   tipo: string;
   competencia: string;
   valor: number | null;
+  desconto: number | null;
   vencimento: string;
   pago: boolean;
   data_pagamento: string | null;
@@ -89,7 +91,7 @@ function Painel() {
   const getReajusteStatusFn = useServerFn(getReajusteStatus);
   const [contrato, setContrato] = useState<ContratoInfo | null>(null);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
-  const [editing, setEditing] = useState<{ id: string; valor: string; vencimento: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; valor: string; desconto: string; vencimento: string } | null>(null);
   const [reajustes, setReajustes] = useState<Reajuste[]>([]);
   const [reajusteStatus, setReajusteStatus] = useState<{
     proximaData: string | null; ultimoReajuste: string | null; diasParaReajuste: number | null; pendente: boolean;
