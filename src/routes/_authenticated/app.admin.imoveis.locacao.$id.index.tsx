@@ -199,7 +199,7 @@ function Painel() {
             <div><p className="text-xs text-muted-foreground">Fim</p><p className="font-medium">{formatDateBR(dataFim)}</p></div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link to="/app/admin/imoveis/locacao/$id" params={{ id }}>
+            <Link to="/app/admin/imoveis/locacao/$id/editar" params={{ id }}>
               <Button size="sm" variant="outline"><Pencil className="h-4 w-4 mr-1" /> Editar contrato</Button>
             </Link>
             <Button size="sm" onClick={abrirDialogoReajuste}>
