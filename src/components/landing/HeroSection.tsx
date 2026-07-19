@@ -119,8 +119,16 @@ export function HeroSection() {
   const showLive = live.length > 0;
 
   return (
-    <section className="bg-augusto-cream">
-      <div className="mx-auto max-w-6xl px-6 py-20 md:py-28 grid gap-14 lg:grid-cols-2 items-center min-h-[90vh]">
+    <section className="relative bg-augusto-cream overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 -right-24 h-[420px] w-[420px] rounded-full bg-augusto-gold/10 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-32 -left-24 h-[360px] w-[360px] rounded-full bg-augusto-green/5 blur-3xl"
+      />
+      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20 lg:py-24 grid gap-12 lg:gap-16 lg:grid-cols-2 items-center">
         {/* Coluna esquerda */}
         <div>
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
