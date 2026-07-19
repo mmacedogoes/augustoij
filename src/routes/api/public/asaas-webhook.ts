@@ -19,12 +19,12 @@ const payloadSchema = z.object({
     .object({
       id: z.string().optional(),
       subscription: z.string().nullish(),
-      customer: z.string().optional(),
-      status: z.string().optional(),
-      value: z.number().optional(),
-      nextDueDate: z.string().optional(),
-      invoiceUrl: z.string().optional(),
-      bankSlipUrl: z.string().optional(),
+      customer: z.string().nullish(),
+      status: z.string().nullish(),
+      value: z.number().nullish(),
+      nextDueDate: z.string().nullish(),
+      invoiceUrl: z.string().nullish(),
+      bankSlipUrl: z.string().nullish(),
     })
     .partial()
     .optional(),

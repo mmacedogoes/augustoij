@@ -15,11 +15,14 @@ export const Route = createFileRoute("/_authenticated")({
       .maybeSingle();
 
     const onOnboarding = location.pathname.startsWith("/onboarding");
+    // Pré-onboarding: usuário recém-confirmado que escolheu um plano pago
+    // precisa concluir o checkout antes de fazer o onboarding.
+    const onAssinatura = location.pathname.startsWith("/app/assinatura");
     const isInternalAdmin = profile?.papel_sistema === "super_admin"
       || profile?.papel_sistema === "admin_operacional"
       || profile?.papel_sistema === "admin_suporte";
 
-    if (profile && !profile.onboarding_completo && !onOnboarding && !isInternalAdmin) {
+    if (profile && !profile.onboarding_completo && !onOnboarding && !onAssinatura && !isInternalAdmin) {
       throw redirect({ to: "/onboarding" });
     }
     if (profile?.onboarding_completo && onOnboarding) {

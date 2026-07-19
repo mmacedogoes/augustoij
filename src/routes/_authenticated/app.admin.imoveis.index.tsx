@@ -68,7 +68,7 @@ function Page() {
                   )}
                 </div>
                 {a.contratoId && (a.tipo === "aluguel_vencido" || a.tipo === "encargo_vencido" || a.tipo === "contrato_terminando" || a.tipo === "reajuste_devido") && (
-                  <Link to="/app/admin/imoveis/locacao/$id/painel" params={{ id: a.contratoId }}>
+                  <Link to="/app/admin/imoveis/locacao/$id" params={{ id: a.contratoId }}>
                     <Button size="sm" variant="outline">Abrir painel</Button>
                   </Link>
                 )}

@@ -347,7 +347,7 @@ function GerarAditivo() {
       <ImoveisNav />
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link to="/app/admin/imoveis/locacao/$id/painel" params={{ id }}>
+          <Link to="/app/admin/imoveis/locacao/$id" params={{ id }}>
             <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Voltar ao painel</Button>
           </Link>
           <h1 className="text-xl font-semibold">Gerar termo de renovação</h1>
