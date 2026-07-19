@@ -16,7 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { RefreshCw, Check, FileText, MessageCircle, Calculator } from "lucide-react";
+import { RefreshCw, Check, FileText, MessageCircle, Calculator, History, ListChecks } from "lucide-react";
 import {
   gerarHonorariosMensais, listHonorarios, marcarHonorarioRecebido,
   calcularMoraHonorario, getHonorarioDetalhes,
@@ -68,7 +68,7 @@ function Page() {
   const [rows, setRows] = useState<Row[]>([]);
   const [proprietarios, setProprietarios] = useState<Array<{ id: string; nome: string }>>([]);
   const [propriedade, setPropriedade] = useState<string>("todos");
-  const [status, setStatus] = useState<"todos" | "a_receber" | "recebido" | "atrasado">("todos");
+  const [status, setStatus] = useState<"todos" | "a_receber" | "recebido" | "atrasado">("a_receber");
   const [competencia, setCompetencia] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
@@ -122,8 +122,25 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-6xl">
-        <h1 className="text-3xl font-bold text-primary">Honorários</h1>
-        <p className="text-muted-foreground">Lançamentos mensais e de renovação; recibos e cobranças.</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-primary">Honorários</h1>
+            <p className="text-muted-foreground">
+              {status === "recebido"
+                ? "Histórico — honorários já recebidos."
+                : "Lançamentos mensais e de renovação; recibos e cobranças."}
+            </p>
+          </div>
+          {status === "recebido" ? (
+            <Button size="sm" variant="outline" onClick={() => setStatus("a_receber")}>
+              <ListChecks className="h-4 w-4 mr-1" /> Ver pendentes
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => setStatus("recebido")}>
+              <History className="h-4 w-4 mr-1" /> Ver histórico
+            </Button>
+          )}
+        </div>
         <div className="mt-6"><AdminNav /></div>
         <ImoveisNav />
 
