@@ -398,7 +398,10 @@ export const Route = createFileRoute("/api/chat")({
           // Orientações globais do administrador
           let orientacoesBlock = "";
           try {
-            const { data: orientacoes } = await supabase
+            // Lidas com service role: o conteúdo é interno (super admin)
+            // e não deve ser exposto via RLS a usuários autenticados.
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { data: orientacoes } = await supabaseAdmin
               .from("ai_orientacoes")
               .select("titulo, conteudo")
               .eq("ativo", true)

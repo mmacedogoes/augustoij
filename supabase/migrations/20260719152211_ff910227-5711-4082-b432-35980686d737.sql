@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS ai_orientacoes_authenticated_read_active ON public.ai_orientacoes;
