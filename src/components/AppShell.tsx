@@ -55,40 +55,79 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 bg-sidebar text-sidebar-foreground flex-col overflow-hidden">
-        <Link to="/app" className="p-4 border-b border-sidebar-border/40 flex items-center overflow-hidden">
+      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 bg-sidebar text-sidebar-foreground flex-col overflow-hidden border-r border-sidebar-border/60">
+        <Link
+          to="/app"
+          className="p-5 border-b border-sidebar-border/40 flex items-center overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/60 rounded-none transition-opacity hover:opacity-90"
+        >
           <AugustoLogo variant="horizontal" theme="dark" size={180} />
         </Link>
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1">
           {nav.map((n) => {
             const active = pathname === n.to || (n.to !== "/app" && pathname.startsWith(n.to));
             return (
-              <Link key={n.to} to={n.to as "/app"} data-tour={n.tour} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:text-sidebar-accent-foreground"}`}>
-                <n.icon className="h-4 w-4" strokeWidth={1.5} /> {n.label}
+              <Link
+                key={n.to}
+                to={n.to as "/app"}
+                data-tour={n.tour}
+                className={`group relative flex items-center gap-3 rounded-md pl-4 pr-3 py-2.5 text-sm transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 focus-visible:ring-offset-0 ${
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    : "text-sidebar-foreground/85 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/60"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-augusto-gold transition-opacity duration-200 ${
+                    active ? "opacity-100" : "opacity-0 group-hover:opacity-60"
+                  }`}
+                />
+                <n.icon
+                  className={`h-4 w-4 transition-colors duration-200 ${active ? "text-augusto-gold" : "text-sidebar-foreground/70 group-hover:text-augusto-gold/80"}`}
+                  strokeWidth={1.6}
+                />
+                <span className="truncate">{n.label}</span>
               </Link>
             );
           })}
         </nav>
-        <button onClick={handleSignOut} className="m-3 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent transition-colors">
-          <LogOut className="h-4 w-4" strokeWidth={1.5} /> Sair
+        <button
+          onClick={handleSignOut}
+          className="m-3 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/80 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70"
+        >
+          <LogOut className="h-4 w-4" strokeWidth={1.6} /> Sair
         </button>
       </aside>
 
-      <header className="md:hidden border-b border-border bg-card sticky top-0 z-40">
+      <header className="md:hidden border-b border-border bg-card sticky top-0 z-40 shadow-[0_1px_0_0_var(--landing-rule)]">
         <div className="px-4 py-3 flex items-center justify-between">
           <Link to="/app" className="flex items-center">
             <AugustoLogo variant="horizontal" theme="light" size={140} />
           </Link>
           <div className="flex items-center gap-1">
             <HelpMenu onStartTour={() => setForceTour(true)} />
-            <button onClick={handleSignOut} className="text-sm text-muted-foreground px-2">Sair</button>
+            <button
+              onClick={handleSignOut}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70"
+            >
+              Sair
+            </button>
           </div>
         </div>
         <nav className="flex border-t border-border overflow-x-auto">
           {nav.map((n) => {
             const active = pathname === n.to || (n.to !== "/app" && pathname.startsWith(n.to));
             return (
-              <Link key={n.to} to={n.to as "/app"} data-tour={n.tour} className={`flex-1 px-3 py-2 text-xs text-center ${active ? "text-primary font-medium border-b-2 border-primary" : "text-muted-foreground"}`}>
+              <Link
+                key={n.to}
+                to={n.to as "/app"}
+                data-tour={n.tour}
+                className={`flex-1 min-w-[88px] px-3 py-2.5 text-xs text-center transition-colors duration-200 border-b-2 ${
+                  active
+                    ? "text-augusto-green font-semibold border-augusto-gold"
+                    : "text-muted-foreground border-transparent hover:text-foreground"
+                }`}
+              >
                 {n.label}
               </Link>
             );
@@ -99,10 +138,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="md:ml-60 flex flex-col min-h-screen">
         <TrialExpiredBanner />
         <UsageThresholdBanner />
-        <div className="hidden md:flex h-12 items-center justify-end border-b border-border bg-card px-4">
+        <div className="hidden md:flex h-12 items-center justify-end border-b border-border/70 bg-card/70 backdrop-blur-sm px-4 sticky top-0 z-30">
           <HelpMenu onStartTour={() => setForceTour(true)} />
         </div>
-        <main className="p-4 md:p-8 flex-1">{children}</main>
+        <main className="p-4 md:p-8 lg:p-10 flex-1">{children}</main>
       </div>
 
       {profile && (!profile.onboarding_tour_completo || forceTour) && (
