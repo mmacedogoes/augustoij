@@ -23,7 +23,7 @@ export const SignupEmail = ({ confirmationUrl }: SignupEmailProps) => (
         cellPadding={0}
         cellSpacing={0}
         border={0}
-        bgcolor="#F4F3F2"
+        
         style={{ backgroundColor: '#F4F3F2' }}
       >
         <tr>
@@ -34,13 +34,13 @@ export const SignupEmail = ({ confirmationUrl }: SignupEmailProps) => (
               cellPadding={0}
               cellSpacing={0}
               border={0}
-              bgcolor="#FFFFFF"
+              
               style={{ backgroundColor: '#FFFFFF', maxWidth: 600, width: '100%' }}
             >
               <tr>
                 <td
                   align="center"
-                  bgcolor="#00512B"
+                  
                   style={{ backgroundColor: '#00512B', padding: '36px 40px' }}
                 >
                   <img
@@ -56,7 +56,7 @@ export const SignupEmail = ({ confirmationUrl }: SignupEmailProps) => (
                   <table role="presentation" cellPadding={0} cellSpacing={0} border={0} style={{ margin: '0 0 18px' }}>
                     <tr>
                       <td
-                        bgcolor="#E7EDE9"
+                        
                         style={{
                           backgroundColor: '#E7EDE9',
                           borderRadius: 20,
@@ -89,7 +89,7 @@ export const SignupEmail = ({ confirmationUrl }: SignupEmailProps) => (
                     <tr>
                       <td
                         align="center"
-                        bgcolor="#B8935A"
+                        
                         style={{ backgroundColor: '#B8935A', borderRadius: 4 }}
                       >
                         <a
@@ -120,7 +120,7 @@ export const SignupEmail = ({ confirmationUrl }: SignupEmailProps) => (
               <tr>
                 <td
                   align="center"
-                  bgcolor="#F4F3F2"
+                  
                   style={{
                     backgroundColor: '#F4F3F2',
                     padding: '22px 40px',
