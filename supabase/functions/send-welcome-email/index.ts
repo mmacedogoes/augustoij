@@ -16,6 +16,32 @@ function escapeHtml(input: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function maskEmail(email: string): string {
+  const [u, d] = email.split("@");
+  if (!d) return "***";
+  return `${u.slice(0, 2)}***@${d}`;
+}
+
+async function getAuthenticatedUser(req: Request): Promise<{ email: string; nome?: string } | null> {
+  const auth = req.headers.get("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return null;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) return null;
+  const resp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
+  });
+  if (!resp.ok) return null;
+  const data = (await resp.json()) as {
+    email?: string;
+    user_metadata?: { nome?: string; full_name?: string; name?: string };
+  };
+  if (!data.email) return null;
+  const meta = data.user_metadata ?? {};
+  return { email: data.email, nome: meta.nome ?? meta.full_name ?? meta.name };
+}
+
 function buildHtml(nome: string): string {
   const safe = escapeHtml(nome || "usuário(a)");
   const URL_LOGO_COMPLETO =
