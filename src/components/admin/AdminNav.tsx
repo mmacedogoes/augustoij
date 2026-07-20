@@ -5,7 +5,7 @@ import { BarChart3, Users, Building2, GraduationCap, Megaphone, History, DollarS
 import { countAlertasPendentes } from "@/lib/admin-uso.functions";
 import { isCurrentUserAdmin } from "@/lib/admin.functions";
 import { countCidadesNovasPendentes } from "@/lib/cidades-novas.functions";
-import { countHelpdeskAbertos } from "@/lib/helpdesk.functions";
+import { adminCountAbertos as countHelpdeskAbertos } from "@/lib/helpdesk.functions";
 
 type AdminNavItem = {
   to:
@@ -60,7 +60,7 @@ export function AdminNav() {
       .then((r) => setCidadesNovas(r.count))
       .catch(() => {});
     adminInfoFn().then((r) => setIsSuperAdmin(r?.papel === "super_admin")).catch(() => {});
-    countHelpdeskFn().then((r) => setHelpdeskAbertos(r.count)).catch(() => {});
+    countHelpdeskFn().then((r: { count: number }) => setHelpdeskAbertos(r.count)).catch(() => {});
   }, [countFn, countCidadesFn, adminInfoFn, countHelpdeskFn]);
   return (
     <nav className="flex flex-wrap gap-1 border-b border-border pb-3 mb-6">
