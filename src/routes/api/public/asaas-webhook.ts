@@ -54,6 +54,14 @@ function formatDataBR(iso: string | null | undefined): string {
   return d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
+function maskEmail(email: string | null | undefined): string {
+  if (!email) return "—";
+  const [user, domain] = email.split("@");
+  if (!domain) return "***";
+  const head = user.slice(0, 2);
+  return `${head}***@${domain}`;
+}
+
 function buildPagamentoConfirmadoHtml(params: {
   nomePlano: string;
   valor: string;
