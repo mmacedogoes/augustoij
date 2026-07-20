@@ -62,6 +62,7 @@ import { Route as AuthenticatedAppAdminHelpdeskIndexRouteImport } from './routes
 import { Route as AuthenticatedAppAjudaPerfilPerfilRouteImport } from './routes/_authenticated/app.ajuda.perfil.$perfil'
 import { Route as AuthenticatedAppAdminUsuariosUserIdRouteImport } from './routes/_authenticated/app.admin.usuarios.$userId'
 import { Route as AuthenticatedAppAdminImoveisImportarRouteImport } from './routes/_authenticated/app.admin.imoveis.importar'
+import { Route as AuthenticatedAppAdminHelpdeskTicketIdRouteImport } from './routes/_authenticated/app.admin.helpdesk.$ticketId'
 import { Route as AuthenticatedAppAdminImoveisUnidadesIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.index'
 import { Route as AuthenticatedAppAdminImoveisProprietariosIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.index'
 import { Route as AuthenticatedAppAdminImoveisLocacaoIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.index'
@@ -364,6 +365,12 @@ const AuthenticatedAppAdminImoveisImportarRoute =
     path: '/importar',
     getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
   } as any)
+const AuthenticatedAppAdminHelpdeskTicketIdRoute =
+  AuthenticatedAppAdminHelpdeskTicketIdRouteImport.update({
+    id: '/helpdesk/$ticketId',
+    path: '/helpdesk/$ticketId',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
 const AuthenticatedAppAdminImoveisUnidadesIndexRoute =
   AuthenticatedAppAdminImoveisUnidadesIndexRouteImport.update({
     id: '/unidades/',
@@ -478,6 +485,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
@@ -540,6 +548,7 @@ export interface FileRoutesByTo {
   '/app/admin': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
@@ -607,6 +616,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/_authenticated/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/_authenticated/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   '/_authenticated/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/_authenticated/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/_authenticated/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
@@ -674,6 +684,7 @@ export interface FileRouteTypes {
     | '/app/admin/'
     | '/app/ajuda/'
     | '/app/condominios/'
+    | '/app/admin/helpdesk/$ticketId'
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
@@ -736,6 +747,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/ajuda'
     | '/app/condominios'
+    | '/app/admin/helpdesk/$ticketId'
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
@@ -802,6 +814,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/'
     | '/_authenticated/app/ajuda/'
     | '/_authenticated/app/condominios/'
+    | '/_authenticated/app/admin/helpdesk/$ticketId'
     | '/_authenticated/app/admin/imoveis/importar'
     | '/_authenticated/app/admin/usuarios/$userId'
     | '/_authenticated/app/ajuda/perfil/$perfil'
@@ -1220,6 +1233,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisImportarRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisRoute
     }
+    '/_authenticated/app/admin/helpdesk/$ticketId': {
+      id: '/_authenticated/app/admin/helpdesk/$ticketId'
+      path: '/helpdesk/$ticketId'
+      fullPath: '/app/admin/helpdesk/$ticketId'
+      preLoaderRoute: typeof AuthenticatedAppAdminHelpdeskTicketIdRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
     '/_authenticated/app/admin/imoveis/unidades/': {
       id: '/_authenticated/app/admin/imoveis/unidades/'
       path: '/unidades'
@@ -1362,6 +1382,7 @@ interface AuthenticatedAppAdminRouteChildren {
   AuthenticatedAppAdminTreinamentoRoute: typeof AuthenticatedAppAdminTreinamentoRoute
   AuthenticatedAppAdminUsoRoute: typeof AuthenticatedAppAdminUsoRoute
   AuthenticatedAppAdminIndexRoute: typeof AuthenticatedAppAdminIndexRoute
+  AuthenticatedAppAdminHelpdeskTicketIdRoute: typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   AuthenticatedAppAdminUsuariosUserIdRoute: typeof AuthenticatedAppAdminUsuariosUserIdRoute
   AuthenticatedAppAdminHelpdeskIndexRoute: typeof AuthenticatedAppAdminHelpdeskIndexRoute
   AuthenticatedAppAdminUsuariosIndexRoute: typeof AuthenticatedAppAdminUsuariosIndexRoute
@@ -1380,6 +1401,8 @@ const AuthenticatedAppAdminRouteChildren: AuthenticatedAppAdminRouteChildren = {
   AuthenticatedAppAdminTreinamentoRoute: AuthenticatedAppAdminTreinamentoRoute,
   AuthenticatedAppAdminUsoRoute: AuthenticatedAppAdminUsoRoute,
   AuthenticatedAppAdminIndexRoute: AuthenticatedAppAdminIndexRoute,
+  AuthenticatedAppAdminHelpdeskTicketIdRoute:
+    AuthenticatedAppAdminHelpdeskTicketIdRoute,
   AuthenticatedAppAdminUsuariosUserIdRoute:
     AuthenticatedAppAdminUsuariosUserIdRoute,
   AuthenticatedAppAdminHelpdeskIndexRoute:
