@@ -213,7 +213,7 @@ export function HeroSection() {
         </div>
 
         {/* Coluna direita, chat card */}
-        <div className="relative lg:pl-4">
+        <div id="hero-chat" className="relative scroll-mt-24 lg:pl-4">
           <div
             aria-hidden="true"
             className="absolute -inset-4 rounded-[2rem] border border-augusto-gold/20 bg-augusto-cream/6 shadow-[var(--landing-shadow-deep)]"
