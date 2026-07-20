@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionHeader } from "./SectionHeader";
@@ -177,7 +177,23 @@ const PLANS: Plan[] = [
 
 export function PricingSection() {
   const [billing, setBilling] = useState<Billing>("monthly");
+  const [highlighted, setHighlighted] = useState<PlanId | null>(null);
+  const highlightTimer = useRef<number | null>(null);
   const navigate = useNavigate();
+
+  const highlightPlan = (id: PlanId) => {
+    const el = document.getElementById(`plan-${id}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlighted(id);
+    if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = window.setTimeout(() => setHighlighted(null), 2400);
+  };
+
+  const PROFILES: { id: PlanId; label: string; price: string }[] = [
+    { id: "essencial", label: "Sou síndico morador", price: "a partir de R$ 89/mês" },
+    { id: "profissional", label: "Sou síndico profissional ou advogado", price: "a partir de R$ 197/mês" },
+    { id: "administradora", label: "Sou administradora", price: "a partir de R$ 697/mês" },
+  ];
 
   const handleCta = async (plan: Plan) => {
     if (plan.ctaKind === "contact") {
@@ -231,9 +247,58 @@ export function PricingSection() {
       <div className="mx-auto max-w-7xl">
         <SectionHeader
           eyebrow="Planos"
-          title="Inteligência jurídica ao alcance."
-          subtitle="Do síndico morador à administradora com carteira ampla. Comece grátis por 7 dias."
+          title="Escolha o nível de apoio jurídico que sua gestão precisa."
+          subtitle="Comece gratuitamente e avance conforme o volume de consultas, documentos e condomínios da sua rotina."
         />
+
+        {/* Faixa de destaque — teste grátis */}
+        <div className="mx-auto mt-8 flex max-w-[720px] items-center justify-center gap-3 rounded-full border border-augusto-gold/35 bg-augusto-gold/10 px-5 py-3 text-center text-[13.5px] leading-snug text-augusto-green shadow-[var(--landing-shadow-soft)] sm:text-[14px]">
+          <span
+            aria-hidden="true"
+            className="hidden h-1.5 w-1.5 shrink-0 rounded-full bg-augusto-gold sm:inline-block"
+          />
+          <span>
+            <strong className="font-semibold">Teste o Augusto por 7 dias.</strong>{" "}
+            Sem cartão. Sem cobrança automática ao final.
+          </span>
+        </div>
+
+        {/* Seletor de perfil */}
+        <div className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-3">
+          {PROFILES.map((p) => {
+            const active = highlighted === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => highlightPlan(p.id)}
+                aria-pressed={active}
+                className={cn(
+                  "group flex flex-col items-start rounded-2xl border bg-landing-panel px-5 py-4 text-left transition-all duration-200",
+                  "shadow-[var(--landing-shadow-soft)] hover:-translate-y-0.5 hover:shadow-[var(--landing-shadow-card-hover)]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold focus-visible:ring-offset-2 focus-visible:ring-offset-landing-surface",
+                  "active:scale-[0.99]",
+                  active
+                    ? "border-augusto-gold bg-augusto-gold/10"
+                    : "border-augusto-gold/25 hover:border-augusto-gold/60",
+                )}
+              >
+                <span className="text-[13.5px] font-semibold leading-snug text-augusto-green">
+                  {p.label}
+                </span>
+                <span className="mt-1.5 flex items-center gap-2 text-[12.5px] text-augusto-slate transition-colors duration-200 group-hover:text-augusto-green">
+                  {p.price}
+                  <span
+                    aria-hidden="true"
+                    className="translate-x-0 text-augusto-gold transition-transform duration-200 group-hover:translate-x-0.5"
+                  >
+                    ↓
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
         {/* Billing toggle */}
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -278,31 +343,46 @@ export function PricingSection() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {PLANS.map((plan) => {
             const priced = resolvePrice(plan);
+            const isHighlighted = highlighted === plan.id;
             return (
-              <PricingCard
+              <div
                 key={plan.id}
-                name={plan.name}
-                price={priced.price}
-                priceSuffix={priced.priceSuffix}
-                priceNote={priced.priceNote}
-                sublabel={plan.sublabel}
-                features={plan.features}
-                featured={plan.featured}
-                badge={plan.badge}
-                cta={{
-                  label: plan.ctaLabel,
-                  variant: plan.ctaVariant,
-                  onClick: () => handleCta(plan),
-                }}
-              />
+                id={`plan-${plan.id}`}
+                className={cn(
+                  "scroll-mt-28 rounded-[1.75rem] transition-all duration-300",
+                  isHighlighted &&
+                    "ring-2 ring-augusto-gold ring-offset-4 ring-offset-landing-surface shadow-[var(--landing-shadow-card-hover)]",
+                )}
+              >
+                <PricingCard
+                  name={plan.name}
+                  price={priced.price}
+                  priceSuffix={priced.priceSuffix}
+                  priceNote={priced.priceNote}
+                  sublabel={plan.sublabel}
+                  features={plan.features}
+                  featured={plan.featured}
+                  badge={plan.badge}
+                  cta={{
+                    label: plan.ctaLabel,
+                    variant: plan.ctaVariant,
+                    onClick: () => handleCta(plan),
+                  }}
+                />
+              </div>
             );
           })}
         </div>
 
-        <p className="mt-10 text-center text-[13px] text-augusto-slate">
-          Todos os planos incluem acesso seguro via HTTPS, dados armazenados no Brasil e suporte por
-          e-mail. Preços em reais. Plano anual cobrado à vista.
-        </p>
+        <div className="mt-12 flex flex-col items-center text-center">
+          <p className="max-w-[620px] font-serif italic text-augusto-slate text-[16.5px] leading-[1.7]">
+            Não sabe qual plano faz sentido? Comece gratuitamente e descubra na prática.
+          </p>
+          <p className="mt-6 max-w-[640px] text-[13px] leading-[1.65] text-augusto-slate">
+            Todos os planos incluem acesso seguro via HTTPS, dados armazenados no Brasil e
+            suporte por e-mail. Preços em reais. Plano anual cobrado à vista.
+          </p>
+        </div>
 
         {/* Personalizado — detailed section */}
         <div className="landing-panel mt-16 overflow-hidden rounded-[1.75rem]">
