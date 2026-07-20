@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 /**
@@ -87,11 +88,21 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
     });
 
     // 4) Cria assinatura
-    // Obs.: `callbackUrl` só é aceito pelo Asaas se o domínio estiver
-    // cadastrado em "Domínios permitidos" na conta. Como já temos a
-    // página de retorno via polling, não enviamos callback — evita o
-    // erro "não há nenhum domínio configurado em sua conta".
-    const subscription = await asaas.createSubscription({
+    // Monta a successUrl 100% no servidor (não confia no cliente).
+    // Se o domínio ainda não estiver cadastrado em "Domínios permitidos"
+    // no Asaas, a chamada com callback devolve 400 — nesse caso caímos
+    // no fallback silencioso sem callback e o fluxo continua funcionando
+    // via polling em /app/assinatura/retorno.
+    const origin = (() => {
+      try {
+        const o = getRequestHeader("origin");
+        if (o && /^https?:\/\//.test(o)) return o.replace(/\/$/, "");
+      } catch {}
+      return process.env.PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://augustoij.com.br";
+    })();
+    const successUrl = `${origin}/app/assinatura/retorno`;
+
+    const baseSubInput = {
       customerId: customer.id,
       value,
       cycle,
@@ -99,7 +110,23 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
       nextDueDate: asaas.tomorrowIsoDate(),
       description: `Assinatura ${preco.nome} — Augusto.IJ (${data.ciclo})`,
       externalReference: `${userId}:${data.plano_id}:${data.ciclo}`,
-    });
+    };
+
+    let subscription;
+    try {
+      subscription = await asaas.createSubscription({
+        ...baseSubInput,
+        callbackUrl: successUrl,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const domainIssue = /dom[ií]nio|domain/i.test(msg);
+      if (!domainIssue) throw e;
+      console.warn(
+        "[asaas] callback rejeitado (domínio não cadastrado). Repetindo sem callback.",
+      );
+      subscription = await asaas.createSubscription(baseSubInput);
+    }
 
     // 5) Primeira cobrança (para pegar invoiceUrl)
     const firstPayment = await asaas.getFirstPaymentOfSubscription(subscription.id);
