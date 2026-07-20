@@ -87,6 +87,10 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
     });
 
     // 4) Cria assinatura
+    // Obs.: `callbackUrl` só é aceito pelo Asaas se o domínio estiver
+    // cadastrado em "Domínios permitidos" na conta. Como já temos a
+    // página de retorno via polling, não enviamos callback — evita o
+    // erro "não há nenhum domínio configurado em sua conta".
     const subscription = await asaas.createSubscription({
       customerId: customer.id,
       value,
@@ -95,7 +99,6 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
       nextDueDate: asaas.tomorrowIsoDate(),
       description: `Assinatura ${preco.nome} — Augusto.IJ (${data.ciclo})`,
       externalReference: `${userId}:${data.plano_id}:${data.ciclo}`,
-      callbackUrl: data.callback_url,
     });
 
     // 5) Primeira cobrança (para pegar invoiceUrl)
