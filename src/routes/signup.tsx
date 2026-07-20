@@ -205,36 +205,39 @@ function SignupPage() {
         }
       }
 
+      // Boas-vindas, dicas e registro de aceite disparam SÓ após a
+      // confirmação de e-mail (em /auth/confirmar). Para signup com senha, o
+      // primeiro e-mail que o usuário recebe deve ser o de verificação.
+      // Guardamos os dados de aceite para lavrar após a confirmação.
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(
+            "ij:aceite_pos_confirmacao",
+            JSON.stringify({
+              versao: TERMOS_VERSAO,
+              marketingOptIn,
+              nome: parsed.data.nome,
+            }),
+          );
+        }
+      } catch {
+        /* storage indisponível */
+      }
+      // Se o Supabase já retornou sessão (auto-confirm ligado), envia agora.
       if (data?.session) {
         registrarAceite({ data: { versao: TERMOS_VERSAO, marketingOptIn } }).catch((e) => {
           console.warn("[signup] falha ao registrar aceite dos termos", e);
         });
-      }
-
-      // Envia e-mail de boas-vindas (fire-and-forget). Não bloqueia o cadastro.
-      try {
-        supabase.functions
-          .invoke("send-welcome-email", {
+        try {
+          supabase.functions.invoke("send-welcome-email", {
             body: { email: parsed.data.email, nome: parsed.data.nome },
-          })
-          .then(({ error: sendErr }) => {
-            if (sendErr) console.warn("[signup] falha ao enviar boas-vindas", sendErr);
           });
-      } catch (e) {
-        console.warn("[signup] exceção ao chamar send-welcome-email", e);
-      }
-
-      // Agenda e-mail de dicas para 24h após o cadastro (delay nativo do Resend).
-      try {
-        supabase.functions
-          .invoke("send-tips-email", {
+          supabase.functions.invoke("send-tips-email", {
             body: { email: parsed.data.email, nome: parsed.data.nome, delay_hours: 24 },
-          })
-          .then(({ error: sendErr }) => {
-            if (sendErr) console.warn("[signup] falha ao agendar dicas", sendErr);
           });
-      } catch (e) {
-        console.warn("[signup] exceção ao chamar send-tips-email", e);
+        } catch (e) {
+          console.warn("[signup] exceção ao enviar e-mails imediatos", e);
+        }
       }
 
       toast.success("Enviamos um e-mail de confirmação para você.");

@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { registrarAceiteTermos } from "@/lib/privacidade.functions";
+import { TERMOS_VERSAO } from "@/config/legal";
 
 export const Route = createFileRoute("/auth/confirmar")({
   ssr: false,
@@ -28,6 +31,7 @@ export const Route = createFileRoute("/auth/confirmar")({
 
 function ConfirmarPage() {
   const navigate = useNavigate();
+  const registrarAceite = useServerFn(registrarAceiteTermos);
   const search = useSearch({ from: "/auth/confirmar" }) as {
     plano?: "essencial" | "profissional" | "gestao" | "administradora";
     ciclo?: "mensal" | "anual";
@@ -66,6 +70,47 @@ function ConfirmarPage() {
       if (!session) {
         setState("error");
         return;
+      }
+
+      // Só agora que o e-mail foi confirmado disparamos boas-vindas, dicas e
+      // aceite de termos — evita que o usuário receba welcome antes do
+      // link de verificação. Ignora falhas para não travar o fluxo.
+      try {
+        const raw = window.localStorage.getItem("ij:aceite_pos_confirmacao");
+        const parsedAceite = raw
+          ? (JSON.parse(raw) as {
+              versao?: string;
+              marketingOptIn?: boolean;
+              nome?: string;
+            })
+          : null;
+        window.localStorage.removeItem("ij:aceite_pos_confirmacao");
+        const email = session.user.email ?? "";
+        const nome =
+          parsedAceite?.nome ||
+          (session.user.user_metadata?.nome as string | undefined) ||
+          (session.user.user_metadata?.full_name as string | undefined) ||
+          email;
+        if (parsedAceite) {
+          registrarAceite({
+            data: {
+              versao: parsedAceite.versao ?? TERMOS_VERSAO,
+              marketingOptIn: !!parsedAceite.marketingOptIn,
+            },
+          }).catch((e) => console.warn("[confirmar] aceite falhou", e));
+        }
+        if (email) {
+          supabase.functions
+            .invoke("send-welcome-email", { body: { email, nome } })
+            .catch((e) => console.warn("[confirmar] welcome falhou", e));
+          supabase.functions
+            .invoke("send-tips-email", {
+              body: { email, nome, delay_hours: 24 },
+            })
+            .catch((e) => console.warn("[confirmar] tips falhou", e));
+        }
+      } catch (e) {
+        console.warn("[confirmar] pós-confirmação falhou", e);
       }
 
       // Recupera intenção de plano do search ou do fallback localStorage.
