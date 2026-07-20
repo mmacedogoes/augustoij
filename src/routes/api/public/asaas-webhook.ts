@@ -268,15 +268,18 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
         try {
           const bodyText = await request.text();
 
-          // Validação do token compartilhado (opcional). Se o segredo
-          // estiver definido no ambiente, exige match exato.
+          // Validação obrigatória do token compartilhado. Sem o segredo
+          // configurado, o endpoint rejeita qualquer chamada — evita que
+          // um atacante forje eventos de pagamento.
           const expected = process.env.ASAAS_WEBHOOK_TOKEN;
-          if (expected) {
-            const provided = request.headers.get("asaas-access-token") ?? "";
-            if (provided !== expected) {
-              console.warn("[asaas-webhook] token inválido");
-              return Response.json({ ok: true, ignored: "auth" });
-            }
+          if (!expected) {
+            console.error("[asaas-webhook] ASAAS_WEBHOOK_TOKEN ausente");
+            return new Response("Unauthorized", { status: 401 });
+          }
+          const provided = request.headers.get("asaas-access-token") ?? "";
+          if (provided !== expected) {
+            console.warn("[asaas-webhook] token inválido");
+            return new Response("Unauthorized", { status: 401 });
           }
 
           let parsed: z.infer<typeof payloadSchema>;
