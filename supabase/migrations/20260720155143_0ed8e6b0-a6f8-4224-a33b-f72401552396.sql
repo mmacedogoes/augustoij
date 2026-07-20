@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_papel_sistema(uuid) TO authenticated;
