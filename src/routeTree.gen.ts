@@ -41,6 +41,7 @@ import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authen
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as AuthenticatedAppSuporteTicketIdRouteImport } from './routes/_authenticated/app.suporte.$ticketId'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
 import { Route as AuthenticatedAppAssinaturaRetornoRouteImport } from './routes/_authenticated/app.assinatura.retorno'
 import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
@@ -236,6 +237,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAppSuporteTicketIdRoute =
+  AuthenticatedAppSuporteTicketIdRouteImport.update({
+    id: '/app/suporte/$ticketId',
+    path: '/app/suporte/$ticketId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppCondominiosIdRoute =
   AuthenticatedAppCondominiosIdRouteImport.update({
     id: '/app/condominios/$id',
@@ -457,6 +464,7 @@ export interface FileRoutesByFullPath {
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -517,6 +525,7 @@ export interface FileRoutesByTo {
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -582,6 +591,7 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/_authenticated/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/_authenticated/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -647,6 +657,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/faq'
     | '/app/assinatura/retorno'
     | '/app/condominios/$id'
+    | '/app/suporte/$ticketId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -707,6 +718,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/faq'
     | '/app/assinatura/retorno'
     | '/app/condominios/$id'
+    | '/app/suporte/$ticketId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -771,6 +783,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/ajuda/faq'
     | '/_authenticated/app/assinatura/retorno'
     | '/_authenticated/app/condominios/$id'
+    | '/_authenticated/app/suporte/$ticketId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1046,6 +1059,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/lovable/email/auth/preview'
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/suporte/$ticketId': {
+      id: '/_authenticated/app/suporte/$ticketId'
+      path: '/app/suporte/$ticketId'
+      fullPath: '/app/suporte/$ticketId'
+      preLoaderRoute: typeof AuthenticatedAppSuporteTicketIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/condominios/$id': {
       id: '/_authenticated/app/condominios/$id'
@@ -1395,6 +1415,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
+  AuthenticatedAppSuporteTicketIdRoute: typeof AuthenticatedAppSuporteTicketIdRoute
   AuthenticatedAppCondominiosIndexRoute: typeof AuthenticatedAppCondominiosIndexRoute
 }
 
@@ -1406,6 +1427,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
+  AuthenticatedAppSuporteTicketIdRoute: AuthenticatedAppSuporteTicketIdRoute,
   AuthenticatedAppCondominiosIndexRoute: AuthenticatedAppCondominiosIndexRoute,
 }
 
