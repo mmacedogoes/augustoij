@@ -91,6 +91,10 @@ function ConfirmarPage() {
           (session.user.user_metadata?.nome as string | undefined) ||
           (session.user.user_metadata?.full_name as string | undefined) ||
           email;
+        // Só dispara welcome/tips/aceite na PRIMEIRA visita pós-signup.
+        // O token `ij:aceite_pos_confirmacao` é gravado no signup e removido
+        // acima na primeira leitura — recargas, re-clique do link ou sessão
+        // persistida não têm o token e não reenviam e-mails.
         if (parsedAceite) {
           registrarAceite({
             data: {
@@ -98,16 +102,16 @@ function ConfirmarPage() {
               marketingOptIn: !!parsedAceite.marketingOptIn,
             },
           }).catch((e) => console.warn("[confirmar] aceite falhou", e));
-        }
-        if (email) {
-          supabase.functions
-            .invoke("send-welcome-email", { body: { email, nome } })
-            .catch((e) => console.warn("[confirmar] welcome falhou", e));
-          supabase.functions
-            .invoke("send-tips-email", {
-              body: { email, nome, delay_hours: 24 },
-            })
-            .catch((e) => console.warn("[confirmar] tips falhou", e));
+          if (email) {
+            supabase.functions
+              .invoke("send-welcome-email", { body: { email, nome } })
+              .catch((e) => console.warn("[confirmar] welcome falhou", e));
+            supabase.functions
+              .invoke("send-tips-email", {
+                body: { email, nome, delay_hours: 24 },
+              })
+              .catch((e) => console.warn("[confirmar] tips falhou", e));
+          }
         }
       } catch (e) {
         console.warn("[confirmar] pós-confirmação falhou", e);
