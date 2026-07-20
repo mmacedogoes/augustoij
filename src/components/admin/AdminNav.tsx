@@ -88,6 +88,11 @@ export function AdminNav() {
                 {cidadesNovas}
               </span>
             ) : null}
+            {i.to === "/app/admin/helpdesk" && helpdeskAbertos > 0 ? (
+              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] px-1.5 py-0.5 min-w-[18px]">
+                {helpdeskAbertos}
+              </span>
+            ) : null}
           </Link>
         );
       })}
