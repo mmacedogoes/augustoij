@@ -16,6 +16,32 @@ function escapeHtml(input: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function maskEmail(email: string): string {
+  const [u, d] = email.split("@");
+  if (!d) return "***";
+  return `${u.slice(0, 2)}***@${d}`;
+}
+
+async function getAuthenticatedUser(req: Request): Promise<{ email: string; nome?: string } | null> {
+  const auth = req.headers.get("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return null;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) return null;
+  const resp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
+  });
+  if (!resp.ok) return null;
+  const data = (await resp.json()) as {
+    email?: string;
+    user_metadata?: { nome?: string; full_name?: string; name?: string };
+  };
+  if (!data.email) return null;
+  const meta = data.user_metadata ?? {};
+  return { email: data.email, nome: meta.nome ?? meta.full_name ?? meta.name };
+}
+
 function buildHtml(nome: string): string {
   const safe = escapeHtml(nome || "usuário(a)");
   const URL_LOGO_COMPLETO =
@@ -84,19 +110,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const body = (await req.json().catch(() => ({}))) as {
-      email?: string;
-      nome?: string;
-    };
-    const email = (body.email ?? "").trim().toLowerCase();
-    const nome = (body.nome ?? "").trim();
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return new Response(JSON.stringify({ error: "invalid_email" }), {
-        status: 400,
+    // Exige sessão válida e usa o e-mail do próprio usuário autenticado.
+    // Evita que qualquer visitante dispare e-mails para endereços arbitrários.
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
         headers: { ...CORS, "content-type": "application/json" },
       });
     }
+    const body = (await req.json().catch(() => ({}))) as { nome?: string };
+    const email = user.email.trim().toLowerCase();
+    const nome = (body.nome ?? user.nome ?? "").trim();
 
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -121,7 +146,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("[send-welcome-email] enviado para", email);
+    console.log("[send-welcome-email] enviado para", maskEmail(email));
     return new Response(JSON.stringify({ ok: true, resend: JSON.parse(text) }), {
       status: 200,
       headers: { ...CORS, "content-type": "application/json" },

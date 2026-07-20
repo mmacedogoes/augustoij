@@ -18,6 +18,32 @@ function escapeHtml(input: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function maskEmail(email: string): string {
+  const [u, d] = email.split("@");
+  if (!d) return "***";
+  return `${u.slice(0, 2)}***@${d}`;
+}
+
+async function getAuthenticatedUser(req: Request): Promise<{ email: string; nome?: string } | null> {
+  const auth = req.headers.get("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return null;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) return null;
+  const resp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
+  });
+  if (!resp.ok) return null;
+  const data = (await resp.json()) as {
+    email?: string;
+    user_metadata?: { nome?: string; full_name?: string; name?: string };
+  };
+  if (!data.email) return null;
+  const meta = data.user_metadata ?? {};
+  return { email: data.email, nome: meta.nome ?? meta.full_name ?? meta.name };
+}
+
 function buildHtml(nome: string): string {
   const URL_LOGO_LIGHT =
     "https://augustoij.com.br/__l5e/assets-v1/4cf5bb71-7fb6-4d4e-8e3b-c4ae0dcbc058/augusto-ij-logo-full-dark-v3.png";
@@ -83,21 +109,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
     const body = (await req.json().catch(() => ({}))) as {
-      email?: string;
       nome?: string;
       delay_hours?: number;
       scheduled_at?: string;
     };
-    const email = (body.email ?? "").trim().toLowerCase();
-    const nome = (body.nome ?? "").trim();
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return new Response(JSON.stringify({ error: "invalid_email" }), {
-        status: 400,
-        headers: { ...CORS, "content-type": "application/json" },
-      });
-    }
+    const email = user.email.trim().toLowerCase();
+    const nome = (body.nome ?? user.nome ?? "").trim();
 
     let scheduled_at: string | undefined = body.scheduled_at;
     if (!scheduled_at && typeof body.delay_hours === "number" && body.delay_hours > 0) {
@@ -130,7 +155,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("[send-tips-email] agendado/enviado para", email, "scheduled_at=", scheduled_at ?? "imediato");
+    console.log("[send-tips-email] agendado/enviado para", maskEmail(email), "scheduled_at=", scheduled_at ?? "imediato");
     return new Response(
       JSON.stringify({ ok: true, scheduled_at: scheduled_at ?? null, resend: JSON.parse(text) }),
       { status: 200, headers: { ...CORS, "content-type": "application/json" } },

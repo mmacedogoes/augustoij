@@ -54,6 +54,14 @@ function formatDataBR(iso: string | null | undefined): string {
   return d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
+function maskEmail(email: string | null | undefined): string {
+  if (!email) return "—";
+  const [user, domain] = email.split("@");
+  if (!domain) return "***";
+  const head = user.slice(0, 2);
+  return `${head}***@${domain}`;
+}
+
 function buildPagamentoConfirmadoHtml(params: {
   nomePlano: string;
   valor: string;
@@ -156,7 +164,7 @@ async function enviarEmailPagamentoConfirmado(args: {
     const detail = await resp.text();
     console.error("[asaas-webhook] Resend falhou", resp.status, detail);
   } else {
-    console.log("[asaas-webhook] e-mail de confirmação enviado para", email);
+    console.log("[asaas-webhook] e-mail de confirmação enviado para", maskEmail(email));
   }
 }
 
@@ -255,7 +263,7 @@ async function enviarEmailPagamentoPendente(args: {
     const detail = await resp.text();
     console.error("[asaas-webhook] Resend (overdue) falhou", resp.status, detail);
   } else {
-    console.log("[asaas-webhook] e-mail de pagamento pendente enviado para", email);
+    console.log("[asaas-webhook] e-mail de pagamento pendente enviado para", maskEmail(email));
   }
 }
 
@@ -268,15 +276,18 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
         try {
           const bodyText = await request.text();
 
-          // Validação do token compartilhado (opcional). Se o segredo
-          // estiver definido no ambiente, exige match exato.
+          // Validação obrigatória do token compartilhado. Sem o segredo
+          // configurado, o endpoint rejeita qualquer chamada — evita que
+          // um atacante forje eventos de pagamento.
           const expected = process.env.ASAAS_WEBHOOK_TOKEN;
-          if (expected) {
-            const provided = request.headers.get("asaas-access-token") ?? "";
-            if (provided !== expected) {
-              console.warn("[asaas-webhook] token inválido");
-              return Response.json({ ok: true, ignored: "auth" });
-            }
+          if (!expected) {
+            console.error("[asaas-webhook] ASAAS_WEBHOOK_TOKEN ausente");
+            return new Response("Unauthorized", { status: 401 });
+          }
+          const provided = request.headers.get("asaas-access-token") ?? "";
+          if (provided !== expected) {
+            console.warn("[asaas-webhook] token inválido");
+            return new Response("Unauthorized", { status: 401 });
           }
 
           let parsed: z.infer<typeof payloadSchema>;
