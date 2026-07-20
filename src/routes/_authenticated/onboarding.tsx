@@ -88,19 +88,43 @@ function OnboardingPage() {
   const [condo, setCondo] = useState({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: "" });
 
   useEffect(() => {
-    fetchProfile().then((p) => {
-      if (!p) return;
-      const pr = p as Profile;
-      setProfile(pr);
-      setForm({
-        nome: pr.nome ?? "",
-        telefone: pr.telefone ?? "",
-        tipo_pessoa: (pr.tipo_pessoa ?? "pf") as "pf" | "pj",
-        cpf_cnpj: pr.cpf_cnpj ?? "",
-        razao_social: pr.razao_social ?? "",
+    fetchProfile()
+      .then((p) => {
+        const pr = (p ?? {
+          nome: null,
+          email: null,
+          telefone: null,
+          tipo_pessoa: "pf",
+          cpf_cnpj: null,
+          razao_social: null,
+        }) as Profile;
+        setProfile(pr);
+        setForm({
+          nome: pr.nome ?? "",
+          telefone: pr.telefone ?? "",
+          tipo_pessoa: (pr.tipo_pessoa ?? "pf") as "pf" | "pj",
+          cpf_cnpj: pr.cpf_cnpj ?? "",
+          razao_social: pr.razao_social ?? "",
+        });
+        setContato((c) => ({
+          ...c,
+          nome: pr.nome ?? "",
+          email: pr.email ?? "",
+          telefone: pr.telefone ?? "",
+        }));
+      })
+      .catch((e) => {
+        console.error("[onboarding] falha ao carregar perfil", e);
+        toast.error("Não conseguimos carregar seu perfil. Recarregue a página.");
+        setProfile({
+          nome: null,
+          email: null,
+          telefone: null,
+          tipo_pessoa: "pf",
+          cpf_cnpj: null,
+          razao_social: null,
+        });
       });
-      setContato((c) => ({ ...c, nome: pr.nome ?? "", email: pr.email ?? "", telefone: pr.telefone ?? "" }));
-    });
   }, [fetchProfile]);
 
   useEffect(() => {
