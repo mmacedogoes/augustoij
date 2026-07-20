@@ -164,7 +164,7 @@ async function enviarEmailPagamentoConfirmado(args: {
     const detail = await resp.text();
     console.error("[asaas-webhook] Resend falhou", resp.status, detail);
   } else {
-    console.log("[asaas-webhook] e-mail de confirmação enviado para", email);
+    console.log("[asaas-webhook] e-mail de confirmação enviado para", maskEmail(email));
   }
 }
 
