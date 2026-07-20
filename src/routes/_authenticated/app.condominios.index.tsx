@@ -100,12 +100,13 @@ function CondominiosPage() {
   return (
     <AppShell>
       <div className="max-w-5xl">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-primary">Meus condomínios</h1>
-            <p className="text-muted-foreground">Gerencie os condomínios sob sua administração.</p>
+        <div className="flex flex-col gap-4 pb-5 mb-6 border-b border-[var(--landing-rule)] sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <span className="app-eyebrow">Portfólio</span>
+            <h1 className="app-title mt-2">Meus condomínios</h1>
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">Gerencie os condomínios sob sua administração.</p>
             {plano && max !== null && (
-              <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+              <p className="mt-2 text-xs text-muted-foreground tabular-nums">
                 {items.length} de {max} disponíveis no plano <span className="font-medium text-foreground">{plano.planoNome}</span>
               </p>
             )}
@@ -113,7 +114,7 @@ function CondominiosPage() {
           <Dialog open={open} onOpenChange={(v) => podeCriar && setOpen(v)}>
             {podeCriar ? (
               <DialogTrigger asChild>
-                <Button className="transition-all duration-200"><Plus className="h-4 w-4 mr-2" /> Novo condomínio</Button>
+                <Button variant="augusto"><Plus className="h-4 w-4" /> Novo condomínio</Button>
               </DialogTrigger>
             ) : (
               <Button
@@ -207,20 +208,29 @@ function CondominiosPage() {
           </div>
         )}
 
-        <div className="mt-6 grid sm:grid-cols-2 gap-3">
+        <div className="mt-2 grid sm:grid-cols-2 gap-4">
           {items.length === 0 ? (
-            <Card className="p-8 text-center border-dashed col-span-full">
-              <Building className="h-10 w-10 text-muted-foreground mx-auto" />
-              <p className="mt-3 text-sm text-muted-foreground">Nenhum condomínio cadastrado ainda.</p>
+            <Card className="p-10 text-center border-dashed border-[var(--landing-rule)] col-span-full bg-gradient-to-b from-card to-muted/30">
+              <span className="app-icon-frame mx-auto h-14 w-14 rounded-2xl">
+                <Building className="h-6 w-6" strokeWidth={1.5} />
+              </span>
+              <p className="mt-4 text-sm text-muted-foreground">Nenhum condomínio cadastrado ainda.</p>
             </Card>
           ) : items.map((c) => (
-            <Link key={c.id} to="/app/condominios/$id" params={{ id: c.id }}>
-              <Card className="p-4 hover:border-accent transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-md bg-accent/10 p-2"><Building className="h-5 w-5 text-accent" /></div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-primary truncate">{c.nome}</p>
-                    <p className="text-xs text-muted-foreground">
+            <Link
+              key={c.id}
+              to="/app/condominios/$id"
+              params={{ id: c.id }}
+              className="group focus-visible:outline-none"
+            >
+              <Card className="app-card-interactive p-5 group-focus-visible:ring-2 group-focus-visible:ring-augusto-gold/70">
+                <div className="flex items-center gap-3.5">
+                  <span className="app-icon-frame group-hover:bg-augusto-gold/20 group-hover:border-augusto-gold/50">
+                    <Building className="h-4.5 w-4.5" strokeWidth={1.6} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-augusto-green truncate leading-tight">{c.nome}</p>
+                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                       {c.cidade ? `${c.cidade}${c.uf ? "/" + c.uf : ""}` : c.uf ?? "—"} • {c.qtd_unidades ?? 0} unidades {c.cnpj ? `• ${c.cnpj}` : ""}
                     </p>
                   </div>
