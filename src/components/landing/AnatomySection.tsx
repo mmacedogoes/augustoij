@@ -29,8 +29,8 @@ export function AnatomySection() {
       <div className="landing-container">
         <SectionHeader
           eyebrow="Como Augusto trabalha"
-          title="Anatomia de uma resposta."
-          subtitle="Cada resposta de Augusto segue um método jurídico estruturado, claro, fundamentado e citável."
+          title="Uma resposta jurídica precisa fazer mais do que parecer correta."
+          subtitle="No condomínio, uma orientação vaga não sustenta uma decisão. Por isso, Augusto segue um método estruturado e cruza duas camadas de conhecimento: um repositório de legislação, jurisprudência e doutrina alimentado e curado por profissionais jurídicos da área, e os documentos privados do seu condomínio — convenção, regimento interno e atas. Você pergunta como perguntaria a um especialista. Augusto responde considerando a lei e as regras específicas da sua gestão."
         />
 
         <div className="landing-panel mx-auto mt-20 w-full max-w-[1240px] space-y-8 rounded-[1.75rem] p-6 md:p-10 lg:p-12">
@@ -90,7 +90,9 @@ export function AnatomySection() {
               <h3 className="font-serif text-augusto-green text-[22px]">Atenção a</h3>
               <p className="mt-2 text-[16px] text-augusto-slate leading-[1.7]">
                 A assembleia pode autorizar uso excepcional do fundo, desde que ratificado
-                pelo quórum exigido na convenção.
+                pelo quórum exigido na convenção. Quando os documentos do seu condomínio
+                estão na base privada, Augusto verifica se a convenção prevê regra própria
+                para o caso.
               </p>
             </div>
           </PartRow>
