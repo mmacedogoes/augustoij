@@ -57,11 +57,11 @@ function Step({ n, label, current }: { n: number; label: string; current: number
   return (
     <div className="flex items-center gap-2 text-sm">
       <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold border ${
-        done ? "bg-emerald-500 text-white border-emerald-500"
-          : active ? "bg-white text-[#0A1220] border-white"
-          : "bg-transparent text-slate-500 border-slate-700"
+        done ? "bg-augusto-gold text-augusto-green border-augusto-gold"
+          : active ? "bg-augusto-cream text-augusto-green border-augusto-cream"
+          : "bg-transparent text-augusto-cream/60 border-augusto-cream/25"
       }`}>{done ? <Check className="h-4 w-4" /> : n}</div>
-      <span className={active || done ? "text-white" : "text-slate-500"}>{label}</span>
+      <span className={active || done ? "text-augusto-cream" : "text-augusto-cream/60"}>{label}</span>
     </div>
   );
 }
