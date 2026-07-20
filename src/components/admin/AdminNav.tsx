@@ -1,10 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { BarChart3, Users, Building2, GraduationCap, Megaphone, History, DollarSign, Newspaper, Activity, Home, MapPin } from "lucide-react";
+import { BarChart3, Users, Building2, GraduationCap, Megaphone, History, DollarSign, Newspaper, Activity, Home, MapPin, LifeBuoy } from "lucide-react";
 import { countAlertasPendentes } from "@/lib/admin-uso.functions";
 import { isCurrentUserAdmin } from "@/lib/admin.functions";
 import { countCidadesNovasPendentes } from "@/lib/cidades-novas.functions";
+import { countHelpdeskAbertos } from "@/lib/helpdesk.functions";
 
 type AdminNavItem = {
   to:
@@ -18,7 +19,8 @@ type AdminNavItem = {
     | "/app/admin/orientacoes"
     | "/app/admin/auditoria"
     | "/app/admin/cidades-novas"
-    | "/app/admin/imoveis";
+    | "/app/admin/imoveis"
+    | "/app/admin/helpdesk";
   label: string;
   icon: typeof BarChart3;
   exact?: boolean;
@@ -37,6 +39,7 @@ const items: AdminNavItem[] = [
   { to: "/app/admin/auditoria", label: "Auditoria", icon: History },
   { to: "/app/admin/cidades-novas", label: "Cidades novas", icon: MapPin, superAdminOnly: true },
   { to: "/app/admin/imoveis", label: "Administração de Imóveis", icon: Home, superAdminOnly: true },
+  { to: "/app/admin/helpdesk", label: "Helpdesk", icon: LifeBuoy },
 ];
 
 export function AdminNav() {
@@ -44,8 +47,10 @@ export function AdminNav() {
   const countFn = useServerFn(countAlertasPendentes);
   const countCidadesFn = useServerFn(countCidadesNovasPendentes);
   const adminInfoFn = useServerFn(isCurrentUserAdmin);
+  const countHelpdeskFn = useServerFn(countHelpdeskAbertos);
   const [alertas, setAlertas] = useState(0);
   const [cidadesNovas, setCidadesNovas] = useState(0);
+  const [helpdeskAbertos, setHelpdeskAbertos] = useState(0);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   useEffect(() => {
     countFn({ data: undefined as never })
@@ -55,7 +60,8 @@ export function AdminNav() {
       .then((r) => setCidadesNovas(r.count))
       .catch(() => {});
     adminInfoFn().then((r) => setIsSuperAdmin(r?.papel === "super_admin")).catch(() => {});
-  }, [countFn, countCidadesFn, adminInfoFn]);
+    countHelpdeskFn().then((r) => setHelpdeskAbertos(r.count)).catch(() => {});
+  }, [countFn, countCidadesFn, adminInfoFn, countHelpdeskFn]);
   return (
     <nav className="flex flex-wrap gap-1 border-b border-border pb-3 mb-6">
       {items.filter((i) => !i.superAdminOnly || isSuperAdmin).map((i) => {
