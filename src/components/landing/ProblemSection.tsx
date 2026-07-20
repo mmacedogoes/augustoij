@@ -19,9 +19,12 @@ export function ProblemSection() {
         <h2 className="mt-6 font-serif text-[clamp(2.5rem,5vw,4.5rem)] leading-[0.96] tracking-[-0.035em] text-augusto-green">
           Um mercado decidindo no improviso.
         </h2>
-        <p className="mx-auto mt-6 max-w-[600px] text-[17px] leading-[1.75] text-augusto-slate sm:text-lg">
-          O Brasil tem leis condominiais robustas. O que falta é acesso à inteligência jurídica
-          que as compreenda, e esteja disponível quando você precisa.
+        <p className="mx-auto mt-6 max-w-[720px] text-[17px] leading-[1.75] text-augusto-slate sm:text-lg">
+          O Brasil tem leis condominiais robustas. O que falta é acesso à inteligência
+          jurídica que as compreenda — e que esteja disponível quando a decisão não pode
+          esperar: o síndico decidindo sozinho à noite, a administradora respondendo as
+          mesmas dúvidas em dezenas de condomínios, o advogado repetindo tarefas
+          operacionais que consomem suas melhores horas.
         </p>
 
         <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
