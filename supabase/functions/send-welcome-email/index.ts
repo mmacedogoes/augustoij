@@ -110,19 +110,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const body = (await req.json().catch(() => ({}))) as {
-      email?: string;
-      nome?: string;
-    };
-    const email = (body.email ?? "").trim().toLowerCase();
-    const nome = (body.nome ?? "").trim();
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return new Response(JSON.stringify({ error: "invalid_email" }), {
-        status: 400,
+    // Exige sessão válida e usa o e-mail do próprio usuário autenticado.
+    // Evita que qualquer visitante dispare e-mails para endereços arbitrários.
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
         headers: { ...CORS, "content-type": "application/json" },
       });
     }
+    const body = (await req.json().catch(() => ({}))) as { nome?: string };
+    const email = user.email.trim().toLowerCase();
+    const nome = (body.nome ?? user.nome ?? "").trim();
 
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -147,7 +146,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("[send-welcome-email] enviado para", email);
+    console.log("[send-welcome-email] enviado para", maskEmail(email));
     return new Response(JSON.stringify({ ok: true, resend: JSON.parse(text) }), {
       status: 200,
       headers: { ...CORS, "content-type": "application/json" },
