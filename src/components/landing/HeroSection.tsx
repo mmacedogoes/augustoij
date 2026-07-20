@@ -136,16 +136,18 @@ export function HeroSection() {
         <div className="max-w-[680px]">
           <div className="inline-flex items-center gap-3 rounded-full border border-augusto-gold/35 bg-augusto-cream/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-augusto-gold-light shadow-[var(--landing-shadow-soft)] supports-[backdrop-filter]:backdrop-blur-md">
             <span className="h-1.5 w-1.5 rounded-full bg-augusto-gold" aria-hidden="true" />
-            Inteligência Jurídica para Condomínios
+            Inteligência jurídica especializada em Direito Condominial
           </div>
-          <h1 className="mt-8 max-w-[760px] font-serif text-[clamp(3.75rem,10vw,7.5rem)] leading-[0.88] tracking-[-0.045em] text-augusto-cream">
-            Augusto não substitui.
-            <br />
-            <span className="text-augusto-gold-light">Potencializa.</span>
+          <h1 className="mt-8 max-w-[760px] font-serif text-[clamp(2.75rem,6.4vw,5.25rem)] leading-[0.98] tracking-[-0.035em] text-augusto-cream">
+            A inteligência jurídica que dá{" "}
+            <span className="text-augusto-gold-light">segurança</span> às
+            decisões do seu condomínio.
           </h1>
-          <p className="mt-8 max-w-[560px] text-[17px] leading-[1.75] text-augusto-cream/80 sm:text-lg">
-            Não substitui o síndico. Não substitui o administrador. Não substitui o advogado.
-            Augusto potencializa cada um deles, com fundamentação, jurisprudência e clareza jurídica.
+          <p className="mt-8 max-w-[580px] text-[17px] leading-[1.75] text-augusto-cream/80 sm:text-lg">
+            Consulte dúvidas, revise contratos, elabore notificações e prepare
+            assembleias com respostas personalizadas: Augusto cruza a lei, a
+            jurisprudência e a doutrina com a convenção, o regimento e as atas
+            do seu condomínio.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-2.5">
@@ -161,15 +163,20 @@ export function HeroSection() {
           </div>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button
-              type="button"
-              onClick={() => navigate({ to: "/signup" })}
-              variant="augusto-gold"
-              size="xl"
-              className="w-full sm:w-auto"
-            >
-              Pergunte ao Augusto <ArrowRight className="h-4 w-4" />
-            </Button>
+            <div className="flex flex-col items-start gap-1.5 sm:items-start">
+              <Button
+                type="button"
+                onClick={() => navigate({ to: "/signup" })}
+                variant="augusto-gold"
+                size="xl"
+                className="w-full sm:w-auto"
+              >
+                Começar 7 dias grátis <ArrowRight className="h-4 w-4" />
+              </Button>
+              <span className="text-[12px] font-medium tracking-[0.02em] text-augusto-cream/65">
+                Sem cartão de crédito.
+              </span>
+            </div>
             <Button
               type="button"
               onClick={() => scrollTo("anatomia")}
@@ -177,9 +184,13 @@ export function HeroSection() {
               size="xl"
               className="w-full text-augusto-cream hover:bg-augusto-cream/10 hover:text-augusto-gold-light sm:w-auto"
             >
-              Ver como funciona
+              Ver como Augusto responde
             </Button>
           </div>
+
+          <p className="mt-8 font-serif text-[17px] italic text-augusto-gold-light sm:text-[19px]">
+            Augusto não substitui. <span className="text-augusto-cream/90">Potencializa.</span>
+          </p>
 
           <div className="mt-10 grid max-w-[560px] grid-cols-3 overflow-hidden rounded-2xl border border-augusto-gold/25 bg-augusto-cream/10 shadow-[var(--landing-shadow-soft)] supports-[backdrop-filter]:backdrop-blur-md">
             {[

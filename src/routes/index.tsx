@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Nav } from "@/components/landing/Nav";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { TrustBand } from "@/components/landing/TrustBand";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { FounderStorySection } from "@/components/landing/FounderStorySection";
 import { ForWhomSection } from "@/components/landing/ForWhomSection";
@@ -53,11 +54,12 @@ function Landing() {
     <div className="relative min-h-screen bg-augusto-cream text-augusto-slate-dark">
       <Nav />
       <HeroSection />
-      <ProblemSection />
-      <FounderStorySection />
-      <ForWhomSection />
+      <TrustBand />
       <AnatomySection />
+      <ProblemSection />
+      <ForWhomSection />
       <FeaturesSection />
+      <FounderStorySection />
       <PricingSection />
       <ManifestoFooter />
       <ScrollBlurOverlay />
