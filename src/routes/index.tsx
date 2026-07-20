@@ -3,10 +3,11 @@ import { Nav } from "@/components/landing/Nav";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { TrustBand } from "@/components/landing/TrustBand";
 import { ProblemSection } from "@/components/landing/ProblemSection";
-import { FounderStorySection } from "@/components/landing/FounderStorySection";
 import { ForWhomSection } from "@/components/landing/ForWhomSection";
 import { AnatomySection } from "@/components/landing/AnatomySection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { AugustoNaPratica } from "@/components/landing/AugustoNaPratica";
+import { TrustSection } from "@/components/landing/TrustSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { ManifestoFooter } from "@/components/landing/ManifestoFooter";
 import { ScrollBlurOverlay } from "@/components/landing/ScrollBlurOverlay";
@@ -59,7 +60,8 @@ function Landing() {
       <ProblemSection />
       <ForWhomSection />
       <FeaturesSection />
-      <FounderStorySection />
+      <AugustoNaPratica />
+      <TrustSection />
       <PricingSection />
       <ManifestoFooter />
       <ScrollBlurOverlay />
