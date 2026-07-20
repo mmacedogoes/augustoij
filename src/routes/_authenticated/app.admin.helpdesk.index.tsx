@@ -80,7 +80,15 @@ function AdminHelpdeskListPage() {
             </div>
           ) : (
             <ul className="divide-y divide-border/60 rounded-md border border-border/60">
-              {data.map((t) => {
+              {(data as Array<{
+                id: string;
+                protocolo: string;
+                assunto: string;
+                titulo: string;
+                status: string;
+                updated_at: string;
+                cliente: { nome: string | null; email: string | null };
+              }>).map((t) => {
                 const st = STATUS_BADGE[t.status] ?? STATUS_BADGE.aberto;
                 const assunto = ASSUNTOS.find((a) => a.value === t.assunto)?.label ?? t.assunto;
                 return (
