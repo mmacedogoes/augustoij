@@ -1354,6 +1354,86 @@ export type Database = {
           },
         ]
       }
+      helpdesk_mensagens: {
+        Row: {
+          anexos: Json
+          autor_tipo: Database["public"]["Enums"]["helpdesk_autor"]
+          autor_user_id: string
+          conteudo: string
+          created_at: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          anexos?: Json
+          autor_tipo: Database["public"]["Enums"]["helpdesk_autor"]
+          autor_user_id: string
+          conteudo: string
+          created_at?: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          anexos?: Json
+          autor_tipo?: Database["public"]["Enums"]["helpdesk_autor"]
+          autor_user_id?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_mensagens_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      helpdesk_tickets: {
+        Row: {
+          assunto: Database["public"]["Enums"]["helpdesk_assunto"]
+          created_at: string
+          encerrado_em: string | null
+          encerrado_por: Database["public"]["Enums"]["helpdesk_autor"] | null
+          id: string
+          last_admin_notified_at: string
+          protocolo: string
+          status: Database["public"]["Enums"]["helpdesk_status"]
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assunto: Database["public"]["Enums"]["helpdesk_assunto"]
+          created_at?: string
+          encerrado_em?: string | null
+          encerrado_por?: Database["public"]["Enums"]["helpdesk_autor"] | null
+          id?: string
+          last_admin_notified_at?: string
+          protocolo: string
+          status?: Database["public"]["Enums"]["helpdesk_status"]
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assunto?: Database["public"]["Enums"]["helpdesk_assunto"]
+          created_at?: string
+          encerrado_em?: string | null
+          encerrado_por?: Database["public"]["Enums"]["helpdesk_autor"] | null
+          id?: string
+          last_admin_notified_at?: string
+          protocolo?: string
+          status?: Database["public"]["Enums"]["helpdesk_status"]
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       honorarios: {
         Row: {
           base_calculo: number | null
@@ -2417,6 +2497,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      gerar_protocolo_helpdesk: { Args: never; Returns: string }
       get_papel_sistema: {
         Args: { _id: string }
         Returns: Database["public"]["Enums"]["papel_sistema"]
@@ -2501,6 +2582,19 @@ export type Database = {
     Enums: {
       app_role: "owner" | "admin" | "sindico" | "administradora"
       blog_status: "rascunho" | "publicado" | "agendado"
+      helpdesk_assunto:
+        | "duvida_uso"
+        | "problema_tecnico"
+        | "financeiro"
+        | "sugestao"
+        | "seguranca_lgpd"
+        | "outro"
+      helpdesk_autor: "cliente" | "admin"
+      helpdesk_status:
+        | "aberto"
+        | "respondido_admin"
+        | "respondido_cliente"
+        | "encerrado"
       kb_tipo:
         | "jurisprudencia"
         | "doutrina"
@@ -2680,6 +2774,21 @@ export const Constants = {
     Enums: {
       app_role: ["owner", "admin", "sindico", "administradora"],
       blog_status: ["rascunho", "publicado", "agendado"],
+      helpdesk_assunto: [
+        "duvida_uso",
+        "problema_tecnico",
+        "financeiro",
+        "sugestao",
+        "seguranca_lgpd",
+        "outro",
+      ],
+      helpdesk_autor: ["cliente", "admin"],
+      helpdesk_status: [
+        "aberto",
+        "respondido_admin",
+        "respondido_cliente",
+        "encerrado",
+      ],
       kb_tipo: [
         "jurisprudencia",
         "doutrina",

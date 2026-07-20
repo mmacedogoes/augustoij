@@ -41,6 +41,8 @@ import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authen
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksHelpdeskLembretesRouteImport } from './routes/api/public/hooks/helpdesk-lembretes'
+import { Route as AuthenticatedAppSuporteTicketIdRouteImport } from './routes/_authenticated/app.suporte.$ticketId'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
 import { Route as AuthenticatedAppAssinaturaRetornoRouteImport } from './routes/_authenticated/app.assinatura.retorno'
 import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
@@ -57,9 +59,11 @@ import { Route as AuthenticatedAppAdminBlogRouteImport } from './routes/_authent
 import { Route as AuthenticatedAppAdminAuditoriaRouteImport } from './routes/_authenticated/app.admin.auditoria'
 import { Route as AuthenticatedAppAdminUsuariosIndexRouteImport } from './routes/_authenticated/app.admin.usuarios.index'
 import { Route as AuthenticatedAppAdminImoveisIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.index'
+import { Route as AuthenticatedAppAdminHelpdeskIndexRouteImport } from './routes/_authenticated/app.admin.helpdesk.index'
 import { Route as AuthenticatedAppAjudaPerfilPerfilRouteImport } from './routes/_authenticated/app.ajuda.perfil.$perfil'
 import { Route as AuthenticatedAppAdminUsuariosUserIdRouteImport } from './routes/_authenticated/app.admin.usuarios.$userId'
 import { Route as AuthenticatedAppAdminImoveisImportarRouteImport } from './routes/_authenticated/app.admin.imoveis.importar'
+import { Route as AuthenticatedAppAdminHelpdeskTicketIdRouteImport } from './routes/_authenticated/app.admin.helpdesk.$ticketId'
 import { Route as AuthenticatedAppAdminImoveisUnidadesIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.index'
 import { Route as AuthenticatedAppAdminImoveisProprietariosIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.index'
 import { Route as AuthenticatedAppAdminImoveisLocacaoIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.index'
@@ -236,6 +240,18 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksHelpdeskLembretesRoute =
+  ApiPublicHooksHelpdeskLembretesRouteImport.update({
+    id: '/api/public/hooks/helpdesk-lembretes',
+    path: '/api/public/hooks/helpdesk-lembretes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedAppSuporteTicketIdRoute =
+  AuthenticatedAppSuporteTicketIdRouteImport.update({
+    id: '/app/suporte/$ticketId',
+    path: '/app/suporte/$ticketId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppCondominiosIdRoute =
   AuthenticatedAppCondominiosIdRouteImport.update({
     id: '/app/condominios/$id',
@@ -332,6 +348,12 @@ const AuthenticatedAppAdminImoveisIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
   } as any)
+const AuthenticatedAppAdminHelpdeskIndexRoute =
+  AuthenticatedAppAdminHelpdeskIndexRouteImport.update({
+    id: '/helpdesk/',
+    path: '/helpdesk/',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
 const AuthenticatedAppAjudaPerfilPerfilRoute =
   AuthenticatedAppAjudaPerfilPerfilRouteImport.update({
     id: '/perfil/$perfil',
@@ -349,6 +371,12 @@ const AuthenticatedAppAdminImoveisImportarRoute =
     id: '/importar',
     path: '/importar',
     getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminHelpdeskTicketIdRoute =
+  AuthenticatedAppAdminHelpdeskTicketIdRouteImport.update({
+    id: '/helpdesk/$ticketId',
+    path: '/helpdesk/$ticketId',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
 const AuthenticatedAppAdminImoveisUnidadesIndexRoute =
   AuthenticatedAppAdminImoveisUnidadesIndexRouteImport.update({
@@ -457,15 +485,19 @@ export interface FileRoutesByFullPath {
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
+  '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
+  '/app/admin/helpdesk/': typeof AuthenticatedAppAdminHelpdeskIndexRoute
   '/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
   '/app/admin/usuarios/': typeof AuthenticatedAppAdminUsuariosIndexRoute
   '/app/admin/imoveis/administracao/$id': typeof AuthenticatedAppAdminImoveisAdministracaoIdRoute
@@ -517,15 +549,19 @@ export interface FileRoutesByTo {
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
+  '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/admin': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
+  '/app/admin/helpdesk': typeof AuthenticatedAppAdminHelpdeskIndexRoute
   '/app/admin/imoveis': typeof AuthenticatedAppAdminImoveisIndexRoute
   '/app/admin/usuarios': typeof AuthenticatedAppAdminUsuariosIndexRoute
   '/app/admin/imoveis/administracao/$id': typeof AuthenticatedAppAdminImoveisAdministracaoIdRoute
@@ -582,15 +618,19 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/_authenticated/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/_authenticated/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
+  '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/_authenticated/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/_authenticated/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   '/_authenticated/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/_authenticated/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/_authenticated/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
+  '/_authenticated/app/admin/helpdesk/': typeof AuthenticatedAppAdminHelpdeskIndexRoute
   '/_authenticated/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
   '/_authenticated/app/admin/usuarios/': typeof AuthenticatedAppAdminUsuariosIndexRoute
   '/_authenticated/app/admin/imoveis/administracao/$id': typeof AuthenticatedAppAdminImoveisAdministracaoIdRoute
@@ -647,15 +687,19 @@ export interface FileRouteTypes {
     | '/app/ajuda/faq'
     | '/app/assinatura/retorno'
     | '/app/condominios/$id'
+    | '/app/suporte/$ticketId'
+    | '/api/public/hooks/helpdesk-lembretes'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/app/admin/'
     | '/app/ajuda/'
     | '/app/condominios/'
+    | '/app/admin/helpdesk/$ticketId'
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
+    | '/app/admin/helpdesk/'
     | '/app/admin/imoveis/'
     | '/app/admin/usuarios/'
     | '/app/admin/imoveis/administracao/$id'
@@ -707,15 +751,19 @@ export interface FileRouteTypes {
     | '/app/ajuda/faq'
     | '/app/assinatura/retorno'
     | '/app/condominios/$id'
+    | '/app/suporte/$ticketId'
+    | '/api/public/hooks/helpdesk-lembretes'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/app/admin'
     | '/app/ajuda'
     | '/app/condominios'
+    | '/app/admin/helpdesk/$ticketId'
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
+    | '/app/admin/helpdesk'
     | '/app/admin/imoveis'
     | '/app/admin/usuarios'
     | '/app/admin/imoveis/administracao/$id'
@@ -771,15 +819,19 @@ export interface FileRouteTypes {
     | '/_authenticated/app/ajuda/faq'
     | '/_authenticated/app/assinatura/retorno'
     | '/_authenticated/app/condominios/$id'
+    | '/_authenticated/app/suporte/$ticketId'
+    | '/api/public/hooks/helpdesk-lembretes'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/_authenticated/app/admin/'
     | '/_authenticated/app/ajuda/'
     | '/_authenticated/app/condominios/'
+    | '/_authenticated/app/admin/helpdesk/$ticketId'
     | '/_authenticated/app/admin/imoveis/importar'
     | '/_authenticated/app/admin/usuarios/$userId'
     | '/_authenticated/app/ajuda/perfil/$perfil'
+    | '/_authenticated/app/admin/helpdesk/'
     | '/_authenticated/app/admin/imoveis/'
     | '/_authenticated/app/admin/usuarios/'
     | '/_authenticated/app/admin/imoveis/administracao/$id'
@@ -816,6 +868,7 @@ export interface RootRouteChildren {
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
   ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
+  ApiPublicHooksHelpdeskLembretesRoute: typeof ApiPublicHooksHelpdeskLembretesRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1047,6 +1100,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/helpdesk-lembretes': {
+      id: '/api/public/hooks/helpdesk-lembretes'
+      path: '/api/public/hooks/helpdesk-lembretes'
+      fullPath: '/api/public/hooks/helpdesk-lembretes'
+      preLoaderRoute: typeof ApiPublicHooksHelpdeskLembretesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/suporte/$ticketId': {
+      id: '/_authenticated/app/suporte/$ticketId'
+      path: '/app/suporte/$ticketId'
+      fullPath: '/app/suporte/$ticketId'
+      preLoaderRoute: typeof AuthenticatedAppSuporteTicketIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/condominios/$id': {
       id: '/_authenticated/app/condominios/$id'
       path: '/app/condominios/$id'
@@ -1159,6 +1226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisIndexRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisRoute
     }
+    '/_authenticated/app/admin/helpdesk/': {
+      id: '/_authenticated/app/admin/helpdesk/'
+      path: '/helpdesk'
+      fullPath: '/app/admin/helpdesk/'
+      preLoaderRoute: typeof AuthenticatedAppAdminHelpdeskIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
     '/_authenticated/app/ajuda/perfil/$perfil': {
       id: '/_authenticated/app/ajuda/perfil/$perfil'
       path: '/perfil/$perfil'
@@ -1179,6 +1253,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/admin/imoveis/importar'
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisImportarRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/helpdesk/$ticketId': {
+      id: '/_authenticated/app/admin/helpdesk/$ticketId'
+      path: '/helpdesk/$ticketId'
+      fullPath: '/app/admin/helpdesk/$ticketId'
+      preLoaderRoute: typeof AuthenticatedAppAdminHelpdeskTicketIdRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
     }
     '/_authenticated/app/admin/imoveis/unidades/': {
       id: '/_authenticated/app/admin/imoveis/unidades/'
@@ -1322,7 +1403,9 @@ interface AuthenticatedAppAdminRouteChildren {
   AuthenticatedAppAdminTreinamentoRoute: typeof AuthenticatedAppAdminTreinamentoRoute
   AuthenticatedAppAdminUsoRoute: typeof AuthenticatedAppAdminUsoRoute
   AuthenticatedAppAdminIndexRoute: typeof AuthenticatedAppAdminIndexRoute
+  AuthenticatedAppAdminHelpdeskTicketIdRoute: typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   AuthenticatedAppAdminUsuariosUserIdRoute: typeof AuthenticatedAppAdminUsuariosUserIdRoute
+  AuthenticatedAppAdminHelpdeskIndexRoute: typeof AuthenticatedAppAdminHelpdeskIndexRoute
   AuthenticatedAppAdminUsuariosIndexRoute: typeof AuthenticatedAppAdminUsuariosIndexRoute
 }
 
@@ -1339,8 +1422,12 @@ const AuthenticatedAppAdminRouteChildren: AuthenticatedAppAdminRouteChildren = {
   AuthenticatedAppAdminTreinamentoRoute: AuthenticatedAppAdminTreinamentoRoute,
   AuthenticatedAppAdminUsoRoute: AuthenticatedAppAdminUsoRoute,
   AuthenticatedAppAdminIndexRoute: AuthenticatedAppAdminIndexRoute,
+  AuthenticatedAppAdminHelpdeskTicketIdRoute:
+    AuthenticatedAppAdminHelpdeskTicketIdRoute,
   AuthenticatedAppAdminUsuariosUserIdRoute:
     AuthenticatedAppAdminUsuariosUserIdRoute,
+  AuthenticatedAppAdminHelpdeskIndexRoute:
+    AuthenticatedAppAdminHelpdeskIndexRoute,
   AuthenticatedAppAdminUsuariosIndexRoute:
     AuthenticatedAppAdminUsuariosIndexRoute,
 }
@@ -1395,6 +1482,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
+  AuthenticatedAppSuporteTicketIdRoute: typeof AuthenticatedAppSuporteTicketIdRoute
   AuthenticatedAppCondominiosIndexRoute: typeof AuthenticatedAppCondominiosIndexRoute
 }
 
@@ -1406,6 +1494,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
+  AuthenticatedAppSuporteTicketIdRoute: AuthenticatedAppSuporteTicketIdRoute,
   AuthenticatedAppCondominiosIndexRoute: AuthenticatedAppCondominiosIndexRoute,
 }
 
@@ -1433,6 +1522,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,
   ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
+  ApiPublicHooksHelpdeskLembretesRoute: ApiPublicHooksHelpdeskLembretesRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
@@ -1440,13 +1530,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
