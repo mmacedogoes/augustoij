@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { getStatusAssinaturaAtual } from "@/lib/asaas.functions";
 
 export const Route = createFileRoute("/_authenticated/app/assinatura/retorno")({
@@ -48,6 +48,7 @@ function RetornoPage() {
     status.data?.plano_config_id &&
     status.data.plano_config_id !== "gratuito";
   const esgotou = tentativas > 10 && !ativo;
+  const temErro = status.isError && !ativo;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
@@ -55,7 +56,31 @@ function RetornoPage() {
         <AugustoLogo variant="stacked" theme="light" size={200} showTagline />
       </div>
       <div className="w-full max-w-[460px] rounded-xl border border-border bg-card text-card-foreground p-10 shadow-sm text-center">
-        {ativo ? (
+        {temErro ? (
+          <>
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <AlertCircle className="h-7 w-7" />
+            </div>
+            <h1 className="mt-4 text-xl font-semibold">Não foi possível verificar</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Perdemos a conexão ao consultar o status do seu pagamento. Isso
+              não afeta a cobrança — assim que confirmarmos, seu plano é
+              liberado automaticamente.
+            </p>
+            <div className="mt-6 space-y-2">
+              <Button className="w-full" onClick={() => status.refetch()}>
+                Tentar de novo
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate({ to: "/app" })}
+              >
+                Ir para o painel
+              </Button>
+            </div>
+          </>
+        ) : ativo ? (
           <>
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
               <CheckCircle2 className="h-7 w-7" />
