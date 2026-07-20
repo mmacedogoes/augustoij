@@ -9,6 +9,8 @@ import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { AugustoNaPratica } from "@/components/landing/AugustoNaPratica";
 import { TrustSection } from "@/components/landing/TrustSection";
 import { PricingSection } from "@/components/landing/PricingSection";
+import { FaqSection } from "@/components/landing/FaqSection";
+import { FinalCtaSection } from "@/components/landing/FinalCtaSection";
 import { ManifestoFooter } from "@/components/landing/ManifestoFooter";
 import { ScrollBlurOverlay } from "@/components/landing/ScrollBlurOverlay";
 import { useHashScroll } from "@/hooks/use-hash-scroll";
@@ -63,6 +65,8 @@ function Landing() {
       <AugustoNaPratica />
       <TrustSection />
       <PricingSection />
+      <FaqSection />
+      <FinalCtaSection />
       <ManifestoFooter />
       <ScrollBlurOverlay />
     </div>
