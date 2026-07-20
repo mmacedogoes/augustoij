@@ -263,7 +263,7 @@ async function enviarEmailPagamentoPendente(args: {
     const detail = await resp.text();
     console.error("[asaas-webhook] Resend (overdue) falhou", resp.status, detail);
   } else {
-    console.log("[asaas-webhook] e-mail de pagamento pendente enviado para", email);
+    console.log("[asaas-webhook] e-mail de pagamento pendente enviado para", maskEmail(email));
   }
 }
 
