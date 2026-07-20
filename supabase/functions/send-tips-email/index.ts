@@ -109,21 +109,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
     const body = (await req.json().catch(() => ({}))) as {
-      email?: string;
       nome?: string;
       delay_hours?: number;
       scheduled_at?: string;
     };
-    const email = (body.email ?? "").trim().toLowerCase();
-    const nome = (body.nome ?? "").trim();
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return new Response(JSON.stringify({ error: "invalid_email" }), {
-        status: 400,
-        headers: { ...CORS, "content-type": "application/json" },
-      });
-    }
+    const email = user.email.trim().toLowerCase();
+    const nome = (body.nome ?? user.nome ?? "").trim();
 
     let scheduled_at: string | undefined = body.scheduled_at;
     if (!scheduled_at && typeof body.delay_hours === "number" && body.delay_hours > 0) {
@@ -156,7 +155,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("[send-tips-email] agendado/enviado para", email, "scheduled_at=", scheduled_at ?? "imediato");
+    console.log("[send-tips-email] agendado/enviado para", maskEmail(email), "scheduled_at=", scheduled_at ?? "imediato");
     return new Response(
       JSON.stringify({ ok: true, scheduled_at: scheduled_at ?? null, resend: JSON.parse(text) }),
       { status: 200, headers: { ...CORS, "content-type": "application/json" } },
