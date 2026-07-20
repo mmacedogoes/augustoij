@@ -37,13 +37,13 @@ function AjudaHome() {
       </ol>
 
       <h2 className="text-lg font-semibold mt-6 mb-2">Dica de ouro</h2>
-      <p className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded">
+      <p className="rounded-md border-l-4 border-augusto-gold bg-augusto-gold/10 p-4 text-augusto-slate-dark">
         Quanto mais documentos relevantes você carregar, melhor a IA responde. Priorize
         Convenção, Regimento Interno, atas das últimas 3 assembleias e contratos vigentes.
         Documentos escaneados também funcionam — o sistema lê o texto automaticamente.
       </p>
 
-      <p className="mt-6 text-sm text-slate-500">
+      <p className="mt-6 text-sm text-muted-foreground">
         As respostas da IA são informativas e não substituem parecer de profissional
         habilitado. Sempre revise antes de enviar, assinar ou publicar.
       </p>

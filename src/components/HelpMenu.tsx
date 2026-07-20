@@ -55,7 +55,7 @@ export function HelpMenu({ onStartTour }: { onStartTour: () => void }) {
           <div className="space-y-3 text-sm">
             <p>
               <strong>E-mail:</strong>{" "}
-              <a className="text-emerald-600 hover:underline" href="mailto:suporte@condoia.com.br">
+              <a className="text-augusto-green underline-offset-4 hover:underline focus-visible:outline-none focus-visible:text-augusto-green-dark transition-colors duration-200" href="mailto:suporte@condoia.com.br">
                 suporte@condoia.com.br
               </a>
             </p>

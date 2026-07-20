@@ -70,19 +70,20 @@ function HomePage() {
   return (
     <AppShell>
       <div className="max-w-5xl mx-auto flex flex-col h-[calc(100vh-9rem)]">
-        <header className="flex flex-wrap items-end justify-between gap-3 pb-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">
+        <header className="flex flex-wrap items-end justify-between gap-4 pb-5 mb-4 border-b border-[var(--landing-rule)]">
+          <div className="min-w-0">
+            <span className="app-eyebrow">Área do cliente</span>
+            <h1 className="app-title mt-2">
               {saudacao}{nome ? `, ${nome}` : ""}.
             </h1>
-            <p className="font-sans text-base md:text-lg font-normal text-muted-foreground mt-1">
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
               Em que o Augusto pode ajudar?
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {condos.length > 0 && (
               <Select value={activeCondoId ?? undefined} onValueChange={(v) => setActiveCondoId(v)}>
-                <SelectTrigger className="w-[240px]" data-tour="seletor-condominio">
+                <SelectTrigger className="w-[240px] h-10 bg-card border-border hover:border-augusto-gold/50 transition-colors duration-200" data-tour="seletor-condominio">
                   <SelectValue placeholder="Selecione um condomínio" />
                 </SelectTrigger>
                 <SelectContent>
@@ -95,21 +96,24 @@ function HomePage() {
               </Select>
             )}
             <Link to="/app/condominios">
-              <Button size="sm" variant="outline">
-                <Plus className="h-4 w-4 mr-1" /> Novo
+              <Button size="sm" variant="augusto-outline">
+                <Plus className="h-4 w-4" /> Novo
               </Button>
             </Link>
           </div>
         </header>
 
         {!activeCondo ? (
-          <Card className="flex-1 flex flex-col items-center justify-center text-center p-10 border-dashed">
-            <Building className="h-10 w-10 text-muted-foreground" />
-            <p className="mt-3 text-sm text-muted-foreground">
+          <Card className="flex-1 flex flex-col items-center justify-center text-center p-12 border-dashed border-[var(--landing-rule)] bg-gradient-to-b from-card to-muted/30">
+            <span className="app-icon-frame h-14 w-14 rounded-2xl">
+              <Building className="h-6 w-6" strokeWidth={1.5} />
+            </span>
+            <h2 className="app-section-title mt-5">Comece cadastrando um condomínio</h2>
+            <p className="mt-2 text-sm text-muted-foreground max-w-sm">
               Cadastre seu primeiro condomínio para começar a conversar com o Augusto.IJ.
             </p>
-            <Link to="/app/condominios" className="mt-4">
-              <Button>Cadastrar condomínio</Button>
+            <Link to="/app/condominios" className="mt-5">
+              <Button variant="augusto">Cadastrar condomínio</Button>
             </Link>
           </Card>
         ) : (
@@ -121,15 +125,15 @@ function HomePage() {
               initialConversaId={conversaId}
               onConversaCreated={(cid) => setConversaId(cid)}
             />
-            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-              <span>
+            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
                 <MessageSquare className="inline h-3 w-3 mr-1" />
                 {uso.total_mensagens} mensagens este mês
               </span>
               <Link
                 to="/app/condominios/$id"
                 params={{ id: activeCondo.id }}
-                className="hover:text-foreground"
+                className="inline-flex items-center gap-1 hover:text-augusto-green transition-colors duration-200 focus-visible:outline-none focus-visible:text-augusto-green"
               >
                 Abrir condomínio →
               </Link>

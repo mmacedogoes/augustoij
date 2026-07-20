@@ -254,7 +254,7 @@ function SecaoGenerica() {
         <h1 className="text-2xl font-semibold mb-3">Seção não encontrada</h1>
         <p>
           Volte para o{" "}
-          <Link to="/app/ajuda" className="text-emerald-600 hover:underline">
+          <Link to="/app/ajuda" className="text-augusto-green underline-offset-4 hover:underline transition-colors duration-200">
             manual
           </Link>
           .

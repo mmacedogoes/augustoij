@@ -271,7 +271,7 @@ function OnboardingPage() {
 
         {step === 2 && (
           <div>
-            <div className="mb-6 rounded-md border border-emerald-700/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+            <div className="mb-6 rounded-md border border-augusto-gold/40 bg-augusto-gold/10 px-4 py-3 text-sm text-augusto-gold-light">
               <Sparkles className="inline h-4 w-4 mr-1.5 mb-0.5" />
               Você tem 7 dias de teste grátis. Não cobramos nada agora — você só será cobrado quando a integração de pagamento for ativada.
             </div>
