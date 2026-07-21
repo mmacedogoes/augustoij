@@ -144,7 +144,7 @@ const PLANS: Plan[] = [
       { label: "Todos os modelos + minutas", state: "included" },
       { label: "Jurisprudência completa", state: "included" },
       { label: "Histórico ilimitado", state: "included" },
-      { label: "Usuários ilimitados", state: "included" },
+      { label: "Até 10 usuários", state: "included" },
       { label: "Relatórios por condomínio", state: "included" },
     ],
     ctaLabel: "Assinar Administradora",
