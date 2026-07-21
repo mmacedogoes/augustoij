@@ -328,13 +328,7 @@ function ContaPage() {
 
         <PrivacidadeSection />
 
-        <Card id="suporte" className="app-card p-6 space-y-4 scroll-mt-24">
-          <h2 className="app-section-title">Suporte</h2>
-          <p className="text-sm text-muted-foreground">
-            Abra um chamado e acompanhe as respostas do nosso time. Prazo de resposta: até 24 horas úteis.
-          </p>
-          <ListaMeusChamados />
-        </Card>
+        <ListaMeusChamados />
       </div>
     </AppShell>
   );
