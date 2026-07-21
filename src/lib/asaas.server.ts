@@ -1,19 +1,35 @@
 /**
- * Cliente Asaas — Sandbox
+ * Cliente Asaas — ambiente selecionável por `ASAAS_ENV`.
  *
  * Server-only. Nunca importe este arquivo em código de cliente.
- * Lê a chave `ASAAS_API_KEY_SANDBOX` de `process.env` a cada chamada.
- * A URL base é fixa em Sandbox por decisão de projeto; não trocar para
- * produção sem instrução explícita do usuário.
+ * `ASAAS_ENV` = `production` → usa `ASAAS_API_KEY_PRODUCAO` + api.asaas.com
+ * `ASAAS_ENV` = `sandbox` (padrão) → usa `ASAAS_API_KEY_SANDBOX` + api-sandbox.asaas.com
  */
 
-const ASAAS_BASE_URL = "https://api-sandbox.asaas.com/v3";
+export type AsaasEnv = "production" | "sandbox";
+
+export function getAsaasEnv(): AsaasEnv {
+  const raw = (process.env.ASAAS_ENV ?? "sandbox").trim().toLowerCase();
+  if (raw === "production" || raw === "prod" || raw === "live") return "production";
+  if (raw === "sandbox" || raw === "" ) return "sandbox";
+  throw new Error(
+    `ASAAS_ENV inválido: "${raw}". Use "production" ou "sandbox".`,
+  );
+}
+
+function getBaseUrl(env: AsaasEnv): string {
+  return env === "production"
+    ? "https://api.asaas.com/v3"
+    : "https://api-sandbox.asaas.com/v3";
+}
 
 function getApiKey(): string {
-  const key = process.env.ASAAS_API_KEY_SANDBOX;
+  const env = getAsaasEnv();
+  const name = env === "production" ? "ASAAS_API_KEY_PRODUCAO" : "ASAAS_API_KEY_SANDBOX";
+  const key = process.env[name];
   if (!key) {
     throw new Error(
-      "ASAAS_API_KEY_SANDBOX não configurada. Adicione o secret no projeto.",
+      `${name} não configurada. Adicione o secret correspondente ao ambiente "${env}".`,
     );
   }
   return key;
@@ -27,7 +43,8 @@ async function asaasFetch<T = unknown>(
   const qs = query
     ? "?" + new URLSearchParams(query).toString()
     : "";
-  const res = await fetch(`${ASAAS_BASE_URL}${path}${qs}`, {
+  const baseUrl = getBaseUrl(getAsaasEnv());
+  const res = await fetch(`${baseUrl}${path}${qs}`, {
     method,
     headers: {
       "Content-Type": "application/json",

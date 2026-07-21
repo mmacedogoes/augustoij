@@ -73,6 +73,7 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
 
     // 3) Cliente Asaas (busca por CPF/CNPJ, cria se não existir)
     const asaas = await import("./asaas.server");
+    const ambiente = asaas.getAsaasEnv();
 
     const nomeCliente =
       profile.tipo_pessoa === "pj" && profile.razao_social
@@ -145,7 +146,7 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
         asaas_billing_type: data.billing_type,
         asaas_ciclo: data.ciclo,
         asaas_status: subscription.status,
-        asaas_ambiente: "sandbox",
+        asaas_ambiente: ambiente,
         pending_plano_config_id: data.plano_id,
         pending_desde: new Date().toISOString(),
       })
@@ -162,7 +163,7 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
         asaas_billing_type: data.billing_type,
         asaas_ciclo: data.ciclo,
         asaas_status: subscription.status,
-        asaas_ambiente: "sandbox",
+        asaas_ambiente: ambiente,
         pending_plano_config_id: data.plano_id,
         pending_desde: new Date().toISOString(),
       });
