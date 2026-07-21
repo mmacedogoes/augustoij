@@ -47,7 +47,7 @@ export const getPostPublico = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: post, error } = await supabaseAdmin
       .from("blog_posts")
-      .select("id, titulo, slug, resumo, conteudo_markdown, imagem_capa, publicado_em, categoria_id, autor_id")
+      .select("id, titulo, slug, resumo, conteudo_markdown, imagem_capa, publicado_em, categoria_id, autor_id, meta_description, tags")
       .eq("slug", data.slug)
       .eq("status", "publicado")
       .maybeSingle();
@@ -119,12 +119,19 @@ export const adminUpsertPost = createServerFn({ method: "POST" })
         imagem_capa: z.string().url().max(500).optional().nullable(),
         categoria_id: z.string().uuid().optional().nullable(),
         status: z.enum(["rascunho", "publicado", "agendado"]).default("rascunho"),
+        meta_description: z.string().trim().max(160).optional().nullable(),
+        palavras_chave: z.string().trim().max(500).optional().nullable(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const tags = (data.palavras_chave ?? "")
+      .split(",")
+      .map((t) => t.trim().toLowerCase())
+      .filter((t) => t.length > 0 && t.length <= 40);
+    const tagsDedup = Array.from(new Set(tags)).slice(0, 15);
     const payload = {
       titulo: data.titulo,
       slug: slugify(data.titulo) + (data.id ? "" : "-" + Date.now().toString(36)),
@@ -135,6 +142,8 @@ export const adminUpsertPost = createServerFn({ method: "POST" })
       status: data.status,
       publicado_em: data.status === "publicado" ? new Date().toISOString() : null,
       autor_id: context.userId,
+      meta_description: data.meta_description?.length ? data.meta_description : null,
+      tags: tagsDedup,
     };
     if (data.id) {
       const { error } = await supabaseAdmin.from("blog_posts").update(payload).eq("id", data.id);
