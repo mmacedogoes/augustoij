@@ -293,6 +293,7 @@ export type Database = {
         Row: {
           agendado_para: string | null
           autor_id: string | null
+          capa_layout: string
           categoria_id: string | null
           conteudo_markdown: string | null
           created_at: string
@@ -310,6 +311,7 @@ export type Database = {
         Insert: {
           agendado_para?: string | null
           autor_id?: string | null
+          capa_layout?: string
           categoria_id?: string | null
           conteudo_markdown?: string | null
           created_at?: string
@@ -327,6 +329,7 @@ export type Database = {
         Update: {
           agendado_para?: string | null
           autor_id?: string | null
+          capa_layout?: string
           categoria_id?: string | null
           conteudo_markdown?: string | null
           created_at?: string
