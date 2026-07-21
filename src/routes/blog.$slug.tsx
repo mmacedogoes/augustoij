@@ -150,12 +150,23 @@ function BlogPostPage() {
                   </p>
                 )}
 
-                {post.imagem_capa && (
+                {post.imagem_capa && (post.capa_layout ?? "padrao") === "padrao" && (
                   <img
                     src={post.imagem_capa}
                     alt={post.titulo}
                     className="mt-8 aspect-[16/9] w-full rounded-2xl object-cover shadow-[var(--landing-shadow-card)]"
                   />
+                )}
+                {post.imagem_capa && post.capa_layout === "hero" && (
+                  <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-2xl shadow-[var(--landing-shadow-card)]">
+                    <img src={post.imagem_capa} alt={post.titulo} className="absolute inset-0 h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-augusto-green/85 via-augusto-green/30 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+                      <p className="font-serif text-[clamp(1.5rem,3vw,2.5rem)] leading-tight text-augusto-cream">
+                        {post.titulo}
+                      </p>
+                    </div>
+                  </div>
                 )}
 
                 <div
@@ -174,6 +185,13 @@ function BlogPostPage() {
                     "prose-li:marker:text-augusto-gold",
                   )}
                 >
+                  {post.imagem_capa && post.capa_layout === "lateral" && (
+                    <img
+                      src={post.imagem_capa}
+                      alt={post.titulo}
+                      className="mb-4 aspect-square w-full rounded-2xl object-cover shadow-[var(--landing-shadow-card)] sm:float-right sm:ml-6 sm:mb-4 sm:w-1/2 sm:max-w-[420px]"
+                    />
+                  )}
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.conteudo_markdown ?? ""}</ReactMarkdown>
                 </div>
 
