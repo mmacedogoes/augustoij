@@ -133,7 +133,7 @@ export const PLANS = {
     mensagensPorMes: null,
     condomíniosMax: 50,
     documentosMax: null,
-    usuariosMax: null,
+    usuariosMax: 10,
     historicosDias: null,
     modelo_ia: "modelo-padrao",
     recursos: {
