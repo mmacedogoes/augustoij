@@ -137,7 +137,10 @@ function PostEditor() {
     imagem_capa: "",
     categoria_id: "",
     status: "rascunho" as "rascunho" | "publicado" | "agendado",
+    meta_description: "",
+    palavras_chave: "",
   });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     listCats({ data: undefined as never })
@@ -158,6 +161,10 @@ function PostEditor() {
               imagem_capa: p.imagem_capa ?? "",
               categoria_id: p.categoria_id ?? "",
               status: (p.status as typeof form.status) ?? "rascunho",
+            meta_description: (p as { meta_description?: string | null }).meta_description ?? "",
+            palavras_chave: Array.isArray((p as { tags?: string[] }).tags)
+              ? ((p as { tags?: string[] }).tags ?? []).join(", ")
+              : "",
             });
         })
         .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
@@ -170,6 +177,23 @@ function PostEditor() {
       toast.error("Título e conteúdo são obrigatórios");
       return;
     }
+    if (form.meta_description.length > 160) {
+      toast.error("Meta descrição deve ter no máximo 160 caracteres");
+      return;
+    }
+    const tagsPreview = form.palavras_chave
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (tagsPreview.length > 15) {
+      toast.error("Máximo de 15 palavras-chave");
+      return;
+    }
+    if (tagsPreview.some((t) => t.length > 40)) {
+      toast.error("Cada palavra-chave deve ter no máximo 40 caracteres");
+      return;
+    }
+    setSaving(true);
     try {
       await upsert({
         data: {
@@ -180,12 +204,16 @@ function PostEditor() {
           imagem_capa: form.imagem_capa || null,
           categoria_id: form.categoria_id || null,
           status,
+          meta_description: form.meta_description.trim() || null,
+          palavras_chave: form.palavras_chave.trim() || null,
         },
       });
       toast.success(status === "publicado" ? "Post publicado!" : "Rascunho salvo");
-      setForm({ id: undefined, titulo: "", resumo: "", conteudo_markdown: "", imagem_capa: "", categoria_id: "", status: "rascunho" });
+      setForm({ id: undefined, titulo: "", resumo: "", conteudo_markdown: "", imagem_capa: "", categoria_id: "", status: "rascunho", meta_description: "", palavras_chave: "" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -198,6 +226,28 @@ function PostEditor() {
       <div>
         <Label>Resumo</Label>
         <Input value={form.resumo} onChange={(e) => setForm({ ...form, resumo: e.target.value })} maxLength={500} />
+      </div>
+      <div>
+        <Label>Meta descrição (SEO)</Label>
+        <Textarea
+          rows={2}
+          maxLength={160}
+          value={form.meta_description}
+          onChange={(e) => setForm({ ...form, meta_description: e.target.value })}
+          placeholder="Texto que aparece nos resultados do Google. Ideal entre 120 e 160 caracteres."
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          {form.meta_description.length}/160 · Se vazio, usa o resumo do post.
+        </p>
+      </div>
+      <div>
+        <Label>Palavras-chave (SEO)</Label>
+        <Input
+          value={form.palavras_chave}
+          onChange={(e) => setForm({ ...form, palavras_chave: e.target.value })}
+          placeholder="condomínio, síndico, LGPD"
+        />
+        <p className="mt-1 text-xs text-muted-foreground">Separe por vírgula. Máx. 15 palavras.</p>
       </div>
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
@@ -227,8 +277,12 @@ function PostEditor() {
         />
       </div>
       <div className="flex gap-2">
-        <Button variant="outline" onClick={() => save("rascunho")}>Salvar rascunho</Button>
-        <Button onClick={() => save("publicado")}>Publicar</Button>
+        <Button variant="outline" disabled={saving} onClick={() => save("rascunho")}>
+          {saving ? "Salvando..." : "Salvar rascunho"}
+        </Button>
+        <Button disabled={saving} onClick={() => save("publicado")}>
+          {saving ? "Publicando..." : "Publicar"}
+        </Button>
       </div>
     </Card>
   );
