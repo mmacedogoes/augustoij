@@ -341,7 +341,11 @@ export const cancelarAssinaturaAsaas = createServerFn({ method: "POST" })
     }
 
     const now = new Date().toISOString();
-    await supabase
+    // Escrita privilegiada em `subscriptions` (RLS bloqueia UPDATE do usuário).
+    // Já validamos ownership acima via `.eq("user_id", userId)` no SELECT e o
+    // Asaas confirmou o cancelamento remoto antes desta etapa.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: updErr } = await supabaseAdmin
       .from("subscriptions")
       .update({
         cancelado_em: now,
@@ -349,14 +353,19 @@ export const cancelarAssinaturaAsaas = createServerFn({ method: "POST" })
         asaas_status: "CANCELLED",
       })
       .eq("user_id", userId);
+    if (updErr) throw new Error(updErr.message);
 
-    await supabase.from("cancelamentos").insert({
+    const { error: canErr } = await supabaseAdmin.from("cancelamentos").insert({
       user_id: userId,
       plano_config_id: sub.plano_config_id,
       asaas_subscription_id: sub.asaas_subscription_id,
       motivo: data.motivo,
       detalhes: data.detalhes ?? null,
     });
+    if (canErr) {
+      // Não reverte o cancelamento — só registra para observabilidade.
+      console.warn("cancelarAssinaturaAsaas: falha ao registrar motivo", canErr.message);
+    }
 
     return { ok: true };
   });
