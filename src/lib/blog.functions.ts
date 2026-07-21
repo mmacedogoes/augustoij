@@ -179,3 +179,53 @@ export const adminDeletePost = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Upload de imagem de capa. Recebe base64 (data URL) e retorna URL assinada de longa duração.
+const MIME_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+const MAX_CAPA_BYTES = 3 * 1024 * 1024; // 3 MB
+const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 5; // ~5 anos
+
+export const adminUploadCapaBlog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        filename: z.string().trim().min(1).max(200),
+        mime: z.string().trim().min(1).max(80),
+        base64: z.string().min(10).max(6_000_000), // ~4.5MB base64
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const ext = MIME_EXT[data.mime.toLowerCase()];
+    if (!ext) throw new Error("Formato inválido. Use JPG, PNG ou WebP.");
+    // Remove prefixo data URL se veio junto
+    const b64 = data.base64.includes(",") ? data.base64.split(",", 2)[1] : data.base64;
+    let bytes: Buffer;
+    try {
+      bytes = Buffer.from(b64, "base64");
+    } catch {
+      throw new Error("Arquivo inválido.");
+    }
+    if (bytes.length === 0) throw new Error("Arquivo vazio.");
+    if (bytes.length > MAX_CAPA_BYTES) throw new Error("Arquivo maior que 3 MB.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const path = `${context.userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("blog-capas")
+      .upload(path, bytes, { contentType: data.mime, upsert: false });
+    if (upErr) throw new Error(upErr.message);
+
+    const { data: signed, error: sErr } = await supabaseAdmin.storage
+      .from("blog-capas")
+      .createSignedUrl(path, SIGNED_URL_TTL);
+    if (sErr || !signed?.signedUrl) throw new Error(sErr?.message ?? "Falha ao gerar URL");
+    return { url: signed.signedUrl };
+  });
