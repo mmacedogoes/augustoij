@@ -45,6 +45,7 @@ import {
   tryParsePerguntaEstruturada,
 } from "@/components/chat/PerguntaEstruturada";
 import { AvisoJuridicoBanner } from "@/components/chat/AvisoJuridicoBanner";
+import { VoiceControls, type VoiceControlsHandle } from "@/components/chat/VoiceControls";
 
 type Props = {
   condominioId: string;
@@ -148,6 +149,8 @@ export function ChatPanel({
   const activeIdRef = useRef<string | null>(initialConversaId);
   const tokenRef = useRef<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voiceRef = useRef<VoiceControlsHandle | null>(null);
+  const spokenIdsRef = useRef<Set<string>>(new Set());
   const [attachment, setAttachment] = useState<ChatAttachment | null>(null);
   const [attachLoading, setAttachLoading] = useState(false);
   const [classifyOpen, setClassifyOpen] = useState(false);
@@ -364,6 +367,19 @@ export function ChatPanel({
     if (!text) {
       toast.error("Não foi possível obter uma resposta. Tente novamente.");
       if (lastSentRef.current) restoreInput(lastSentRef.current);
+      return;
+    }
+    // Leitura automática por voz, se o usuário ativou.
+    if (voiceRef.current?.autoSpeak && !spokenIdsRef.current.has(last.id)) {
+      spokenIdsRef.current.add(last.id);
+      // Remove blocos técnicos (```json / ```pergunta-estruturada) antes de falar
+      const paraFalar = text
+        .replace(/```[\s\S]*?```/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      if (paraFalar) {
+        voiceRef.current.speak(paraFalar).catch((e) => console.error("[voz] auto", e));
+      }
     }
   }, [isLoading, messages]);
 
@@ -744,7 +760,16 @@ export function ChatPanel({
                   )}
                   <span className="hidden sm:inline">Anexar</span>
                 </Button>
-                <PromptInputSubmit status={status} disabled={!inputEnabled || isLoading} />
+                <div className="flex items-center gap-1">
+                  <VoiceControls
+                    disabled={!inputEnabled || isLoading}
+                    onTranscribed={(text) => restoreInput(text)}
+                    onReady={(h) => {
+                      voiceRef.current = h;
+                    }}
+                  />
+                  <PromptInputSubmit status={status} disabled={!inputEnabled || isLoading} />
+                </div>
               </PromptInputFooter>
             </PromptInput>
             <div className="space-y-1.5 px-2">
