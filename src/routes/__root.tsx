@@ -91,6 +91,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Plataforma de IA com apoio jurídico, gestão de documentos e respostas instantâneas para o dia a dia do seu condomínio." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/peaHobTmBThQRYs65lAUOWelobt1/social-images/social-1782920437425-TgfKNX6a.webp" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/peaHobTmBThQRYs65lAUOWelobt1/social-images/social-1782920437425-TgfKNX6a.webp" },
+      { name: "google-site-verification", content: "PtMOpJOxdrXUGWdA5jmJwaO9ZktiiZG8OOh3srsYxfU" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
