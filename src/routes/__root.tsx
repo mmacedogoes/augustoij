@@ -135,6 +135,14 @@ function RootComponent() {
         if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
         router.invalidate();
         if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+        // Após login (inclui retorno full-page do Google OAuth), leva o usuário
+        // para a área logada se ele estiver numa rota pública de autenticação.
+        if (event === "SIGNED_IN" && typeof window !== "undefined") {
+          const p = window.location.pathname;
+          if (p === "/" || p === "/login" || p === "/signup") {
+            router.navigate({ to: "/app" });
+          }
+        }
       });
       (window as unknown as { __supabaseSub?: { unsubscribe: () => void } }).__supabaseSub = sub.subscription;
     });
