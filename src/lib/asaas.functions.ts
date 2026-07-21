@@ -137,7 +137,11 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
       null;
 
     // 6) Persiste no Supabase (não altera plano ativo — só marca como pendente)
-    const { error: upsertErr } = await supabase
+    // Escrita privilegiada: RLS bloqueia UPDATE/INSERT direto do usuário em
+    // `subscriptions` para prevenir auto-promoção. Usamos service role e
+    // filtramos por `userId` autenticado (validado pelo middleware).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: upsertErr, data: updated } = await supabaseAdmin
       .from("subscriptions")
       .update({
         asaas_customer_id: customer.id,
@@ -150,10 +154,12 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
         pending_plano_config_id: data.plano_id,
         pending_desde: new Date().toISOString(),
       })
-      .eq("user_id", userId);
-    if (upsertErr) {
+      .eq("user_id", userId)
+      .select("user_id");
+    if (upsertErr) throw new Error(upsertErr.message);
+    if (!updated || updated.length === 0) {
       // Caso não exista linha ainda, cria uma preservando plano gratuito.
-      const { error: insertErr } = await supabase.from("subscriptions").insert({
+      const { error: insertErr } = await supabaseAdmin.from("subscriptions").insert({
         user_id: userId,
         plano_config_id: "gratuito",
         status: "trialing",
