@@ -51,8 +51,10 @@ export const assinarPlano = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ plano_id: z.string().min(1) }).parse(input))
   .handler(async ({ data, context }) => {
     const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    // upsert sem usar a coluna legada `plano`
-    const { error } = await context.supabase.from("subscriptions").upsert(
+    // Escrita privilegiada: RLS não deixa mais o usuário editar a própria assinatura
+    // para evitar auto-promoção. A identidade vem do `context.userId` autenticado.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("subscriptions").upsert(
       {
         user_id: context.userId,
         plano_id: data.plano_id,

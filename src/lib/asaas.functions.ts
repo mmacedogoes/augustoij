@@ -137,7 +137,11 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
       null;
 
     // 6) Persiste no Supabase (não altera plano ativo — só marca como pendente)
-    const { error: upsertErr } = await supabase
+    // Escrita privilegiada: RLS bloqueia UPDATE/INSERT direto do usuário em
+    // `subscriptions` para prevenir auto-promoção. Usamos service role e
+    // filtramos por `userId` autenticado (validado pelo middleware).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: upsertErr, data: updated } = await supabaseAdmin
       .from("subscriptions")
       .update({
         asaas_customer_id: customer.id,
@@ -150,10 +154,12 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
         pending_plano_config_id: data.plano_id,
         pending_desde: new Date().toISOString(),
       })
-      .eq("user_id", userId);
-    if (upsertErr) {
+      .eq("user_id", userId)
+      .select("user_id");
+    if (upsertErr) throw new Error(upsertErr.message);
+    if (!updated || updated.length === 0) {
       // Caso não exista linha ainda, cria uma preservando plano gratuito.
-      const { error: insertErr } = await supabase.from("subscriptions").insert({
+      const { error: insertErr } = await supabaseAdmin.from("subscriptions").insert({
         user_id: userId,
         plano_config_id: "gratuito",
         status: "trialing",
@@ -209,7 +215,10 @@ export const getPerfilParaAssinatura = createServerFn({ method: "GET" })
       .select("nome, email, cpf_cnpj, telefone, tipo_pessoa, razao_social")
       .eq("id", userId)
       .maybeSingle();
-    return data;
+    const ambiente = ((process.env.ASAAS_ENV ?? "sandbox").trim().toLowerCase() === "production"
+      ? "production"
+      : "sandbox") as "production" | "sandbox";
+    return data ? { ...data, ambiente } : null;
   });
 
 /**
@@ -335,7 +344,11 @@ export const cancelarAssinaturaAsaas = createServerFn({ method: "POST" })
     }
 
     const now = new Date().toISOString();
-    await supabase
+    // Escrita privilegiada em `subscriptions` (RLS bloqueia UPDATE do usuário).
+    // Já validamos ownership acima via `.eq("user_id", userId)` no SELECT e o
+    // Asaas confirmou o cancelamento remoto antes desta etapa.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: updErr } = await supabaseAdmin
       .from("subscriptions")
       .update({
         cancelado_em: now,
@@ -343,14 +356,19 @@ export const cancelarAssinaturaAsaas = createServerFn({ method: "POST" })
         asaas_status: "CANCELLED",
       })
       .eq("user_id", userId);
+    if (updErr) throw new Error(updErr.message);
 
-    await supabase.from("cancelamentos").insert({
+    const { error: canErr } = await supabaseAdmin.from("cancelamentos").insert({
       user_id: userId,
       plano_config_id: sub.plano_config_id,
       asaas_subscription_id: sub.asaas_subscription_id,
       motivo: data.motivo,
       detalhes: data.detalhes ?? null,
     });
+    if (canErr) {
+      // Não reverte o cancelamento — só registra para observabilidade.
+      console.warn("cancelarAssinaturaAsaas: falha ao registrar motivo", canErr.message);
+    }
 
     return { ok: true };
   });
