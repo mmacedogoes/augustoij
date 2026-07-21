@@ -24,7 +24,10 @@ export const Route = createFileRoute("/blog/$slug")({
     const post = loaderData?.post ?? null;
     const url = `https://augustoij.com.br/blog/${params.slug}`;
     const title = post?.titulo ? `${post.titulo} — Blog do Augusto.IJ` : "Artigo — Blog do Augusto.IJ";
-    const description = post?.resumo ?? "Artigo do Blog do Augusto.IJ sobre gestão condominial.";
+    const description =
+      post?.meta_description?.trim() ||
+      post?.resumo?.slice(0, 160) ||
+      "Artigo do Blog do Augusto.IJ sobre gestão condominial.";
     const meta: Array<Record<string, string>> = [
       { title },
       { name: "description", content: description },
@@ -33,6 +36,9 @@ export const Route = createFileRoute("/blog/$slug")({
       { property: "og:url", content: url },
       { property: "og:type", content: "article" },
     ];
+    if (post?.tags && post.tags.length > 0) {
+      meta.push({ name: "keywords", content: post.tags.join(", ") });
+    }
     if (post?.imagem_capa) {
       meta.push({ property: "og:image", content: post.imagem_capa });
       meta.push({ name: "twitter:image", content: post.imagem_capa });
