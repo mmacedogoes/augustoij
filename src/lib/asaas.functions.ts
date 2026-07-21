@@ -215,7 +215,10 @@ export const getPerfilParaAssinatura = createServerFn({ method: "GET" })
       .select("nome, email, cpf_cnpj, telefone, tipo_pessoa, razao_social")
       .eq("id", userId)
       .maybeSingle();
-    return data;
+    const ambiente = ((process.env.ASAAS_ENV ?? "sandbox").trim().toLowerCase() === "production"
+      ? "production"
+      : "sandbox") as "production" | "sandbox";
+    return data ? { ...data, ambiente } : null;
   });
 
 /**
