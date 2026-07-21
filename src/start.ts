@@ -33,7 +33,7 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next, reque
       "x-content-type-options": "nosniff",
       "x-frame-options": "DENY",
       "referrer-policy": "strict-origin-when-cross-origin",
-      "permissions-policy": "camera=(), microphone=(), geolocation=()",
+      "permissions-policy": "camera=(), microphone=(self), geolocation=()",
     });
   } catch {
     /* fora de contexto de requisição — ignora */

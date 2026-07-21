@@ -28,6 +28,8 @@ import { Route as AuthConfirmarRouteImport } from './routes/auth.confirmar'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as ApiVozTranscreverRouteImport } from './routes/api/voz/transcrever'
+import { Route as ApiVozFalarRouteImport } from './routes/api/voz/falar'
 import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
 import { Route as ApiPublicAuthCheckRouteImport } from './routes/api/public/auth-check'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
@@ -169,6 +171,16 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiVozTranscreverRoute = ApiVozTranscreverRouteImport.update({
+  id: '/api/voz/transcrever',
+  path: '/api/voz/transcrever',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVozFalarRoute = ApiVozFalarRouteImport.update({
+  id: '/api/voz/falar',
+  path: '/api/voz/falar',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicDemoChatRoute = ApiPublicDemoChatRouteImport.update({
   id: '/api/public/demo-chat',
@@ -470,6 +482,8 @@ export interface FileRoutesByFullPath {
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
+  '/api/voz/falar': typeof ApiVozFalarRoute
+  '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
   '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
@@ -535,6 +549,8 @@ export interface FileRoutesByTo {
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
+  '/api/voz/falar': typeof ApiVozFalarRoute
+  '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
   '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
@@ -603,6 +619,8 @@ export interface FileRoutesById {
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
+  '/api/voz/falar': typeof ApiVozFalarRoute
+  '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
   '/_authenticated/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
@@ -672,6 +690,8 @@ export interface FileRouteTypes {
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
+    | '/api/voz/falar'
+    | '/api/voz/transcrever'
     | '/app/'
     | '/app/admin/auditoria'
     | '/app/admin/blog'
@@ -737,6 +757,8 @@ export interface FileRouteTypes {
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
+    | '/api/voz/falar'
+    | '/api/voz/transcrever'
     | '/app'
     | '/app/admin/auditoria'
     | '/app/admin/blog'
@@ -804,6 +826,8 @@ export interface FileRouteTypes {
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
+    | '/api/voz/falar'
+    | '/api/voz/transcrever'
     | '/_authenticated/app/'
     | '/_authenticated/app/admin/auditoria'
     | '/_authenticated/app/admin/blog'
@@ -868,6 +892,8 @@ export interface RootRouteChildren {
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
   ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
+  ApiVozFalarRoute: typeof ApiVozFalarRoute
+  ApiVozTranscreverRoute: typeof ApiVozTranscreverRoute
   ApiPublicHooksHelpdeskLembretesRoute: typeof ApiPublicHooksHelpdeskLembretesRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -1008,6 +1034,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/voz/transcrever': {
+      id: '/api/voz/transcrever'
+      path: '/api/voz/transcrever'
+      fullPath: '/api/voz/transcrever'
+      preLoaderRoute: typeof ApiVozTranscreverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voz/falar': {
+      id: '/api/voz/falar'
+      path: '/api/voz/falar'
+      fullPath: '/api/voz/falar'
+      preLoaderRoute: typeof ApiVozFalarRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/demo-chat': {
       id: '/api/public/demo-chat'
@@ -1522,6 +1562,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,
   ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
+  ApiVozFalarRoute: ApiVozFalarRoute,
+  ApiVozTranscreverRoute: ApiVozTranscreverRoute,
   ApiPublicHooksHelpdeskLembretesRoute: ApiPublicHooksHelpdeskLembretesRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
@@ -1530,13 +1572,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
