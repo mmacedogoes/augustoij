@@ -292,7 +292,9 @@ function AssinaturaPage() {
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5" />
-            Ambiente Sandbox Asaas · nenhum valor real será cobrado.
+            {perfil.data?.ambiente === "sandbox"
+              ? "Ambiente Sandbox Asaas · nenhum valor real será cobrado."
+              : "Pagamento processado com segurança pelo Asaas."}
           </div>
 
           <div className="flex flex-wrap gap-3 justify-end">
