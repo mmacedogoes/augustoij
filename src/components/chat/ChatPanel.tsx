@@ -552,7 +552,7 @@ export function ChatPanel({
     (hasReadyDocs || attachments.length > 0) && historyLoaded && !bloqueadoPorLimite;
 
   return (
-    <div className="flex flex-col h-[70vh] min-h-[500px] border border-border rounded-lg overflow-hidden bg-card">
+    <div className="flex flex-col h-full min-h-[520px] border border-border rounded-lg overflow-hidden bg-card">
       <AvisoJuridicoBanner />
       <Conversation className="flex-1">
         <ConversationContent>
