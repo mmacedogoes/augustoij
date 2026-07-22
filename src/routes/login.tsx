@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { toast } from "sonner";
 import { GoogleAuthButton, OrDivider } from "@/components/auth/GoogleAuthButton";
+import { setRememberMe } from "@/lib/remember-session";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -30,6 +32,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(true);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,6 +63,7 @@ function LoginPage() {
       toast.error(error.message === "Invalid login credentials" ? "E-mail ou senha incorretos" : error.message);
       return;
     }
+    setRememberMe(remember);
     toast.success("Bem-vindo de volta!");
     navigate({ to: "/app" });
   }
@@ -73,7 +77,7 @@ function LoginPage() {
         <h1 className="text-3xl font-serif font-medium text-foreground tracking-tight text-center">Bem-vindo</h1>
         <p className="mt-2 text-sm text-muted-foreground text-center">Entre para conversar com o Augusto.</p>
         <div className="mt-8">
-          <GoogleAuthButton label="Continuar com Google" redirectTo="/app" />
+          <GoogleAuthButton label="Continuar com Google" redirectTo="/app" remember={remember} />
           <OrDivider />
         </div>
         <form onSubmit={onSubmit} className="space-y-5">
@@ -84,6 +88,17 @@ function LoginPage() {
             <div className="space-y-1.5">
               <Label htmlFor="password" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">Senha</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="remember"
+                checked={remember}
+                onCheckedChange={(v) => setRemember(v === true)}
+                disabled={loading}
+              />
+              <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground cursor-pointer select-none">
+                Manter-me conectado
+              </Label>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</Button>
         </form>
