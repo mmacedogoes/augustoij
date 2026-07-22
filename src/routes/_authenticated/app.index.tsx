@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Building, Plus, MessageSquare } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
@@ -26,27 +28,45 @@ function HomePage() {
   const fetchCondos = useServerFn(listCondominios);
   const fetchProfile = useServerFn(getProfile);
   const fetchUso = useServerFn(getUsoMensal);
-  const [condos, setCondos] = useState<Condo[]>([]);
-  const [nome, setNome] = useState("");
-  const [uso, setUso] = useState({ total_mensagens: 0 });
+
+  const condosQuery = useQuery<Condo[]>({
+    queryKey: ["home", "condos"],
+    queryFn: async () => ((await fetchCondos()) as Condo[]) ?? [],
+    staleTime: 30_000,
+  });
+  const profileQuery = useQuery<{ nome?: string | null; email?: string | null }>({
+    queryKey: ["home", "profile"],
+    queryFn: async () => (await fetchProfile()) as { nome?: string | null; email?: string | null },
+    staleTime: 5 * 60_000,
+  });
+  const usoQuery = useQuery<{ total_mensagens: number }>({
+    queryKey: ["home", "uso"],
+    queryFn: async () => (await fetchUso()) as { total_mensagens: number },
+    staleTime: 60_000,
+  });
+
+  const condos = condosQuery.data ?? [];
+  const nome = ((profileQuery.data?.nome || profileQuery.data?.email || "") as string).split(" ")[0];
+  const uso = usoQuery.data ?? { total_mensagens: 0 };
+
   const [activeCondoId, setActiveCondoId] = useState<string | null>(() =>
     typeof window === "undefined" ? null : window.localStorage.getItem("condoia.activeCondo"),
   );
   const [conversaId, setConversaId] = useState<string | null>(null);
   const [chatKey, setChatKey] = useState<string>(() => `new-${Date.now()}`);
 
+  // Seleciona o primeiro condomínio quando a lista chega, se nada estiver ativo.
   useEffect(() => {
-    fetchCondos()
-      .then((r) => {
-        const list = (r as Condo[]) ?? [];
-        setCondos(list);
-        if (!activeCondoId && list[0]) setActiveCondoId(list[0].id);
-      })
-      .catch(() => {});
-    fetchProfile().then((p) => setNome((p?.nome || p?.email || "").split(" ")[0])).catch(() => {});
-    fetchUso().then((u) => setUso(u as typeof uso)).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!activeCondoId && condos[0]) setActiveCondoId(condos[0].id);
+  }, [activeCondoId, condos]);
+
+  // Toast único quando qualquer uma das cargas iniciais falha.
+  useEffect(() => {
+    const err = condosQuery.error ?? profileQuery.error ?? usoQuery.error;
+    if (err) {
+      toast.error("Não conseguimos carregar seus dados. Verifique sua conexão e tente novamente.");
+    }
+  }, [condosQuery.error, profileQuery.error, usoQuery.error]);
 
   useEffect(() => {
     if (activeCondoId) window.localStorage.setItem("condoia.activeCondo", activeCondoId);
