@@ -1,19 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { Nav } from "@/components/landing/Nav";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { TrustBand } from "@/components/landing/TrustBand";
-import { ProblemSection } from "@/components/landing/ProblemSection";
-import { ForWhomSection } from "@/components/landing/ForWhomSection";
-import { AnatomySection } from "@/components/landing/AnatomySection";
-import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { AugustoNaPratica } from "@/components/landing/AugustoNaPratica";
-import { TrustSection } from "@/components/landing/TrustSection";
-import { PricingSection } from "@/components/landing/PricingSection";
-import { FaqSection } from "@/components/landing/FaqSection";
-import { FinalCtaSection } from "@/components/landing/FinalCtaSection";
-import { ManifestoFooter } from "@/components/landing/ManifestoFooter";
 import { ScrollBlurOverlay } from "@/components/landing/ScrollBlurOverlay";
 import { useHashScroll } from "@/hooks/use-hash-scroll";
+
+// Seções abaixo da dobra: code-split para reduzir o JS inicial da home.
+const AnatomySection = lazy(() =>
+  import("@/components/landing/AnatomySection").then((m) => ({ default: m.AnatomySection })),
+);
+const ProblemSection = lazy(() =>
+  import("@/components/landing/ProblemSection").then((m) => ({ default: m.ProblemSection })),
+);
+const ForWhomSection = lazy(() =>
+  import("@/components/landing/ForWhomSection").then((m) => ({ default: m.ForWhomSection })),
+);
+const FeaturesSection = lazy(() =>
+  import("@/components/landing/FeaturesSection").then((m) => ({ default: m.FeaturesSection })),
+);
+const AugustoNaPratica = lazy(() =>
+  import("@/components/landing/AugustoNaPratica").then((m) => ({ default: m.AugustoNaPratica })),
+);
+const TrustSection = lazy(() =>
+  import("@/components/landing/TrustSection").then((m) => ({ default: m.TrustSection })),
+);
+const PricingSection = lazy(() =>
+  import("@/components/landing/PricingSection").then((m) => ({ default: m.PricingSection })),
+);
+const FaqSection = lazy(() =>
+  import("@/components/landing/FaqSection").then((m) => ({ default: m.FaqSection })),
+);
+const FinalCtaSection = lazy(() =>
+  import("@/components/landing/FinalCtaSection").then((m) => ({ default: m.FinalCtaSection })),
+);
+const ManifestoFooter = lazy(() =>
+  import("@/components/landing/ManifestoFooter").then((m) => ({ default: m.ManifestoFooter })),
+);
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,16 +81,18 @@ function Landing() {
       <Nav />
       <HeroSection />
       <TrustBand />
-      <AnatomySection />
-      <ProblemSection />
-      <ForWhomSection />
-      <FeaturesSection />
-      <AugustoNaPratica />
-      <TrustSection />
-      <PricingSection />
-      <FaqSection />
-      <FinalCtaSection />
-      <ManifestoFooter />
+      <Suspense fallback={<div className="h-24" aria-hidden />}>
+        <AnatomySection />
+        <ProblemSection />
+        <ForWhomSection />
+        <FeaturesSection />
+        <AugustoNaPratica />
+        <TrustSection />
+        <PricingSection />
+        <FaqSection />
+        <FinalCtaSection />
+        <ManifestoFooter />
+      </Suspense>
       <ScrollBlurOverlay />
     </div>
   );
