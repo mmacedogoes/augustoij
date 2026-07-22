@@ -89,11 +89,11 @@ function HomePage() {
 
   return (
     <AppShell>
-      <div className="max-w-5xl mx-auto flex flex-col h-[calc(100vh-9rem)]">
-        <header className="flex flex-wrap items-end justify-between gap-4 pb-5 mb-4 border-b border-[var(--landing-rule)]">
+      <div className="max-w-6xl mx-auto flex flex-col h-[calc(100dvh-7rem)]">
+        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 pb-4 mb-3 border-b border-[var(--landing-rule)] sm:flex sm:flex-wrap sm:items-end sm:justify-between">
           <div className="min-w-0">
             <span className="app-eyebrow">Área do cliente</span>
-            <h1 className="app-title mt-2">
+            <h1 className="app-title mt-2 truncate sm:whitespace-normal">
               {saudacao}{nome ? `, ${nome}` : ""}.
             </h1>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
@@ -103,7 +103,7 @@ function HomePage() {
           <div className="flex items-center gap-2 shrink-0">
             {condos.length > 0 && (
               <Select value={activeCondoId ?? undefined} onValueChange={(v) => setActiveCondoId(v)}>
-                <SelectTrigger className="w-[240px] h-10 bg-card border-border hover:border-augusto-gold/50 transition-colors duration-200" data-tour="seletor-condominio">
+                <SelectTrigger className="w-[200px] sm:w-[240px] h-10 bg-card border-border hover:border-augusto-gold/50 transition-colors duration-200" data-tour="seletor-condominio">
                   <SelectValue placeholder="Selecione um condomínio" />
                 </SelectTrigger>
                 <SelectContent>
