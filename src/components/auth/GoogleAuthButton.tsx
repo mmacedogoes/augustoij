@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 type Props = {
   label?: string;
   redirectTo?: string;
+  remember?: boolean;
   onNewUser?: (info: { email: string; nome: string }) => void;
 };
 
@@ -14,7 +15,7 @@ type Props = {
  * Botão oficial "Continuar com Google" (fundo branco, logo colorido, texto escuro).
  * Usa a autenticação Google GERENCIADA pelo Lovable Cloud — sem credenciais próprias.
  */
-export function GoogleAuthButton({ label = "Continuar com Google", redirectTo = "/app", onNewUser }: Props) {
+export function GoogleAuthButton({ label = "Continuar com Google", redirectTo = "/app", remember = true, onNewUser }: Props) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -44,6 +45,11 @@ export function GoogleAuthButton({ label = "Continuar com Google", redirectTo = 
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
       if (user) {
+        // Aplica preferência de "manter conectado" após sessão estabelecida.
+        try {
+          const { setRememberMe } = await import("@/lib/remember-session");
+          setRememberMe(remember);
+        } catch { /* ignore */ }
         const createdAt = user.created_at ? new Date(user.created_at).getTime() : 0;
         const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : 0;
         const isBrandNew = createdAt > 0 && Math.abs(lastSignIn - createdAt) < 60_000;
