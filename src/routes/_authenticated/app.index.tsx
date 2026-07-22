@@ -89,21 +89,21 @@ function HomePage() {
 
   return (
     <AppShell>
-      <div className="max-w-6xl mx-auto flex flex-col h-[calc(100dvh-7rem)]">
-        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 pb-4 mb-3 border-b border-[var(--landing-rule)] sm:flex sm:flex-wrap sm:items-end sm:justify-between">
+      <div className="max-w-6xl mx-auto flex flex-col -mt-2 md:-mt-6 lg:-mt-8 h-[calc(100dvh-5.5rem)] md:h-[calc(100dvh-5rem)]">
+        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 pb-3 mb-3 border-b border-[var(--landing-rule)] sm:flex sm:flex-wrap sm:items-end sm:justify-between">
           <div className="min-w-0">
             <span className="app-eyebrow">Área do cliente</span>
-            <h1 className="app-title mt-2 truncate sm:whitespace-normal">
+            <h1 className="app-title mt-1.5 truncate sm:whitespace-normal">
               {saudacao}{nome ? `, ${nome}` : ""}.
             </h1>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+            <p className="mt-1 text-[14px] sm:text-[15px] leading-snug text-muted-foreground">
               Em que o Augusto pode ajudar?
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {condos.length > 0 && (
               <Select value={activeCondoId ?? undefined} onValueChange={(v) => setActiveCondoId(v)}>
-                <SelectTrigger className="w-[200px] sm:w-[240px] h-10 bg-card border-border hover:border-augusto-gold/50 transition-colors duration-200" data-tour="seletor-condominio">
+                <SelectTrigger className="w-[180px] sm:w-[240px] h-10 bg-card border-border hover:border-augusto-gold/50 transition-colors duration-200" data-tour="seletor-condominio">
                   <SelectValue placeholder="Selecione um condomínio" />
                 </SelectTrigger>
                 <SelectContent>
@@ -124,7 +124,7 @@ function HomePage() {
         </header>
 
         {!activeCondo ? (
-          <Card className="flex-1 flex flex-col items-center justify-center text-center p-12 border-dashed border-[var(--landing-rule)] bg-gradient-to-b from-card to-muted/30">
+          <Card className="flex-1 flex flex-col items-center justify-center text-center p-8 sm:p-12 border-dashed border-[var(--landing-rule)] bg-gradient-to-b from-card to-muted/30">
             <span className="app-icon-frame h-14 w-14 rounded-2xl">
               <Building className="h-6 w-6" strokeWidth={1.5} />
             </span>
