@@ -13,6 +13,12 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CookieBanner } from "@/components/CookieBanner";
 import { Toaster } from "@/components/ui/sonner";
+import { hydrateEphemeralSession, initRememberMode, clearRememberMode } from "@/lib/remember-session";
+
+// Restaura sessão efêmera do sessionStorage antes do supabase-js ler o localStorage.
+if (typeof window !== "undefined") {
+  hydrateEphemeralSession();
+}
 // favicon agora servido de /public (Augusto.IJ aqueduto)
 
 function NotFoundComponent() {
@@ -129,12 +135,14 @@ function RootComponent() {
 
   useEffect(() => {
     let mounted = true;
+    initRememberMode();
     import("@/integrations/supabase/client").then(({ supabase }) => {
       const { data: sub } = supabase.auth.onAuthStateChange((event) => {
         if (!mounted) return;
         if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
         router.invalidate();
         if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+        if (event === "SIGNED_OUT") clearRememberMode();
         // Após login (inclui retorno full-page do Google OAuth), leva o usuário
         // para a área logada se ele estiver numa rota pública de autenticação.
         if (event === "SIGNED_IN" && typeof window !== "undefined") {
