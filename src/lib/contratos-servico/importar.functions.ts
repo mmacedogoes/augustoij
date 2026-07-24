@@ -615,6 +615,12 @@ export const salvarImportacaoContratoServico = createServerFn({ method: "POST" }
     } catch (e) {
       console.warn("Falha ao gerar checklists (importação):", e);
     }
+    try {
+      const { gerarEventosInterno } = await import("./eventos.functions");
+      await gerarEventosInterno(context.supabase, contratoId);
+    } catch (e) {
+      console.warn("Falha ao gerar eventos (importação):", e);
+    }
     return { id: contratoId };
   });
 

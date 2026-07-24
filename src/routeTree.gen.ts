@@ -45,6 +45,7 @@ import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authen
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksLembretesContratosRouteImport } from './routes/api/public/hooks/lembretes-contratos'
 import { Route as ApiPublicHooksHelpdeskLembretesRouteImport } from './routes/api/public/hooks/helpdesk-lembretes'
 import { Route as AuthenticatedAppSuporteTicketIdRouteImport } from './routes/_authenticated/app.suporte.$ticketId'
 import { Route as AuthenticatedAppContratosNovoRouteImport } from './routes/_authenticated/app.contratos.novo'
@@ -270,6 +271,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksLembretesContratosRoute =
+  ApiPublicHooksLembretesContratosRouteImport.update({
+    id: '/api/public/hooks/lembretes-contratos',
+    path: '/api/public/hooks/lembretes-contratos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksHelpdeskLembretesRoute =
   ApiPublicHooksHelpdeskLembretesRouteImport.update({
     id: '/api/public/hooks/helpdesk-lembretes',
@@ -547,6 +554,7 @@ export interface FileRoutesByFullPath {
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
+  '/api/public/hooks/lembretes-contratos': typeof ApiPublicHooksLembretesContratosRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -618,6 +626,7 @@ export interface FileRoutesByTo {
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
+  '/api/public/hooks/lembretes-contratos': typeof ApiPublicHooksLembretesContratosRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -695,6 +704,7 @@ export interface FileRoutesById {
   '/_authenticated/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/_authenticated/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
+  '/api/public/hooks/lembretes-contratos': typeof ApiPublicHooksLembretesContratosRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -772,6 +782,7 @@ export interface FileRouteTypes {
     | '/app/contratos/novo'
     | '/app/suporte/$ticketId'
     | '/api/public/hooks/helpdesk-lembretes'
+    | '/api/public/hooks/lembretes-contratos'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -843,6 +854,7 @@ export interface FileRouteTypes {
     | '/app/contratos/novo'
     | '/app/suporte/$ticketId'
     | '/api/public/hooks/helpdesk-lembretes'
+    | '/api/public/hooks/lembretes-contratos'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -919,6 +931,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/contratos/novo'
     | '/_authenticated/app/suporte/$ticketId'
     | '/api/public/hooks/helpdesk-lembretes'
+    | '/api/public/hooks/lembretes-contratos'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -971,6 +984,7 @@ export interface RootRouteChildren {
   ApiVozFalarRoute: typeof ApiVozFalarRoute
   ApiVozTranscreverRoute: typeof ApiVozTranscreverRoute
   ApiPublicHooksHelpdeskLembretesRoute: typeof ApiPublicHooksHelpdeskLembretesRoute
+  ApiPublicHooksLembretesContratosRoute: typeof ApiPublicHooksLembretesContratosRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1228,6 +1242,13 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/auth/preview'
       fullPath: '/lovable/email/auth/preview'
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/lembretes-contratos': {
+      id: '/api/public/hooks/lembretes-contratos'
+      path: '/api/public/hooks/lembretes-contratos'
+      fullPath: '/api/public/hooks/lembretes-contratos'
+      preLoaderRoute: typeof ApiPublicHooksLembretesContratosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/helpdesk-lembretes': {
@@ -1722,6 +1743,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVozFalarRoute: ApiVozFalarRoute,
   ApiVozTranscreverRoute: ApiVozTranscreverRoute,
   ApiPublicHooksHelpdeskLembretesRoute: ApiPublicHooksHelpdeskLembretesRoute,
+  ApiPublicHooksLembretesContratosRoute: ApiPublicHooksLembretesContratosRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
