@@ -488,6 +488,39 @@ export type Database = {
           },
         ]
       }
+      checklist_templates_itens: {
+        Row: {
+          ativo: boolean
+          base_legal: string | null
+          created_at: string
+          descricao: string
+          id: string
+          ordem: number
+          tipo_checklist: string
+          tipo_servico_slug: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          base_legal?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          ordem?: number
+          tipo_checklist: string
+          tipo_servico_slug?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          base_legal?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          ordem?: number
+          tipo_checklist?: string
+          tipo_servico_slug?: string | null
+        }
+        Relationships: []
+      }
       cidades_cobertas: {
         Row: {
           cidade: string
