@@ -137,7 +137,7 @@ export const getSugestaoReajuste = createServerFn({ method: "POST" })
     const competencia = competenciaVigenteMesBase(c.mes_base_reajuste, hoje);
 
     const sug = await calcularIndiceParaReajuste({
-      indiceContratual: c.indice_reajuste,
+      indiceContratual: c.indice_reajuste ?? "nenhum",
       mesBase: c.mes_base_reajuste,
     });
     const pctSugerido = sug.acumuladoSugerido ?? 0;
