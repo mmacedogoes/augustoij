@@ -38,6 +38,7 @@ import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppAssinaturaRouteImport } from './routes/_authenticated/app.assinatura'
 import { Route as AuthenticatedAppAjudaRouteImport } from './routes/_authenticated/app.ajuda'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
+import { Route as AuthenticatedAppContratosIndexRouteImport } from './routes/_authenticated/app.contratos.index'
 import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
 import { Route as AuthenticatedAppAjudaIndexRouteImport } from './routes/_authenticated/app.ajuda.index'
 import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authenticated/app.admin.index'
@@ -225,6 +226,12 @@ const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
   path: '/app/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppContratosIndexRoute =
+  AuthenticatedAppContratosIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppContratosRoute,
+  } as any)
 const AuthenticatedAppCondominiosIndexRoute =
   AuthenticatedAppCondominiosIndexRouteImport.update({
     id: '/app/condominios/',
@@ -486,7 +493,7 @@ export interface FileRoutesByFullPath {
   '/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
-  '/app/contratos': typeof AuthenticatedAppContratosRoute
+  '/app/contratos': typeof AuthenticatedAppContratosRouteWithChildren
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
@@ -515,6 +522,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
   '/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
@@ -554,7 +562,6 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
-  '/app/contratos': typeof AuthenticatedAppContratosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
@@ -582,6 +589,7 @@ export interface FileRoutesByTo {
   '/app/admin': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda': typeof AuthenticatedAppAjudaIndexRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
+  '/app/contratos': typeof AuthenticatedAppContratosIndexRoute
   '/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
@@ -625,7 +633,7 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/_authenticated/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
-  '/_authenticated/app/contratos': typeof AuthenticatedAppContratosRoute
+  '/_authenticated/app/contratos': typeof AuthenticatedAppContratosRouteWithChildren
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
@@ -654,6 +662,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/_authenticated/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
+  '/_authenticated/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
   '/_authenticated/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
   '/_authenticated/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/_authenticated/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
@@ -726,6 +735,7 @@ export interface FileRouteTypes {
     | '/app/admin/'
     | '/app/ajuda/'
     | '/app/condominios/'
+    | '/app/contratos/'
     | '/app/admin/helpdesk/$ticketId'
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
@@ -765,7 +775,6 @@ export interface FileRouteTypes {
     | '/blog'
     | '/app/assinatura'
     | '/app/conta'
-    | '/app/contratos'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
@@ -793,6 +802,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/ajuda'
     | '/app/condominios'
+    | '/app/contratos'
     | '/app/admin/helpdesk/$ticketId'
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
@@ -864,6 +874,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/'
     | '/_authenticated/app/ajuda/'
     | '/_authenticated/app/condominios/'
+    | '/_authenticated/app/contratos/'
     | '/_authenticated/app/admin/helpdesk/$ticketId'
     | '/_authenticated/app/admin/imoveis/importar'
     | '/_authenticated/app/admin/usuarios/$userId'
@@ -1117,6 +1128,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/admin'
       preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/contratos/': {
+      id: '/_authenticated/app/contratos/'
+      path: '/'
+      fullPath: '/app/contratos/'
+      preLoaderRoute: typeof AuthenticatedAppContratosIndexRouteImport
+      parentRoute: typeof AuthenticatedAppContratosRoute
     }
     '/_authenticated/app/condominios/': {
       id: '/_authenticated/app/condominios/'
@@ -1534,13 +1552,27 @@ const AuthenticatedAppAssinaturaRouteWithChildren =
     AuthenticatedAppAssinaturaRouteChildren,
   )
 
+interface AuthenticatedAppContratosRouteChildren {
+  AuthenticatedAppContratosIndexRoute: typeof AuthenticatedAppContratosIndexRoute
+}
+
+const AuthenticatedAppContratosRouteChildren: AuthenticatedAppContratosRouteChildren =
+  {
+    AuthenticatedAppContratosIndexRoute: AuthenticatedAppContratosIndexRoute,
+  }
+
+const AuthenticatedAppContratosRouteWithChildren =
+  AuthenticatedAppContratosRoute._addFileChildren(
+    AuthenticatedAppContratosRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
   AuthenticatedAppAjudaRoute: typeof AuthenticatedAppAjudaRouteWithChildren
   AuthenticatedAppAssinaturaRoute: typeof AuthenticatedAppAssinaturaRouteWithChildren
   AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
-  AuthenticatedAppContratosRoute: typeof AuthenticatedAppContratosRoute
+  AuthenticatedAppContratosRoute: typeof AuthenticatedAppContratosRouteWithChildren
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
   AuthenticatedAppSuporteTicketIdRoute: typeof AuthenticatedAppSuporteTicketIdRoute
@@ -1553,7 +1585,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAjudaRoute: AuthenticatedAppAjudaRouteWithChildren,
   AuthenticatedAppAssinaturaRoute: AuthenticatedAppAssinaturaRouteWithChildren,
   AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
-  AuthenticatedAppContratosRoute: AuthenticatedAppContratosRoute,
+  AuthenticatedAppContratosRoute: AuthenticatedAppContratosRouteWithChildren,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
   AuthenticatedAppSuporteTicketIdRoute: AuthenticatedAppSuporteTicketIdRoute,
