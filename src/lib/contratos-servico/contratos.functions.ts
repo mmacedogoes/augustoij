@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureSuperAdmin } from "./guard";
+import { gerarChecklistsInterno } from "./checklists.functions";
 import {
   contratoServicoSchema,
   idInput,
@@ -183,6 +184,11 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
         .update(payload as never)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
+      try {
+        await gerarChecklistsInterno(context.supabase, data.id);
+      } catch (e) {
+        console.warn("Falha ao regerar checklists (edição):", e);
+      }
       return { id: data.id };
     }
     const { data: inserted, error } = await context.supabase
@@ -191,7 +197,13 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    return { id: inserted.id as string };
+    const novoId = inserted.id as string;
+    try {
+      await gerarChecklistsInterno(context.supabase, novoId);
+    } catch (e) {
+      console.warn("Falha ao gerar checklists (criação):", e);
+    }
+    return { id: novoId };
   });
 
 // -------------------------------------------------------------------- remove

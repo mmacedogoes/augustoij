@@ -18,6 +18,9 @@ import {
   ObrigacoesEditor,
   type Obrigacao,
 } from "@/components/contratos-servico/ObrigacoesEditor";
+import { RetencoesCard } from "@/components/contratos-servico/RetencoesCard";
+import { ChecklistsPanel } from "@/components/contratos-servico/ChecklistsPanel";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   getContratoServico,
   removeContratoServico,
@@ -285,20 +288,34 @@ function Page() {
           </Bloco>
         </div>
 
-        <Card className="p-4 mb-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-serif text-primary">Obrigações do contrato</h3>
-            <p className="text-sm text-muted-foreground">
-              Cadastre manualmente agora. Na próxima fase, obrigações também serão extraídas
-              automaticamente pela IA na importação de contratos.
-            </p>
-          </div>
-          <ObrigacoesEditor
-            contratoId={contratoId}
-            itens={ficha.obrigacoes}
-            onChange={carregar}
-          />
-        </Card>
+        <Tabs defaultValue="obrigacoes" className="mb-6">
+          <TabsList>
+            <TabsTrigger value="obrigacoes">Obrigações</TabsTrigger>
+            <TabsTrigger value="retencoes">Retenções</TabsTrigger>
+            <TabsTrigger value="checklists">Checklists</TabsTrigger>
+          </TabsList>
+          <TabsContent value="obrigacoes" className="mt-4">
+            <Card className="p-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-serif text-primary">Obrigações do contrato</h3>
+                <p className="text-sm text-muted-foreground">
+                  Mapa de obrigações do contrato (edição manual ou importação por IA).
+                </p>
+              </div>
+              <ObrigacoesEditor
+                contratoId={contratoId}
+                itens={ficha.obrigacoes}
+                onChange={carregar}
+              />
+            </Card>
+          </TabsContent>
+          <TabsContent value="retencoes" className="mt-4">
+            <RetencoesCard contratoId={contratoId} />
+          </TabsContent>
+          <TabsContent value="checklists" className="mt-4">
+            <ChecklistsPanel contratoId={contratoId} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <Dialog open={confirmar} onOpenChange={setConfirmar}>
