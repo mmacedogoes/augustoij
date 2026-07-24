@@ -331,9 +331,8 @@ export const getChecklistsDoContrato = createServerFn({ method: "POST" })
       if (iErr) throw new Error(iErr.message);
 
       // Garantir período (idempotente via unique)
-      let periodo:
-        | { id: string; competencia: string; status: "aberto" | "concluido" }
-        | null = null;
+      type PeriodoRow = { id: string; competencia: string; status: "aberto" | "concluido" };
+      let periodo: PeriodoRow | null = null;
       const { data: pExist, error: pErr } = await context.supabase
         .from("contrato_checklist_periodos")
         .select("id, competencia, status")
@@ -342,7 +341,7 @@ export const getChecklistsDoContrato = createServerFn({ method: "POST" })
         .maybeSingle();
       if (pErr) throw new Error(pErr.message);
       if (pExist) {
-        periodo = pExist as typeof periodo;
+        periodo = pExist as PeriodoRow;
       } else if (podeCriarPeriodo) {
         const { data: inserted, error: insErr } = await context.supabase
           .from("contrato_checklist_periodos")
@@ -357,9 +356,9 @@ export const getChecklistsDoContrato = createServerFn({ method: "POST" })
             .eq("checklist_id", ch.id)
             .eq("competencia", data.competencia)
             .maybeSingle();
-          periodo = (retry as typeof periodo) ?? null;
+          periodo = (retry as PeriodoRow | null) ?? null;
         } else {
-          periodo = inserted as typeof periodo;
+          periodo = inserted as PeriodoRow;
         }
       }
 
