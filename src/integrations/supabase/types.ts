@@ -723,6 +723,267 @@ export type Database = {
         }
         Relationships: []
       }
+      contrato_checklist_itens: {
+        Row: {
+          ativo: boolean
+          base_legal: string | null
+          checklist_id: string
+          descricao: string
+          id: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          base_legal?: string | null
+          checklist_id: string
+          descricao: string
+          id?: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          base_legal?: string | null
+          checklist_id?: string
+          descricao?: string
+          id?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_checklist_itens_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_checklist_marcacoes: {
+        Row: {
+          id: string
+          item_id: string
+          marcado_em: string | null
+          marcado_por: string | null
+          observacao: string | null
+          periodo_id: string
+          situacao: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          marcado_em?: string | null
+          marcado_por?: string | null
+          observacao?: string | null
+          periodo_id: string
+          situacao?: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          marcado_em?: string | null
+          marcado_por?: string | null
+          observacao?: string | null
+          periodo_id?: string
+          situacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_checklist_marcacoes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_checklist_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrato_checklist_marcacoes_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_checklist_periodos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_checklist_periodos: {
+        Row: {
+          checklist_id: string
+          competencia: string
+          id: string
+          status: string
+        }
+        Insert: {
+          checklist_id: string
+          competencia: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          checklist_id?: string
+          competencia?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_checklist_periodos_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_checklists: {
+        Row: {
+          ativo: boolean
+          contrato_id: string
+          created_at: string
+          id: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          contrato_id: string
+          created_at?: string
+          id?: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          contrato_id?: string
+          created_at?: string
+          id?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_checklists_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_eventos: {
+        Row: {
+          contrato_id: string
+          created_at: string
+          criado_por: string | null
+          data_evento: string
+          descricao: string | null
+          id: string
+          status: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_evento: string
+          descricao?: string | null
+          id?: string
+          status?: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_evento?: string
+          descricao?: string | null
+          id?: string
+          status?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_eventos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_obrigacoes: {
+        Row: {
+          clausula_origem: string | null
+          contrato_id: string
+          created_at: string
+          descricao: string
+          id: string
+          ordem: number
+          origem: string
+          parte: string
+          periodicidade: string
+          updated_at: string
+        }
+        Insert: {
+          clausula_origem?: string | null
+          contrato_id: string
+          created_at?: string
+          descricao: string
+          id?: string
+          ordem?: number
+          origem?: string
+          parte: string
+          periodicidade?: string
+          updated_at?: string
+        }
+        Update: {
+          clausula_origem?: string | null
+          contrato_id?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          ordem?: number
+          origem?: string
+          parte?: string
+          periodicidade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_obrigacoes_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_responsaveis: {
+        Row: {
+          contrato_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_responsaveis_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contratos_administracao: {
         Row: {
           administrador_documento: string | null
@@ -918,6 +1179,133 @@ export type Database = {
             columns: ["imovel_id"]
             isOneToOne: false
             referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contratos_servico: {
+        Row: {
+          arquivo_path: string | null
+          aviso_previo_dias: number | null
+          condominio_id: string
+          created_at: string
+          criado_por: string
+          data_fim: string | null
+          data_inicio: string | null
+          dia_vencimento: number | null
+          documento_id: string | null
+          encerrado_em: string | null
+          exige_seguro_rc: boolean
+          foro: string | null
+          garantias: string | null
+          id: string
+          indice_reajuste: string | null
+          mes_base_reajuste: number | null
+          motivo_encerramento: string | null
+          multa_rescisoria: string | null
+          notificacoes_ativas: boolean
+          objeto: string | null
+          prazo_indeterminado: boolean
+          prestador_documento: string | null
+          prestador_email: string | null
+          prestador_nome: string
+          prestador_telefone: string | null
+          renovacao_automatica: boolean
+          situacao: string
+          terceirizacao_mao_de_obra: boolean
+          tipo_servico_id: string | null
+          tipo_valor: string
+          updated_at: string
+          valor: number | null
+        }
+        Insert: {
+          arquivo_path?: string | null
+          aviso_previo_dias?: number | null
+          condominio_id: string
+          created_at?: string
+          criado_por?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          dia_vencimento?: number | null
+          documento_id?: string | null
+          encerrado_em?: string | null
+          exige_seguro_rc?: boolean
+          foro?: string | null
+          garantias?: string | null
+          id?: string
+          indice_reajuste?: string | null
+          mes_base_reajuste?: number | null
+          motivo_encerramento?: string | null
+          multa_rescisoria?: string | null
+          notificacoes_ativas?: boolean
+          objeto?: string | null
+          prazo_indeterminado?: boolean
+          prestador_documento?: string | null
+          prestador_email?: string | null
+          prestador_nome: string
+          prestador_telefone?: string | null
+          renovacao_automatica?: boolean
+          situacao?: string
+          terceirizacao_mao_de_obra?: boolean
+          tipo_servico_id?: string | null
+          tipo_valor?: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Update: {
+          arquivo_path?: string | null
+          aviso_previo_dias?: number | null
+          condominio_id?: string
+          created_at?: string
+          criado_por?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          dia_vencimento?: number | null
+          documento_id?: string | null
+          encerrado_em?: string | null
+          exige_seguro_rc?: boolean
+          foro?: string | null
+          garantias?: string | null
+          id?: string
+          indice_reajuste?: string | null
+          mes_base_reajuste?: number | null
+          motivo_encerramento?: string | null
+          multa_rescisoria?: string | null
+          notificacoes_ativas?: boolean
+          objeto?: string | null
+          prazo_indeterminado?: boolean
+          prestador_documento?: string | null
+          prestador_email?: string | null
+          prestador_nome?: string
+          prestador_telefone?: string | null
+          renovacao_automatica?: boolean
+          situacao?: string
+          terceirizacao_mao_de_obra?: boolean
+          tipo_servico_id?: string | null
+          tipo_valor?: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_servico_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_servico_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_servico_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico_contrato"
             referencedColumns: ["id"]
           },
         ]
@@ -2111,6 +2499,39 @@ export type Database = {
           },
         ]
       }
+      retencoes_config: {
+        Row: {
+          aliquota_referencia: string | null
+          ativo_padrao: boolean
+          base_legal: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          slug: string
+        }
+        Insert: {
+          aliquota_referencia?: string | null
+          ativo_padrao?: boolean
+          base_legal?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          slug: string
+        }
+        Update: {
+          aliquota_referencia?: string | null
+          ativo_padrao?: boolean
+          base_legal?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       solicitacoes_exclusao_conta: {
         Row: {
           confirmado_em: string | null
@@ -2353,6 +2774,72 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      tipos_servico_contrato: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+          terceirizacao_padrao: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+          terceirizacao_padrao?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+          terceirizacao_padrao?: boolean
+        }
+        Relationships: []
+      }
+      tipos_servico_retencoes: {
+        Row: {
+          aplica_por_padrao: boolean
+          observacao: string | null
+          retencao_id: string
+          tipo_servico_id: string
+        }
+        Insert: {
+          aplica_por_padrao?: boolean
+          observacao?: string | null
+          retencao_id: string
+          tipo_servico_id: string
+        }
+        Update: {
+          aplica_por_padrao?: boolean
+          observacao?: string | null
+          retencao_id?: string
+          tipo_servico_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipos_servico_retencoes_retencao_id_fkey"
+            columns: ["retencao_id"]
+            isOneToOne: false
+            referencedRelation: "retencoes_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipos_servico_retencoes_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico_contrato"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       unidades: {
         Row: {
