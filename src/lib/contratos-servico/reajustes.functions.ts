@@ -17,6 +17,12 @@ import { ensureSuperAdmin } from "./guard";
 import { calcularIndiceParaReajuste, round2 } from "./indices";
 import { gerarEventosInterno } from "./eventos.functions";
 import { hojeBR } from "./eventos-core";
+import { registrarAuditoriaContrato } from "./auditoria.server";
+
+function brl(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 // ---------------------------------------------------------------- utilitários
 
