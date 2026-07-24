@@ -15,6 +15,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureSuperAdmin } from "./guard";
 import { contratoServicoSchema } from "./schemas";
+import { gerarChecklistsInterno } from "./checklists.functions";
 
 const MODEL = "google/gemini-2.5-flash";
 const AIG_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -608,6 +609,11 @@ export const salvarImportacaoContratoServico = createServerFn({ method: "POST" }
         await context.supabase.from("contratos_servico").delete().eq("id", contratoId);
         throw new Error(`Contrato criado, mas obrigações falharam: ${obrErr.message}`);
       }
+    }
+    try {
+      await gerarChecklistsInterno(context.supabase, contratoId);
+    } catch (e) {
+      console.warn("Falha ao gerar checklists (importação):", e);
     }
     return { id: contratoId };
   });
