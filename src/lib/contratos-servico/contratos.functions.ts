@@ -4,6 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureSuperAdmin } from "./guard";
 import { gerarChecklistsInterno } from "./checklists.functions";
 import { gerarEventosInterno } from "./eventos.functions";
+import { registrarAuditoriaContrato } from "./auditoria.server";
+import { sincronizarContratoNoAcervo } from "./ai-context.server";
 import {
   contratoServicoSchema,
   idInput,
@@ -195,6 +197,14 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
       } catch (e) {
         console.warn("Falha ao regerar eventos (edição):", e);
       }
+      void sincronizarContratoNoAcervo(context.supabase, { contratoId: data.id });
+      await registrarAuditoriaContrato({
+        contratoId: data.id,
+        condominioId: data.condominio_id,
+        acao: "contrato.editar",
+        descricao: `Contrato editado: ${data.prestador_nome}.`,
+        userId: context.userId,
+      });
       return { id: data.id };
     }
     const { data: inserted, error } = await context.supabase
@@ -214,6 +224,14 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
     } catch (e) {
       console.warn("Falha ao gerar eventos (criação):", e);
     }
+    void sincronizarContratoNoAcervo(context.supabase, { contratoId: novoId });
+    await registrarAuditoriaContrato({
+      contratoId: novoId,
+      condominioId: data.condominio_id,
+      acao: "contrato.criar",
+      descricao: `Contrato criado: ${data.prestador_nome}.`,
+      userId: context.userId,
+    });
     return { id: novoId };
   });
 
@@ -224,11 +242,23 @@ export const removeContratoServico = createServerFn({ method: "POST" })
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
     await ensureSuperAdmin(context);
+    const { data: prev } = await context.supabase
+      .from("contratos_servico")
+      .select("prestador_nome, condominio_id")
+      .eq("id", data.id)
+      .maybeSingle();
     const { error } = await context.supabase
       .from("contratos_servico")
       .delete()
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await registrarAuditoriaContrato({
+      contratoId: null,
+      condominioId: (prev?.condominio_id as string | undefined) ?? null,
+      acao: "contrato.excluir",
+      descricao: `Contrato excluído${prev?.prestador_nome ? `: ${prev.prestador_nome}` : ""}.`,
+      userId: context.userId,
+    });
     return { ok: true };
   });
 
