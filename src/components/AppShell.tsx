@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Building, User, LogOut, Shield } from "lucide-react";
+import { LayoutDashboard, Building, User, LogOut, Shield, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
@@ -20,6 +20,7 @@ const baseNav = [
   { to: "/app/conta", label: "Conta", icon: User, tour: "nav-conta" },
 ] as const;
 
+const contratosNav = { to: "/app/contratos", label: "Contratos", icon: FileText, tour: "nav-contratos" } as const;
 const adminNav = { to: "/app/admin", label: "Admin", icon: Shield, tour: "nav-admin" } as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -43,7 +44,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const nav = isAdmin ? ([...baseNav, adminNav] as ReadonlyArray<typeof baseNav[number] | typeof adminNav>) : baseNav;
+  const nav = isAdmin
+    ? ([...baseNav, contratosNav, adminNav] as ReadonlyArray<
+        typeof baseNav[number] | typeof contratosNav | typeof adminNav
+      >)
+    : baseNav;
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
