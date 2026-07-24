@@ -286,12 +286,12 @@ export const listNaoConformidadesTrabalhistasMes = createServerFn({ method: "POS
 
     const { data: marc } = await context.supabase
       .from("contrato_checklist_marcacoes")
-      .select("periodo_id, item_id, updated_at, contrato_checklist_itens(descricao)")
+      .select("periodo_id, item_id, marcado_em, contrato_checklist_itens(descricao)")
       .in("periodo_id", periodos.map((p) => p.id))
       .eq("situacao", "nao_conforme")
-      .order("updated_at", { ascending: false })
+      .order("marcado_em", { ascending: false })
       .limit(50);
-    type M = { periodo_id: string; updated_at: string; contrato_checklist_itens: { descricao: string } | null };
+    type M = { periodo_id: string; marcado_em: string | null; contrato_checklist_itens: { descricao: string } | null };
     const rows: NaoConformidadeMes[] = ((marc ?? []) as M[]).map((m) => {
       const chId = perToCh.get(m.periodo_id);
       const cId = chId ? chToContrato.get(chId) : null;
@@ -301,7 +301,7 @@ export const listNaoConformidadesTrabalhistasMes = createServerFn({ method: "POS
         prestador_nome: c?.prestador_nome ?? "—",
         condominio_nome: c?.condominios?.nome ?? "—",
         descricao: m.contrato_checklist_itens?.descricao ?? "Item sem descrição",
-        marcado_em: m.updated_at,
+        marcado_em: m.marcado_em ?? "",
       };
     }).filter((r) => r.contrato_id);
     return { rows };
