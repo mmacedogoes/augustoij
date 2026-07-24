@@ -11,6 +11,7 @@ import { getProfile } from "@/lib/condominios.functions";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DicasPopup } from "@/components/DicasPopup";
 import { HelpMenu } from "@/components/HelpMenu";
+import { NotificationsBell } from "@/components/contratos-servico/NotificationsBell";
 import { TrialExpiredBanner } from "@/components/gates/PlanGates";
 import { UsageThresholdBanner } from "@/components/gates/UsageThresholdBanner";
 
@@ -110,6 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <AugustoLogo variant="horizontal" theme="light" size={140} />
           </Link>
           <div className="flex items-center gap-1">
+            <NotificationsBell />
             <HelpMenu onStartTour={() => setForceTour(true)} />
             <button
               onClick={handleSignOut}
@@ -143,7 +145,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="md:ml-60 flex flex-col min-h-screen">
         <TrialExpiredBanner />
         <UsageThresholdBanner />
-        <div className="hidden md:flex h-12 items-center justify-end border-b border-border/70 bg-card/70 backdrop-blur-sm px-4 sticky top-0 z-30">
+        <div className="hidden md:flex h-12 items-center justify-end gap-1 border-b border-border/70 bg-card/70 backdrop-blur-sm px-4 sticky top-0 z-30">
+          <NotificationsBell />
           <HelpMenu onStartTour={() => setForceTour(true)} />
         </div>
         <main className="p-4 md:p-8 lg:p-10 flex-1">{children}</main>

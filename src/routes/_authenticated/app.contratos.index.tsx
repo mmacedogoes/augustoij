@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ContratoStatusBadge } from "@/components/contratos-servico/ContratoStatusBadge";
+import { Proximos30DiasPanel } from "@/components/contratos-servico/Proximos30DiasPanel";
 import {
   listCondominiosParaContratos,
   listContratosServico,
@@ -107,6 +108,10 @@ function Page() {
           <Counter label="Vigentes" value={counters.vigentes} tone="emerald" />
           <Counter label="Vencendo em 90 dias" value={counters.vencendo} tone="amber" />
           <Counter label="Vencidos" value={counters.vencidos} tone="red" />
+        </div>
+
+        <div className="mb-6">
+          <Proximos30DiasPanel />
         </div>
 
         <Card className="p-4 mb-4">

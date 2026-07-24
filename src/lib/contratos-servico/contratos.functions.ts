@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureSuperAdmin } from "./guard";
 import { gerarChecklistsInterno } from "./checklists.functions";
+import { gerarEventosInterno } from "./eventos.functions";
 import {
   contratoServicoSchema,
   idInput,
@@ -189,6 +190,11 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
       } catch (e) {
         console.warn("Falha ao regerar checklists (edição):", e);
       }
+      try {
+        await gerarEventosInterno(context.supabase, data.id);
+      } catch (e) {
+        console.warn("Falha ao regerar eventos (edição):", e);
+      }
       return { id: data.id };
     }
     const { data: inserted, error } = await context.supabase
@@ -202,6 +208,11 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
       await gerarChecklistsInterno(context.supabase, novoId);
     } catch (e) {
       console.warn("Falha ao gerar checklists (criação):", e);
+    }
+    try {
+      await gerarEventosInterno(context.supabase, novoId);
+    } catch (e) {
+      console.warn("Falha ao gerar eventos (criação):", e);
     }
     return { id: novoId };
   });

@@ -20,6 +20,9 @@ import {
 } from "@/components/contratos-servico/ObrigacoesEditor";
 import { RetencoesCard } from "@/components/contratos-servico/RetencoesCard";
 import { ChecklistsPanel } from "@/components/contratos-servico/ChecklistsPanel";
+import { AgendaPanel } from "@/components/contratos-servico/AgendaPanel";
+import { ResponsaveisPanel } from "@/components/contratos-servico/ResponsaveisPanel";
+import { AvisosSwitch } from "@/components/contratos-servico/AvisosSwitch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   getContratoServico,
@@ -179,6 +182,11 @@ function Page() {
             </p>
           </div>
           <div className="flex gap-2">
+            <AvisosSwitch
+              contratoId={contratoId}
+              ativo={!!c.notificacoes_ativas}
+              onChange={(v) => setFicha((prev) => (prev ? { ...prev, contrato: { ...prev.contrato, notificacoes_ativas: v } } : prev))}
+            />
             <Button
               variant="outline"
               onClick={() =>
@@ -293,6 +301,8 @@ function Page() {
             <TabsTrigger value="obrigacoes">Obrigações</TabsTrigger>
             <TabsTrigger value="retencoes">Retenções</TabsTrigger>
             <TabsTrigger value="checklists">Checklists</TabsTrigger>
+            <TabsTrigger value="agenda">Agenda</TabsTrigger>
+            <TabsTrigger value="responsaveis">Responsáveis</TabsTrigger>
           </TabsList>
           <TabsContent value="obrigacoes" className="mt-4">
             <Card className="p-4">
@@ -314,6 +324,12 @@ function Page() {
           </TabsContent>
           <TabsContent value="checklists" className="mt-4">
             <ChecklistsPanel contratoId={contratoId} />
+          </TabsContent>
+          <TabsContent value="agenda" className="mt-4">
+            <AgendaPanel contratoId={contratoId} />
+          </TabsContent>
+          <TabsContent value="responsaveis" className="mt-4">
+            <ResponsaveisPanel contratoId={contratoId} />
           </TabsContent>
         </Tabs>
       </div>

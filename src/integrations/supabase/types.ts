@@ -902,34 +902,46 @@ export type Database = {
       }
       contrato_eventos: {
         Row: {
+          antecedencia_dias: number | null
+          competencia: string | null
           contrato_id: string
           created_at: string
           criado_por: string | null
           data_evento: string
           descricao: string | null
           id: string
+          notificado_em: string | null
+          origem: string
           status: string
           tipo: string
           titulo: string
         }
         Insert: {
+          antecedencia_dias?: number | null
+          competencia?: string | null
           contrato_id: string
           created_at?: string
           criado_por?: string | null
           data_evento: string
           descricao?: string | null
           id?: string
+          notificado_em?: string | null
+          origem?: string
           status?: string
           tipo: string
           titulo: string
         }
         Update: {
+          antecedencia_dias?: number | null
+          competencia?: string | null
           contrato_id?: string
           created_at?: string
           criado_por?: string | null
           data_evento?: string
           descricao?: string | null
           id?: string
+          notificado_em?: string | null
+          origem?: string
           status?: string
           tipo?: string
           titulo?: string
@@ -2231,6 +2243,60 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      notificacoes: {
+        Row: {
+          categoria: string
+          contrato_id: string | null
+          created_at: string
+          evento_id: string | null
+          id: string
+          lida_em: string | null
+          mensagem: string | null
+          titulo: string
+          url_destino: string | null
+          user_id: string
+        }
+        Insert: {
+          categoria?: string
+          contrato_id?: string | null
+          created_at?: string
+          evento_id?: string | null
+          id?: string
+          lida_em?: string | null
+          mensagem?: string | null
+          titulo: string
+          url_destino?: string | null
+          user_id: string
+        }
+        Update: {
+          categoria?: string
+          contrato_id?: string | null
+          created_at?: string
+          evento_id?: string | null
+          id?: string
+          lida_em?: string | null
+          mensagem?: string | null
+          titulo?: string
+          url_destino?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacoes_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_eventos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pagamentos: {
         Row: {
