@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, FileText, ExternalLink, Upload } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,10 @@ import {
   getContratoServico,
   removeContratoServico,
 } from "@/lib/contratos-servico/contratos.functions";
-import { getContratoArquivoUrl } from "@/lib/contratos-servico/importar.functions";
+import {
+  getContratoArquivoUrl,
+  anexarArquivoContratoServico,
+} from "@/lib/contratos-servico/importar.functions";
 import { statusExibicaoContrato } from "@/lib/contratos-servico/status";
 
 export const Route = createFileRoute("/_authenticated/app/contratos/$contratoId")({
@@ -38,7 +41,10 @@ function Page() {
   const getFn = useServerFn(getContratoServico);
   const removerFn = useServerFn(removeContratoServico);
   const arquivoFn = useServerFn(getContratoArquivoUrl);
+  const anexarFn = useServerFn(anexarArquivoContratoServico);
   const [abrindoArquivo, setAbrindoArquivo] = useState(false);
+  const [anexando, setAnexando] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [ficha, setFicha] = useState<Ficha | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -86,6 +92,44 @@ function Page() {
       toast.error(e instanceof Error ? e.message : "Não foi possível abrir o arquivo.");
     } finally {
       setAbrindoArquivo(false);
+    }
+  }
+
+  async function handleAnexarArquivo(f: File) {
+    const MAX_MB = 10;
+    if (f.size === 0) { toast.error("Arquivo vazio."); return; }
+    if (f.size > MAX_MB * 1024 * 1024) { toast.error(`Arquivo grande demais (máx. ${MAX_MB} MB).`); return; }
+    const lower = f.name.toLowerCase();
+    if (!lower.endsWith(".pdf") && !lower.endsWith(".docx") && !lower.endsWith(".doc") && !lower.endsWith(".txt")) {
+      toast.error("Formato não suportado. Envie PDF, DOCX ou TXT.");
+      return;
+    }
+    setAnexando(true);
+    try {
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+        r.onload = () => {
+          const s = String(r.result ?? "");
+          resolve(s.includes(",") ? s.split(",", 2)[1] : s);
+        };
+        r.readAsDataURL(f);
+      });
+      await anexarFn({
+        data: {
+          id: contratoId,
+          fileBase64: b64,
+          fileName: f.name,
+          mimeType: f.type || "application/octet-stream",
+        },
+      });
+      toast.success("Arquivo anexado.");
+      carregar();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível anexar o arquivo.");
+    } finally {
+      setAnexando(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -160,19 +204,38 @@ function Page() {
                     ? "Enviado na importação"
                     : c.documento_id
                       ? "Vinculado ao acervo do condomínio"
-                      : "Nenhum arquivo vinculado a este contrato"}
+                      : "Nenhum arquivo vinculado. Anexe um PDF, DOCX ou TXT (até 10 MB)."}
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={abrirArquivo}
-              disabled={abrindoArquivo || (!c.arquivo_path && !c.documento_id)}
-            >
-              <ExternalLink className="h-4 w-4 mr-1" />
-              {abrindoArquivo ? "Abrindo…" : "Abrir arquivo"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleAnexarArquivo(f);
+                }}
+              />
+              {c.arquivo_path || c.documento_id ? (
+                <Button variant="outline" size="sm" onClick={abrirArquivo} disabled={abrindoArquivo}>
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  {abrindoArquivo ? "Abrindo…" : "Abrir arquivo"}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={anexando}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  {anexando ? "Enviando…" : "Anexar arquivo"}
+                </Button>
+              )}
+            </div>
           </Card>
           <Bloco titulo="Prestador">
             <Item label="Nome" value={c.prestador_nome} />
