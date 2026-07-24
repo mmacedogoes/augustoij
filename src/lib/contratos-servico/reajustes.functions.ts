@@ -17,6 +17,12 @@ import { ensureSuperAdmin } from "./guard";
 import { calcularIndiceParaReajuste, round2 } from "./indices";
 import { gerarEventosInterno } from "./eventos.functions";
 import { hojeBR } from "./eventos-core";
+import { registrarAuditoriaContrato } from "./auditoria.server";
+
+function brl(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 // ---------------------------------------------------------------- utilitários
 
@@ -225,6 +231,14 @@ export const aplicarReajuste = createServerFn({ method: "POST" })
     try { await gerarEventosInterno(context.supabase, data.contratoId); }
     catch (e) { console.warn("Falha ao regerar eventos após reajuste:", e); }
 
+    await registrarAuditoriaContrato({
+      contratoId: data.contratoId,
+      acao: "reajuste.aplicar",
+      descricao: `Reajuste aplicado: de ${brl(valorAnterior)} para ${brl(data.valorNovo)} pelo ${data.indiceUtilizado}.`,
+      dadosAnteriores: { valor: valorAnterior },
+      dadosNovos: { valor: data.valorNovo, competencia: data.competencia, fonte: data.fonte },
+      userId: context.userId,
+    });
     return { ok: true };
   });
 

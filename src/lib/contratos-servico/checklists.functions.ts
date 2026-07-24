@@ -528,6 +528,23 @@ export const marcarItemChecklist = createServerFn({ method: "POST" })
       .eq("id", data.periodoId);
     if (sErr) throw new Error(sErr.message);
 
+    // Trilha de auditoria (agrupada na aba Atividades por dia+contexto).
+    try {
+      const contratoIdAud = per.contrato_checklists?.contrato_id as string | undefined;
+      const tipo = per.contrato_checklists?.tipo as string | undefined;
+      if (contratoIdAud) {
+        const { registrarAuditoriaContrato } = await import("./auditoria.server");
+        await registrarAuditoriaContrato({
+          contratoId: contratoIdAud,
+          acao: "checklist.marcar",
+          descricao: `Checklist${tipo ? ` ${tipo}` : ""} atualizado.`,
+          userId: context.userId,
+        });
+      }
+    } catch (e) {
+      console.warn("[checklists] audit falhou:", (e as Error).message);
+    }
+
     return { ok: true as const, status: novoStatus };
   });
 

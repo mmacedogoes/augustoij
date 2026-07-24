@@ -756,6 +756,125 @@ export type Database = {
         }
         Relationships: []
       }
+      contrato_aditivos: {
+        Row: {
+          altera_escopo: boolean
+          altera_valor: boolean
+          altera_vigencia: boolean
+          arquivo_path: string | null
+          contrato_id: string
+          created_at: string
+          criado_por: string
+          data_assinatura: string | null
+          data_fim_anterior: string | null
+          documento_id: string | null
+          id: string
+          numero: string | null
+          resumo_alteracoes: string | null
+          updated_at: string
+          valor_anterior: number | null
+          valor_novo: number | null
+          vigencia_nova_fim: string | null
+        }
+        Insert: {
+          altera_escopo?: boolean
+          altera_valor?: boolean
+          altera_vigencia?: boolean
+          arquivo_path?: string | null
+          contrato_id: string
+          created_at?: string
+          criado_por?: string
+          data_assinatura?: string | null
+          data_fim_anterior?: string | null
+          documento_id?: string | null
+          id?: string
+          numero?: string | null
+          resumo_alteracoes?: string | null
+          updated_at?: string
+          valor_anterior?: number | null
+          valor_novo?: number | null
+          vigencia_nova_fim?: string | null
+        }
+        Update: {
+          altera_escopo?: boolean
+          altera_valor?: boolean
+          altera_vigencia?: boolean
+          arquivo_path?: string | null
+          contrato_id?: string
+          created_at?: string
+          criado_por?: string
+          data_assinatura?: string | null
+          data_fim_anterior?: string | null
+          documento_id?: string | null
+          id?: string
+          numero?: string | null
+          resumo_alteracoes?: string | null
+          updated_at?: string
+          valor_anterior?: number | null
+          valor_novo?: number | null
+          vigencia_nova_fim?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_aditivos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrato_aditivos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_auditoria: {
+        Row: {
+          acao: string
+          condominio_id: string | null
+          contrato_id: string | null
+          created_at: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          descricao: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          condominio_id?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          descricao: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          condominio_id?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          descricao?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_auditoria_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contrato_checklist_itens: {
         Row: {
           ativo: boolean
@@ -1283,6 +1402,8 @@ export type Database = {
       }
       contratos_servico: {
         Row: {
+          analise_em: string | null
+          analise_resultado: Json | null
           arquivo_path: string | null
           aviso_previo_dias: number | null
           condominio_id: string
@@ -1318,6 +1439,8 @@ export type Database = {
           valor: number | null
         }
         Insert: {
+          analise_em?: string | null
+          analise_resultado?: Json | null
           arquivo_path?: string | null
           aviso_previo_dias?: number | null
           condominio_id: string
@@ -1353,6 +1476,8 @@ export type Database = {
           valor?: number | null
         }
         Update: {
+          analise_em?: string | null
+          analise_resultado?: Json | null
           arquivo_path?: string | null
           aviso_previo_dias?: number | null
           condominio_id?: string

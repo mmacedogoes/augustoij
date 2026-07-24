@@ -16,6 +16,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureSuperAdmin } from "./guard";
 import { contratoServicoSchema } from "./schemas";
 import { gerarChecklistsInterno } from "./checklists.functions";
+import { sincronizarContratoNoAcervo } from "./ai-context.server";
+import { registrarAuditoriaContrato } from "./auditoria.server";
 
 const MODEL = "google/gemini-2.5-flash";
 const AIG_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -621,6 +623,15 @@ export const salvarImportacaoContratoServico = createServerFn({ method: "POST" }
     } catch (e) {
       console.warn("Falha ao gerar eventos (importação):", e);
     }
+    // Espelha no acervo do condomínio para o chat da IA (best-effort).
+    void sincronizarContratoNoAcervo(context.supabase, { contratoId });
+    await registrarAuditoriaContrato({
+      contratoId,
+      condominioId: c.condominio_id,
+      acao: "contrato.criar_importacao",
+      descricao: `Contrato importado: ${c.prestador_nome}${c.objeto ? ` — ${c.objeto.slice(0, 80)}` : ""}.`,
+      userId: context.userId,
+    });
     return { id: contratoId };
   });
 
@@ -713,5 +724,7 @@ export const anexarArquivoContratoServico = createServerFn({ method: "POST" })
       await context.supabase.storage.from("contratos").remove([arquivoPath]).catch(() => {});
       throw new Error(updErr.message);
     }
+    // Espelha no acervo do condomínio (best-effort).
+    void sincronizarContratoNoAcervo(context.supabase, { contratoId: data.id });
     return { ok: true as const, arquivoPath };
   });
