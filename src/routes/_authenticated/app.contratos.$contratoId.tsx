@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, FileText, ExternalLink, Upload } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, FileText, ExternalLink, Upload, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,11 @@ import { AgendaPanel } from "@/components/contratos-servico/AgendaPanel";
 import { ResponsaveisPanel } from "@/components/contratos-servico/ResponsaveisPanel";
 import { AvisosSwitch } from "@/components/contratos-servico/AvisosSwitch";
 import { ReajustesPanel } from "@/components/contratos-servico/ReajustesPanel";
+import { AditivosPanel } from "@/components/contratos-servico/AditivosPanel";
+import { AnalisePanel } from "@/components/contratos-servico/AnalisePanel";
+import { AtividadesPanel } from "@/components/contratos-servico/AtividadesPanel";
+import { EncerrarSuspenderMenu } from "@/components/contratos-servico/EncerrarSuspenderMenu";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   getContratoServico,
@@ -57,6 +62,8 @@ function Page() {
   const [erro, setErro] = useState<string | null>(null);
   const [confirmar, setConfirmar] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
+  const [countAditivos, setCountAditivos] = useState<number>(0);
+  const [aba, setAba] = useState<string>("obrigacoes");
 
   const carregar = useCallback(() => {
     setErro(null);
@@ -164,6 +171,7 @@ function Page() {
 
   const c = ficha.contrato;
   const status = statusExibicaoContrato(c);
+  const temArquivo = !!(c.arquivo_path || c.documento_id);
 
   return (
     <AppShell>
@@ -189,6 +197,20 @@ function Page() {
               onChange={(v) => setFicha((prev) => (prev ? { ...prev, contrato: { ...prev.contrato, notificacoes_ativas: v } } : prev))}
             />
             <Button
+              variant="default"
+              onClick={() => {
+                setAba("analise");
+                if (!temArquivo) {
+                  toast.info("Anexe o arquivo do contrato para gerar a análise.");
+                }
+              }}
+              disabled={!temArquivo}
+              title={temArquivo ? "Analisar com Augusto" : "Anexe o arquivo do contrato para gerar a análise"}
+            >
+              <Sparkles className="h-4 w-4 mr-1" /> Analisar com Augusto
+            </Button>
+            <EncerrarSuspenderMenu contratoId={contratoId} situacao={c.situacao} onChange={carregar} />
+            <Button
               variant="outline"
               onClick={() =>
                 navigate({
@@ -204,6 +226,12 @@ function Page() {
             </Button>
           </div>
         </div>
+
+        {countAditivos > 0 && (
+          <div className="mb-4">
+            <Badge variant="secondary">{countAditivos} {countAditivos === 1 ? "aditivo" : "aditivos"}</Badge>
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2 mb-6">
           <Card className="p-4 sm:col-span-2 flex items-center justify-between gap-3">
@@ -297,14 +325,17 @@ function Page() {
           </Bloco>
         </div>
 
-        <Tabs defaultValue="obrigacoes" className="mb-6">
-          <TabsList>
+        <Tabs value={aba} onValueChange={setAba} className="mb-6">
+          <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="obrigacoes">Obrigações</TabsTrigger>
             <TabsTrigger value="retencoes">Retenções</TabsTrigger>
             <TabsTrigger value="checklists">Checklists</TabsTrigger>
             <TabsTrigger value="agenda">Agenda</TabsTrigger>
             <TabsTrigger value="reajustes">Reajustes</TabsTrigger>
+            <TabsTrigger value="aditivos">Aditivos</TabsTrigger>
+            <TabsTrigger value="analise">Análise</TabsTrigger>
             <TabsTrigger value="responsaveis">Responsáveis</TabsTrigger>
+            <TabsTrigger value="atividades">Atividades</TabsTrigger>
           </TabsList>
           <TabsContent value="obrigacoes" className="mt-4">
             <Card className="p-4">
@@ -345,6 +376,21 @@ function Page() {
           </TabsContent>
           <TabsContent value="responsaveis" className="mt-4">
             <ResponsaveisPanel contratoId={contratoId} />
+          </TabsContent>
+          <TabsContent value="aditivos" className="mt-4">
+            <AditivosPanel contratoId={contratoId} onCountChange={setCountAditivos} />
+          </TabsContent>
+          <TabsContent value="analise" className="mt-4">
+            <AnalisePanel
+              contratoId={contratoId}
+              temArquivo={temArquivo}
+              condominioId={c.condominio_id}
+              prestadorNome={c.prestador_nome}
+              objeto={c.objeto ?? null}
+            />
+          </TabsContent>
+          <TabsContent value="atividades" className="mt-4">
+            <AtividadesPanel contratoId={contratoId} />
           </TabsContent>
         </Tabs>
       </div>
