@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,9 +93,14 @@ function Page() {
               Gestão dos contratos firmados pelos condomínios (portaria, limpeza, elevadores etc.).
             </p>
           </div>
-          <Button onClick={() => navigate({ to: "/app/contratos/novo" })}>
-            <Plus className="h-4 w-4 mr-1" /> Novo contrato
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate({ to: "/app/contratos/importar" })}>
+              <Sparkles className="h-4 w-4 mr-1" /> Importar com IA
+            </Button>
+            <Button onClick={() => navigate({ to: "/app/contratos/novo" })}>
+              <Plus className="h-4 w-4 mr-1" /> Novo contrato
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3 mb-6">

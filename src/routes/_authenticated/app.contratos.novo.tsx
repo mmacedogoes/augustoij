@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { ContratoForm, type ContratoFormValues } from "@/components/contratos-servico/ContratoForm";
-import { ContratoUploadExtrator } from "@/components/contratos-servico/ContratoUploadExtrator";
+import { ContratoForm } from "@/components/contratos-servico/ContratoForm";
 import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/contratos/novo")({
   component: Page,
@@ -11,9 +10,6 @@ export const Route = createFileRoute("/_authenticated/app/contratos/novo")({
 
 function Page() {
   const navigate = useNavigate();
-  const [initial, setInitial] = useState<ContratoFormValues | undefined>(undefined);
-  const [formKey, setFormKey] = useState(0);
-
   return (
     <AppShell>
       <div className="max-w-3xl">
@@ -25,31 +21,20 @@ function Page() {
               Cadastre o contrato de prestação de serviços com os dados do prestador e da vigência.
             </p>
           </div>
-          <Button variant="outline" onClick={() => navigate({ to: "/app/contratos" })}>
-            Cancelar
-          </Button>
-        </div>
-
-        <div className="mb-6">
-          <ContratoUploadExtrator
-            onExtraido={({ campos, tipoServicoId }) => {
-              const { tipo_servico_slug: _slug, ...rest } = campos;
-              void _slug;
-              const clean: ContratoFormValues = {};
-              for (const [k, v] of Object.entries(rest)) {
-                if (v === null || v === undefined) continue;
-                (clean as Record<string, unknown>)[k] = v;
-              }
-              if (tipoServicoId) clean.tipo_servico_id = tipoServicoId;
-              setInitial(clean);
-              setFormKey((n) => n + 1);
-            }}
-          />
+          <div className="flex flex-col items-end gap-2">
+            <Button variant="outline" onClick={() => navigate({ to: "/app/contratos" })}>
+              Cancelar
+            </Button>
+            <Button variant="ghost" asChild size="sm">
+              <Link to="/app/contratos/importar">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Prefiro importar com IA
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <ContratoForm
-          key={formKey}
-          initial={initial}
           onSaved={(id) => navigate({ to: "/app/contratos/$contratoId", params: { contratoId: id } })}
           submitLabel="Criar contrato"
         />

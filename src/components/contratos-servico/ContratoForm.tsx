@@ -29,10 +29,17 @@ export function ContratoForm({
   initial,
   onSaved,
   submitLabel = "Salvar contrato",
+  onOverrideSubmit,
 }: {
   initial?: ContratoFormValues;
   onSaved: (id: string) => void;
   submitLabel?: string;
+  /**
+   * Se informado, é chamado em vez de `upsertContratoServico` no submit.
+   * Usado pelo wizard de importação para persistir contrato + obrigações
+   * em uma única server function.
+   */
+  onOverrideSubmit?: (values: ContratoServicoInput) => Promise<{ id: string }>;
 }) {
   const condosFn = useServerFn(listCondominiosParaContratos);
   const tiposFn = useServerFn(listTiposServicoContrato);
@@ -118,7 +125,10 @@ export function ContratoForm({
 
     setSalvando(true);
     try {
-      const r = await salvarFn({ data: form as ContratoServicoInput });
+      const values = form as ContratoServicoInput;
+      const r = onOverrideSubmit
+        ? await onOverrideSubmit(values)
+        : await salvarFn({ data: values });
       toast.success(form.id ? "Contrato atualizado" : "Contrato criado");
       onSaved(r.id);
     } catch (err) {
