@@ -47,6 +47,7 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicHooksHelpdeskLembretesRouteImport } from './routes/api/public/hooks/helpdesk-lembretes'
 import { Route as AuthenticatedAppSuporteTicketIdRouteImport } from './routes/_authenticated/app.suporte.$ticketId'
+import { Route as AuthenticatedAppContratosNovoRouteImport } from './routes/_authenticated/app.contratos.novo'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
 import { Route as AuthenticatedAppAssinaturaRetornoRouteImport } from './routes/_authenticated/app.assinatura.retorno'
 import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
@@ -277,6 +278,12 @@ const AuthenticatedAppSuporteTicketIdRoute =
     id: '/app/suporte/$ticketId',
     path: '/app/suporte/$ticketId',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppContratosNovoRoute =
+  AuthenticatedAppContratosNovoRouteImport.update({
+    id: '/novo',
+    path: '/novo',
+    getParentRoute: () => AuthenticatedAppContratosRoute,
   } as any)
 const AuthenticatedAppCondominiosIdRoute =
   AuthenticatedAppCondominiosIdRouteImport.update({
@@ -514,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -581,6 +589,7 @@ export interface FileRoutesByTo {
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -654,6 +663,7 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/_authenticated/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
+  '/_authenticated/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/_authenticated/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -727,6 +737,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/faq'
     | '/app/assinatura/retorno'
     | '/app/condominios/$id'
+    | '/app/contratos/novo'
     | '/app/suporte/$ticketId'
     | '/api/public/hooks/helpdesk-lembretes'
     | '/lovable/email/auth/preview'
@@ -794,6 +805,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/faq'
     | '/app/assinatura/retorno'
     | '/app/condominios/$id'
+    | '/app/contratos/novo'
     | '/app/suporte/$ticketId'
     | '/api/public/hooks/helpdesk-lembretes'
     | '/lovable/email/auth/preview'
@@ -866,6 +878,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/ajuda/faq'
     | '/_authenticated/app/assinatura/retorno'
     | '/_authenticated/app/condominios/$id'
+    | '/_authenticated/app/contratos/novo'
     | '/_authenticated/app/suporte/$ticketId'
     | '/api/public/hooks/helpdesk-lembretes'
     | '/lovable/email/auth/preview'
@@ -1191,6 +1204,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/suporte/$ticketId'
       preLoaderRoute: typeof AuthenticatedAppSuporteTicketIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/contratos/novo': {
+      id: '/_authenticated/app/contratos/novo'
+      path: '/novo'
+      fullPath: '/app/contratos/novo'
+      preLoaderRoute: typeof AuthenticatedAppContratosNovoRouteImport
+      parentRoute: typeof AuthenticatedAppContratosRoute
     }
     '/_authenticated/app/condominios/$id': {
       id: '/_authenticated/app/condominios/$id'
@@ -1553,11 +1573,13 @@ const AuthenticatedAppAssinaturaRouteWithChildren =
   )
 
 interface AuthenticatedAppContratosRouteChildren {
+  AuthenticatedAppContratosNovoRoute: typeof AuthenticatedAppContratosNovoRoute
   AuthenticatedAppContratosIndexRoute: typeof AuthenticatedAppContratosIndexRoute
 }
 
 const AuthenticatedAppContratosRouteChildren: AuthenticatedAppContratosRouteChildren =
   {
+    AuthenticatedAppContratosNovoRoute: AuthenticatedAppContratosNovoRoute,
     AuthenticatedAppContratosIndexRoute: AuthenticatedAppContratosIndexRoute,
   }
 
