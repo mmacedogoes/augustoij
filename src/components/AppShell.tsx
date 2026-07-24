@@ -21,7 +21,7 @@ const baseNav = [
   { to: "/app/conta", label: "Conta", icon: User, tour: "nav-conta" },
 ] as const;
 
-const contratosNav = { to: "/app/contratos", label: "Contratos", icon: FileText, tour: "nav-contratos" } as const;
+const contratosNav = { to: "/app/contratos/painel", label: "Contratos", icon: FileText, tour: "nav-contratos" } as const;
 const adminNav = { to: "/app/admin", label: "Admin", icon: Shield, tour: "nav-admin" } as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {

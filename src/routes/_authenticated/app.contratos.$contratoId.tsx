@@ -23,6 +23,7 @@ import { ChecklistsPanel } from "@/components/contratos-servico/ChecklistsPanel"
 import { AgendaPanel } from "@/components/contratos-servico/AgendaPanel";
 import { ResponsaveisPanel } from "@/components/contratos-servico/ResponsaveisPanel";
 import { AvisosSwitch } from "@/components/contratos-servico/AvisosSwitch";
+import { ReajustesPanel } from "@/components/contratos-servico/ReajustesPanel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   getContratoServico,
@@ -302,6 +303,7 @@ function Page() {
             <TabsTrigger value="retencoes">Retenções</TabsTrigger>
             <TabsTrigger value="checklists">Checklists</TabsTrigger>
             <TabsTrigger value="agenda">Agenda</TabsTrigger>
+            <TabsTrigger value="reajustes">Reajustes</TabsTrigger>
             <TabsTrigger value="responsaveis">Responsáveis</TabsTrigger>
           </TabsList>
           <TabsContent value="obrigacoes" className="mt-4">
@@ -327,6 +329,19 @@ function Page() {
           </TabsContent>
           <TabsContent value="agenda" className="mt-4">
             <AgendaPanel contratoId={contratoId} />
+          </TabsContent>
+          <TabsContent value="reajustes" className="mt-4">
+            <ReajustesPanel
+              contrato={{
+                id: contratoId,
+                valor: c.valor === null ? null : Number(c.valor),
+                indice_reajuste: c.indice_reajuste,
+                mes_base_reajuste: c.mes_base_reajuste,
+                ultimo_reajuste_em: c.ultimo_reajuste_em,
+                situacao: c.situacao,
+              }}
+              onChange={carregar}
+            />
           </TabsContent>
           <TabsContent value="responsaveis" className="mt-4">
             <ResponsaveisPanel contratoId={contratoId} />

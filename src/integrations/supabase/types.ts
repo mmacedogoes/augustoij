@@ -1003,6 +1003,59 @@ export type Database = {
           },
         ]
       }
+      contrato_reajustes: {
+        Row: {
+          aplicado_por: string
+          competencia: string
+          contrato_id: string
+          created_at: string
+          fonte: string
+          id: string
+          indice_utilizado: string
+          observacao: string | null
+          percentual_aplicado: number
+          percentual_indice: number | null
+          valor_anterior: number
+          valor_novo: number
+        }
+        Insert: {
+          aplicado_por?: string
+          competencia: string
+          contrato_id: string
+          created_at?: string
+          fonte?: string
+          id?: string
+          indice_utilizado: string
+          observacao?: string | null
+          percentual_aplicado: number
+          percentual_indice?: number | null
+          valor_anterior: number
+          valor_novo: number
+        }
+        Update: {
+          aplicado_por?: string
+          competencia?: string
+          contrato_id?: string
+          created_at?: string
+          fonte?: string
+          id?: string
+          indice_utilizado?: string
+          observacao?: string | null
+          percentual_aplicado?: number
+          percentual_indice?: number | null
+          valor_anterior?: number
+          valor_novo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_reajustes_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contrato_responsaveis: {
         Row: {
           contrato_id: string
@@ -1260,6 +1313,7 @@ export type Database = {
           terceirizacao_mao_de_obra: boolean
           tipo_servico_id: string | null
           tipo_valor: string
+          ultimo_reajuste_em: string | null
           updated_at: string
           valor: number | null
         }
@@ -1294,6 +1348,7 @@ export type Database = {
           terceirizacao_mao_de_obra?: boolean
           tipo_servico_id?: string | null
           tipo_valor?: string
+          ultimo_reajuste_em?: string | null
           updated_at?: string
           valor?: number | null
         }
@@ -1328,6 +1383,7 @@ export type Database = {
           terceirizacao_mao_de_obra?: boolean
           tipo_servico_id?: string | null
           tipo_valor?: string
+          ultimo_reajuste_em?: string | null
           updated_at?: string
           valor?: number | null
         }
