@@ -151,7 +151,7 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureSuperAdmin(context);
 
-    const payload: Record<string, unknown> = {
+    const payload = {
       condominio_id: data.condominio_id,
       tipo_servico_id: data.tipo_servico_id ?? null,
       situacao: data.situacao,
@@ -175,19 +175,19 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
       exige_seguro_rc: data.exige_seguro_rc,
       garantias: data.garantias,
       foro: data.foro,
-    };
+    } as const;
 
     if (data.id) {
       const { error } = await context.supabase
         .from("contratos_servico")
-        .update(payload)
+        .update(payload as never)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
     const { data: inserted, error } = await context.supabase
       .from("contratos_servico")
-      .insert({ ...payload, criado_por: context.userId })
+      .insert({ ...payload, criado_por: context.userId } as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -228,14 +228,14 @@ export const upsertObrigacao = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await context.supabase
         .from("contrato_obrigacoes")
-        .update(payload)
+        .update(payload as never)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
     const { data: inserted, error } = await context.supabase
       .from("contrato_obrigacoes")
-      .insert(payload)
+      .insert(payload as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
