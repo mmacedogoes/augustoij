@@ -66,6 +66,7 @@ import { Route as AuthenticatedAppAdminAuditoriaRouteImport } from './routes/_au
 import { Route as AuthenticatedAppAdminUsuariosIndexRouteImport } from './routes/_authenticated/app.admin.usuarios.index'
 import { Route as AuthenticatedAppAdminImoveisIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.index'
 import { Route as AuthenticatedAppAdminHelpdeskIndexRouteImport } from './routes/_authenticated/app.admin.helpdesk.index'
+import { Route as AuthenticatedAppContratosContratoIdEditarRouteImport } from './routes/_authenticated/app.contratos.$contratoId.editar'
 import { Route as AuthenticatedAppAjudaPerfilPerfilRouteImport } from './routes/_authenticated/app.ajuda.perfil.$perfil'
 import { Route as AuthenticatedAppAdminUsuariosUserIdRouteImport } from './routes/_authenticated/app.admin.usuarios.$userId'
 import { Route as AuthenticatedAppAdminImoveisImportarRouteImport } from './routes/_authenticated/app.admin.imoveis.importar'
@@ -394,6 +395,12 @@ const AuthenticatedAppAdminHelpdeskIndexRoute =
     path: '/helpdesk/',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
+const AuthenticatedAppContratosContratoIdEditarRoute =
+  AuthenticatedAppContratosContratoIdEditarRouteImport.update({
+    id: '/editar',
+    path: '/editar',
+    getParentRoute: () => AuthenticatedAppContratosContratoIdRoute,
+  } as any)
 const AuthenticatedAppAjudaPerfilPerfilRoute =
   AuthenticatedAppAjudaPerfilPerfilRouteImport.update({
     id: '/perfil/$perfil',
@@ -528,7 +535,7 @@ export interface FileRoutesByFullPath {
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
-  '/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRoute
+  '/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRouteWithChildren
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
@@ -543,6 +550,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
+  '/app/contratos/$contratoId/editar': typeof AuthenticatedAppContratosContratoIdEditarRoute
   '/app/admin/helpdesk/': typeof AuthenticatedAppAdminHelpdeskIndexRoute
   '/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
   '/app/admin/usuarios/': typeof AuthenticatedAppAdminUsuariosIndexRoute
@@ -597,7 +605,7 @@ export interface FileRoutesByTo {
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
-  '/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRoute
+  '/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRouteWithChildren
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
@@ -612,6 +620,7 @@ export interface FileRoutesByTo {
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
+  '/app/contratos/$contratoId/editar': typeof AuthenticatedAppContratosContratoIdEditarRoute
   '/app/admin/helpdesk': typeof AuthenticatedAppAdminHelpdeskIndexRoute
   '/app/admin/imoveis': typeof AuthenticatedAppAdminImoveisIndexRoute
   '/app/admin/usuarios': typeof AuthenticatedAppAdminUsuariosIndexRoute
@@ -672,7 +681,7 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
   '/_authenticated/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
-  '/_authenticated/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRoute
+  '/_authenticated/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRouteWithChildren
   '/_authenticated/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/_authenticated/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
@@ -687,6 +696,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/_authenticated/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/_authenticated/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
+  '/_authenticated/app/contratos/$contratoId/editar': typeof AuthenticatedAppContratosContratoIdEditarRoute
   '/_authenticated/app/admin/helpdesk/': typeof AuthenticatedAppAdminHelpdeskIndexRoute
   '/_authenticated/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
   '/_authenticated/app/admin/usuarios/': typeof AuthenticatedAppAdminUsuariosIndexRoute
@@ -762,6 +772,7 @@ export interface FileRouteTypes {
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
+    | '/app/contratos/$contratoId/editar'
     | '/app/admin/helpdesk/'
     | '/app/admin/imoveis/'
     | '/app/admin/usuarios/'
@@ -831,6 +842,7 @@ export interface FileRouteTypes {
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
+    | '/app/contratos/$contratoId/editar'
     | '/app/admin/helpdesk'
     | '/app/admin/imoveis'
     | '/app/admin/usuarios'
@@ -905,6 +917,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/imoveis/importar'
     | '/_authenticated/app/admin/usuarios/$userId'
     | '/_authenticated/app/ajuda/perfil/$perfil'
+    | '/_authenticated/app/contratos/$contratoId/editar'
     | '/_authenticated/app/admin/helpdesk/'
     | '/_authenticated/app/admin/imoveis/'
     | '/_authenticated/app/admin/usuarios/'
@@ -1351,6 +1364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminHelpdeskIndexRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
+    '/_authenticated/app/contratos/$contratoId/editar': {
+      id: '/_authenticated/app/contratos/$contratoId/editar'
+      path: '/editar'
+      fullPath: '/app/contratos/$contratoId/editar'
+      preLoaderRoute: typeof AuthenticatedAppContratosContratoIdEditarRouteImport
+      parentRoute: typeof AuthenticatedAppContratosContratoIdRoute
+    }
     '/_authenticated/app/ajuda/perfil/$perfil': {
       id: '/_authenticated/app/ajuda/perfil/$perfil'
       path: '/perfil/$perfil'
@@ -1592,8 +1612,23 @@ const AuthenticatedAppAssinaturaRouteWithChildren =
     AuthenticatedAppAssinaturaRouteChildren,
   )
 
+interface AuthenticatedAppContratosContratoIdRouteChildren {
+  AuthenticatedAppContratosContratoIdEditarRoute: typeof AuthenticatedAppContratosContratoIdEditarRoute
+}
+
+const AuthenticatedAppContratosContratoIdRouteChildren: AuthenticatedAppContratosContratoIdRouteChildren =
+  {
+    AuthenticatedAppContratosContratoIdEditarRoute:
+      AuthenticatedAppContratosContratoIdEditarRoute,
+  }
+
+const AuthenticatedAppContratosContratoIdRouteWithChildren =
+  AuthenticatedAppContratosContratoIdRoute._addFileChildren(
+    AuthenticatedAppContratosContratoIdRouteChildren,
+  )
+
 interface AuthenticatedAppContratosRouteChildren {
-  AuthenticatedAppContratosContratoIdRoute: typeof AuthenticatedAppContratosContratoIdRoute
+  AuthenticatedAppContratosContratoIdRoute: typeof AuthenticatedAppContratosContratoIdRouteWithChildren
   AuthenticatedAppContratosNovoRoute: typeof AuthenticatedAppContratosNovoRoute
   AuthenticatedAppContratosIndexRoute: typeof AuthenticatedAppContratosIndexRoute
 }
@@ -1601,7 +1636,7 @@ interface AuthenticatedAppContratosRouteChildren {
 const AuthenticatedAppContratosRouteChildren: AuthenticatedAppContratosRouteChildren =
   {
     AuthenticatedAppContratosContratoIdRoute:
-      AuthenticatedAppContratosContratoIdRoute,
+      AuthenticatedAppContratosContratoIdRouteWithChildren,
     AuthenticatedAppContratosNovoRoute: AuthenticatedAppContratosNovoRoute,
     AuthenticatedAppContratosIndexRoute: AuthenticatedAppContratosIndexRoute,
   }
