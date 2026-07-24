@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, FileText, ExternalLink } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
   getContratoServico,
   removeContratoServico,
 } from "@/lib/contratos-servico/contratos.functions";
+import { getContratoArquivoUrl } from "@/lib/contratos-servico/importar.functions";
 import { statusExibicaoContrato } from "@/lib/contratos-servico/status";
 
 export const Route = createFileRoute("/_authenticated/app/contratos/$contratoId")({
@@ -36,6 +37,8 @@ function Page() {
   const navigate = useNavigate();
   const getFn = useServerFn(getContratoServico);
   const removerFn = useServerFn(removeContratoServico);
+  const arquivoFn = useServerFn(getContratoArquivoUrl);
+  const [abrindoArquivo, setAbrindoArquivo] = useState(false);
 
   const [ficha, setFicha] = useState<Ficha | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -67,6 +70,22 @@ function Page() {
     } finally {
       setExcluindo(false);
       setConfirmar(false);
+    }
+  }
+
+  async function abrirArquivo() {
+    setAbrindoArquivo(true);
+    try {
+      const r = await arquivoFn({ data: { id: contratoId } });
+      if (!r.url) {
+        toast.info("Este contrato não possui arquivo vinculado.");
+        return;
+      }
+      window.open(r.url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível abrir o arquivo.");
+    } finally {
+      setAbrindoArquivo(false);
     }
   }
 
@@ -131,6 +150,23 @@ function Page() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 mb-6">
+          {(c.arquivo_path || c.documento_id) && (
+            <Card className="p-4 sm:col-span-2 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Arquivo do contrato</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.arquivo_path ? "Enviado na importação" : "Vinculado ao acervo do condomínio"}
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={abrirArquivo} disabled={abrindoArquivo}>
+                <ExternalLink className="h-4 w-4 mr-1" />
+                {abrindoArquivo ? "Abrindo…" : "Abrir arquivo"}
+              </Button>
+            </Card>
+          )}
           <Bloco titulo="Prestador">
             <Item label="Nome" value={c.prestador_nome} />
             <Item label="CNPJ/CPF" value={c.prestador_documento} />
