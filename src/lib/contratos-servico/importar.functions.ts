@@ -656,3 +656,50 @@ function baseName(p: string): string {
   const i = p.lastIndexOf("/");
   return i >= 0 ? p.slice(i + 1) : p;
 }
+
+// ------ Anexar arquivo a um contrato já existente
+
+const anexarInput = z.object({
+  id: z.string().uuid(),
+  fileBase64: z.string().min(1, "Arquivo vazio"),
+  fileName: z.string().min(1).max(300),
+  mimeType: z.string().min(1),
+});
+
+export const anexarArquivoContratoServico = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => anexarInput.parse(v))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+
+    const bytes = base64ToBytes(data.fileBase64);
+    if (bytes.byteLength === 0) throw new Error("Arquivo vazio.");
+    if (bytes.byteLength > MAX_BYTES) throw new Error("Arquivo maior que 10 MB.");
+    const mime = data.mimeType || "application/octet-stream";
+    if (!ALLOWED_MIMES.has(mime)) throw new Error("Formato não suportado. Envie PDF, DOCX ou TXT.");
+
+    const { data: row, error: rowErr } = await context.supabase
+      .from("contratos_servico")
+      .select("id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (rowErr) throw new Error(rowErr.message);
+    if (!row) throw new Error("Contrato não encontrado.");
+
+    const safeName = data.fileName.replace(/[^\w.\-]+/g, "_").slice(-120);
+    const arquivoPath = `${context.userId}/servico-${crypto.randomUUID()}-${safeName}`;
+    const { error: upErr } = await context.supabase.storage
+      .from("contratos")
+      .upload(arquivoPath, bytes, { contentType: mime, upsert: false });
+    if (upErr) throw new Error(`Falha ao enviar arquivo: ${upErr.message}`);
+
+    const { error: updErr } = await context.supabase
+      .from("contratos_servico")
+      .update({ arquivo_path: arquivoPath, documento_id: null } as never)
+      .eq("id", data.id);
+    if (updErr) {
+      await context.supabase.storage.from("contratos").remove([arquivoPath]).catch(() => {});
+      throw new Error(updErr.message);
+    }
+    return { ok: true as const, arquivoPath };
+  });
