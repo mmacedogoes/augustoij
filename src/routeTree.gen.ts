@@ -33,6 +33,7 @@ import { Route as ApiVozFalarRouteImport } from './routes/api/voz/falar'
 import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
 import { Route as ApiPublicAuthCheckRouteImport } from './routes/api/public/auth-check'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
+import { Route as AuthenticatedAppContratosRouteImport } from './routes/_authenticated/app.contratos'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
 import { Route as AuthenticatedAppAssinaturaRouteImport } from './routes/_authenticated/app.assinatura'
 import { Route as AuthenticatedAppAjudaRouteImport } from './routes/_authenticated/app.ajuda'
@@ -197,6 +198,12 @@ const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
   path: '/api/public/asaas-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAppContratosRoute =
+  AuthenticatedAppContratosRouteImport.update({
+    id: '/app/contratos',
+    path: '/app/contratos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
   id: '/app/conta',
   path: '/app/conta',
@@ -479,6 +486,7 @@ export interface FileRoutesByFullPath {
   '/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/app/contratos': typeof AuthenticatedAppContratosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
@@ -546,6 +554,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/app/contratos': typeof AuthenticatedAppContratosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
@@ -616,6 +625,7 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/_authenticated/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
+  '/_authenticated/app/contratos': typeof AuthenticatedAppContratosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
@@ -687,6 +697,7 @@ export interface FileRouteTypes {
     | '/app/ajuda'
     | '/app/assinatura'
     | '/app/conta'
+    | '/app/contratos'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
@@ -754,6 +765,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/app/assinatura'
     | '/app/conta'
+    | '/app/contratos'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
@@ -823,6 +835,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/ajuda'
     | '/_authenticated/app/assinatura'
     | '/_authenticated/app/conta'
+    | '/_authenticated/app/contratos'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
@@ -1069,6 +1082,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/asaas-webhook'
       preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/contratos': {
+      id: '/_authenticated/app/contratos'
+      path: '/app/contratos'
+      fullPath: '/app/contratos'
+      preLoaderRoute: typeof AuthenticatedAppContratosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/conta': {
       id: '/_authenticated/app/conta'
@@ -1520,6 +1540,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAjudaRoute: typeof AuthenticatedAppAjudaRouteWithChildren
   AuthenticatedAppAssinaturaRoute: typeof AuthenticatedAppAssinaturaRouteWithChildren
   AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
+  AuthenticatedAppContratosRoute: typeof AuthenticatedAppContratosRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
   AuthenticatedAppSuporteTicketIdRoute: typeof AuthenticatedAppSuporteTicketIdRoute
@@ -1532,6 +1553,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAjudaRoute: AuthenticatedAppAjudaRouteWithChildren,
   AuthenticatedAppAssinaturaRoute: AuthenticatedAppAssinaturaRouteWithChildren,
   AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
+  AuthenticatedAppContratosRoute: AuthenticatedAppContratosRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
   AuthenticatedAppSuporteTicketIdRoute: AuthenticatedAppSuporteTicketIdRoute,
