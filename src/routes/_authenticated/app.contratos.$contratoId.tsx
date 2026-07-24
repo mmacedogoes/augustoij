@@ -150,23 +150,30 @@ function Page() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 mb-6">
-          {(c.arquivo_path || c.documento_id) && (
-            <Card className="p-4 sm:col-span-2 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">Arquivo do contrato</p>
-                  <p className="text-xs text-muted-foreground">
-                    {c.arquivo_path ? "Enviado na importação" : "Vinculado ao acervo do condomínio"}
-                  </p>
-                </div>
+          <Card className="p-4 sm:col-span-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-medium">Arquivo do contrato</p>
+                <p className="text-xs text-muted-foreground">
+                  {c.arquivo_path
+                    ? "Enviado na importação"
+                    : c.documento_id
+                      ? "Vinculado ao acervo do condomínio"
+                      : "Nenhum arquivo vinculado a este contrato"}
+                </p>
               </div>
-              <Button variant="outline" size="sm" onClick={abrirArquivo} disabled={abrindoArquivo}>
-                <ExternalLink className="h-4 w-4 mr-1" />
-                {abrindoArquivo ? "Abrindo…" : "Abrir arquivo"}
-              </Button>
-            </Card>
-          )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={abrirArquivo}
+              disabled={abrindoArquivo || (!c.arquivo_path && !c.documento_id)}
+            >
+              <ExternalLink className="h-4 w-4 mr-1" />
+              {abrindoArquivo ? "Abrindo…" : "Abrir arquivo"}
+            </Button>
+          </Card>
           <Bloco titulo="Prestador">
             <Item label="Nome" value={c.prestador_nome} />
             <Item label="CNPJ/CPF" value={c.prestador_documento} />
