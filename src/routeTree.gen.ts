@@ -48,6 +48,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as ApiPublicHooksLembretesContratosRouteImport } from './routes/api/public/hooks/lembretes-contratos'
 import { Route as ApiPublicHooksHelpdeskLembretesRouteImport } from './routes/api/public/hooks/helpdesk-lembretes'
 import { Route as AuthenticatedAppSuporteTicketIdRouteImport } from './routes/_authenticated/app.suporte.$ticketId'
+import { Route as AuthenticatedAppContratosPainelRouteImport } from './routes/_authenticated/app.contratos.painel'
 import { Route as AuthenticatedAppContratosNovoRouteImport } from './routes/_authenticated/app.contratos.novo'
 import { Route as AuthenticatedAppContratosImportarRouteImport } from './routes/_authenticated/app.contratos.importar'
 import { Route as AuthenticatedAppContratosContratoIdRouteImport } from './routes/_authenticated/app.contratos.$contratoId'
@@ -288,6 +289,12 @@ const AuthenticatedAppSuporteTicketIdRoute =
     id: '/app/suporte/$ticketId',
     path: '/app/suporte/$ticketId',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppContratosPainelRoute =
+  AuthenticatedAppContratosPainelRouteImport.update({
+    id: '/painel',
+    path: '/painel',
+    getParentRoute: () => AuthenticatedAppContratosRoute,
   } as any)
 const AuthenticatedAppContratosNovoRoute =
   AuthenticatedAppContratosNovoRouteImport.update({
@@ -552,6 +559,7 @@ export interface FileRoutesByFullPath {
   '/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRouteWithChildren
   '/app/contratos/importar': typeof AuthenticatedAppContratosImportarRoute
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
+  '/app/contratos/painel': typeof AuthenticatedAppContratosPainelRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/api/public/hooks/lembretes-contratos': typeof ApiPublicHooksLembretesContratosRoute
@@ -624,6 +632,7 @@ export interface FileRoutesByTo {
   '/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRouteWithChildren
   '/app/contratos/importar': typeof AuthenticatedAppContratosImportarRoute
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
+  '/app/contratos/painel': typeof AuthenticatedAppContratosPainelRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/api/public/hooks/lembretes-contratos': typeof ApiPublicHooksLembretesContratosRoute
@@ -702,6 +711,7 @@ export interface FileRoutesById {
   '/_authenticated/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRouteWithChildren
   '/_authenticated/app/contratos/importar': typeof AuthenticatedAppContratosImportarRoute
   '/_authenticated/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
+  '/_authenticated/app/contratos/painel': typeof AuthenticatedAppContratosPainelRoute
   '/_authenticated/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/api/public/hooks/lembretes-contratos': typeof ApiPublicHooksLembretesContratosRoute
@@ -780,6 +790,7 @@ export interface FileRouteTypes {
     | '/app/contratos/$contratoId'
     | '/app/contratos/importar'
     | '/app/contratos/novo'
+    | '/app/contratos/painel'
     | '/app/suporte/$ticketId'
     | '/api/public/hooks/helpdesk-lembretes'
     | '/api/public/hooks/lembretes-contratos'
@@ -852,6 +863,7 @@ export interface FileRouteTypes {
     | '/app/contratos/$contratoId'
     | '/app/contratos/importar'
     | '/app/contratos/novo'
+    | '/app/contratos/painel'
     | '/app/suporte/$ticketId'
     | '/api/public/hooks/helpdesk-lembretes'
     | '/api/public/hooks/lembretes-contratos'
@@ -929,6 +941,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/contratos/$contratoId'
     | '/_authenticated/app/contratos/importar'
     | '/_authenticated/app/contratos/novo'
+    | '/_authenticated/app/contratos/painel'
     | '/_authenticated/app/suporte/$ticketId'
     | '/api/public/hooks/helpdesk-lembretes'
     | '/api/public/hooks/lembretes-contratos'
@@ -1264,6 +1277,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/suporte/$ticketId'
       preLoaderRoute: typeof AuthenticatedAppSuporteTicketIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/contratos/painel': {
+      id: '/_authenticated/app/contratos/painel'
+      path: '/painel'
+      fullPath: '/app/contratos/painel'
+      preLoaderRoute: typeof AuthenticatedAppContratosPainelRouteImport
+      parentRoute: typeof AuthenticatedAppContratosRoute
     }
     '/_authenticated/app/contratos/novo': {
       id: '/_authenticated/app/contratos/novo'
@@ -1672,6 +1692,7 @@ interface AuthenticatedAppContratosRouteChildren {
   AuthenticatedAppContratosContratoIdRoute: typeof AuthenticatedAppContratosContratoIdRouteWithChildren
   AuthenticatedAppContratosImportarRoute: typeof AuthenticatedAppContratosImportarRoute
   AuthenticatedAppContratosNovoRoute: typeof AuthenticatedAppContratosNovoRoute
+  AuthenticatedAppContratosPainelRoute: typeof AuthenticatedAppContratosPainelRoute
   AuthenticatedAppContratosIndexRoute: typeof AuthenticatedAppContratosIndexRoute
 }
 
@@ -1682,6 +1703,7 @@ const AuthenticatedAppContratosRouteChildren: AuthenticatedAppContratosRouteChil
     AuthenticatedAppContratosImportarRoute:
       AuthenticatedAppContratosImportarRoute,
     AuthenticatedAppContratosNovoRoute: AuthenticatedAppContratosNovoRoute,
+    AuthenticatedAppContratosPainelRoute: AuthenticatedAppContratosPainelRoute,
     AuthenticatedAppContratosIndexRoute: AuthenticatedAppContratosIndexRoute,
   }
 
