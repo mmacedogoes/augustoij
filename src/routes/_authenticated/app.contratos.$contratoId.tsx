@@ -2,8 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, FileText, ExternalLink, Upload, Sparkles } from "lucide-react";
+import {
+  ArrowLeft, Pencil, Trash2, FileText, ExternalLink, Upload, Sparkles,
+  Building2, Briefcase, CalendarRange, Wallet, TrendingUp, Scale,
+  ClipboardCheck, ListChecks, Shield, CalendarClock, ArrowUpRightSquare,
+  FilePlus2, Users, Activity,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,7 +69,7 @@ function Page() {
   const [confirmar, setConfirmar] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [countAditivos, setCountAditivos] = useState<number>(0);
-  const [aba, setAba] = useState<string>("obrigacoes");
+  const [aba, setAba] = useState<string>("checklists");
 
   const carregar = useCallback(() => {
     setErro(null);
