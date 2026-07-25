@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -25,15 +25,7 @@ import {
   ObrigacoesEditor,
   type Obrigacao,
 } from "@/components/contratos-servico/ObrigacoesEditor";
-import { RetencoesCard } from "@/components/contratos-servico/RetencoesCard";
-import { ChecklistsPanel } from "@/components/contratos-servico/ChecklistsPanel";
-import { AgendaPanel } from "@/components/contratos-servico/AgendaPanel";
-import { ResponsaveisPanel } from "@/components/contratos-servico/ResponsaveisPanel";
 import { AvisosSwitch } from "@/components/contratos-servico/AvisosSwitch";
-import { ReajustesPanel } from "@/components/contratos-servico/ReajustesPanel";
-import { AditivosPanel } from "@/components/contratos-servico/AditivosPanel";
-import { AnalisePanel } from "@/components/contratos-servico/AnalisePanel";
-import { AtividadesPanel } from "@/components/contratos-servico/AtividadesPanel";
 import { EncerrarSuspenderMenu } from "@/components/contratos-servico/EncerrarSuspenderMenu";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -46,6 +38,42 @@ import {
   anexarArquivoContratoServico,
 } from "@/lib/contratos-servico/importar.functions";
 import { statusExibicaoContrato } from "@/lib/contratos-servico/status";
+
+// Painéis pesados só carregam quando a aba correspondente é aberta.
+const RetencoesCard = lazy(() =>
+  import("@/components/contratos-servico/RetencoesCard").then((m) => ({ default: m.RetencoesCard })),
+);
+const ChecklistsPanel = lazy(() =>
+  import("@/components/contratos-servico/ChecklistsPanel").then((m) => ({ default: m.ChecklistsPanel })),
+);
+const AgendaPanel = lazy(() =>
+  import("@/components/contratos-servico/AgendaPanel").then((m) => ({ default: m.AgendaPanel })),
+);
+const ResponsaveisPanel = lazy(() =>
+  import("@/components/contratos-servico/ResponsaveisPanel").then((m) => ({ default: m.ResponsaveisPanel })),
+);
+const ReajustesPanel = lazy(() =>
+  import("@/components/contratos-servico/ReajustesPanel").then((m) => ({ default: m.ReajustesPanel })),
+);
+const AditivosPanel = lazy(() =>
+  import("@/components/contratos-servico/AditivosPanel").then((m) => ({ default: m.AditivosPanel })),
+);
+const AnalisePanel = lazy(() =>
+  import("@/components/contratos-servico/AnalisePanel").then((m) => ({ default: m.AnalisePanel })),
+);
+const AtividadesPanel = lazy(() =>
+  import("@/components/contratos-servico/AtividadesPanel").then((m) => ({ default: m.AtividadesPanel })),
+);
+
+function PanelSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="h-6 w-40 rounded-md bg-muted/60 animate-pulse" />
+      <div className="h-24 rounded-md bg-muted/40 animate-pulse" />
+      <div className="h-24 rounded-md bg-muted/40 animate-pulse" />
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/app/contratos/$contratoId")({
   component: Page,
