@@ -496,15 +496,126 @@ function Page() {
   );
 }
 
-function Bloco({ titulo, icon, children }: { titulo: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function InfoCard({
+  titulo,
+  icon,
+  descricao,
+  className,
+  children,
+}: {
+  titulo: string;
+  icon?: React.ReactNode;
+  descricao?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <Card className="p-4 transition-shadow duration-200 hover:shadow-sm">
-      <p className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {icon ? <span className="text-augusto-gold">{icon}</span> : null}
-        {titulo}
-      </p>
-      <dl className="space-y-1.5 text-sm">{children}</dl>
+    <Card
+      className={`group flex h-full flex-col p-5 transition-all duration-200 ease-out hover:border-augusto-gold/40 hover:shadow-sm ${className ?? ""}`}
+    >
+      <div className="mb-3">
+        <p className="flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          {icon ? (
+            <span className="grid h-5 w-5 place-items-center rounded-md bg-augusto-gold/10 text-augusto-gold transition-colors duration-200 group-hover:bg-augusto-gold/20">
+              {icon}
+            </span>
+          ) : null}
+          {titulo}
+        </p>
+        {descricao ? (
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{descricao}</p>
+        ) : null}
+      </div>
+      <div className="flex-1">{children}</div>
     </Card>
+  );
+}
+
+function StatBadge({
+  children,
+  icon,
+  tone = "default",
+}: {
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+  tone?: "default" | "muted" | "positive" | "warning";
+}) {
+  const tones: Record<string, string> = {
+    default: "bg-augusto-gold/10 text-augusto-gold ring-augusto-gold/25",
+    muted: "bg-muted text-muted-foreground ring-border",
+    positive: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/25 dark:text-emerald-400",
+    warning: "bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-400",
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors duration-200 ${tones[tone]}`}
+    >
+      {icon ? <span aria-hidden="true">{icon}</span> : null}
+      {children}
+    </span>
+  );
+}
+
+function ContactLine({
+  icon,
+  href,
+  children,
+}: {
+  icon: React.ReactNode;
+  href: string | null;
+  children: React.ReactNode;
+}) {
+  if (!href) {
+    return (
+      <span className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+        <span>{icon}</span>
+        <span className="truncate">{children}</span>
+      </span>
+    );
+  }
+  return (
+    <a
+      href={href}
+      className="flex min-w-0 items-center gap-2 rounded-md text-sm text-foreground transition-colors duration-200 hover:text-augusto-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/40"
+    >
+      <span className="text-muted-foreground transition-colors duration-200 group-hover:text-augusto-gold/80">
+        {icon}
+      </span>
+      <span className="truncate">{children}</span>
+    </a>
+  );
+}
+
+function ClauseRow({
+  icon,
+  label,
+  value,
+  positive,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  positive?: boolean;
+}) {
+  const empty = value === null || value === undefined || value === "";
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-2 last:border-b-0 last:pb-0">
+      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="text-augusto-gold/80">{icon}</span>
+        {label}
+      </span>
+      <span
+        className={`text-right text-sm font-medium ${
+          empty
+            ? "text-muted-foreground"
+            : positive === true
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-foreground"
+        }`}
+      >
+        {empty ? "—" : value}
+      </span>
+    </div>
   );
 }
 
@@ -517,16 +628,6 @@ function TriggerIcon({ value, icon, label }: { value: string; icon: React.ReactN
       <span aria-hidden="true">{icon}</span>
       <span>{label}</span>
     </TabsTrigger>
-  );
-}
-function Item({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[9rem_1fr] gap-2">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-foreground break-words">
-        {value === null || value === undefined || value === "" ? "—" : value}
-      </dd>
-    </div>
   );
 }
 function formatBRL(v: number): string {
