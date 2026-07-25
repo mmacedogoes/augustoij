@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -58,7 +58,7 @@ function Page() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Carrega condomínios uma vez quando o usuário entra em qualquer modo.
-  useMemo(() => {
+  useEffect(() => {
     if (modo === "escolher" || condos.length > 0) return;
     condosFn().then((r) => setCondos(r.rows as Condo[])).catch(() => {});
   }, [modo, condos.length, condosFn]);
