@@ -4,7 +4,10 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Minus, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import {
+  Check, X, Minus, ChevronLeft, ChevronRight, AlertTriangle,
+  ListTodo, CheckCircle2, ShieldAlert, MessageSquare, Loader2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   gerarChecklistsDoContrato,
@@ -15,6 +18,14 @@ import {
 } from "@/lib/contratos-servico/checklists.functions";
 
 type Situacao = "pendente" | "conforme" | "nao_conforme" | "nao_se_aplica";
+type Coluna = "a_fazer" | "em_dia" | "atencao";
+
+const TITULOS_TIPO: Record<string, string> = {
+  fiscalizacao: "Fiscalização",
+  pagamento: "Pagamento",
+  tributario: "Tributário",
+  trabalhista: "Trabalhista",
+};
 
 function primeiroDiaMesAtual(): string {
   const d = new Date();
@@ -34,6 +45,21 @@ function rotuloCompetencia(comp: string): string {
   return `${nomes[m - 1]} de ${y}`;
 }
 
+function colunaDaSituacao(s: Situacao): Coluna {
+  if (s === "nao_conforme") return "atencao";
+  if (s === "conforme" || s === "nao_se_aplica") return "em_dia";
+  return "a_fazer";
+}
+
+type ItemFlat = {
+  item: ChecklistCardItem;
+  cardId: string;
+  cardTipo: string;
+  cardTitulo: string;
+  periodoId: string | null;
+  readOnly: boolean;
+};
+
 export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
   const getFn = useServerFn(getChecklistsDoContrato);
   const marcarFn = useServerFn(marcarItemChecklist);
@@ -48,6 +74,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
     encerrado_ou_suspenso: boolean;
   } | null>(null);
   const [gerando, setGerando] = useState(false);
+  const [pendente, setPendente] = useState<string | null>(null);
 
   const carregar = useCallback(() => {
     setCarregando(true);
@@ -84,11 +111,19 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
       toast.error("Período não disponível para esta competência.");
       return;
     }
+    setPendente(itemId);
     try {
       await marcarFn({ data: { periodoId, itemId, situacao: proxima, observacao } });
-      carregar();
+      await new Promise<void>((r) => {
+        getFn({ data: { contratoId, competencia } })
+          .then((res) => { setDados(res); })
+          .catch(() => {})
+          .finally(() => r());
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível marcar o item.");
+    } finally {
+      setPendente(null);
     }
   }
 
@@ -106,7 +141,11 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
   }
 
   if (carregando && !dados) {
-    return <p className="text-sm text-muted-foreground">Carregando checklists…</p>;
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Carregando checklists…
+      </div>
+    );
   }
   if (erro && !dados) {
     return (
@@ -119,9 +158,25 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
 
   const vazio = dados.cards.length === 0;
 
+  const flat: ItemFlat[] = dados.cards.flatMap((c) =>
+    c.itens.map((it) => ({
+      item: it,
+      cardId: c.id,
+      cardTipo: c.tipo,
+      cardTitulo: c.titulo,
+      periodoId: c.periodo.id,
+      readOnly: c.somente_leitura,
+    })),
+  );
+  const grupos: Record<Coluna, ItemFlat[]> = { a_fazer: [], em_dia: [], atencao: [] };
+  for (const f of flat) {
+    const s = (f.item.marcacao?.situacao ?? "pendente") as Situacao;
+    grupos[colunaDaSituacao(s)].push(f);
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -129,12 +184,15 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
             onClick={() => setCompetencia((c) => addMes(c, -1))}
             disabled={!podeVoltar}
             aria-label="Mês anterior"
+            className="h-8 w-8"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="min-w-[12rem] text-center">
-            <p className="text-xs text-muted-foreground">Competência</p>
-            <p className="text-sm font-medium capitalize">{rotuloCompetencia(competencia)}</p>
+          <div className="min-w-[11rem] text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Competência
+            </p>
+            <p className="font-serif text-base capitalize text-primary">{rotuloCompetencia(competencia)}</p>
           </div>
           <Button
             variant="outline"
@@ -142,92 +200,128 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
             onClick={() => setCompetencia((c) => addMes(c, 1))}
             disabled={!podeAvancar}
             aria-label="Próximo mês"
+            className="h-8 w-8"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
         {dados.encerrado_ou_suspenso ? (
           <span className="text-xs text-muted-foreground">
-            Contrato encerrado ou suspenso — checklist em modo leitura.
+            Contrato encerrado ou suspenso — em modo leitura.
           </span>
-        ) : null}
+        ) : (
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <ContadorInline cor="augusto-gold" total={grupos.a_fazer.length} label="a fazer" />
+            <ContadorInline cor="augusto-green" total={grupos.em_dia.length} label="em dia" />
+            <ContadorInline cor="destructive" total={grupos.atencao.length} label="atenção" />
+          </div>
+        )}
       </div>
 
       {vazio ? (
-        <Card className="p-6 text-center">
-          <p className="text-sm text-muted-foreground mb-3">
+        <Card className="p-8 text-center">
+          <p className="mb-3 text-sm text-muted-foreground">
             Este contrato ainda não tem checklists gerados.
           </p>
-          <Button onClick={handleGerar} disabled={gerando}>
+          <Button onClick={handleGerar} disabled={gerando} variant="augusto">
             {gerando ? "Gerando…" : "Gerar checklists deste contrato"}
           </Button>
         </Card>
       ) : (
-        dados.cards.map((card) => (
-          <ChecklistCardView
-            key={card.id}
-            card={card}
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Coluna
+            titulo="A fazer"
+            icon={<ListTodo className="h-4 w-4" />}
+            cor="augusto-gold"
+            itens={grupos.a_fazer}
             onMarcar={handleMarcar}
-            readOnly={card.somente_leitura}
+            pendente={pendente}
+            vazioTexto="Nenhum item aguardando."
           />
-        ))
+          <Coluna
+            titulo="Em dia"
+            icon={<CheckCircle2 className="h-4 w-4" />}
+            cor="augusto-green"
+            itens={grupos.em_dia}
+            onMarcar={handleMarcar}
+            pendente={pendente}
+            vazioTexto="Marque os itens conformes para preencher esta lista."
+          />
+          <Coluna
+            titulo="Atenção"
+            icon={<ShieldAlert className="h-4 w-4" />}
+            cor="destructive"
+            itens={grupos.atencao}
+            onMarcar={handleMarcar}
+            pendente={pendente}
+            vazioTexto="Sem não conformidades — ótimo!"
+          />
+        </div>
       )}
     </div>
   );
 }
 
-function ChecklistCardView({
-  card,
-  onMarcar,
-  readOnly,
-}: {
-  card: ChecklistCard;
-  onMarcar: (
-    periodoId: string | null,
-    itemId: string,
-    proxima: Situacao,
-    observacao: string | null,
-  ) => void;
-  readOnly: boolean;
-}) {
-  const destaqueTrab = card.tipo === "trabalhista";
-  const naoConformes = card.progresso.nao_conformes;
+function ContadorInline({ cor, total, label }: { cor: string; total: number; label: string }) {
   return (
-    <Card
-      className={cn(
-        "p-4",
-        destaqueTrab && "border-l-4 border-l-[hsl(var(--accent,45_70%_45%))]",
-      )}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <div>
-          <h4 className="text-base font-serif text-primary">{card.titulo}</h4>
-          <p className="text-xs text-muted-foreground">
-            {card.progresso.marcados}/{card.progresso.total} verificados —{" "}
-            {card.periodo.status === "concluido" ? "Concluído" : "Aberto"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {destaqueTrab && naoConformes > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">
-              <AlertTriangle className="h-3 w-3" />
-              {naoConformes} não conforme{naoConformes > 1 ? "s" : ""}
-            </span>
-          ) : null}
-        </div>
-      </div>
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className={cn(
+          "h-1.5 w-1.5 rounded-full",
+          cor === "augusto-gold" && "bg-augusto-gold",
+          cor === "augusto-green" && "bg-augusto-green",
+          cor === "destructive" && "bg-destructive",
+        )}
+      />
+      <strong className="font-medium text-foreground">{total}</strong> {label}
+    </span>
+  );
+}
 
-      {card.itens.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhum item ativo neste checklist.</p>
+function Coluna({
+  titulo, icon, cor, itens, onMarcar, pendente, vazioTexto,
+}: {
+  titulo: string;
+  icon: React.ReactNode;
+  cor: "augusto-gold" | "augusto-green" | "destructive";
+  itens: ItemFlat[];
+  onMarcar: (periodoId: string | null, itemId: string, proxima: Situacao, obs: string | null) => void;
+  pendente: string | null;
+  vazioTexto: string;
+}) {
+  const acento =
+    cor === "augusto-gold"
+      ? "border-t-augusto-gold/70 bg-augusto-gold/[0.03]"
+      : cor === "augusto-green"
+        ? "border-t-augusto-green/70 bg-augusto-green/[0.03]"
+        : "border-t-destructive/70 bg-destructive/[0.03]";
+  const chip =
+    cor === "augusto-gold"
+      ? "bg-augusto-gold/15 text-augusto-gold"
+      : cor === "augusto-green"
+        ? "bg-augusto-green/15 text-augusto-green"
+        : "bg-destructive/15 text-destructive";
+  return (
+    <Card className={cn("border-t-4 p-4", acento)}>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className={cn("grid h-7 w-7 place-items-center rounded-full", chip)}>{icon}</span>
+          <h4 className="font-serif text-base text-primary">{titulo}</h4>
+        </div>
+        <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", chip)}>{itens.length}</span>
+      </div>
+      {itens.length === 0 ? (
+        <p className="rounded-md border border-dashed border-border/60 p-4 text-center text-xs text-muted-foreground">
+          {vazioTexto}
+        </p>
       ) : (
-        <ul className="space-y-3">
-          {card.itens.map((item) => (
+        <ul className="space-y-2">
+          {itens.map((f) => (
             <ChecklistItemRow
-              key={item.id}
-              item={item}
-              periodoId={card.periodo.id}
+              key={f.item.id}
+              flat={f}
               onMarcar={onMarcar}
-              readOnly={readOnly}
+              carregando={pendente === f.item.id}
             />
           ))}
         </ul>
@@ -237,21 +331,13 @@ function ChecklistCardView({
 }
 
 function ChecklistItemRow({
-  item,
-  periodoId,
-  onMarcar,
-  readOnly,
+  flat, onMarcar, carregando,
 }: {
-  item: ChecklistCardItem;
-  periodoId: string | null;
-  onMarcar: (
-    periodoId: string | null,
-    itemId: string,
-    proxima: Situacao,
-    observacao: string | null,
-  ) => void;
-  readOnly: boolean;
+  flat: ItemFlat;
+  onMarcar: (periodoId: string | null, itemId: string, proxima: Situacao, obs: string | null) => void;
+  carregando: boolean;
 }) {
+  const { item, periodoId, readOnly, cardTipo, cardTitulo } = flat;
   const [obsAberto, setObsAberto] = useState(false);
   const [obs, setObs] = useState<string>(item.marcacao?.observacao ?? "");
   const situacao = (item.marcacao?.situacao ?? "pendente") as Situacao;
@@ -262,62 +348,89 @@ function ChecklistItemRow({
     onMarcar(periodoId, item.id, proxima, obs.trim().length > 0 ? obs.trim() : null);
   };
 
+  const tipoLabel = TITULOS_TIPO[cardTipo] ?? cardTitulo;
+  const destaqueTrab = cardTipo === "trabalhista";
+
   return (
-    <li className="rounded-md border border-border/60 p-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-foreground">{item.descricao}</p>
+    <li
+      className={cn(
+        "group rounded-lg border border-border/60 bg-background p-3 transition-all duration-200",
+        "hover:border-augusto-gold/40 hover:shadow-sm",
+        carregando && "opacity-60",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center gap-1.5">
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+                destaqueTrab
+                  ? "bg-destructive/10 text-destructive"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              {tipoLabel}
+            </span>
+            {destaqueTrab && situacao === "nao_conforme" ? (
+              <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
+                <AlertTriangle className="h-3 w-3" /> crítico
+              </span>
+            ) : null}
+          </div>
+          <p className="text-sm leading-snug text-foreground">{item.descricao}</p>
           {item.base_legal ? (
-            <p className="text-xs text-muted-foreground mt-1">{item.base_legal}</p>
+            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{item.base_legal}</p>
           ) : null}
           {item.marcacao && item.marcacao.marcado_em ? (
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Marcado por {item.marcacao.marcado_por_nome || "usuário"} em{" "}
-              {new Date(item.marcacao.marcado_em).toLocaleString("pt-BR")}
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              {item.marcacao.marcado_por_nome || "usuário"} · {new Date(item.marcacao.marcado_em).toLocaleDateString("pt-BR")}
             </p>
           ) : null}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <BotaoMarcar
-            ativo={situacao === "conforme"}
-            variante="ok"
-            label="Conforme"
-            disabled={readOnly}
-            onClick={() => clique("conforme")}
-            icon={<Check className="h-4 w-4" />}
-          />
-          <BotaoMarcar
-            ativo={situacao === "nao_conforme"}
-            variante="erro"
-            label="Não conforme"
-            disabled={readOnly}
-            onClick={() => clique("nao_conforme")}
-            icon={<X className="h-4 w-4" />}
-          />
-          <BotaoMarcar
-            ativo={situacao === "nao_se_aplica"}
-            variante="neutro"
-            label="Não se aplica"
-            disabled={readOnly}
-            onClick={() => clique("nao_se_aplica")}
-            icon={<Minus className="h-4 w-4" />}
-          />
-        </div>
       </div>
 
-      <button
-        type="button"
-        className="mt-2 text-xs text-muted-foreground hover:text-primary underline underline-offset-2"
-        onClick={() => setObsAberto((v) => !v)}
-      >
-        {obsAberto ? "Ocultar observação" : "Adicionar observação"}
-      </button>
+      <div className="mt-2.5 flex flex-wrap items-center gap-1">
+        <BotaoMarcar
+          ativo={situacao === "conforme"}
+          variante="ok"
+          label="Conforme"
+          disabled={readOnly}
+          onClick={() => clique("conforme")}
+          icon={<Check className="h-3.5 w-3.5" />}
+        />
+        <BotaoMarcar
+          ativo={situacao === "nao_conforme"}
+          variante="erro"
+          label="Não conforme"
+          disabled={readOnly}
+          onClick={() => clique("nao_conforme")}
+          icon={<X className="h-3.5 w-3.5" />}
+        />
+        <BotaoMarcar
+          ativo={situacao === "nao_se_aplica"}
+          variante="neutro"
+          label="Não se aplica"
+          disabled={readOnly}
+          onClick={() => clique("nao_se_aplica")}
+          icon={<Minus className="h-3.5 w-3.5" />}
+        />
+        <button
+          type="button"
+          className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-primary"
+          onClick={() => setObsAberto((v) => !v)}
+        >
+          <MessageSquare className="h-3 w-3" />
+          {obs ? "obs" : "nota"}
+        </button>
+      </div>
+
       {obsAberto ? (
         <Textarea
           value={obs}
           onChange={(e) => setObs(e.target.value)}
           placeholder="Observação sobre este item (opcional)"
-          className="mt-2 text-sm"
+          className="mt-2 text-xs"
           disabled={readOnly}
           maxLength={1000}
           rows={2}
@@ -349,9 +462,9 @@ function BotaoMarcar({
   icon: React.ReactNode;
 }) {
   const base =
-    "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors disabled:opacity-40";
-  const inativo = "border-border/60 text-muted-foreground hover:bg-muted";
-  const ok = "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+    "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-all duration-200 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70";
+  const inativo = "border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground";
+  const ok = "border-augusto-green/50 bg-augusto-green/10 text-augusto-green";
   const erro = "border-destructive/60 bg-destructive/10 text-destructive";
   const neutro = "border-border bg-muted text-foreground";
   const classe = ativo
@@ -371,7 +484,7 @@ function BotaoMarcar({
       aria-pressed={ativo}
     >
       {icon}
-      <span className="hidden sm:inline">{label}</span>
+      <span className="hidden md:inline">{label}</span>
     </button>
   );
 }
