@@ -182,28 +182,33 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-4xl">
-        <Link to="/app/contratos" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Contratos
-        </Link>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <Link to="/app/contratos" className="inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-primary">
+            <ArrowLeft className="mr-1 h-4 w-4" /> Contratos
+          </Link>
+          <ContratosTabs condominioId={c.condominio_id ?? null} />
+        </div>
 
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="app-eyebrow">
               {c.tipos_servico_contrato?.nome ?? "Contrato de prestação de serviços"}
             </p>
-            <h1 className="text-3xl font-serif text-primary">{c.prestador_nome}</h1>
-            <p className="text-muted-foreground flex items-center gap-2">
-              {c.condominios?.nome ?? "Condomínio"} <ContratoStatusBadge status={status} />
+            <h1 className="mt-1.5 font-serif text-3xl leading-tight text-primary sm:text-4xl">{c.prestador_nome}</h1>
+            <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Building2 className="h-3.5 w-3.5" />
+              {c.condominios?.nome ?? "Condomínio"}
+              <ContratoStatusBadge status={status} />
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <AvisosSwitch
               contratoId={contratoId}
               ativo={!!c.notificacoes_ativas}
               onChange={(v) => setFicha((prev) => (prev ? { ...prev, contrato: { ...prev.contrato, notificacoes_ativas: v } } : prev))}
             />
             <Button
-              variant="default"
+              variant="augusto"
               onClick={() => {
                 setAba("analise");
                 if (!temArquivo) {
@@ -213,7 +218,7 @@ function Page() {
               disabled={!temArquivo}
               title={temArquivo ? "Analisar com Augusto" : "Anexe o arquivo do contrato para gerar a análise"}
             >
-              <Sparkles className="h-4 w-4 mr-1" /> Analisar com Augusto
+              <Sparkles className="mr-1 h-4 w-4" /> Analisar com Augusto
             </Button>
             <EncerrarSuspenderMenu contratoId={contratoId} situacao={c.situacao} onChange={carregar} />
             <Button
@@ -225,10 +230,10 @@ function Page() {
                 })
               }
             >
-              <Pencil className="h-4 w-4 mr-1" /> Editar
+              <Pencil className="mr-1 h-4 w-4" /> Editar
             </Button>
-            <Button variant="destructive" onClick={() => setConfirmar(true)}>
-              <Trash2 className="h-4 w-4 mr-1" /> Excluir
+            <Button variant="ghost" onClick={() => setConfirmar(true)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+              <Trash2 className="mr-1 h-4 w-4" /> Excluir
             </Button>
           </div>
         </div>
