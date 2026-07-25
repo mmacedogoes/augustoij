@@ -11,6 +11,7 @@ import { getCondominio, updateCondominio } from "@/lib/condominios.functions";
 import { DocumentosPanel, useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { UnidadesPanel } from "@/components/unidades/UnidadesPanel";
+import { CondominioContratosTab } from "@/components/contratos-servico/CondominioContratosTab";
 import { listConversas, deleteConversa } from "@/lib/chat.functions";
 import { listMembros, inviteMembro, removeMembro, createOperadorPJ } from "@/lib/membros.functions";
 import { isCurrentUserAdmin } from "@/lib/admin.functions";
@@ -198,6 +199,9 @@ function CondominioDetail() {
             <TabsTrigger value="historico">Histórico de Conversas</TabsTrigger>
             <TabsTrigger value="documentos">Documentos</TabsTrigger>
             <TabsTrigger value="unidades">Unidades</TabsTrigger>
+            {isAdmin ? (
+              <TabsTrigger value="contratos">Gestão de Contratos</TabsTrigger>
+            ) : null}
             <TabsTrigger value="config">Configurações</TabsTrigger>
           </TabsList>
           <TabsContent value="chat">
@@ -290,6 +294,11 @@ function CondominioDetail() {
           <TabsContent value="unidades">
             <UnidadesPanel condominioId={id} isOwner={canEdit} />
           </TabsContent>
+          {isAdmin ? (
+            <TabsContent value="contratos">
+              <CondominioContratosTab condominioId={id} />
+            </TabsContent>
+          ) : null}
           <TabsContent value="config">
             <div className="space-y-4">
               <Card className="p-6 space-y-3">

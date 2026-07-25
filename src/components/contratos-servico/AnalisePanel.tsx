@@ -67,9 +67,34 @@ export function AnalisePanel({
   }
 
   function abrirChat() {
-    const msg = `Vamos conversar sobre o contrato firmado com ${prestadorNome}${objeto ? ` (${objeto})` : ""}. Traga os principais pontos de atenção e riscos.`;
+    // Monta a mensagem inicial do assistente com o semáforo da análise
+    // já formatado em markdown, para que a conversa continue a partir daí.
+    const linhas: string[] = [];
+    linhas.push(
+      `Analisei o contrato firmado com **${prestadorNome}**${objeto ? ` (${objeto})` : ""}. Aqui está o semáforo:\n`,
+    );
+    if (resultado?.resumo) linhas.push(`> ${resultado.resumo.trim()}\n`);
+
+    function bloco(emoji: string, titulo: string, pontos: { titulo: string; detalhe: string; clausula?: string | null }[]) {
+      if (!pontos || pontos.length === 0) return;
+      linhas.push(`**${emoji} ${titulo}**`);
+      for (const p of pontos.slice(0, 8)) {
+        const suf = p.clausula ? ` _(cláusula ${p.clausula})_` : "";
+        linhas.push(`- **${p.titulo}**${suf}${p.detalhe ? ` — ${p.detalhe}` : ""}`);
+      }
+      linhas.push("");
+    }
+    if (resultado) {
+      bloco("🟢", "Pontos positivos", resultado.pontos_positivos);
+      bloco("🟡", "Pontos de atenção", resultado.pontos_atencao);
+      bloco("🔴", "Pontos negativos", resultado.pontos_negativos);
+    }
+    linhas.push("Sobre o que você quer aprofundar?");
+    const msg = linhas.join("\n").trim();
     try {
-      sessionStorage.setItem(`chat-inicial-${condominioId}`, msg);
+      sessionStorage.setItem(`chat-seed-assistant-${condominioId}`, msg);
+      // Limpa qualquer seed antigo de "prompt do usuário" para esta conversa
+      sessionStorage.removeItem(`chat-inicial-${condominioId}`);
     } catch { /* ignora */ }
     navigate({ to: "/app/condominios/$id", params: { id: condominioId } });
   }

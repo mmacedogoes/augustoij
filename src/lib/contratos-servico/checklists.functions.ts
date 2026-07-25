@@ -288,7 +288,7 @@ export const getChecklistsDoContrato = createServerFn({ method: "POST" })
 
     const { data: c, error: cErr } = await context.supabase
       .from("contratos_servico")
-      .select("id, situacao, data_inicio, created_at")
+      .select("id, situacao, data_inicio, data_fim, created_at")
       .eq("id", data.contratoId)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
@@ -296,15 +296,15 @@ export const getChecklistsDoContrato = createServerFn({ method: "POST" })
 
     const encerradoOuSuspenso = c.situacao === "encerrado" || c.situacao === "suspenso";
 
+    // Janela de competências: da data de assinatura do contrato (fallback: criação)
+    // até o mês atual OU até o mês da data_fim, o que vier primeiro.
+    // Para contratos por prazo indeterminado sem data_fim, o teto é o mês atual.
     const inicioMes = truncarParaMes(c.data_inicio);
     const criadoMes = truncarParaMes(c.created_at);
-    const inferior =
-      inicioMes && criadoMes
-        ? inicioMes < criadoMes
-          ? inicioMes
-          : criadoMes
-        : (inicioMes ?? criadoMes ?? primeiroDiaMesAtualBR());
-    const superior = primeiroDiaMesAtualBR();
+    const inferior = inicioMes ?? criadoMes ?? primeiroDiaMesAtualBR();
+    const mesAtual = primeiroDiaMesAtualBR();
+    const fimMes = truncarParaMes(c.data_fim);
+    const superior = fimMes && fimMes < mesAtual ? fimMes : mesAtual;
     const competenciaDentroDoIntervalo = data.competencia >= inferior && data.competencia <= superior;
     const podeCriarPeriodo = !encerradoOuSuspenso && competenciaDentroDoIntervalo;
 

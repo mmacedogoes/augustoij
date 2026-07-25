@@ -2,8 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, FileText, ExternalLink, Upload, Sparkles } from "lucide-react";
+import {
+  ArrowLeft, Pencil, Trash2, FileText, ExternalLink, Upload, Sparkles,
+  Building2, Briefcase, CalendarRange, Wallet, TrendingUp, Scale,
+  ClipboardCheck, ListChecks, Shield, CalendarClock, ArrowUpRightSquare,
+  FilePlus2, Users, Activity,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,7 +69,7 @@ function Page() {
   const [confirmar, setConfirmar] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [countAditivos, setCountAditivos] = useState<number>(0);
-  const [aba, setAba] = useState<string>("obrigacoes");
+  const [aba, setAba] = useState<string>("checklists");
 
   const carregar = useCallback(() => {
     setErro(null);
@@ -176,28 +182,33 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-4xl">
-        <Link to="/app/contratos" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Contratos
-        </Link>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <Link to="/app/contratos" className="inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-primary">
+            <ArrowLeft className="mr-1 h-4 w-4" /> Contratos
+          </Link>
+          <ContratosTabs condominioId={c.condominio_id ?? null} />
+        </div>
 
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="app-eyebrow">
               {c.tipos_servico_contrato?.nome ?? "Contrato de prestação de serviços"}
             </p>
-            <h1 className="text-3xl font-serif text-primary">{c.prestador_nome}</h1>
-            <p className="text-muted-foreground flex items-center gap-2">
-              {c.condominios?.nome ?? "Condomínio"} <ContratoStatusBadge status={status} />
+            <h1 className="mt-1.5 font-serif text-3xl leading-tight text-primary sm:text-4xl">{c.prestador_nome}</h1>
+            <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Building2 className="h-3.5 w-3.5" />
+              {c.condominios?.nome ?? "Condomínio"}
+              <ContratoStatusBadge status={status} />
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <AvisosSwitch
               contratoId={contratoId}
               ativo={!!c.notificacoes_ativas}
               onChange={(v) => setFicha((prev) => (prev ? { ...prev, contrato: { ...prev.contrato, notificacoes_ativas: v } } : prev))}
             />
             <Button
-              variant="default"
+              variant="augusto"
               onClick={() => {
                 setAba("analise");
                 if (!temArquivo) {
@@ -207,7 +218,7 @@ function Page() {
               disabled={!temArquivo}
               title={temArquivo ? "Analisar com Augusto" : "Anexe o arquivo do contrato para gerar a análise"}
             >
-              <Sparkles className="h-4 w-4 mr-1" /> Analisar com Augusto
+              <Sparkles className="mr-1 h-4 w-4" /> Analisar com Augusto
             </Button>
             <EncerrarSuspenderMenu contratoId={contratoId} situacao={c.situacao} onChange={carregar} />
             <Button
@@ -219,10 +230,10 @@ function Page() {
                 })
               }
             >
-              <Pencil className="h-4 w-4 mr-1" /> Editar
+              <Pencil className="mr-1 h-4 w-4" /> Editar
             </Button>
-            <Button variant="destructive" onClick={() => setConfirmar(true)}>
-              <Trash2 className="h-4 w-4 mr-1" /> Excluir
+            <Button variant="ghost" onClick={() => setConfirmar(true)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+              <Trash2 className="mr-1 h-4 w-4" /> Excluir
             </Button>
           </div>
         </div>
@@ -234,9 +245,11 @@ function Page() {
         )}
 
         <div className="grid gap-4 sm:grid-cols-2 mb-6">
-          <Card className="p-4 sm:col-span-2 flex items-center justify-between gap-3">
+          <Card className="flex flex-wrap items-center justify-between gap-3 p-4 sm:col-span-2">
             <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5 text-primary" />
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-augusto-gold/15 text-augusto-gold">
+                <FileText className="h-5 w-5" />
+              </span>
               <div>
                 <p className="text-sm font-medium">Arquivo do contrato</p>
                 <p className="text-xs text-muted-foreground">
@@ -277,13 +290,13 @@ function Page() {
               )}
             </div>
           </Card>
-          <Bloco titulo="Prestador">
+          <Bloco titulo="Prestador" icon={<Briefcase className="h-3.5 w-3.5" />}>
             <Item label="Nome" value={c.prestador_nome} />
             <Item label="CNPJ/CPF" value={c.prestador_documento} />
             <Item label="E-mail" value={c.prestador_email} />
             <Item label="Telefone" value={c.prestador_telefone} />
           </Bloco>
-          <Bloco titulo="Objeto e tipo">
+          <Bloco titulo="Objeto e tipo" icon={<ClipboardCheck className="h-3.5 w-3.5" />}>
             <Item label="Tipo" value={c.tipos_servico_contrato?.nome} />
             <Item label="Objeto" value={c.objeto} />
             <Item
@@ -291,7 +304,7 @@ function Page() {
               value={c.terceirizacao_mao_de_obra ? "Sim" : "Não"}
             />
           </Bloco>
-          <Bloco titulo="Vigência e renovação">
+          <Bloco titulo="Vigência e renovação" icon={<CalendarRange className="h-3.5 w-3.5" />}>
             <Item label="Início" value={formatDate(c.data_inicio)} />
             <Item
               label="Fim"
@@ -302,7 +315,7 @@ function Page() {
               <Item label="Aviso prévio (dias)" value={c.aviso_previo_dias} />
             ) : null}
           </Bloco>
-          <Bloco titulo="Valores e pagamento">
+          <Bloco titulo="Valores e pagamento" icon={<Wallet className="h-3.5 w-3.5" />}>
             <Item
               label="Valor"
               value={
@@ -313,11 +326,11 @@ function Page() {
             />
             <Item label="Dia de vencimento" value={c.dia_vencimento ?? "—"} />
           </Bloco>
-          <Bloco titulo="Reajuste">
+          <Bloco titulo="Reajuste" icon={<TrendingUp className="h-3.5 w-3.5" />}>
             <Item label="Índice" value={rotuloIndice(c.indice_reajuste)} />
             <Item label="Mês base" value={c.mes_base_reajuste ?? "—"} />
           </Bloco>
-          <Bloco titulo="Cláusulas">
+          <Bloco titulo="Cláusulas" icon={<Scale className="h-3.5 w-3.5" />}>
             <Item label="Multa rescisória" value={c.multa_rescisoria} />
             <Item label="Exige seguro RC" value={c.exige_seguro_rc ? "Sim" : "Não"} />
             <Item label="Garantias" value={c.garantias} />
@@ -326,17 +339,20 @@ function Page() {
         </div>
 
         <Tabs value={aba} onValueChange={setAba} className="mb-6">
-          <TabsList className="flex flex-wrap h-auto">
-            <TabsTrigger value="obrigacoes">Obrigações</TabsTrigger>
-            <TabsTrigger value="retencoes">Retenções</TabsTrigger>
-            <TabsTrigger value="checklists">Checklists</TabsTrigger>
-            <TabsTrigger value="agenda">Agenda</TabsTrigger>
-            <TabsTrigger value="reajustes">Reajustes</TabsTrigger>
-            <TabsTrigger value="aditivos">Aditivos</TabsTrigger>
-            <TabsTrigger value="analise">Análise</TabsTrigger>
-            <TabsTrigger value="responsaveis">Responsáveis</TabsTrigger>
-            <TabsTrigger value="atividades">Atividades</TabsTrigger>
+          <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/40 p-1">
+            <TriggerIcon value="checklists" icon={<ListChecks className="h-3.5 w-3.5" />} label="Checklists" />
+            <TriggerIcon value="obrigacoes" icon={<ClipboardCheck className="h-3.5 w-3.5" />} label="Obrigações" />
+            <TriggerIcon value="retencoes" icon={<Shield className="h-3.5 w-3.5" />} label="Retenções" />
+            <TriggerIcon value="agenda" icon={<CalendarClock className="h-3.5 w-3.5" />} label="Agenda" />
+            <TriggerIcon value="reajustes" icon={<ArrowUpRightSquare className="h-3.5 w-3.5" />} label="Reajustes" />
+            <TriggerIcon value="aditivos" icon={<FilePlus2 className="h-3.5 w-3.5" />} label="Aditivos" />
+            <TriggerIcon value="analise" icon={<Sparkles className="h-3.5 w-3.5" />} label="Análise" />
+            <TriggerIcon value="responsaveis" icon={<Users className="h-3.5 w-3.5" />} label="Responsáveis" />
+            <TriggerIcon value="atividades" icon={<Activity className="h-3.5 w-3.5" />} label="Atividades" />
           </TabsList>
+          <TabsContent value="checklists" className="mt-4">
+            <ChecklistsPanel contratoId={contratoId} />
+          </TabsContent>
           <TabsContent value="obrigacoes" className="mt-4">
             <Card className="p-4">
               <div className="mb-4">
@@ -354,9 +370,6 @@ function Page() {
           </TabsContent>
           <TabsContent value="retencoes" className="mt-4">
             <RetencoesCard contratoId={contratoId} />
-          </TabsContent>
-          <TabsContent value="checklists" className="mt-4">
-            <ChecklistsPanel contratoId={contratoId} />
           </TabsContent>
           <TabsContent value="agenda" className="mt-4">
             <AgendaPanel contratoId={contratoId} />
@@ -418,12 +431,27 @@ function Page() {
   );
 }
 
-function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function Bloco({ titulo, icon, children }: { titulo: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <Card className="p-4">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{titulo}</p>
+    <Card className="p-4 transition-shadow duration-200 hover:shadow-sm">
+      <p className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {icon ? <span className="text-augusto-gold">{icon}</span> : null}
+        {titulo}
+      </p>
       <dl className="space-y-1.5 text-sm">{children}</dl>
     </Card>
+  );
+}
+
+function TriggerIcon({ value, icon, label }: { value: string; icon: React.ReactNode; label: string }) {
+  return (
+    <TabsTrigger
+      value={value}
+      className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-augusto-gold/25 gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:text-foreground"
+    >
+      <span aria-hidden="true">{icon}</span>
+      <span>{label}</span>
+    </TabsTrigger>
   );
 }
 function Item({ label, value }: { label: string; value: React.ReactNode }) {
