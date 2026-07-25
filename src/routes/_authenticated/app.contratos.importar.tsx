@@ -11,6 +11,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -185,6 +186,7 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-5xl space-y-6">
+        <ContratosTabs condominioId={condominioId || null} />
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="app-eyebrow">Contratos</p>
