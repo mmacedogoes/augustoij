@@ -89,20 +89,19 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-          <div>
-            <p className="app-eyebrow">Contratos de prestação de serviços</p>
-            <h1 className="text-3xl font-serif text-primary">Painel</h1>
-            <p className="text-sm text-muted-foreground">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="app-eyebrow">Gestão de Contratos</p>
+            <h1 className="mt-1.5 font-serif text-3xl leading-tight text-primary sm:text-4xl">
+              Painel
+            </h1>
+            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
               Visão consolidada das pendências, agenda e não conformidades da carteira.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <ContratosTabs condominioId={condFiltro} />
-            <Button size="sm" variant="outline" asChild>
-              <Link to="/app/contratos/importar"><Sparkles className="h-4 w-4 mr-1" /> Importar</Link>
-            </Button>
-            <Button size="sm" asChild>
+            <Button size="sm" variant="augusto" asChild>
               <Link to="/app/contratos/novo"><Plus className="h-4 w-4 mr-1" /> Novo contrato</Link>
             </Button>
           </div>
