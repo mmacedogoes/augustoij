@@ -245,9 +245,11 @@ function Page() {
         )}
 
         <div className="grid gap-4 sm:grid-cols-2 mb-6">
-          <Card className="p-4 sm:col-span-2 flex items-center justify-between gap-3">
+          <Card className="flex flex-wrap items-center justify-between gap-3 p-4 sm:col-span-2">
             <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5 text-primary" />
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-augusto-gold/15 text-augusto-gold">
+                <FileText className="h-5 w-5" />
+              </span>
               <div>
                 <p className="text-sm font-medium">Arquivo do contrato</p>
                 <p className="text-xs text-muted-foreground">
@@ -288,13 +290,13 @@ function Page() {
               )}
             </div>
           </Card>
-          <Bloco titulo="Prestador">
+          <Bloco titulo="Prestador" icon={<Briefcase className="h-3.5 w-3.5" />}>
             <Item label="Nome" value={c.prestador_nome} />
             <Item label="CNPJ/CPF" value={c.prestador_documento} />
             <Item label="E-mail" value={c.prestador_email} />
             <Item label="Telefone" value={c.prestador_telefone} />
           </Bloco>
-          <Bloco titulo="Objeto e tipo">
+          <Bloco titulo="Objeto e tipo" icon={<ClipboardCheck className="h-3.5 w-3.5" />}>
             <Item label="Tipo" value={c.tipos_servico_contrato?.nome} />
             <Item label="Objeto" value={c.objeto} />
             <Item
@@ -302,7 +304,7 @@ function Page() {
               value={c.terceirizacao_mao_de_obra ? "Sim" : "Não"}
             />
           </Bloco>
-          <Bloco titulo="Vigência e renovação">
+          <Bloco titulo="Vigência e renovação" icon={<CalendarRange className="h-3.5 w-3.5" />}>
             <Item label="Início" value={formatDate(c.data_inicio)} />
             <Item
               label="Fim"
@@ -313,7 +315,7 @@ function Page() {
               <Item label="Aviso prévio (dias)" value={c.aviso_previo_dias} />
             ) : null}
           </Bloco>
-          <Bloco titulo="Valores e pagamento">
+          <Bloco titulo="Valores e pagamento" icon={<Wallet className="h-3.5 w-3.5" />}>
             <Item
               label="Valor"
               value={
@@ -324,11 +326,11 @@ function Page() {
             />
             <Item label="Dia de vencimento" value={c.dia_vencimento ?? "—"} />
           </Bloco>
-          <Bloco titulo="Reajuste">
+          <Bloco titulo="Reajuste" icon={<TrendingUp className="h-3.5 w-3.5" />}>
             <Item label="Índice" value={rotuloIndice(c.indice_reajuste)} />
             <Item label="Mês base" value={c.mes_base_reajuste ?? "—"} />
           </Bloco>
-          <Bloco titulo="Cláusulas">
+          <Bloco titulo="Cláusulas" icon={<Scale className="h-3.5 w-3.5" />}>
             <Item label="Multa rescisória" value={c.multa_rescisoria} />
             <Item label="Exige seguro RC" value={c.exige_seguro_rc ? "Sim" : "Não"} />
             <Item label="Garantias" value={c.garantias} />
@@ -337,17 +339,20 @@ function Page() {
         </div>
 
         <Tabs value={aba} onValueChange={setAba} className="mb-6">
-          <TabsList className="flex flex-wrap h-auto">
-            <TabsTrigger value="obrigacoes">Obrigações</TabsTrigger>
-            <TabsTrigger value="retencoes">Retenções</TabsTrigger>
-            <TabsTrigger value="checklists">Checklists</TabsTrigger>
-            <TabsTrigger value="agenda">Agenda</TabsTrigger>
-            <TabsTrigger value="reajustes">Reajustes</TabsTrigger>
-            <TabsTrigger value="aditivos">Aditivos</TabsTrigger>
-            <TabsTrigger value="analise">Análise</TabsTrigger>
-            <TabsTrigger value="responsaveis">Responsáveis</TabsTrigger>
-            <TabsTrigger value="atividades">Atividades</TabsTrigger>
+          <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/40 p-1">
+            <TriggerIcon value="checklists" icon={<ListChecks className="h-3.5 w-3.5" />} label="Checklists" />
+            <TriggerIcon value="obrigacoes" icon={<ClipboardCheck className="h-3.5 w-3.5" />} label="Obrigações" />
+            <TriggerIcon value="retencoes" icon={<Shield className="h-3.5 w-3.5" />} label="Retenções" />
+            <TriggerIcon value="agenda" icon={<CalendarClock className="h-3.5 w-3.5" />} label="Agenda" />
+            <TriggerIcon value="reajustes" icon={<ArrowUpRightSquare className="h-3.5 w-3.5" />} label="Reajustes" />
+            <TriggerIcon value="aditivos" icon={<FilePlus2 className="h-3.5 w-3.5" />} label="Aditivos" />
+            <TriggerIcon value="analise" icon={<Sparkles className="h-3.5 w-3.5" />} label="Análise" />
+            <TriggerIcon value="responsaveis" icon={<Users className="h-3.5 w-3.5" />} label="Responsáveis" />
+            <TriggerIcon value="atividades" icon={<Activity className="h-3.5 w-3.5" />} label="Atividades" />
           </TabsList>
+          <TabsContent value="checklists" className="mt-4">
+            <ChecklistsPanel contratoId={contratoId} />
+          </TabsContent>
           <TabsContent value="obrigacoes" className="mt-4">
             <Card className="p-4">
               <div className="mb-4">
@@ -365,9 +370,6 @@ function Page() {
           </TabsContent>
           <TabsContent value="retencoes" className="mt-4">
             <RetencoesCard contratoId={contratoId} />
-          </TabsContent>
-          <TabsContent value="checklists" className="mt-4">
-            <ChecklistsPanel contratoId={contratoId} />
           </TabsContent>
           <TabsContent value="agenda" className="mt-4">
             <AgendaPanel contratoId={contratoId} />
