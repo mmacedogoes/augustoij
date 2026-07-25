@@ -1,7 +1,8 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Building, User, LogOut, Shield, FileText } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,6 +15,7 @@ import { HelpMenu } from "@/components/HelpMenu";
 import { NotificationsBell } from "@/components/contratos-servico/NotificationsBell";
 import { TrialExpiredBanner } from "@/components/gates/PlanGates";
 import { UsageThresholdBanner } from "@/components/gates/UsageThresholdBanner";
+import { useState } from "react";
 
 const baseNav = [
   { to: "/app", label: "Início", icon: LayoutDashboard, tour: "nav-dashboard" },
@@ -30,30 +32,47 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const checkAdmin = useServerFn(isCurrentUserAdmin);
   const fetchProfile = useServerFn(getProfile);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [profile, setProfile] = useState<{
-    id: string;
-    perfil_atuacao?: string | null;
-    onboarding_tour_completo?: boolean | null;
-    dicas_ativas?: boolean | null;
-  } | null>(null);
   const [forceTour, setForceTour] = useState(false);
 
-  useEffect(() => {
-    checkAdmin().then((r) => setIsAdmin(!!r?.admin)).catch(() => setIsAdmin(false));
-    fetchProfile().then((p) => setProfile((p as typeof profile) ?? null)).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Um único fetch em paralelo, cacheado por 5min entre trocas de rota.
+  const { data: shellData } = useQuery({
+    queryKey: ["app-shell-bootstrap"],
+    queryFn: async () => {
+      const [admin, prof] = await Promise.all([
+        checkAdmin().catch(() => null),
+        fetchProfile().catch(() => null),
+      ]);
+      return {
+        isAdmin: !!admin?.admin,
+        profile: (prof as {
+          id: string;
+          perfil_atuacao?: string | null;
+          onboarding_tour_completo?: boolean | null;
+          dicas_ativas?: boolean | null;
+        } | null) ?? null,
+      };
+    },
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+  const isAdmin = shellData?.isAdmin ?? false;
+  const profile = shellData?.profile ?? null;
 
   // "Gestão de Contratos" liberado a qualquer usuário autenticado
   // (RLS filtra por dono do condomínio). Admin ganha acesso extra ao painel /admin.
-  const nav = isAdmin
-    ? ([...baseNav, contratosNav, adminNav] as ReadonlyArray<
-        typeof baseNav[number] | typeof contratosNav | typeof adminNav
-      >)
-    : ([...baseNav, contratosNav] as ReadonlyArray<
-        typeof baseNav[number] | typeof contratosNav
-      >);
+  const nav = useMemo(
+    () =>
+      isAdmin
+        ? ([...baseNav, contratosNav, adminNav] as ReadonlyArray<
+            typeof baseNav[number] | typeof contratosNav | typeof adminNav
+          >)
+        : ([...baseNav, contratosNav] as ReadonlyArray<
+            typeof baseNav[number] | typeof contratosNav
+          >),
+    [isAdmin],
+  );
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
