@@ -45,11 +45,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // "Gestão de Contratos" liberado a qualquer usuário autenticado
+  // (RLS filtra por dono do condomínio). Admin ganha acesso extra ao painel /admin.
   const nav = isAdmin
     ? ([...baseNav, contratosNav, adminNav] as ReadonlyArray<
         typeof baseNav[number] | typeof contratosNav | typeof adminNav
       >)
-    : baseNav;
+    : ([...baseNav, contratosNav] as ReadonlyArray<
+        typeof baseNav[number] | typeof contratosNav
+      >);
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
