@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, FileText, Loader2,
-  Plus, ShieldAlert, Sparkles, TrendingUp,
+  Plus, ShieldAlert, TrendingUp,
 } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
