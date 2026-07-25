@@ -18,6 +18,11 @@ import {
   type CamposImportacao,
   type ObrigacaoExtraida,
 } from "@/lib/contratos-servico/importar.functions";
+import { listCondominiosParaContratos } from "@/lib/contratos-servico/contratos.functions";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import type { ContratoServicoInput } from "@/lib/contratos-servico/schemas";
 
 export const Route = createFileRoute("/_authenticated/app/contratos/novo")({
@@ -36,17 +41,27 @@ type Extracao = {
   obrigacoes: ObrigacaoExtraida[];
   contratante_nome: string | null;
 };
+type Condo = { id: string; nome: string; cidade: string | null; uf: string | null };
 
 function Page() {
   const navigate = useNavigate();
   const extrair = useServerFn(extrairContratoServico);
   const salvar = useServerFn(salvarImportacaoContratoServico);
+  const condosFn = useServerFn(listCondominiosParaContratos);
 
   const [modo, setModo] = useState<Modo>("escolher");
   const [file, setFile] = useState<File | null>(null);
+  const [condos, setCondos] = useState<Condo[]>([]);
+  const [condominioId, setCondominioId] = useState<string>("");
   const [extracao, setExtracao] = useState<Extracao | null>(null);
   const [obrigacoes, setObrigacoes] = useState<Obr[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Carrega condomínios uma vez quando o usuário entra em qualquer modo.
+  useMemo(() => {
+    if (modo === "escolher" || condos.length > 0) return;
+    condosFn().then((r) => setCondos(r.rows as Condo[])).catch(() => {});
+  }, [modo, condos.length, condosFn]);
 
   function pickFile(f: File | null) {
     if (!f) return;
@@ -63,7 +78,7 @@ function Page() {
   }
 
   async function processarComIA() {
-    if (!file) return;
+    if (!file || !condominioId) return;
     setModo("ia_processando");
     try {
       const b64 = await new Promise<string>((resolve, reject) => {
@@ -75,19 +90,12 @@ function Page() {
         };
         r.readAsDataURL(file);
       });
-      // condominioId é obrigatório na extração — o usuário escolherá na revisão.
-      // Enviamos um placeholder e substituímos após a IA responder; para
-      // manter a assinatura, exigimos que o usuário selecione antes.
-      // Simplificação: pedimos ao usuário para escolher via ContratoForm depois.
-      // A função de extração espera condominioId; usamos um marcador vazio não
-      // é permitido. Portanto, usamos o UUID zero e trocamos no salvar.
-      // Para não quebrar, exigimos pré-seleção antes do upload:
       const r = (await extrair({
         data: {
           fileBase64: b64,
           fileName: file.name,
           mimeType: file.type || "application/octet-stream",
-          condominioId: "00000000-0000-0000-0000-000000000000",
+          condominioId,
         },
       })) as Extracao;
       setExtracao(r);
@@ -105,7 +113,7 @@ function Page() {
   const initialForm: ContratoFormValues | undefined = useMemo(() => {
     if (!extracao) return undefined;
     const c = extracao.campos;
-    const clean: ContratoFormValues = {};
+    const clean: ContratoFormValues = { condominio_id: condominioId || undefined };
     const copy: Array<keyof CamposImportacao> = [
       "prestador_nome","prestador_documento","prestador_email","prestador_telefone","objeto",
       "tipo_servico_id","terceirizacao_mao_de_obra","data_inicio","data_fim","prazo_indeterminado",
@@ -117,7 +125,7 @@ function Page() {
       if (v !== null && v !== undefined) (clean as Record<string, unknown>)[k as string] = v;
     }
     return clean;
-  }, [extracao]);
+  }, [extracao, condominioId]);
 
   async function salvarImportado(values: ContratoServicoInput) {
     const limpas = obrigacoes
@@ -188,6 +196,20 @@ function Page() {
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <Label className="text-sm">Condomínio contratante <span className="text-destructive">*</span></Label>
+              <Select value={condominioId} onValueChange={setCondominioId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o condomínio…" /></SelectTrigger>
+                <SelectContent>
+                  {condos.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}{c.cidade ? ` — ${c.cidade}${c.uf ? "/" + c.uf : ""}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <input
               ref={inputRef}
               type="file"
@@ -230,7 +252,7 @@ function Page() {
               <Button variant="ghost" onClick={() => setModo("escolher")}>
                 <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
               </Button>
-              <Button onClick={processarComIA} disabled={!file}>
+              <Button onClick={processarComIA} disabled={!file || !condominioId}>
                 <Sparkles className="mr-1 h-4 w-4" /> Analisar com IA <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             </div>
