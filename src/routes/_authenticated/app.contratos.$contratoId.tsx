@@ -6,7 +6,8 @@ import {
   ArrowLeft, Pencil, Trash2, FileText, ExternalLink, Upload, Sparkles,
   Building2, Briefcase, CalendarRange, Wallet, TrendingUp, Scale,
   ClipboardCheck, ListChecks, Shield, CalendarClock, ArrowUpRightSquare,
-  FilePlus2, Users, Activity,
+  FilePlus2, Users, Activity, Check, X, Mail, Phone, Hash, CalendarDays,
+  Landmark, Percent, ScrollText,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
@@ -249,7 +250,6 @@ function Page() {
             <TabsList className="inline-flex h-auto min-w-full flex-nowrap gap-1 bg-muted/40 p-1">
             <TriggerIcon value="informacoes" icon={<FileText className="h-3.5 w-3.5" />} label="Informações" />
             <TriggerIcon value="checklists" icon={<ListChecks className="h-3.5 w-3.5" />} label="Checklists" />
-            <TriggerIcon value="obrigacoes" icon={<ClipboardCheck className="h-3.5 w-3.5" />} label="Obrigações" />
             <TriggerIcon value="retencoes" icon={<Shield className="h-3.5 w-3.5" />} label="Retenções" />
             <TriggerIcon value="agenda" icon={<CalendarClock className="h-3.5 w-3.5" />} label="Agenda" />
             <TriggerIcon value="reajustes" icon={<ArrowUpRightSquare className="h-3.5 w-3.5" />} label="Reajustes" />
