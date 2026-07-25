@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   RefreshCw,
@@ -85,21 +86,23 @@ function UsoPage() {
 
 function OverviewTab() {
   const fn = useServerFn(getUsoOverview);
-  const [r, setR] = useState<Awaited<ReturnType<typeof getUsoOverview>> | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-
+  const {
+    data: r = null,
+    isFetching: refreshing,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin-uso-overview"],
+    queryFn: () => fn({ data: undefined as never }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
   const load = useCallback(() => {
-    setRefreshing(true);
-    fn({ data: undefined as never })
-      .then(setR)
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"))
-      .finally(() => setRefreshing(false));
-  }, [fn]);
-  useEffect(load, [load]);
+    refetch().catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
+  }, [refetch]);
 
   const serie = (r?.serie ?? []) as Array<{ dia: string; mensagens: number }>;
   const top = r?.top_usuarios ?? [];
-  const topMax = Math.max(1, ...top.map((t) => t.custo_brl));
+  const topMax = useMemo(() => Math.max(1, ...top.map((t) => t.custo_brl)), [top]);
 
   return (
     <div className="space-y-6">
@@ -303,16 +306,14 @@ const ORIGEM_LABEL: Record<string, string> = {
 
 function ConsumoPorOrigem() {
   const fn = useServerFn(getConsumoPorOrigemMes);
-  const [data, setData] = useState<Awaited<
-    ReturnType<typeof getConsumoPorOrigemMes>
-  > | null>(null);
-  useEffect(() => {
-    fn({ data: undefined as never })
-      .then(setData)
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
-  }, [fn]);
+  const { data = null } = useQuery({
+    queryKey: ["admin-uso-origem"],
+    queryFn: () => fn({ data: undefined as never }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
   const linhas = data?.linhas ?? [];
-  const maxCred = Math.max(1, ...linhas.map((l) => l.credits));
+  const maxCred = useMemo(() => Math.max(1, ...linhas.map((l) => l.credits)), [linhas]);
   return (
     <Card className="p-5 sm:p-6 border-border/60 rounded-2xl">
       <div className="flex items-start justify-between gap-3">
@@ -456,16 +457,19 @@ const creditFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 function UsuariosTab() {
   const list = useServerFn(listUsoPorUsuario);
   const refresh = useServerFn(refreshCustosMes);
-  const [rows, setRows] = useState<Awaited<ReturnType<typeof listUsoPorUsuario>>>([]);
-  const [loading, setLoading] = useState(false);
+  const {
+    data: rows = [],
+    isFetching: loading,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin-uso-usuarios"],
+    queryFn: () => list({ data: undefined as never }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
   const load = useCallback(() => {
-    setLoading(true);
-    list({ data: undefined as never })
-      .then((x) => setRows(x as typeof rows))
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"))
-      .finally(() => setLoading(false));
-  }, [list]);
-  useEffect(load, [load]);
+    refetch().catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
+  }, [refetch]);
 
   return (
     <div className="space-y-4">

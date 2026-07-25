@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { memo, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { BarChart3, Users, Building2, GraduationCap, Megaphone, History, DollarSign, Newspaper, Activity, Home, MapPin, LifeBuoy } from "lucide-react";
 import { countAlertasPendentes } from "@/lib/admin-uso.functions";
@@ -42,29 +43,47 @@ const items: AdminNavItem[] = [
   { to: "/app/admin/helpdesk", label: "Helpdesk", icon: LifeBuoy },
 ];
 
-export function AdminNav() {
+export const AdminNav = memo(function AdminNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const countFn = useServerFn(countAlertasPendentes);
   const countCidadesFn = useServerFn(countCidadesNovasPendentes);
   const adminInfoFn = useServerFn(isCurrentUserAdmin);
   const countHelpdeskFn = useServerFn(countHelpdeskAbertos);
-  const [alertas, setAlertas] = useState(0);
-  const [cidadesNovas, setCidadesNovas] = useState(0);
-  const [helpdeskAbertos, setHelpdeskAbertos] = useState(0);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  useEffect(() => {
-    countFn({ data: undefined as never })
-      .then((r) => setAlertas(r.count))
-      .catch(() => {});
-    countCidadesFn()
-      .then((r) => setCidadesNovas(r.count))
-      .catch(() => {});
-    adminInfoFn().then((r) => setIsSuperAdmin(r?.papel === "super_admin")).catch(() => {});
-    countHelpdeskFn().then((r: { count: number }) => setHelpdeskAbertos(r.count)).catch(() => {});
-  }, [countFn, countCidadesFn, adminInfoFn, countHelpdeskFn]);
+
+  const { data } = useQuery({
+    queryKey: ["admin-nav-bootstrap"],
+    queryFn: async () => {
+      const [a, c, ad, h] = await Promise.all([
+        countFn({ data: undefined as never }).catch(() => ({ count: 0 })),
+        countCidadesFn().catch(() => ({ count: 0 })),
+        adminInfoFn().catch(() => null),
+        countHelpdeskFn().catch(() => ({ count: 0 })),
+      ]);
+      return {
+        alertas: a.count ?? 0,
+        cidadesNovas: c.count ?? 0,
+        isSuperAdmin: ad?.papel === "super_admin",
+        helpdeskAbertos: h.count ?? 0,
+      };
+    },
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+
+  const alertas = data?.alertas ?? 0;
+  const cidadesNovas = data?.cidadesNovas ?? 0;
+  const helpdeskAbertos = data?.helpdeskAbertos ?? 0;
+  const isSuperAdmin = data?.isSuperAdmin ?? false;
+
+  const visible = useMemo(
+    () => items.filter((i) => !i.superAdminOnly || isSuperAdmin),
+    [isSuperAdmin],
+  );
+
   return (
     <nav className="flex flex-wrap gap-1 border-b border-border pb-3 mb-6">
-      {items.filter((i) => !i.superAdminOnly || isSuperAdmin).map((i) => {
+      {visible.map((i) => {
         const active = i.exact ? pathname === i.to : pathname.startsWith(i.to);
         return (
           <Link
@@ -98,4 +117,4 @@ export function AdminNav() {
       })}
     </nav>
   );
-}
+});
