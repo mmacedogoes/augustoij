@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 import { Link, MatchRoute } from "@tanstack/react-router";
@@ -42,9 +43,8 @@ function AdminUsuariosPage() {
   const updateRole = useServerFn(setUserRole);
   const createUserFn = useServerFn(adminCreateUser);
   const toggleAtivoFn = useServerFn(setUserAtivo);
-  const [rows, setRows] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [openCreate, setOpenCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -65,17 +65,21 @@ function AdminUsuariosPage() {
     observacao: "",
   });
 
-  const refresh = useCallback(() => {
-    setLoading(true);
-    fetchUsers({ data: { search, limit: 50, offset: 0 } })
-      .then((r) => setRows(r as UserRow[]))
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"))
-      .finally(() => setLoading(false));
-  }, [fetchUsers, search]);
+  const {
+    data: rows = [],
+    isFetching: loading,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin-usuarios", appliedSearch],
+    queryFn: () => fetchUsers({ data: { search: appliedSearch, limit: 50, offset: 0 } }) as Promise<UserRow[]>,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const refresh = useCallback(() => {
+    refetch().catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
+  }, [refetch]);
 
   const toggleAdmin = async (u: UserRow) => {
     const grant = !u.is_admin;
@@ -302,7 +306,7 @@ function AdminUsuariosPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              refresh();
+              setAppliedSearch(search.trim());
             }}
             className="flex gap-2"
           >
