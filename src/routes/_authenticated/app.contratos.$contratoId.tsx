@@ -6,7 +6,8 @@ import {
   ArrowLeft, Pencil, Trash2, FileText, ExternalLink, Upload, Sparkles,
   Building2, Briefcase, CalendarRange, Wallet, TrendingUp, Scale,
   ClipboardCheck, ListChecks, Shield, CalendarClock, ArrowUpRightSquare,
-  FilePlus2, Users, Activity,
+  FilePlus2, Users, Activity, Check, X, Mail, Phone, Hash, CalendarDays,
+  Landmark, Percent, ScrollText,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
@@ -249,7 +250,6 @@ function Page() {
             <TabsList className="inline-flex h-auto min-w-full flex-nowrap gap-1 bg-muted/40 p-1">
             <TriggerIcon value="informacoes" icon={<FileText className="h-3.5 w-3.5" />} label="Informações" />
             <TriggerIcon value="checklists" icon={<ListChecks className="h-3.5 w-3.5" />} label="Checklists" />
-            <TriggerIcon value="obrigacoes" icon={<ClipboardCheck className="h-3.5 w-3.5" />} label="Obrigações" />
             <TriggerIcon value="retencoes" icon={<Shield className="h-3.5 w-3.5" />} label="Retenções" />
             <TriggerIcon value="agenda" icon={<CalendarClock className="h-3.5 w-3.5" />} label="Agenda" />
             <TriggerIcon value="reajustes" icon={<ArrowUpRightSquare className="h-3.5 w-3.5" />} label="Reajustes" />
@@ -260,23 +260,21 @@ function Page() {
             </TabsList>
           </div>
           <TabsContent value="informacoes" className="mt-4 space-y-4">
-            <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-augusto-gold/15 text-augusto-gold">
-                  <FileText className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-sm font-medium">Arquivo do contrato</p>
-                  <p className="text-xs text-muted-foreground">
-                    {c.arquivo_path
-                      ? "Enviado na importação"
-                      : c.documento_id
-                        ? "Vinculado ao acervo do condomínio"
-                        : "Nenhum arquivo vinculado. Anexe um PDF, DOCX ou TXT (até 10 MB)."}
-                  </p>
-                </div>
+            <Card className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-augusto-gold/20 bg-gradient-to-br from-card to-augusto-gold/[0.04] p-5 transition-all duration-200 hover:border-augusto-gold/40 hover:shadow-sm">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-augusto-gold/15 text-augusto-gold ring-1 ring-augusto-gold/20">
+                <FileText className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Arquivo do contrato</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  {c.arquivo_path
+                    ? "Enviado na importação"
+                    : c.documento_id
+                      ? "Vinculado ao acervo do condomínio"
+                      : "Nenhum arquivo vinculado. Anexe um PDF, DOCX ou TXT (até 10 MB)."}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -305,72 +303,135 @@ function Page() {
                 )}
               </div>
             </Card>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Bloco titulo="Prestador" icon={<Briefcase className="h-3.5 w-3.5" />}>
-                <Item label="Nome" value={c.prestador_nome} />
-                <Item label="CNPJ/CPF" value={c.prestador_documento} />
-                <Item label="E-mail" value={c.prestador_email} />
-                <Item label="Telefone" value={c.prestador_telefone} />
-              </Bloco>
-              <Bloco titulo="Objeto e tipo" icon={<ClipboardCheck className="h-3.5 w-3.5" />}>
-                <Item label="Tipo" value={c.tipos_servico_contrato?.nome} />
-                <Item label="Objeto" value={c.objeto} />
-                <Item
-                  label="Terceirização de mão de obra"
-                  value={c.terceirizacao_mao_de_obra ? "Sim" : "Não"}
-                />
-              </Bloco>
-              <Bloco titulo="Vigência e renovação" icon={<CalendarRange className="h-3.5 w-3.5" />}>
-                <Item label="Início" value={formatDate(c.data_inicio)} />
-                <Item
-                  label="Fim"
-                  value={c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
-                />
-                <Item label="Renovação automática" value={c.renovacao_automatica ? "Sim" : "Não"} />
-                {c.renovacao_automatica ? (
-                  <Item label="Aviso prévio (dias)" value={c.aviso_previo_dias} />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
+              <InfoCard className="xl:col-span-5" icon={<Wallet className="h-3.5 w-3.5" />} titulo="Financeiro">
+                <div className="flex items-baseline gap-2">
+                  <p className="font-serif text-3xl leading-none text-primary">
+                    {c.valor === null ? "—" : formatBRL(Number(c.valor))}
+                  </p>
+                  {c.valor !== null ? (
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      {c.tipo_valor === "mensal" ? "/ mês" : "global"}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {c.dia_vencimento ? (
+                    <StatBadge icon={<CalendarDays className="h-3 w-3" />}>Vence dia {c.dia_vencimento}</StatBadge>
+                  ) : null}
+                  {c.tipo_valor ? (
+                    <StatBadge icon={<Hash className="h-3 w-3" />}>
+                      {c.tipo_valor === "mensal" ? "Recorrente" : "Valor único"}
+                    </StatBadge>
+                  ) : null}
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-7" icon={<CalendarRange className="h-3.5 w-3.5" />} titulo="Vigência">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                  <div>
+                    <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Início</p>
+                    <p className="mt-1 font-serif text-xl text-foreground">{formatDate(c.data_inicio)}</p>
+                  </div>
+                  <div className="h-px w-8 bg-gradient-to-r from-augusto-gold/40 via-augusto-gold to-augusto-gold/40 sm:w-16" aria-hidden="true" />
+                  <div className="text-right">
+                    <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Fim</p>
+                    <p className="mt-1 font-serif text-xl text-foreground">
+                      {c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <StatBadge
+                    tone={c.renovacao_automatica ? "positive" : "muted"}
+                    icon={c.renovacao_automatica ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  >
+                    Renovação automática
+                  </StatBadge>
+                  {c.renovacao_automatica && c.aviso_previo_dias ? (
+                    <StatBadge icon={<CalendarClock className="h-3 w-3" />}>Aviso prévio {c.aviso_previo_dias}d</StatBadge>
+                  ) : null}
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-7" icon={<Briefcase className="h-3.5 w-3.5" />} titulo="Prestador">
+                <p className="font-serif text-xl leading-tight text-primary">{c.prestador_nome ?? "—"}</p>
+                {c.prestador_documento ? (
+                  <p className="mt-1 text-xs text-muted-foreground">CNPJ/CPF · {c.prestador_documento}</p>
                 ) : null}
-              </Bloco>
-              <Bloco titulo="Valores e pagamento" icon={<Wallet className="h-3.5 w-3.5" />}>
-                <Item
-                  label="Valor"
-                  value={
-                    c.valor === null
-                      ? "—"
-                      : `${formatBRL(Number(c.valor))} ${c.tipo_valor === "mensal" ? "/mês" : "(global)"}`
-                  }
-                />
-                <Item label="Dia de vencimento" value={c.dia_vencimento ?? "—"} />
-              </Bloco>
-              <Bloco titulo="Reajuste" icon={<TrendingUp className="h-3.5 w-3.5" />}>
-                <Item label="Índice" value={rotuloIndice(c.indice_reajuste)} />
-                <Item label="Mês base" value={c.mes_base_reajuste ?? "—"} />
-              </Bloco>
-              <Bloco titulo="Cláusulas" icon={<Scale className="h-3.5 w-3.5" />}>
-                <Item label="Multa rescisória" value={c.multa_rescisoria} />
-                <Item label="Exige seguro RC" value={c.exige_seguro_rc ? "Sim" : "Não"} />
-                <Item label="Garantias" value={c.garantias} />
-                <Item label="Foro" value={c.foro} />
-              </Bloco>
+                <div className="mt-4 space-y-1.5">
+                  <ContactLine icon={<Mail className="h-3.5 w-3.5" />} href={c.prestador_email ? `mailto:${c.prestador_email}` : null}>
+                    {c.prestador_email ?? "—"}
+                  </ContactLine>
+                  <ContactLine icon={<Phone className="h-3.5 w-3.5" />} href={c.prestador_telefone ? `tel:${c.prestador_telefone}` : null}>
+                    {c.prestador_telefone ?? "—"}
+                  </ContactLine>
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-5" icon={<TrendingUp className="h-3.5 w-3.5" />} titulo="Reajuste">
+                <div className="flex items-baseline gap-2">
+                  <p className="font-serif text-2xl text-primary">{rotuloIndice(c.indice_reajuste)}</p>
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground">índice</span>
+                </div>
+                <div className="mt-4">
+                  <StatBadge icon={<CalendarDays className="h-3 w-3" />}>
+                    Mês base · {c.mes_base_reajuste ?? "—"}
+                  </StatBadge>
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-7" icon={<ClipboardCheck className="h-3.5 w-3.5" />} titulo="Objeto e tipo">
+                {c.tipos_servico_contrato?.nome ? <StatBadge>{c.tipos_servico_contrato.nome}</StatBadge> : null}
+                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground">{c.objeto || "—"}</p>
+                <div className="mt-4">
+                  <StatBadge
+                    tone={c.terceirizacao_mao_de_obra ? "warning" : "muted"}
+                    icon={c.terceirizacao_mao_de_obra ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  >
+                    Terceirização de mão de obra
+                  </StatBadge>
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-5" icon={<Scale className="h-3.5 w-3.5" />} titulo="Cláusulas">
+                <div className="space-y-2.5 text-sm">
+                  <ClauseRow icon={<Percent className="h-3.5 w-3.5" />} label="Multa rescisória" value={c.multa_rescisoria} />
+                  <ClauseRow
+                    icon={<Shield className="h-3.5 w-3.5" />}
+                    label="Exige seguro RC"
+                    value={c.exige_seguro_rc ? "Sim" : "Não"}
+                    positive={c.exige_seguro_rc}
+                  />
+                  <ClauseRow icon={<ScrollText className="h-3.5 w-3.5" />} label="Garantias" value={c.garantias} />
+                  <ClauseRow icon={<Landmark className="h-3.5 w-3.5" />} label="Foro" value={c.foro} />
+                </div>
+              </InfoCard>
+
+              <div className="md:col-span-2 xl:col-span-12">
+                <InfoCard
+                  icon={<ClipboardCheck className="h-3.5 w-3.5" />}
+                  titulo="Obrigações do contrato"
+                  descricao="Mapa de deveres do condomínio e do prestador. Edite manualmente ou importe por IA."
+                >
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    <StatBadge>
+                      {ficha.obrigacoes.length} {ficha.obrigacoes.length === 1 ? "obrigação" : "obrigações"}
+                    </StatBadge>
+                    <StatBadge tone="muted">
+                      {ficha.obrigacoes.filter((o) => o.parte === "condominio").length} do condomínio
+                    </StatBadge>
+                    <StatBadge tone="muted">
+                      {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do prestador
+                    </StatBadge>
+                  </div>
+                  <ObrigacoesEditor contratoId={contratoId} itens={ficha.obrigacoes} onChange={carregar} />
+                </InfoCard>
+              </div>
             </div>
           </TabsContent>
           <TabsContent value="checklists" className="mt-4">
             <ChecklistsPanel contratoId={contratoId} />
-          </TabsContent>
-          <TabsContent value="obrigacoes" className="mt-4">
-            <Card className="p-4">
-              <div className="mb-4">
-                <h3 className="text-lg font-serif text-primary">Obrigações do contrato</h3>
-                <p className="text-sm text-muted-foreground">
-                  Mapa de obrigações do contrato (edição manual ou importação por IA).
-                </p>
-              </div>
-              <ObrigacoesEditor
-                contratoId={contratoId}
-                itens={ficha.obrigacoes}
-                onChange={carregar}
-              />
-            </Card>
           </TabsContent>
           <TabsContent value="retencoes" className="mt-4">
             <RetencoesCard contratoId={contratoId} />
@@ -435,15 +496,126 @@ function Page() {
   );
 }
 
-function Bloco({ titulo, icon, children }: { titulo: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function InfoCard({
+  titulo,
+  icon,
+  descricao,
+  className,
+  children,
+}: {
+  titulo: string;
+  icon?: React.ReactNode;
+  descricao?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <Card className="p-4 transition-shadow duration-200 hover:shadow-sm">
-      <p className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {icon ? <span className="text-augusto-gold">{icon}</span> : null}
-        {titulo}
-      </p>
-      <dl className="space-y-1.5 text-sm">{children}</dl>
+    <Card
+      className={`group flex h-full flex-col p-5 transition-all duration-200 ease-out hover:border-augusto-gold/40 hover:shadow-sm ${className ?? ""}`}
+    >
+      <div className="mb-3">
+        <p className="flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          {icon ? (
+            <span className="grid h-5 w-5 place-items-center rounded-md bg-augusto-gold/10 text-augusto-gold transition-colors duration-200 group-hover:bg-augusto-gold/20">
+              {icon}
+            </span>
+          ) : null}
+          {titulo}
+        </p>
+        {descricao ? (
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{descricao}</p>
+        ) : null}
+      </div>
+      <div className="flex-1">{children}</div>
     </Card>
+  );
+}
+
+function StatBadge({
+  children,
+  icon,
+  tone = "default",
+}: {
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+  tone?: "default" | "muted" | "positive" | "warning";
+}) {
+  const tones: Record<string, string> = {
+    default: "bg-augusto-gold/10 text-augusto-gold ring-augusto-gold/25",
+    muted: "bg-muted text-muted-foreground ring-border",
+    positive: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/25 dark:text-emerald-400",
+    warning: "bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-400",
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors duration-200 ${tones[tone]}`}
+    >
+      {icon ? <span aria-hidden="true">{icon}</span> : null}
+      {children}
+    </span>
+  );
+}
+
+function ContactLine({
+  icon,
+  href,
+  children,
+}: {
+  icon: React.ReactNode;
+  href: string | null;
+  children: React.ReactNode;
+}) {
+  if (!href) {
+    return (
+      <span className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+        <span>{icon}</span>
+        <span className="truncate">{children}</span>
+      </span>
+    );
+  }
+  return (
+    <a
+      href={href}
+      className="flex min-w-0 items-center gap-2 rounded-md text-sm text-foreground transition-colors duration-200 hover:text-augusto-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/40"
+    >
+      <span className="text-muted-foreground transition-colors duration-200 group-hover:text-augusto-gold/80">
+        {icon}
+      </span>
+      <span className="truncate">{children}</span>
+    </a>
+  );
+}
+
+function ClauseRow({
+  icon,
+  label,
+  value,
+  positive,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  positive?: boolean;
+}) {
+  const empty = value === null || value === undefined || value === "";
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-2 last:border-b-0 last:pb-0">
+      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="text-augusto-gold/80">{icon}</span>
+        {label}
+      </span>
+      <span
+        className={`text-right text-sm font-medium ${
+          empty
+            ? "text-muted-foreground"
+            : positive === true
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-foreground"
+        }`}
+      >
+        {empty ? "—" : value}
+      </span>
+    </div>
   );
 }
 
@@ -456,16 +628,6 @@ function TriggerIcon({ value, icon, label }: { value: string; icon: React.ReactN
       <span aria-hidden="true">{icon}</span>
       <span>{label}</span>
     </TabsTrigger>
-  );
-}
-function Item({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[9rem_1fr] gap-2">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-foreground break-words">
-        {value === null || value === undefined || value === "" ? "—" : value}
-      </dd>
-    </div>
   );
 }
 function formatBRL(v: number): string {
