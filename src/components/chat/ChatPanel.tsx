@@ -288,7 +288,25 @@ export function ChatPanel({
   // Carrega histórico via setMessages (useChat ignora prop `messages` após mount).
   useEffect(() => {
     if (!initialConversaId) {
-      setMessages([]);
+      // Seed: mensagem inicial do assistente injetada por outra tela
+      // (ex.: análise do contrato → "Conversar sobre este contrato").
+      // Chave: `chat-seed-assistant-${condominioId}`.
+      let seeded: UIMessage[] = [];
+      try {
+        const key = `chat-seed-assistant-${condominioId}`;
+        const raw = sessionStorage.getItem(key);
+        if (raw) {
+          sessionStorage.removeItem(key);
+          seeded = [
+            {
+              id: `seed-${Math.random().toString(36).slice(2)}`,
+              role: "assistant",
+              parts: [{ type: "text", text: raw }],
+            },
+          ];
+        }
+      } catch { /* ignora */ }
+      setMessages(seeded);
       setHistoryLoaded(true);
       return;
     }
