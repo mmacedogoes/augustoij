@@ -469,44 +469,76 @@ function Page() {
             </div>
           </TabsContent>
           <TabsContent value="checklists" className="mt-4">
-            <ChecklistsPanel contratoId={contratoId} />
+            {aba === "checklists" && (
+              <Suspense fallback={<PanelSkeleton />}>
+                <ChecklistsPanel contratoId={contratoId} />
+              </Suspense>
+            )}
           </TabsContent>
           <TabsContent value="retencoes" className="mt-4">
-            <RetencoesCard contratoId={contratoId} />
+            {aba === "retencoes" && (
+              <Suspense fallback={<PanelSkeleton />}>
+                <RetencoesCard contratoId={contratoId} />
+              </Suspense>
+            )}
           </TabsContent>
           <TabsContent value="agenda" className="mt-4">
-            <AgendaPanel contratoId={contratoId} />
+            {aba === "agenda" && (
+              <Suspense fallback={<PanelSkeleton />}>
+                <AgendaPanel contratoId={contratoId} />
+              </Suspense>
+            )}
           </TabsContent>
           <TabsContent value="reajustes" className="mt-4">
-            <ReajustesPanel
-              contrato={{
-                id: contratoId,
-                valor: c.valor === null ? null : Number(c.valor),
-                indice_reajuste: c.indice_reajuste,
-                mes_base_reajuste: c.mes_base_reajuste,
-                ultimo_reajuste_em: c.ultimo_reajuste_em,
-                situacao: c.situacao,
-              }}
-              onChange={carregar}
-            />
+            {aba === "reajustes" && (
+              <Suspense fallback={<PanelSkeleton />}>
+                <ReajustesPanel
+                  contrato={{
+                    id: contratoId,
+                    valor: c.valor === null ? null : Number(c.valor),
+                    indice_reajuste: c.indice_reajuste,
+                    mes_base_reajuste: c.mes_base_reajuste,
+                    ultimo_reajuste_em: c.ultimo_reajuste_em,
+                    situacao: c.situacao,
+                  }}
+                  onChange={carregar}
+                />
+              </Suspense>
+            )}
           </TabsContent>
           <TabsContent value="responsaveis" className="mt-4">
-            <ResponsaveisPanel contratoId={contratoId} />
+            {aba === "responsaveis" && (
+              <Suspense fallback={<PanelSkeleton />}>
+                <ResponsaveisPanel contratoId={contratoId} />
+              </Suspense>
+            )}
           </TabsContent>
           <TabsContent value="aditivos" className="mt-4">
-            <AditivosPanel contratoId={contratoId} onCountChange={setCountAditivos} />
+            {aba === "aditivos" && (
+              <Suspense fallback={<PanelSkeleton />}>
+                <AditivosPanel contratoId={contratoId} onCountChange={setCountAditivos} />
+              </Suspense>
+            )}
           </TabsContent>
           <TabsContent value="analise" className="mt-4">
-            <AnalisePanel
-              contratoId={contratoId}
-              temArquivo={temArquivo}
-              condominioId={c.condominio_id}
-              prestadorNome={c.prestador_nome}
-              objeto={c.objeto ?? null}
-            />
+            {aba === "analise" && (
+              <Suspense fallback={<PanelSkeleton />}>
+                <AnalisePanel
+                  contratoId={contratoId}
+                  temArquivo={temArquivo}
+                  condominioId={c.condominio_id}
+                  prestadorNome={c.prestador_nome}
+                  objeto={c.objeto ?? null}
+                />
+              </Suspense>
+            )}
           </TabsContent>
           <TabsContent value="atividades" className="mt-4">
-            <AtividadesPanel contratoId={contratoId} />
+            {aba === "atividades" && (
+              <Suspense fallback={<PanelSkeleton />}>
+                <AtividadesPanel contratoId={contratoId} />
+              </Suspense>
+            )}
           </TabsContent>
         </Tabs>
       </div>
