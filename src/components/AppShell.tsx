@@ -181,7 +181,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           forceRun={forceTour}
           onClose={() => {
             setForceTour(false);
-            setProfile((p) => (p ? { ...p, onboarding_tour_completo: true } : p));
+            // Marca o tour como concluído no cache do query (evita reabrir).
+            queryClient.setQueryData<{ isAdmin: boolean; profile: typeof profile } | undefined>(
+              ["app-shell-bootstrap"],
+              (prev) =>
+                prev
+                  ? { ...prev, profile: prev.profile ? { ...prev.profile, onboarding_tour_completo: true } : prev.profile }
+                  : prev,
+            );
           }}
         />
       )}
