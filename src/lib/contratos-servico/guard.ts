@@ -3,7 +3,7 @@
  * Fase 1: acesso restrito ao super-admin.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function ensureSuperAdmin(context: { supabase: any; userId: string }): Promise<void> {
+export async function ensureAcessoContratos(context: { supabase: any; userId: string }): Promise<void> {
   const { data, error } = await context.supabase
     .from("profiles")
     .select("papel_sistema")

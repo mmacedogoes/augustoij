@@ -9,7 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import { registrarEventoIa } from "@/lib/uso-ia.server";
 
 const MODEL = "google/gemini-2.5-flash";
@@ -72,7 +72,7 @@ export const analisarContratoServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("Serviço de IA indisponível no momento.");
@@ -215,7 +215,7 @@ export const getAnaliseContratoServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: row, error } = await context.supabase
       .from("contratos_servico")
       .select("analise_resultado, analise_em")

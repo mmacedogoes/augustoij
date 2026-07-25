@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import { gerarChecklistsInterno } from "./checklists.functions";
 import { gerarEventosInterno } from "./eventos.functions";
 import { registrarAuditoriaContrato } from "./auditoria.server";
@@ -19,7 +19,7 @@ import { statusExibicaoContrato, type StatusExibicaoContrato } from "./status";
 export const listTiposServicoContrato = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data, error } = await context.supabase
       .from("tipos_servico_contrato")
       .select("id, slug, nome, terceirizacao_padrao, ordem, ativo")
@@ -51,7 +51,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => listFiltersSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     let query = context.supabase
       .from("contratos_servico")
@@ -124,7 +124,7 @@ export const getContratoServico = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: contrato, error } = await context.supabase
       .from("contratos_servico")
       .select(
@@ -153,7 +153,7 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => contratoServicoSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     const payload = {
       condominio_id: data.condominio_id,
@@ -241,7 +241,7 @@ export const removeContratoServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: prev } = await context.supabase
       .from("contratos_servico")
       .select("prestador_nome, condominio_id")
@@ -268,7 +268,7 @@ export const upsertObrigacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => obrigacaoSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const payload = {
       contrato_id: data.contrato_id,
       parte: data.parte,
@@ -299,7 +299,7 @@ export const removeObrigacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { error } = await context.supabase
       .from("contrato_obrigacoes")
       .delete()
@@ -313,7 +313,7 @@ export const removeObrigacao = createServerFn({ method: "POST" })
 export const listCondominiosParaContratos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data, error } = await context.supabase
       .from("condominios")
       .select("id, nome, cidade, uf")

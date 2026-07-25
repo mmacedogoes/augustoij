@@ -4,7 +4,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import { cancelarEventosAutomaticosFuturos, gerarEventosInterno } from "./eventos.functions";
 import { registrarAuditoriaContrato } from "./auditoria.server";
 import { sincronizarContratoNoAcervo } from "./ai-context.server";
@@ -42,7 +42,7 @@ export const encerrarContrato = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: prev, error: pErr } = await context.supabase
       .from("contratos_servico")
       .select("id, situacao, condominio_id")
@@ -90,7 +90,7 @@ export const reabrirContrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: prev, error: pErr } = await context.supabase
       .from("contratos_servico")
       .select("id, situacao, condominio_id")
@@ -138,7 +138,7 @@ export const suspenderContrato = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: prev, error: pErr } = await context.supabase
       .from("contratos_servico")
       .select("id, situacao, condominio_id")
@@ -178,7 +178,7 @@ export const retomarContrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: prev, error: pErr } = await context.supabase
       .from("contratos_servico")
       .select("id, situacao, condominio_id")

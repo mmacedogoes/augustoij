@@ -6,7 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import { statusExibicaoContrato } from "./status";
 
 const filtroSchema = z.object({
@@ -41,7 +41,7 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     let q = context.supabase
       .from("contratos_servico")
@@ -188,7 +188,7 @@ export const listChecklistsPendentesMes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     let q = context.supabase
       .from("contratos_servico")
       .select("id, prestador_nome, condominios(nome)")
@@ -251,7 +251,7 @@ export const listNaoConformidadesTrabalhistasMes = createServerFn({ method: "POS
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     let q = context.supabase
       .from("contratos_servico")
       .select("id, prestador_nome, condominios(nome)")
