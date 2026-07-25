@@ -13,7 +13,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import { contratoServicoSchema } from "./schemas";
 import { gerarChecklistsInterno } from "./checklists.functions";
 import { sincronizarContratoNoAcervo } from "./ai-context.server";
@@ -360,7 +360,7 @@ export const extrairContratoServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => extractInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     const mime = data.mimeType.toLowerCase();
     const isPdf = mime === "application/pdf" || data.fileName.toLowerCase().endsWith(".pdf");
@@ -392,7 +392,7 @@ export const listDocumentosContratoDoCondominio = createServerFn({ method: "POST
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => listDocsInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: rows, error } = await context.supabase
       .from("documentos")
       .select("id, titulo, nome_arquivo, created_at, storage_path")
@@ -409,7 +409,7 @@ export const extrairContratoDeDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => extractFromDocInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     const { data: doc, error } = await context.supabase
       .from("documentos")
@@ -558,7 +558,7 @@ export const salvarImportacaoContratoServico = createServerFn({ method: "POST" }
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => salvarImportacaoSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const c = data.contrato;
     const payload = {
       condominio_id: c.condominio_id,
@@ -641,7 +641,7 @@ export const getContratoArquivoUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: row, error } = await context.supabase
       .from("contratos_servico")
       .select("arquivo_path, documento_id")
@@ -693,7 +693,7 @@ export const anexarArquivoContratoServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => anexarInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     const bytes = base64ToBytes(data.fileBase64);
     if (bytes.byteLength === 0) throw new Error("Arquivo vazio.");

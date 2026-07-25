@@ -13,7 +13,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import { calcularIndiceParaReajuste, round2 } from "./indices";
 import { gerarEventosInterno } from "./eventos.functions";
 import { hojeBR } from "./eventos-core";
@@ -61,7 +61,7 @@ export const listPendenciasReajuste = createServerFn({ method: "POST" })
     z.object({ condominioId: z.string().uuid().nullable().optional() }).parse(v ?? {}),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     let q = context.supabase
       .from("contratos_servico")
       .select(
@@ -128,7 +128,7 @@ export const getSugestaoReajuste = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: c, error } = await context.supabase
       .from("contratos_servico")
       .select("id, valor, indice_reajuste, mes_base_reajuste, ultimo_reajuste_em, situacao")
@@ -179,7 +179,7 @@ export const aplicarReajuste = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => aplicarSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     const { data: c, error } = await context.supabase
       .from("contratos_servico")
@@ -256,7 +256,7 @@ export const adiarReajuste = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: c, error } = await context.supabase
       .from("contratos_servico")
       .select("id, valor")
@@ -310,7 +310,7 @@ export const listHistoricoReajustes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: rows, error } = await context.supabase
       .from("contrato_reajustes")
       .select("id, competencia, valor_anterior, valor_novo, indice_utilizado, percentual_indice, percentual_aplicado, fonte, observacao, aplicado_por, created_at")
@@ -345,7 +345,7 @@ export const desfazerUltimoReajuste = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: ultimo, error } = await context.supabase
       .from("contrato_reajustes")
       .select("id, valor_anterior, competencia")

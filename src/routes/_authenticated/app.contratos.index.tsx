@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import {
   Select,
   SelectContent,
@@ -86,6 +87,9 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-6xl">
+        <div className="mb-4">
+          <ContratosTabs condominioId={condominioId === TODOS ? null : condominioId} />
+        </div>
         <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
           <div>
             <p className="app-eyebrow">Contratos de prestação de serviços</p>

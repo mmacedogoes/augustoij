@@ -7,7 +7,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Supa = any;
@@ -21,7 +21,7 @@ export const listResponsaveis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => contratoInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: rels, error } = await context.supabase
       .from("contrato_responsaveis")
       .select("user_id")
@@ -43,7 +43,7 @@ export const listResponsaveis = createServerFn({ method: "POST" })
 export const listUsuariosElegiveis = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data, error } = await context.supabase
       .from("profiles")
       .select("id, nome, email")
@@ -58,7 +58,7 @@ export const adicionarResponsavel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => paresInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: prof, error: pErr } = await context.supabase
       .from("profiles").select("id").eq("id", data.userId).maybeSingle();
     if (pErr) throw new Error(pErr.message);
@@ -79,7 +79,7 @@ export const removerResponsavel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => paresInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { error } = await context.supabase
       .from("contrato_responsaveis")
       .delete()
@@ -91,7 +91,7 @@ export const removerResponsavel = createServerFn({ method: "POST" })
 
 /**
  * Helper reutilizado pela rotina diária. Recebe cliente com privilégio suficiente
- * (service role ou super admin) — não faz `ensureSuperAdmin`.
+ * (service role ou super admin) — não faz `ensureAcessoContratos`.
  */
 export async function destinatariosDoContrato(
   supabase: Supa,

@@ -5,7 +5,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import { cancelarEventosAutomaticosFuturos, gerarEventosInterno } from "./eventos.functions";
 
 const input = z.object({
@@ -17,7 +17,7 @@ export const setAvisosAutomaticos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => input.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { error } = await context.supabase
       .from("contratos_servico")
       .update({ notificacoes_ativas: data.ativo } as never)

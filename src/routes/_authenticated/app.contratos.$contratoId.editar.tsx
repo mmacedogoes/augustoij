@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { Button } from "@/components/ui/button";
 import { ContratoForm, type ContratoFormValues } from "@/components/contratos-servico/ContratoForm";
 import { getContratoServico } from "@/lib/contratos-servico/contratos.functions";
@@ -60,6 +61,9 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-3xl">
+        <div className="mb-4">
+          <ContratosTabs condominioId={null} />
+        </div>
         <Button
           variant="ghost"
           className="mb-4"

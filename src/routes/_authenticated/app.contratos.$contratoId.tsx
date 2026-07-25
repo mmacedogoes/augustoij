@@ -69,7 +69,7 @@ function Page() {
   const [confirmar, setConfirmar] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [countAditivos, setCountAditivos] = useState<number>(0);
-  const [aba, setAba] = useState<string>("checklists");
+  const [aba, setAba] = useState<string>("informacoes");
 
   const carregar = useCallback(() => {
     setErro(null);
@@ -244,102 +244,10 @@ function Page() {
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2 mb-6">
-          <Card className="flex flex-wrap items-center justify-between gap-3 p-4 sm:col-span-2">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-augusto-gold/15 text-augusto-gold">
-                <FileText className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-sm font-medium">Arquivo do contrato</p>
-                <p className="text-xs text-muted-foreground">
-                  {c.arquivo_path
-                    ? "Enviado na importação"
-                    : c.documento_id
-                      ? "Vinculado ao acervo do condomínio"
-                      : "Nenhum arquivo vinculado. Anexe um PDF, DOCX ou TXT (até 10 MB)."}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void handleAnexarArquivo(f);
-                }}
-              />
-              {c.arquivo_path || c.documento_id ? (
-                <Button variant="outline" size="sm" onClick={abrirArquivo} disabled={abrindoArquivo}>
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  {abrindoArquivo ? "Abrindo…" : "Abrir arquivo"}
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={anexando}
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  {anexando ? "Enviando…" : "Anexar arquivo"}
-                </Button>
-              )}
-            </div>
-          </Card>
-          <Bloco titulo="Prestador" icon={<Briefcase className="h-3.5 w-3.5" />}>
-            <Item label="Nome" value={c.prestador_nome} />
-            <Item label="CNPJ/CPF" value={c.prestador_documento} />
-            <Item label="E-mail" value={c.prestador_email} />
-            <Item label="Telefone" value={c.prestador_telefone} />
-          </Bloco>
-          <Bloco titulo="Objeto e tipo" icon={<ClipboardCheck className="h-3.5 w-3.5" />}>
-            <Item label="Tipo" value={c.tipos_servico_contrato?.nome} />
-            <Item label="Objeto" value={c.objeto} />
-            <Item
-              label="Terceirização de mão de obra"
-              value={c.terceirizacao_mao_de_obra ? "Sim" : "Não"}
-            />
-          </Bloco>
-          <Bloco titulo="Vigência e renovação" icon={<CalendarRange className="h-3.5 w-3.5" />}>
-            <Item label="Início" value={formatDate(c.data_inicio)} />
-            <Item
-              label="Fim"
-              value={c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
-            />
-            <Item label="Renovação automática" value={c.renovacao_automatica ? "Sim" : "Não"} />
-            {c.renovacao_automatica ? (
-              <Item label="Aviso prévio (dias)" value={c.aviso_previo_dias} />
-            ) : null}
-          </Bloco>
-          <Bloco titulo="Valores e pagamento" icon={<Wallet className="h-3.5 w-3.5" />}>
-            <Item
-              label="Valor"
-              value={
-                c.valor === null
-                  ? "—"
-                  : `${formatBRL(Number(c.valor))} ${c.tipo_valor === "mensal" ? "/mês" : "(global)"}`
-              }
-            />
-            <Item label="Dia de vencimento" value={c.dia_vencimento ?? "—"} />
-          </Bloco>
-          <Bloco titulo="Reajuste" icon={<TrendingUp className="h-3.5 w-3.5" />}>
-            <Item label="Índice" value={rotuloIndice(c.indice_reajuste)} />
-            <Item label="Mês base" value={c.mes_base_reajuste ?? "—"} />
-          </Bloco>
-          <Bloco titulo="Cláusulas" icon={<Scale className="h-3.5 w-3.5" />}>
-            <Item label="Multa rescisória" value={c.multa_rescisoria} />
-            <Item label="Exige seguro RC" value={c.exige_seguro_rc ? "Sim" : "Não"} />
-            <Item label="Garantias" value={c.garantias} />
-            <Item label="Foro" value={c.foro} />
-          </Bloco>
-        </div>
-
         <Tabs value={aba} onValueChange={setAba} className="mb-6">
-          <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/40 p-1">
+          <div className="mb-4 -mx-1 overflow-x-auto pb-1">
+            <TabsList className="inline-flex h-auto min-w-full flex-nowrap gap-1 bg-muted/40 p-1">
+            <TriggerIcon value="informacoes" icon={<FileText className="h-3.5 w-3.5" />} label="Informações" />
             <TriggerIcon value="checklists" icon={<ListChecks className="h-3.5 w-3.5" />} label="Checklists" />
             <TriggerIcon value="obrigacoes" icon={<ClipboardCheck className="h-3.5 w-3.5" />} label="Obrigações" />
             <TriggerIcon value="retencoes" icon={<Shield className="h-3.5 w-3.5" />} label="Retenções" />
@@ -349,7 +257,103 @@ function Page() {
             <TriggerIcon value="analise" icon={<Sparkles className="h-3.5 w-3.5" />} label="Análise" />
             <TriggerIcon value="responsaveis" icon={<Users className="h-3.5 w-3.5" />} label="Responsáveis" />
             <TriggerIcon value="atividades" icon={<Activity className="h-3.5 w-3.5" />} label="Atividades" />
-          </TabsList>
+            </TabsList>
+          </div>
+          <TabsContent value="informacoes" className="mt-4 space-y-4">
+            <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-augusto-gold/15 text-augusto-gold">
+                  <FileText className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-medium">Arquivo do contrato</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.arquivo_path
+                      ? "Enviado na importação"
+                      : c.documento_id
+                        ? "Vinculado ao acervo do condomínio"
+                        : "Nenhum arquivo vinculado. Anexe um PDF, DOCX ou TXT (até 10 MB)."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void handleAnexarArquivo(f);
+                  }}
+                />
+                {c.arquivo_path || c.documento_id ? (
+                  <Button variant="outline" size="sm" onClick={abrirArquivo} disabled={abrindoArquivo}>
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    {abrindoArquivo ? "Abrindo…" : "Abrir arquivo"}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={anexando}
+                  >
+                    <Upload className="h-4 w-4 mr-1" />
+                    {anexando ? "Enviando…" : "Anexar arquivo"}
+                  </Button>
+                )}
+              </div>
+            </Card>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Bloco titulo="Prestador" icon={<Briefcase className="h-3.5 w-3.5" />}>
+                <Item label="Nome" value={c.prestador_nome} />
+                <Item label="CNPJ/CPF" value={c.prestador_documento} />
+                <Item label="E-mail" value={c.prestador_email} />
+                <Item label="Telefone" value={c.prestador_telefone} />
+              </Bloco>
+              <Bloco titulo="Objeto e tipo" icon={<ClipboardCheck className="h-3.5 w-3.5" />}>
+                <Item label="Tipo" value={c.tipos_servico_contrato?.nome} />
+                <Item label="Objeto" value={c.objeto} />
+                <Item
+                  label="Terceirização de mão de obra"
+                  value={c.terceirizacao_mao_de_obra ? "Sim" : "Não"}
+                />
+              </Bloco>
+              <Bloco titulo="Vigência e renovação" icon={<CalendarRange className="h-3.5 w-3.5" />}>
+                <Item label="Início" value={formatDate(c.data_inicio)} />
+                <Item
+                  label="Fim"
+                  value={c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
+                />
+                <Item label="Renovação automática" value={c.renovacao_automatica ? "Sim" : "Não"} />
+                {c.renovacao_automatica ? (
+                  <Item label="Aviso prévio (dias)" value={c.aviso_previo_dias} />
+                ) : null}
+              </Bloco>
+              <Bloco titulo="Valores e pagamento" icon={<Wallet className="h-3.5 w-3.5" />}>
+                <Item
+                  label="Valor"
+                  value={
+                    c.valor === null
+                      ? "—"
+                      : `${formatBRL(Number(c.valor))} ${c.tipo_valor === "mensal" ? "/mês" : "(global)"}`
+                  }
+                />
+                <Item label="Dia de vencimento" value={c.dia_vencimento ?? "—"} />
+              </Bloco>
+              <Bloco titulo="Reajuste" icon={<TrendingUp className="h-3.5 w-3.5" />}>
+                <Item label="Índice" value={rotuloIndice(c.indice_reajuste)} />
+                <Item label="Mês base" value={c.mes_base_reajuste ?? "—"} />
+              </Bloco>
+              <Bloco titulo="Cláusulas" icon={<Scale className="h-3.5 w-3.5" />}>
+                <Item label="Multa rescisória" value={c.multa_rescisoria} />
+                <Item label="Exige seguro RC" value={c.exige_seguro_rc ? "Sim" : "Não"} />
+                <Item label="Garantias" value={c.garantias} />
+                <Item label="Foro" value={c.foro} />
+              </Bloco>
+            </div>
+          </TabsContent>
           <TabsContent value="checklists" className="mt-4">
             <ChecklistsPanel contratoId={contratoId} />
           </TabsContent>

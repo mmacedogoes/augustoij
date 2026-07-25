@@ -11,7 +11,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import {
   calcularRetencoesAplicaveis,
   descricaoItemTributario,
@@ -210,7 +210,7 @@ export const gerarChecklistsDoContrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     await gerarChecklistsInterno(context.supabase, data.contratoId);
     return { ok: true as const };
   });
@@ -221,7 +221,7 @@ export const getRetencoesDoContrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const rows = await calcularRetencoesAplicaveis(context.supabase, data.contratoId);
     return { rows: rows as RetencaoAplicavel[] };
   });
@@ -284,7 +284,7 @@ export const getChecklistsDoContrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => getChecklistsSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     const { data: c, error: cErr } = await context.supabase
       .from("contratos_servico")
@@ -462,7 +462,7 @@ export const marcarItemChecklist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => marcarSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     // Bloqueia marcação em contratos encerrados/suspensos
     const { data: per, error: pErr } = await context.supabase

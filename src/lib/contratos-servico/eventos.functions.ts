@@ -8,7 +8,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import {
   gerarEventosPrevistos,
   hojeBR,
@@ -103,7 +103,7 @@ export const gerarEventosDoContrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     await gerarEventosInterno(context.supabase, data.contratoId);
     return { ok: true as const };
   });
@@ -125,7 +125,7 @@ export const listEventosDoContrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: rows, error } = await context.supabase
       .from("contrato_eventos")
       .select("id, tipo, titulo, descricao, data_evento, status, origem, antecedencia_dias, competencia, notificado_em")
@@ -147,7 +147,7 @@ export const upsertEventoManual = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => eventoManualSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     if (data.id) {
       const { error } = await context.supabase
         .from("contrato_eventos")
@@ -181,7 +181,7 @@ export const concluirEvento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => eventoIdInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { error } = await context.supabase
       .from("contrato_eventos")
       .update({ status: "concluido" } as never)
@@ -194,7 +194,7 @@ export const cancelarEvento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => eventoIdInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { error } = await context.supabase
       .from("contrato_eventos")
       .update({ status: "cancelado" } as never)
@@ -219,7 +219,7 @@ type EventoProximo = {
 export const listEventosProximos30Dias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const hoje = hojeBR();
     const [y, m, d] = hoje.split("-").map((n) => Number(n));
     const ate = new Date(Date.UTC(y, m - 1, d));

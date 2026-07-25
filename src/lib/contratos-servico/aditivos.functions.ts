@@ -14,7 +14,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureSuperAdmin } from "./guard";
+import { ensureAcessoContratos } from "./guard";
 import { gerarEventosInterno } from "./eventos.functions";
 import { registrarAuditoriaContrato } from "./auditoria.server";
 
@@ -40,7 +40,7 @@ export const listAditivos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => listInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: rows, error } = await context.supabase
       .from("contrato_aditivos")
       .select(
@@ -83,7 +83,7 @@ export const upsertAditivo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => upsertSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
 
     // Carrega estado atual do contrato para "antes/depois".
     const { data: contrato, error: cErr } = await context.supabase
@@ -222,7 +222,7 @@ export const removeAditivo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: row, error } = await context.supabase
       .from("contrato_aditivos")
       .select("id, contrato_id, numero, arquivo_path")
@@ -254,7 +254,7 @@ export const getAditivoArquivoUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureAcessoContratos(context);
     const { data: row, error } = await context.supabase
       .from("contrato_aditivos")
       .select("arquivo_path")
