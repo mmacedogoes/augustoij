@@ -199,7 +199,7 @@ function CondominioDetail() {
             <TabsTrigger value="historico">Histórico de Conversas</TabsTrigger>
             <TabsTrigger value="documentos">Documentos</TabsTrigger>
             <TabsTrigger value="unidades">Unidades</TabsTrigger>
-            {isAdmin ? (
+            {(canEdit || isAdmin) ? (
               <TabsTrigger value="contratos">Gestão de Contratos</TabsTrigger>
             ) : null}
             <TabsTrigger value="config">Configurações</TabsTrigger>
@@ -294,7 +294,7 @@ function CondominioDetail() {
           <TabsContent value="unidades">
             <UnidadesPanel condominioId={id} isOwner={canEdit} />
           </TabsContent>
-          {isAdmin ? (
+          {(canEdit || isAdmin) ? (
             <TabsContent value="contratos">
               <CondominioContratosTab condominioId={id} />
             </TabsContent>
