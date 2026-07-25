@@ -3,6 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
+  // Mostra um skeleton logo (200ms) em vez de tela branca durante navegações.
+  pendingMs: 200,
+  pendingComponent: () => (
+    <div className="min-h-screen bg-background p-6">
+      <div className="mx-auto max-w-5xl space-y-4">
+        <div className="h-8 w-56 rounded-md bg-muted/60 animate-pulse" />
+        <div className="h-4 w-80 rounded-md bg-muted/40 animate-pulse" />
+        <div className="h-40 rounded-lg bg-muted/40 animate-pulse" />
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="h-32 rounded-lg bg-muted/40 animate-pulse" />
+          <div className="h-32 rounded-lg bg-muted/40 animate-pulse" />
+        </div>
+      </div>
+    </div>
+  ),
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/login" });

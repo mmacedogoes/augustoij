@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ImoveisNav } from "@/components/admin/ImoveisNav";
@@ -256,7 +255,9 @@ function GerarAditivo() {
     ].join("\n");
   }, [form]);
 
-  function gerarPdf(): { doc: jsPDF; base64: string } {
+  async function gerarPdf(): Promise<{ doc: import("jspdf").jsPDF; base64: string }> {
+    // Carrega jsPDF só quando o usuário realmente gera o PDF.
+    const { default: jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const marginX = 56;
     const marginY = 64;
@@ -294,7 +295,7 @@ function GerarAditivo() {
   }
 
   async function baixarPdf() {
-    const { doc } = gerarPdf();
+    const { doc } = await gerarPdf();
     doc.save(`termo-renovacao-${id.slice(0, 8)}.pdf`);
   }
 
@@ -302,7 +303,7 @@ function GerarAditivo() {
     if (!form) return;
     setSalvando(true);
     try {
-      const { base64 } = gerarPdf();
+      const { base64 } = await gerarPdf();
       const res = await salvar({
         data: {
           contratoLocacaoId: id,

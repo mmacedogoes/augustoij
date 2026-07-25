@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Nav } from "@/components/landing/Nav";
 import { Eyebrow } from "@/components/landing/Eyebrow";
@@ -10,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { getPostPublico, listPostsPublicos } from "@/lib/blog.functions";
+
+// react-markdown + remark-gfm são pesados; carrega só quando o post estiver pronto.
+const MarkdownContent = lazy(() => import("@/components/blog/MarkdownContent"));
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
@@ -189,10 +190,14 @@ function BlogPostPage() {
                     <img
                       src={post.imagem_capa}
                       alt={post.titulo}
+                      loading="lazy"
+                      decoding="async"
                       className="mb-4 aspect-square w-full rounded-2xl object-cover shadow-[var(--landing-shadow-card)] sm:float-right sm:ml-6 sm:mb-4 sm:w-1/2 sm:max-w-[420px]"
                     />
                   )}
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.conteudo_markdown ?? ""}</ReactMarkdown>
+                  <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                    <MarkdownContent source={post.conteudo_markdown ?? ""} />
+                  </Suspense>
                 </div>
 
                 <div className="mt-14 border-t border-augusto-gold/25 pt-8">

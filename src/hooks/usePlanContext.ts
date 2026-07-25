@@ -7,22 +7,18 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Hook único para ler o contexto de plano no cliente.
  * Cache curto (60s) — as ações ainda são validadas no servidor.
+ *
+ * A sessão inicial vem síncrona do storage (o supabase-js já a carrega),
+ * então evitamos um getSession() extra por montagem — só reagimos a mudanças.
  */
 export function usePlanContext() {
   const fetchCtx = useServerFn(getPlanContext);
-  const [hasSession, setHasSession] = useState<boolean>(() => true);
+  const [hasSession, setHasSession] = useState<boolean>(true);
   useEffect(() => {
-    let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted) setHasSession(!!data.session);
-    });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setHasSession(!!session);
     });
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
+    return () => sub.subscription.unsubscribe();
   }, []);
   return useQuery<PlanContext>({
     queryKey: ["plan-context"],
