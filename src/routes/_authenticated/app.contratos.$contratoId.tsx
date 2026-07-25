@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -71,6 +71,16 @@ function Page() {
   const [excluindo, setExcluindo] = useState(false);
   const [countAditivos, setCountAditivos] = useState<number>(0);
   const [aba, setAba] = useState<string>("informacoes");
+  const hash = useLocation({ select: (l) => l.hash });
+
+  useEffect(() => {
+    const abasValidas = [
+      "informacoes", "checklists", "retencoes", "agenda", "reajustes",
+      "aditivos", "analise", "responsaveis", "atividades",
+    ];
+    const alvo = (hash ?? "").replace(/^#/, "");
+    if (alvo && abasValidas.includes(alvo)) setAba(alvo);
+  }, [hash]);
 
   const carregar = useCallback(() => {
     setErro(null);
