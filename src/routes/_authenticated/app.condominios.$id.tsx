@@ -225,17 +225,21 @@ function CondominioDetail() {
             <TabsTrigger value="config">Configurações</TabsTrigger>
           </TabsList>
           <TabsContent value="chat">
-            <ChatPanel
-              key={chatKey}
-              condominioId={id}
-              hasReadyDocs={hasReadyDocs}
-              initialConversaId={conversaAtiva}
-              readOnly={adminView}
-              onConversaCreated={(cid) => {
-                setConversaAtiva(cid);
-                refreshConversas();
-              }}
-            />
+            {tab === "chat" && (
+              <Suspense fallback={<TabSkeleton />}>
+                <ChatPanel
+                  key={chatKey}
+                  condominioId={id}
+                  hasReadyDocs={hasReadyDocs}
+                  initialConversaId={conversaAtiva}
+                  readOnly={adminView}
+                  onConversaCreated={(cid) => {
+                    setConversaAtiva(cid);
+                    refreshConversas();
+                  }}
+                />
+              </Suspense>
+            )}
             <div className="mt-3 flex justify-end">
               {!adminView && (
               <Button
@@ -309,14 +313,26 @@ function CondominioDetail() {
             )}
           </TabsContent>
           <TabsContent value="documentos">
-            <DocumentosPanel condominioId={id} readOnly={adminView} />
+            {tab === "documentos" && (
+              <Suspense fallback={<TabSkeleton />}>
+                <DocumentosPanel condominioId={id} readOnly={adminView} />
+              </Suspense>
+            )}
           </TabsContent>
           <TabsContent value="unidades">
-            <UnidadesPanel condominioId={id} isOwner={canEdit} />
+            {tab === "unidades" && (
+              <Suspense fallback={<TabSkeleton />}>
+                <UnidadesPanel condominioId={id} isOwner={canEdit} />
+              </Suspense>
+            )}
           </TabsContent>
           {(canEdit || isAdmin) ? (
             <TabsContent value="contratos">
-              <CondominioContratosTab condominioId={id} />
+              {tab === "contratos" && (
+                <Suspense fallback={<TabSkeleton />}>
+                  <CondominioContratosTab condominioId={id} />
+                </Suspense>
+              )}
             </TabsContent>
           ) : null}
           <TabsContent value="config">
