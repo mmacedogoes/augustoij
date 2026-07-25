@@ -418,12 +418,27 @@ function Page() {
   );
 }
 
-function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function Bloco({ titulo, icon, children }: { titulo: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <Card className="p-4">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{titulo}</p>
+    <Card className="p-4 transition-shadow duration-200 hover:shadow-sm">
+      <p className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {icon ? <span className="text-augusto-gold">{icon}</span> : null}
+        {titulo}
+      </p>
       <dl className="space-y-1.5 text-sm">{children}</dl>
     </Card>
+  );
+}
+
+function TriggerIcon({ value, icon, label }: { value: string; icon: React.ReactNode; label: string }) {
+  return (
+    <TabsTrigger
+      value={value}
+      className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-augusto-gold/25 gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:text-foreground"
+    >
+      <span aria-hidden="true">{icon}</span>
+      <span>{label}</span>
+    </TabsTrigger>
   );
 }
 function Item({ label, value }: { label: string; value: React.ReactNode }) {
