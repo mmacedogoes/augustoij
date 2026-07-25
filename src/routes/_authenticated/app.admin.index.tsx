@@ -219,15 +219,4 @@ function MiniStat({
   );
 }
 
-function LegendDot({ className, label }: { className: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`h-2.5 w-2.5 rounded-full ${className}`} />
-      <span>{label}</span>
-    </span>
-  );
-}
 
-function EmptyState({ label }: { label: string }) {
-  return <div className="h-full grid place-items-center text-xs text-muted-foreground">{label}</div>;
-}
