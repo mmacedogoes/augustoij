@@ -260,23 +260,21 @@ function Page() {
             </TabsList>
           </div>
           <TabsContent value="informacoes" className="mt-4 space-y-4">
-            <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-augusto-gold/15 text-augusto-gold">
-                  <FileText className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-sm font-medium">Arquivo do contrato</p>
-                  <p className="text-xs text-muted-foreground">
-                    {c.arquivo_path
-                      ? "Enviado na importação"
-                      : c.documento_id
-                        ? "Vinculado ao acervo do condomínio"
-                        : "Nenhum arquivo vinculado. Anexe um PDF, DOCX ou TXT (até 10 MB)."}
-                  </p>
-                </div>
+            <Card className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-augusto-gold/20 bg-gradient-to-br from-card to-augusto-gold/[0.04] p-5 transition-all duration-200 hover:border-augusto-gold/40 hover:shadow-sm">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-augusto-gold/15 text-augusto-gold ring-1 ring-augusto-gold/20">
+                <FileText className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Arquivo do contrato</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  {c.arquivo_path
+                    ? "Enviado na importação"
+                    : c.documento_id
+                      ? "Vinculado ao acervo do condomínio"
+                      : "Nenhum arquivo vinculado. Anexe um PDF, DOCX ou TXT (até 10 MB)."}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -305,72 +303,135 @@ function Page() {
                 )}
               </div>
             </Card>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Bloco titulo="Prestador" icon={<Briefcase className="h-3.5 w-3.5" />}>
-                <Item label="Nome" value={c.prestador_nome} />
-                <Item label="CNPJ/CPF" value={c.prestador_documento} />
-                <Item label="E-mail" value={c.prestador_email} />
-                <Item label="Telefone" value={c.prestador_telefone} />
-              </Bloco>
-              <Bloco titulo="Objeto e tipo" icon={<ClipboardCheck className="h-3.5 w-3.5" />}>
-                <Item label="Tipo" value={c.tipos_servico_contrato?.nome} />
-                <Item label="Objeto" value={c.objeto} />
-                <Item
-                  label="Terceirização de mão de obra"
-                  value={c.terceirizacao_mao_de_obra ? "Sim" : "Não"}
-                />
-              </Bloco>
-              <Bloco titulo="Vigência e renovação" icon={<CalendarRange className="h-3.5 w-3.5" />}>
-                <Item label="Início" value={formatDate(c.data_inicio)} />
-                <Item
-                  label="Fim"
-                  value={c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
-                />
-                <Item label="Renovação automática" value={c.renovacao_automatica ? "Sim" : "Não"} />
-                {c.renovacao_automatica ? (
-                  <Item label="Aviso prévio (dias)" value={c.aviso_previo_dias} />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
+              <InfoCard className="xl:col-span-5" icon={<Wallet className="h-3.5 w-3.5" />} titulo="Financeiro">
+                <div className="flex items-baseline gap-2">
+                  <p className="font-serif text-3xl leading-none text-primary">
+                    {c.valor === null ? "—" : formatBRL(Number(c.valor))}
+                  </p>
+                  {c.valor !== null ? (
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      {c.tipo_valor === "mensal" ? "/ mês" : "global"}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {c.dia_vencimento ? (
+                    <StatBadge icon={<CalendarDays className="h-3 w-3" />}>Vence dia {c.dia_vencimento}</StatBadge>
+                  ) : null}
+                  {c.tipo_valor ? (
+                    <StatBadge icon={<Hash className="h-3 w-3" />}>
+                      {c.tipo_valor === "mensal" ? "Recorrente" : "Valor único"}
+                    </StatBadge>
+                  ) : null}
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-7" icon={<CalendarRange className="h-3.5 w-3.5" />} titulo="Vigência">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                  <div>
+                    <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Início</p>
+                    <p className="mt-1 font-serif text-xl text-foreground">{formatDate(c.data_inicio)}</p>
+                  </div>
+                  <div className="h-px w-8 bg-gradient-to-r from-augusto-gold/40 via-augusto-gold to-augusto-gold/40 sm:w-16" aria-hidden="true" />
+                  <div className="text-right">
+                    <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Fim</p>
+                    <p className="mt-1 font-serif text-xl text-foreground">
+                      {c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <StatBadge
+                    tone={c.renovacao_automatica ? "positive" : "muted"}
+                    icon={c.renovacao_automatica ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  >
+                    Renovação automática
+                  </StatBadge>
+                  {c.renovacao_automatica && c.aviso_previo_dias ? (
+                    <StatBadge icon={<CalendarClock className="h-3 w-3" />}>Aviso prévio {c.aviso_previo_dias}d</StatBadge>
+                  ) : null}
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-7" icon={<Briefcase className="h-3.5 w-3.5" />} titulo="Prestador">
+                <p className="font-serif text-xl leading-tight text-primary">{c.prestador_nome ?? "—"}</p>
+                {c.prestador_documento ? (
+                  <p className="mt-1 text-xs text-muted-foreground">CNPJ/CPF · {c.prestador_documento}</p>
                 ) : null}
-              </Bloco>
-              <Bloco titulo="Valores e pagamento" icon={<Wallet className="h-3.5 w-3.5" />}>
-                <Item
-                  label="Valor"
-                  value={
-                    c.valor === null
-                      ? "—"
-                      : `${formatBRL(Number(c.valor))} ${c.tipo_valor === "mensal" ? "/mês" : "(global)"}`
-                  }
-                />
-                <Item label="Dia de vencimento" value={c.dia_vencimento ?? "—"} />
-              </Bloco>
-              <Bloco titulo="Reajuste" icon={<TrendingUp className="h-3.5 w-3.5" />}>
-                <Item label="Índice" value={rotuloIndice(c.indice_reajuste)} />
-                <Item label="Mês base" value={c.mes_base_reajuste ?? "—"} />
-              </Bloco>
-              <Bloco titulo="Cláusulas" icon={<Scale className="h-3.5 w-3.5" />}>
-                <Item label="Multa rescisória" value={c.multa_rescisoria} />
-                <Item label="Exige seguro RC" value={c.exige_seguro_rc ? "Sim" : "Não"} />
-                <Item label="Garantias" value={c.garantias} />
-                <Item label="Foro" value={c.foro} />
-              </Bloco>
+                <div className="mt-4 space-y-1.5">
+                  <ContactLine icon={<Mail className="h-3.5 w-3.5" />} href={c.prestador_email ? `mailto:${c.prestador_email}` : null}>
+                    {c.prestador_email ?? "—"}
+                  </ContactLine>
+                  <ContactLine icon={<Phone className="h-3.5 w-3.5" />} href={c.prestador_telefone ? `tel:${c.prestador_telefone}` : null}>
+                    {c.prestador_telefone ?? "—"}
+                  </ContactLine>
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-5" icon={<TrendingUp className="h-3.5 w-3.5" />} titulo="Reajuste">
+                <div className="flex items-baseline gap-2">
+                  <p className="font-serif text-2xl text-primary">{rotuloIndice(c.indice_reajuste)}</p>
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground">índice</span>
+                </div>
+                <div className="mt-4">
+                  <StatBadge icon={<CalendarDays className="h-3 w-3" />}>
+                    Mês base · {c.mes_base_reajuste ?? "—"}
+                  </StatBadge>
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-7" icon={<ClipboardCheck className="h-3.5 w-3.5" />} titulo="Objeto e tipo">
+                {c.tipos_servico_contrato?.nome ? <StatBadge>{c.tipos_servico_contrato.nome}</StatBadge> : null}
+                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground">{c.objeto || "—"}</p>
+                <div className="mt-4">
+                  <StatBadge
+                    tone={c.terceirizacao_mao_de_obra ? "warning" : "muted"}
+                    icon={c.terceirizacao_mao_de_obra ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  >
+                    Terceirização de mão de obra
+                  </StatBadge>
+                </div>
+              </InfoCard>
+
+              <InfoCard className="xl:col-span-5" icon={<Scale className="h-3.5 w-3.5" />} titulo="Cláusulas">
+                <div className="space-y-2.5 text-sm">
+                  <ClauseRow icon={<Percent className="h-3.5 w-3.5" />} label="Multa rescisória" value={c.multa_rescisoria} />
+                  <ClauseRow
+                    icon={<Shield className="h-3.5 w-3.5" />}
+                    label="Exige seguro RC"
+                    value={c.exige_seguro_rc ? "Sim" : "Não"}
+                    positive={c.exige_seguro_rc}
+                  />
+                  <ClauseRow icon={<ScrollText className="h-3.5 w-3.5" />} label="Garantias" value={c.garantias} />
+                  <ClauseRow icon={<Landmark className="h-3.5 w-3.5" />} label="Foro" value={c.foro} />
+                </div>
+              </InfoCard>
+
+              <div className="md:col-span-2 xl:col-span-12">
+                <InfoCard
+                  icon={<ClipboardCheck className="h-3.5 w-3.5" />}
+                  titulo="Obrigações do contrato"
+                  descricao="Mapa de deveres do condomínio e do prestador. Edite manualmente ou importe por IA."
+                >
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    <StatBadge>
+                      {ficha.obrigacoes.length} {ficha.obrigacoes.length === 1 ? "obrigação" : "obrigações"}
+                    </StatBadge>
+                    <StatBadge tone="muted">
+                      {ficha.obrigacoes.filter((o) => o.parte === "condominio").length} do condomínio
+                    </StatBadge>
+                    <StatBadge tone="muted">
+                      {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do prestador
+                    </StatBadge>
+                  </div>
+                  <ObrigacoesEditor contratoId={contratoId} itens={ficha.obrigacoes} onChange={carregar} />
+                </InfoCard>
+              </div>
             </div>
           </TabsContent>
           <TabsContent value="checklists" className="mt-4">
             <ChecklistsPanel contratoId={contratoId} />
-          </TabsContent>
-          <TabsContent value="obrigacoes" className="mt-4">
-            <Card className="p-4">
-              <div className="mb-4">
-                <h3 className="text-lg font-serif text-primary">Obrigações do contrato</h3>
-                <p className="text-sm text-muted-foreground">
-                  Mapa de obrigações do contrato (edição manual ou importação por IA).
-                </p>
-              </div>
-              <ObrigacoesEditor
-                contratoId={contratoId}
-                itens={ficha.obrigacoes}
-                onChange={carregar}
-              />
-            </Card>
           </TabsContent>
           <TabsContent value="retencoes" className="mt-4">
             <RetencoesCard contratoId={contratoId} />
