@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { ArrowLeft, Building, Eye } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
@@ -8,10 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { getCondominio, updateCondominio } from "@/lib/condominios.functions";
-import { DocumentosPanel, useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
-import { ChatPanel } from "@/components/chat/ChatPanel";
-import { UnidadesPanel } from "@/components/unidades/UnidadesPanel";
-import { CondominioContratosTab } from "@/components/contratos-servico/CondominioContratosTab";
+import { useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 import { listConversas, deleteConversa } from "@/lib/chat.functions";
 import { listMembros, inviteMembro, removeMembro, createOperadorPJ } from "@/lib/membros.functions";
 import { isCurrentUserAdmin } from "@/lib/admin.functions";
@@ -43,6 +40,29 @@ import {
   getCategoriaMeta,
   normalizeCategoria,
 } from "@/lib/categorias-condominio";
+
+// Painéis pesados carregam sob demanda (troca de aba).
+const ChatPanel = lazy(() =>
+  import("@/components/chat/ChatPanel").then((m) => ({ default: m.ChatPanel })),
+);
+const DocumentosPanel = lazy(() =>
+  import("@/components/documentos/DocumentosPanel").then((m) => ({ default: m.DocumentosPanel })),
+);
+const UnidadesPanel = lazy(() =>
+  import("@/components/unidades/UnidadesPanel").then((m) => ({ default: m.UnidadesPanel })),
+);
+const CondominioContratosTab = lazy(() =>
+  import("@/components/contratos-servico/CondominioContratosTab").then((m) => ({ default: m.CondominioContratosTab })),
+);
+
+function TabSkeleton() {
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="h-6 w-40 rounded-md bg-muted/60 animate-pulse" />
+      <div className="h-32 rounded-md bg-muted/40 animate-pulse" />
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/app/condominios/$id")({
   component: CondominioDetail,
