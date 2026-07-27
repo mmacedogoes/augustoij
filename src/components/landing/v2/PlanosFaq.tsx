@@ -135,7 +135,7 @@ const MICROCOPY: Partial<Record<PlanId, string>> = {
 };
 
 const PLANS: Plan[] = ORDER.map((id) => {
-  const p = PLANOS[id];
+  const p = PLANOS[id] as import("@/config/planos").Plano;
   const mensal = p.precoMensal;
   const anual = p.precoAnual;
   const semPreco = mensal === null || anual === null;
