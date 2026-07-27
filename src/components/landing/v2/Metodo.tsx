@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Icon } from "@iconify/react";
 import { SectionLabel } from "@/components/landing/SectionLabel";
 import { ArcoAugusto } from "@/components/landing/ArcoAugusto";
@@ -45,7 +45,7 @@ const CONDOMINIO: CardItem[] = [
 type Bloco = {
   numero: string;
   rotulo: string;
-  render: () => JSX.Element;
+  render: () => ReactElement;
 };
 
 const BLOCOS: Bloco[] = [
