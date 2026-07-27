@@ -14,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
+import { GestaoContratosGate } from "@/components/gates/GestaoContratosGate";
 import {
   getIndicadoresPainel,
   listChecklistsPendentesMes,
@@ -88,6 +89,7 @@ function Page() {
 
   return (
     <AppShell>
+      <GestaoContratosGate requerePainelConsolidado>
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
@@ -245,6 +247,7 @@ function Page() {
           )}
         </Bloco>
       </div>
+      </GestaoContratosGate>
     </AppShell>
   );
 }
