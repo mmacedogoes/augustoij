@@ -78,6 +78,34 @@
   --color-usage-ok: var(--usage-ok);
   --color-usage-warn: var(--usage-warn);
   --color-usage-alert: var(--usage-alert);
+
+  /* Landing v2 — paleta institucional Augusto.IJ */
+  --color-verde: var(--v2-verde);
+  --color-verde-profundo: var(--v2-verde-profundo);
+  --color-verde-medio: var(--v2-verde-medio);
+  --color-verde-claro: var(--v2-verde-claro);
+  --color-dourado: var(--v2-dourado);
+  --color-dourado-texto: var(--v2-dourado-texto);
+  --color-dourado-claro: var(--v2-dourado-claro);
+  --color-cream: var(--v2-cream);
+  --color-off: var(--v2-off);
+  --color-bege: var(--v2-bege);
+  --color-papel: var(--v2-papel);
+  --color-grafite: var(--v2-grafite);
+  --color-ardosia: var(--v2-ardosia);
+  --color-borda: var(--v2-borda);
+
+  --font-heading: "Cormorant Garamond", Georgia, serif;
+  --font-body: "Inter", Arial, sans-serif;
+
+  --spacing-section: 96px;
+  --spacing-section-mobile: 64px;
+
+  --container-container: 1140px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 }
 
 :root {
@@ -145,6 +173,22 @@
   --usage-ok: hsl(152 56% 42%);
   --usage-warn: hsl(42 74% 50%);
   --usage-alert: hsl(0 72% 48%);
+
+  /* Landing v2 tokens (HSL) */
+  --v2-verde: hsl(150 100% 16%);
+  --v2-verde-profundo: hsl(151 93% 11%);
+  --v2-verde-medio: hsl(150 94% 14%);
+  --v2-verde-claro: hsl(130 15% 93%);
+  --v2-dourado: hsl(33 40% 54%);
+  --v2-dourado-texto: hsl(34 42% 38%);
+  --v2-dourado-claro: hsl(35 55% 81%);
+  --v2-cream: hsl(41 71% 95%);
+  --v2-off: hsl(30 6% 95%);
+  --v2-bege: hsl(38 24% 92%);
+  --v2-papel: hsl(40 43% 99%);
+  --v2-grafite: hsl(217 33% 17%);
+  --v2-ardosia: hsl(215 19% 35%);
+  --v2-borda: hsl(46 20% 88%);
 }
 
 .dark {
