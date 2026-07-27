@@ -2,22 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
-
-/**
- * Preços dos planos (fonte única no servidor).
- * Mantidos em sincronia com src/components/landing/PricingSection.tsx.
- */
-const PRICING: Record<
-  string,
-  { mensal: number | null; anualPorMes: number | null; anualTotal: number | null; nome: string }
-> = {
-  gratuito: { mensal: null, anualPorMes: null, anualTotal: null, nome: "Gratuito" },
-  essencial: { mensal: 89, anualPorMes: 74, anualTotal: 888, nome: "Essencial" },
-  profissional: { mensal: 197, anualPorMes: 164, anualTotal: 1968, nome: "Profissional" },
-  gestao: { mensal: 347, anualPorMes: 289, anualTotal: 3468, nome: "Gestão" },
-  administradora: { mensal: 697, anualPorMes: 580, anualTotal: 6960, nome: "Administradora" },
-  personalizado: { mensal: null, anualPorMes: null, anualTotal: null, nome: "Personalizado" },
-};
+import { PLANOS, type PlanoId } from "@/config/planos";
 
 const criarSchema = z.object({
   plano_id: z.enum([
@@ -52,19 +37,12 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
     }
     if (!profile.email) throw new Error("Email não encontrado no perfil.");
 
-    // 2) Preço e ciclo
-    const preco = PRICING[data.plano_id];
+    // 2) Preço e ciclo — fonte única em src/config/planos.ts
+    const preco = PLANOS[data.plano_id as PlanoId];
     if (!preco) throw new Error(`Plano inválido: ${data.plano_id}`);
 
-    let value: number | null;
-    let cycle: "MONTHLY" | "YEARLY";
-    if (data.ciclo === "anual") {
-      value = preco.anualTotal;
-      cycle = "YEARLY";
-    } else {
-      value = preco.mensal;
-      cycle = "MONTHLY";
-    }
+    const value = data.ciclo === "anual" ? preco.precoAnual : preco.precoMensal;
+    const cycle: "MONTHLY" | "YEARLY" = data.ciclo === "anual" ? "YEARLY" : "MONTHLY";
     if (!value || value <= 0) {
       throw new Error(
         `Plano "${preco.nome}" não possui preço público. Fale com a equipe.`,
