@@ -15,6 +15,8 @@ export function ArcoAugusto({
 }) {
   const height = width * (24 / 44);
   const sw = strokeWidth ?? Math.max(1, width / 44);
+  // Ponto dourado posicionado DENTRO do vértice do arco (não acima),
+  // encostado por dentro no cume onde os dois arcos se encontram.
   return (
     <svg
       width={width}
@@ -28,7 +30,7 @@ export function ArcoAugusto({
     >
       <path d="M2 22 C 2 12, 10 4, 22 4" stroke={color} strokeWidth={sw} strokeLinecap="round" fill="none" />
       <path d="M22 4 C 34 4, 42 12, 42 22" stroke={color} strokeWidth={sw} strokeLinecap="round" fill="none" />
-      <circle cx="22" cy="2" r={sw * 0.9} fill={color} />
+      <circle cx="22" cy="7.2" r={sw * 1.1} fill={color} />
     </svg>
   );
 }
