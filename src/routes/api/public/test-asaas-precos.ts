@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PLANOS } from "@/config/planos";
 
 // Rota temporária de teste — remover após validação.
-export const Route = createFileRoute("/api/public/_test-asaas-precos")({
+export const Route = createFileRoute("/api/public/test-asaas-precos")({
   server: {
     handlers: {
       GET: async () => {

@@ -30,10 +30,10 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiVozTranscreverRouteImport } from './routes/api/voz/transcrever'
 import { Route as ApiVozFalarRouteImport } from './routes/api/voz/falar'
+import { Route as ApiPublicTestAsaasPrecosRouteImport } from './routes/api/public/test-asaas-precos'
 import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
 import { Route as ApiPublicAuthCheckRouteImport } from './routes/api/public/auth-check'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
-import { Route as ApiPublicTestAsaasPrecosRouteImport } from './routes/api/public/_test-asaas-precos'
 import { Route as AuthenticatedAppContratosRouteImport } from './routes/_authenticated/app.contratos'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
 import { Route as AuthenticatedAppAssinaturaRouteImport } from './routes/_authenticated/app.assinatura'
@@ -191,6 +191,12 @@ const ApiVozFalarRoute = ApiVozFalarRouteImport.update({
   path: '/api/voz/falar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTestAsaasPrecosRoute =
+  ApiPublicTestAsaasPrecosRouteImport.update({
+    id: '/api/public/test-asaas-precos',
+    path: '/api/public/test-asaas-precos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicDemoChatRoute = ApiPublicDemoChatRouteImport.update({
   id: '/api/public/demo-chat',
   path: '/api/public/demo-chat',
@@ -206,12 +212,6 @@ const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
   path: '/api/public/asaas-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTestAsaasPrecosRoute =
-  ApiPublicTestAsaasPrecosRouteImport.update({
-    id: '/api/public/_test-asaas-precos',
-    path: '/api/public',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AuthenticatedAppContratosRoute =
   AuthenticatedAppContratosRouteImport.update({
     id: '/app/contratos',
@@ -543,10 +543,10 @@ export interface FileRoutesByFullPath {
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app/contratos': typeof AuthenticatedAppContratosRouteWithChildren
-  '/api/public': typeof ApiPublicTestAsaasPrecosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
+  '/api/public/test-asaas-precos': typeof ApiPublicTestAsaasPrecosRoute
   '/api/voz/falar': typeof ApiVozFalarRoute
   '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/app/': typeof AuthenticatedAppIndexRoute
@@ -618,10 +618,10 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
-  '/api/public': typeof ApiPublicTestAsaasPrecosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
+  '/api/public/test-asaas-precos': typeof ApiPublicTestAsaasPrecosRoute
   '/api/voz/falar': typeof ApiVozFalarRoute
   '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -697,10 +697,10 @@ export interface FileRoutesById {
   '/_authenticated/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
   '/_authenticated/app/contratos': typeof AuthenticatedAppContratosRouteWithChildren
-  '/api/public/_test-asaas-precos': typeof ApiPublicTestAsaasPrecosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
+  '/api/public/test-asaas-precos': typeof ApiPublicTestAsaasPrecosRoute
   '/api/voz/falar': typeof ApiVozFalarRoute
   '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
@@ -777,10 +777,10 @@ export interface FileRouteTypes {
     | '/app/assinatura'
     | '/app/conta'
     | '/app/contratos'
-    | '/api/public'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
+    | '/api/public/test-asaas-precos'
     | '/api/voz/falar'
     | '/api/voz/transcrever'
     | '/app/'
@@ -852,10 +852,10 @@ export interface FileRouteTypes {
     | '/blog'
     | '/app/assinatura'
     | '/app/conta'
-    | '/api/public'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
+    | '/api/public/test-asaas-precos'
     | '/api/voz/falar'
     | '/api/voz/transcrever'
     | '/app'
@@ -930,10 +930,10 @@ export interface FileRouteTypes {
     | '/_authenticated/app/assinatura'
     | '/_authenticated/app/conta'
     | '/_authenticated/app/contratos'
-    | '/api/public/_test-asaas-precos'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
+    | '/api/public/test-asaas-precos'
     | '/api/voz/falar'
     | '/api/voz/transcrever'
     | '/_authenticated/app/'
@@ -1004,10 +1004,10 @@ export interface RootRouteChildren {
   AuthConfirmarRoute: typeof AuthConfirmarRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
-  ApiPublicTestAsaasPrecosRoute: typeof ApiPublicTestAsaasPrecosRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
   ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
+  ApiPublicTestAsaasPrecosRoute: typeof ApiPublicTestAsaasPrecosRoute
   ApiVozFalarRoute: typeof ApiVozFalarRoute
   ApiVozTranscreverRoute: typeof ApiVozTranscreverRoute
   ApiPublicHooksHelpdeskLembretesRoute: typeof ApiPublicHooksHelpdeskLembretesRoute
@@ -1166,6 +1166,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVozFalarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/test-asaas-precos': {
+      id: '/api/public/test-asaas-precos'
+      path: '/api/public/test-asaas-precos'
+      fullPath: '/api/public/test-asaas-precos'
+      preLoaderRoute: typeof ApiPublicTestAsaasPrecosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/demo-chat': {
       id: '/api/public/demo-chat'
       path: '/api/public/demo-chat'
@@ -1185,13 +1192,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/asaas-webhook'
       fullPath: '/api/public/asaas-webhook'
       preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/_test-asaas-precos': {
-      id: '/api/public/_test-asaas-precos'
-      path: '/api/public'
-      fullPath: '/api/public'
-      preLoaderRoute: typeof ApiPublicTestAsaasPrecosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/contratos': {
@@ -1780,10 +1780,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthConfirmarRoute: AuthConfirmarRoute,
   BlogSlugRoute: BlogSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
-  ApiPublicTestAsaasPrecosRoute: ApiPublicTestAsaasPrecosRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,
   ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
+  ApiPublicTestAsaasPrecosRoute: ApiPublicTestAsaasPrecosRoute,
   ApiVozFalarRoute: ApiVozFalarRoute,
   ApiVozTranscreverRoute: ApiVozTranscreverRoute,
   ApiPublicHooksHelpdeskLembretesRoute: ApiPublicHooksHelpdeskLembretesRoute,
