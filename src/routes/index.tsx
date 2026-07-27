@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { Nav } from "@/components/landing/Nav";
-import { HeroSection } from "@/components/landing/HeroSection";
+import { Hero } from "@/components/landing/v2/Hero";
 import { TrustBand } from "@/components/landing/TrustBand";
 import { ScrollBlurOverlay } from "@/components/landing/ScrollBlurOverlay";
 import { useHashScroll } from "@/hooks/use-hash-scroll";
@@ -79,7 +79,7 @@ function Landing() {
   return (
     <div className="relative min-h-screen bg-augusto-cream text-augusto-slate-dark">
       <Nav />
-      <HeroSection />
+      <Hero />
       <TrustBand />
       <Suspense fallback={<div className="h-24" aria-hidden />}>
         <AnatomySection />
