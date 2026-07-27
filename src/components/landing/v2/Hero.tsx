@@ -52,7 +52,7 @@ export function Hero() {
             style={{ fontSize: "clamp(28px, 2.8vw, 46px)" }}
           >
             Augusto.IJ conhece a lei. E conhece{" "}
-            <em className="not-italic italic text-[hsl(35_45%_74%)]">o seu condomínio.</em>
+            <em className="italic text-[hsl(35_45%_74%)]">o seu condomínio.</em>
           </h1>
 
           <p className="mt-6 max-w-[40ch] font-body text-[15px] leading-[1.65] text-off/75 sm:text-[16px]">
