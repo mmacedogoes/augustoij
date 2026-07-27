@@ -208,17 +208,11 @@ export function Metodo() {
         {/* CABEÇALHO */}
         <div className="mx-auto flex max-w-[720px] flex-col items-center text-center">
           <SectionLabel tone="dark">O MÉTODO AUGUSTO.IJ</SectionLabel>
-          <h2
-            className="mt-4 font-heading font-medium text-verde"
-            style={{ fontSize: "clamp(26px, 2.4vw, 38px)", lineHeight: 1.15, maxWidth: "30ch" }}
-          >
+          <h2 className="t-h2 mt-5 text-verde" style={{ maxWidth: "30ch" }}>
             Nenhuma resposta serve ao seu condomínio se ignorar o que ele já decidiu.
           </h2>
-          <ArcoAugusto width={44} color="hsl(33 40% 54%)" opacity={0.55} className="mt-6" />
-          <p
-            className="mt-5 font-body text-[15px] leading-relaxed text-ardosia"
-            style={{ maxWidth: "52ch" }}
-          >
+          <ArcoAugusto width={52} color="hsl(33 40% 54%)" opacity={0.55} className="mt-6" />
+          <p className="t-lead mt-5 text-ardosia">
             A maioria das ferramentas para em um lado só. Ou a lei, ou o documento. O Augusto.IJ cruza os dois, e é desse cruzamento que nasce uma resposta que você pode usar de verdade.
           </p>
         </div>
