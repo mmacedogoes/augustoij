@@ -80,8 +80,10 @@ function Landing() {
         <ProblemSection />
         <ForWhomSection />
         <FeaturesSection />
-        <AugustoNaPratica />
-        <TrustSection />
+      </Suspense>
+      <Situacoes />
+      <Credibilidade />
+      <Suspense fallback={<div className="h-24" aria-hidden />}>
         <PricingSection />
         <FaqSection />
         <FinalCtaSection />
