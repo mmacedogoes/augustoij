@@ -3,13 +3,11 @@ import { lazy, Suspense } from "react";
 import { Nav } from "@/components/landing/Nav";
 import { Hero } from "@/components/landing/v2/Hero";
 import { FaixaProva } from "@/components/landing/v2/FaixaProva";
+import { Metodo } from "@/components/landing/v2/Metodo";
 import { ScrollBlurOverlay } from "@/components/landing/ScrollBlurOverlay";
 import { useHashScroll } from "@/hooks/use-hash-scroll";
 
 // Seções abaixo da dobra: code-split para reduzir o JS inicial da home.
-const AnatomySection = lazy(() =>
-  import("@/components/landing/AnatomySection").then((m) => ({ default: m.AnatomySection })),
-);
 const ProblemSection = lazy(() =>
   import("@/components/landing/ProblemSection").then((m) => ({ default: m.ProblemSection })),
 );
@@ -81,8 +79,8 @@ function Landing() {
       <Nav />
       <Hero />
       <FaixaProva />
+      <Metodo />
       <Suspense fallback={<div className="h-24" aria-hidden />}>
-        <AnatomySection />
         <ProblemSection />
         <ForWhomSection />
         <FeaturesSection />
