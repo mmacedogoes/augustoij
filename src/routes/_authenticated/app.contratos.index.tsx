@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
+import { GestaoContratosGate } from "@/components/gates/GestaoContratosGate";
 import {
   Select,
   SelectContent,
