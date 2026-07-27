@@ -33,6 +33,7 @@ import { Route as ApiVozFalarRouteImport } from './routes/api/voz/falar'
 import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
 import { Route as ApiPublicAuthCheckRouteImport } from './routes/api/public/auth-check'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
+import { Route as ApiPublicTestAsaasPrecosRouteImport } from './routes/api/public/_test-asaas-precos'
 import { Route as AuthenticatedAppContratosRouteImport } from './routes/_authenticated/app.contratos'
 import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
 import { Route as AuthenticatedAppAssinaturaRouteImport } from './routes/_authenticated/app.assinatura'
@@ -205,6 +206,12 @@ const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
   path: '/api/public/asaas-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTestAsaasPrecosRoute =
+  ApiPublicTestAsaasPrecosRouteImport.update({
+    id: '/api/public/_test-asaas-precos',
+    path: '/api/public',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAppContratosRoute =
   AuthenticatedAppContratosRouteImport.update({
     id: '/app/contratos',
@@ -536,6 +543,7 @@ export interface FileRoutesByFullPath {
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/app/contratos': typeof AuthenticatedAppContratosRouteWithChildren
+  '/api/public': typeof ApiPublicTestAsaasPrecosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
@@ -610,6 +618,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
+  '/api/public': typeof ApiPublicTestAsaasPrecosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
@@ -688,6 +697,7 @@ export interface FileRoutesById {
   '/_authenticated/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/_authenticated/app/conta': typeof AuthenticatedAppContaRoute
   '/_authenticated/app/contratos': typeof AuthenticatedAppContratosRouteWithChildren
+  '/api/public/_test-asaas-precos': typeof ApiPublicTestAsaasPrecosRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
@@ -767,6 +777,7 @@ export interface FileRouteTypes {
     | '/app/assinatura'
     | '/app/conta'
     | '/app/contratos'
+    | '/api/public'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
@@ -841,6 +852,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/app/assinatura'
     | '/app/conta'
+    | '/api/public'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
@@ -918,6 +930,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/assinatura'
     | '/_authenticated/app/conta'
     | '/_authenticated/app/contratos'
+    | '/api/public/_test-asaas-precos'
     | '/api/public/asaas-webhook'
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
@@ -991,6 +1004,7 @@ export interface RootRouteChildren {
   AuthConfirmarRoute: typeof AuthConfirmarRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiPublicTestAsaasPrecosRoute: typeof ApiPublicTestAsaasPrecosRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
   ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
@@ -1171,6 +1185,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/asaas-webhook'
       fullPath: '/api/public/asaas-webhook'
       preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/_test-asaas-precos': {
+      id: '/api/public/_test-asaas-precos'
+      path: '/api/public'
+      fullPath: '/api/public'
+      preLoaderRoute: typeof ApiPublicTestAsaasPrecosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/contratos': {
@@ -1759,6 +1780,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthConfirmarRoute: AuthConfirmarRoute,
   BlogSlugRoute: BlogSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiPublicTestAsaasPrecosRoute: ApiPublicTestAsaasPrecosRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,
   ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
@@ -1773,3 +1795,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
