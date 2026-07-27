@@ -116,7 +116,7 @@ export function DemoChatWidget({ persona = "sindico" }: { persona?: Persona }) {
     <div className="flex h-full flex-col">
       <div
         id="hero-chat"
-        className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-md border border-dourado/35 bg-papel text-grafite shadow-[0_24px_60px_-32px_hsl(151_93%_6%/0.55)]"
+        className="relative flex h-[560px] flex-col overflow-hidden rounded-md border border-dourado/35 bg-papel text-grafite shadow-[0_24px_60px_-32px_hsl(151_93%_6%/0.55)] sm:h-[600px]"
       >
         {/* Cabeçalho */}
         <div className="flex items-center justify-between gap-4 border-b border-borda px-5 py-4 sm:px-6">
