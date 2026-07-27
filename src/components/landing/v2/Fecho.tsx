@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Icon } from "@iconify/react";
 import { SectionLabel } from "@/components/landing/SectionLabel";
 import { ArcoAugusto } from "@/components/landing/ArcoAugusto";
+import { Reveal } from "@/components/landing/Reveal";
 
 export function Fecho() {
   return (
@@ -19,7 +20,7 @@ export function Fecho() {
         }}
       />
 
-      <div className="relative mx-auto flex w-full max-w-[820px] flex-col items-center text-center">
+      <Reveal className="relative mx-auto flex w-full max-w-[820px] flex-col items-center text-center">
         <SectionLabel tone="light">O convite</SectionLabel>
 
         <h2 className="t-display mt-6 italic text-cream sm:whitespace-nowrap">
@@ -54,7 +55,7 @@ export function Fecho() {
           Não substituímos o advogado do condomínio. Aceleramos a consulta jurídica condominial
           com fundamentação, contexto e prática.
         </p>
-      </div>
+      </Reveal>
     </section>
   );
 }
