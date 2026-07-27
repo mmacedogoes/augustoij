@@ -11,15 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { SectionLabel } from "@/components/landing/SectionLabel";
 import { ArcoAugusto } from "@/components/landing/ArcoAugusto";
 import { cn } from "@/lib/utils";
+import { PLANOS, type PlanoId } from "@/config/planos";
 
 type Billing = "monthly" | "annual";
-type PlanId =
-  | "gratuito"
-  | "essencial"
-  | "profissional"
-  | "gestao"
-  | "administradora"
-  | "personalizado";
+type PlanId = PlanoId;
 
 type Feature = { label: string; state: "included" | "excluded" | "strikethrough" };
 type Plan = {
@@ -35,6 +30,7 @@ type Plan = {
   featured?: boolean;
   badge?: string;
   fixedPrice?: string;
+  microcopy?: string;
 };
 
 const fmtBRL = (v: number) =>
@@ -44,130 +40,121 @@ const fmtBRL = (v: number) =>
     maximumFractionDigits: 0,
   }).format(v);
 
-const PLANS: Plan[] = [
-  {
-    id: "gratuito",
-    name: "Gratuito",
-    sublabel: "Teste por 7 dias, sem cartão de crédito",
-    monthly: null,
-    annualPerMonth: null,
-    annualTotal: null,
-    fixedPrice: "R$ 0",
-    features: [
-      { label: "10 mensagens por dia", state: "included" },
-      { label: "1 condomínio", state: "included" },
-      { label: "Base jurídica pública", state: "included" },
-      { label: "Upload de documentos", state: "excluded" },
-      { label: "Análise de contratos", state: "excluded" },
-      { label: "Histórico além de 7 dias", state: "excluded" },
-    ],
-    ctaLabel: "Experimentar grátis",
-    ctaKind: "signup",
-  },
-  {
-    id: "essencial",
-    name: "Essencial",
-    sublabel: "Para síndicos moradores",
-    monthly: 89,
-    annualPerMonth: 74,
-    annualTotal: 888,
-    features: [
-      { label: "100 mensagens por mês", state: "included" },
-      { label: "Até 2 condomínios", state: "included" },
-      { label: "Upload de até 10 documentos", state: "included" },
-      { label: "Análise de contratos e documentos", state: "included" },
-      { label: "Modelos básicos de notificação", state: "included" },
-      { label: "Histórico de 30 dias", state: "included" },
-      { label: "Jurisprudência completa", state: "strikethrough" },
-      { label: "Múltiplos usuários", state: "excluded" },
-    ],
-    ctaLabel: "Assinar Essencial",
-    ctaKind: "signup",
-  },
-  {
-    id: "profissional",
-    name: "Profissional",
-    sublabel: "Para síndicos profissionais e advogados",
-    monthly: 197,
-    annualPerMonth: 164,
-    annualTotal: 1968,
-    features: [
-      { label: "400 mensagens por mês", state: "included" },
-      { label: "Até 8 condomínios", state: "included" },
-      { label: "Documentos ilimitados", state: "included" },
-      { label: "Análise de contratos e documentos", state: "included" },
-      { label: "Todos os modelos + minutas de ata e convenção", state: "included" },
-      { label: "Jurisprudência completa", state: "included" },
-      { label: "Histórico ilimitado", state: "included" },
-      { label: "1 usuário adicional incluso", state: "included" },
-    ],
-    ctaLabel: "Assinar Profissional",
-    ctaKind: "signup",
-    featured: true,
-    badge: "Mais escolhido",
-  },
-  {
-    id: "gestao",
-    name: "Gestão",
-    sublabel: "Para síndicos com carteira ampla",
-    monthly: 347,
-    annualPerMonth: 289,
-    annualTotal: 3468,
-    features: [
-      { label: "900 mensagens por mês", state: "included" },
-      { label: "Até 20 condomínios", state: "included" },
-      { label: "Documentos ilimitados", state: "included" },
-      { label: "Análise de contratos e documentos", state: "included" },
-      { label: "Todos os modelos + minutas", state: "included" },
-      { label: "Jurisprudência completa", state: "included" },
-      { label: "Histórico ilimitado", state: "included" },
-      { label: "Até 3 usuários inclusos", state: "included" },
-      { label: "Suporte prioritário por e-mail", state: "included" },
-    ],
-    ctaLabel: "Assinar Gestão",
-    ctaKind: "signup",
-  },
-  {
-    id: "administradora",
-    name: "Administradora",
-    sublabel: "Para administradoras de condomínios",
-    monthly: 697,
-    annualPerMonth: 580,
-    annualTotal: 6960,
-    features: [
-      { label: "Mensagens ilimitadas (uso razoável)", state: "included" },
-      { label: "Até 50 condomínios", state: "included" },
-      { label: "Documentos ilimitados", state: "included" },
-      { label: "Todos os modelos + minutas", state: "included" },
-      { label: "Jurisprudência completa", state: "included" },
-      { label: "Histórico ilimitado", state: "included" },
-      { label: "Até 10 usuários", state: "included" },
-      { label: "Relatórios por condomínio", state: "included" },
-    ],
-    ctaLabel: "Assinar Administradora",
-    ctaKind: "signup",
-  },
-  {
-    id: "personalizado",
-    name: "Personalizado",
-    sublabel: "Para operações que precisam de mais",
-    monthly: null,
-    annualPerMonth: null,
-    annualTotal: null,
-    fixedPrice: "Sob consulta",
-    features: [
-      { label: "Tudo do plano Administradora", state: "included" },
-      { label: "Condomínios ilimitados", state: "included" },
-      { label: "White-label disponível", state: "included" },
-      { label: "Treinamento da equipe incluso", state: "included" },
-      { label: "Gerente de conta dedicado", state: "included" },
-      { label: "Integrações personalizadas", state: "included" },
-      { label: "Contrato e SLA negociados", state: "included" },
-    ],
-    ctaLabel: "Falar com nossa equipe",
-    ctaKind: "contact",
-  },
+// Copy das features por plano — na ordem exata definida pelo produto.
+// Os preços e limites numéricos vêm de `PLANOS` (fonte única de verdade).
+const FEATURES: Record<PlanId, Feature[]> = {
+  gratuito: [
+    { label: "10 mensagens por dia", state: "included" },
+    { label: "1 condomínio", state: "included" },
+    { label: "Envio da convenção do seu condomínio", state: "included" },
+    { label: "Envio de 1 contrato para análise", state: "included" },
+    { label: "1 análise de contrato com semáforo de risco", state: "included" },
+    { label: "Legislação, jurisprudência e doutrina completas", state: "included" },
+    { label: "Regimento, atas e documentos ilimitados", state: "excluded" },
+    { label: "Modelos e minutas", state: "excluded" },
+    { label: "Gestão contínua de contratos", state: "excluded" },
+    { label: "Histórico além de 7 dias", state: "excluded" },
+  ],
+  essencial: [
+    { label: "100 mensagens por mês", state: "included" },
+    { label: "Até 2 condomínios", state: "included" },
+    { label: "Convenção, regimento, atas e contratos ilimitados", state: "included" },
+    { label: "Legislação, jurisprudência e doutrina completas", state: "included" },
+    { label: "Análise de contratos ilimitada", state: "included" },
+    { label: "Gestão contínua de até 3 contratos", state: "included" },
+    { label: "Modelos básicos de notificação", state: "included" },
+    { label: "Histórico de 30 dias", state: "included" },
+    { label: "Minutas de ata e convenção", state: "excluded" },
+    { label: "Painel consolidado da carteira", state: "excluded" },
+  ],
+  profissional: [
+    { label: "400 mensagens por mês", state: "included" },
+    { label: "Até 8 condomínios", state: "included" },
+    { label: "Documentos ilimitados", state: "included" },
+    { label: "Legislação, jurisprudência e doutrina completas", state: "included" },
+    { label: "Análise de contratos ilimitada", state: "included" },
+    { label: "Gestão contínua de até 15 contratos", state: "included" },
+    { label: "Todos os modelos, minutas de ata e convenção", state: "included" },
+    { label: "Histórico ilimitado", state: "included" },
+    { label: "2 usuários", state: "included" },
+    { label: "Painel consolidado da carteira", state: "excluded" },
+  ],
+  gestao: [
+    { label: "900 mensagens por mês", state: "included" },
+    { label: "Até 20 condomínios", state: "included" },
+    { label: "Documentos ilimitados", state: "included" },
+    { label: "Gestão contínua de até 40 contratos", state: "included" },
+    { label: "Painel consolidado da carteira", state: "included" },
+    { label: "3 usuários inclusos", state: "included" },
+    { label: "Relatórios por condomínio", state: "included" },
+    { label: "Suporte prioritário por e-mail", state: "included" },
+    { label: "Tudo do plano Profissional", state: "included" },
+  ],
+  administradora: [
+    { label: "Mensagens ilimitadas (uso razoável)", state: "included" },
+    { label: "Até 50 condomínios", state: "included" },
+    { label: "Documentos ilimitados", state: "included" },
+    { label: "Gestão contínua de contratos ilimitada", state: "included" },
+    { label: "Painel consolidado da carteira", state: "included" },
+    { label: "10 usuários", state: "included" },
+    { label: "Relatórios por condomínio", state: "included" },
+    { label: "Tudo do plano Gestão", state: "included" },
+  ],
+  personalizado: [
+    { label: "Tudo do plano Administradora", state: "included" },
+    { label: "Condomínios ilimitados", state: "included" },
+    { label: "White-label disponível", state: "included" },
+    { label: "Treinamento da equipe incluso", state: "included" },
+    { label: "Suporte dedicado com gerente de conta", state: "included" },
+    { label: "Integrações personalizadas", state: "included" },
+    { label: "Contrato e SLA negociados", state: "included" },
+  ],
+};
+
+const CTA_LABEL: Record<PlanId, string> = {
+  gratuito: "Experimentar grátis",
+  essencial: "Assinar Essencial",
+  profissional: "Assinar Profissional",
+  gestao: "Assinar Gestão",
+  administradora: "Assinar Administradora",
+  personalizado: "Falar com nossa equipe",
+};
+
+const ORDER: PlanId[] = [
+  "gratuito",
+  "essencial",
+  "profissional",
+  "gestao",
+  "administradora",
+  "personalizado",
 ];
+
+const MICROCOPY: Partial<Record<PlanId, string>> = {
+  gratuito:
+    "Envie a convenção e veja a resposta mudar. É a diferença entre uma orientação genérica e uma orientação sobre o seu condomínio.",
+};
+
+const PLANS: Plan[] = ORDER.map((id) => {
+  const p = PLANOS[id] as import("@/config/planos").Plano;
+  const mensal = p.precoMensal;
+  const anual = p.precoAnual;
+  const semPreco = mensal === null || anual === null;
+  return {
+    id,
+    name: p.nome,
+    sublabel: p.publico,
+    monthly: mensal,
+    annualPerMonth: !semPreco ? Math.round(anual / 12) : null,
+    annualTotal: anual,
+    fixedPrice: semPreco ? "Sob consulta" : mensal === 0 ? "R$ 0" : undefined,
+    features: FEATURES[id],
+    ctaLabel: CTA_LABEL[id],
+    ctaKind: id === "personalizado" ? "contact" : "signup",
+    featured: p.destaque,
+    badge: p.badge,
+    microcopy: MICROCOPY[id],
+  };
+});
 
 const FAQ = [
   {
@@ -289,6 +276,9 @@ function PlanCard({
       >
         {plan.ctaLabel}
       </button>
+      {plan.microcopy && (
+        <p className="mt-4 t-micro text-ardosia/80">{plan.microcopy}</p>
+      )}
     </div>
   );
 }
@@ -300,9 +290,21 @@ export function PlanosFaq() {
   const navigate = useNavigate();
 
   const PROFILES: { id: PlanId; label: string; price: string }[] = [
-    { id: "essencial", label: "Sou síndico morador", price: "a partir de R$ 89/mês" },
-    { id: "profissional", label: "Sou síndico profissional ou advogado", price: "a partir de R$ 197/mês" },
-    { id: "administradora", label: "Sou administradora", price: "a partir de R$ 697/mês" },
+    {
+      id: "essencial",
+      label: "Sou síndico morador",
+      price: `a partir de ${fmtBRL(PLANOS.essencial.precoMensal ?? 0)}/mês`,
+    },
+    {
+      id: "profissional",
+      label: "Sou síndico profissional ou advogado",
+      price: `a partir de ${fmtBRL(PLANOS.profissional.precoMensal ?? 0)}/mês`,
+    },
+    {
+      id: "administradora",
+      label: "Sou administradora",
+      price: `a partir de ${fmtBRL(PLANOS.administradora.precoMensal ?? 0)}/mês`,
+    },
   ];
 
   const highlightPlan = (id: PlanId) => {
@@ -367,6 +369,13 @@ export function PlanosFaq() {
           <ArcoAugusto width={52} color="hsl(33 40% 54%)" opacity={0.55} className="mt-6" />
           <p className="t-lead mt-5 text-ardosia">
             Comece gratuitamente e avance conforme o volume de consultas, documentos e condomínios da sua rotina.
+          </p>
+        </div>
+
+        {/* Faixa de aviso */}
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-dourado/40 bg-dourado/5 px-5 py-4 text-center">
+          <p className="t-body-sm text-verde">
+            Teste o Augusto.IJ por 7 dias, com a sua convenção e um contrato de verdade. Sem cartão. Sem cobrança automática ao final.
           </p>
         </div>
 
@@ -448,6 +457,8 @@ export function PlanosFaq() {
         <p className="mt-10 text-center t-micro text-ardosia">
           Todos os planos incluem acesso seguro via HTTPS, dados armazenados no Brasil e suporte por e-mail.
           Preços em reais. Plano anual cobrado à vista.
+          <br />
+          A gestão contínua de contratos está incluída em todos os planos pagos, conforme o limite de cada um.
         </p>
 
         {/* FAQ */}

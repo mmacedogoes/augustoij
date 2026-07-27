@@ -230,7 +230,7 @@ export type LimiteKey = keyof LimitesPlano;
 export function podeUsar(planoId: PlanoId, recurso: RecursoKey): boolean {
   const plano = PLANOS[planoId];
   if (!plano) return false;
-  return plano.recursos[recurso] === true;
+  return (plano.recursos as RecursosPlano)[recurso] === true;
 }
 
 /**
@@ -240,10 +240,10 @@ export function podeUsar(planoId: PlanoId, recurso: RecursoKey): boolean {
 export function limiteDe(
   planoId: PlanoId,
   limite: LimiteKey,
-): number | null | undefined {
+): number | boolean | null | undefined {
   const plano = PLANOS[planoId];
   if (!plano) return undefined;
-  return plano.limites[limite] as number | null | undefined;
+  return (plano.limites as LimitesPlano)[limite];
 }
 
 export const PLANOS_LIST: Plano[] = Object.values(PLANOS);
