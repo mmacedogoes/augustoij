@@ -79,10 +79,7 @@ export function GestaoContratos() {
               Em breve · Gestão de contratos
             </span>
 
-            <h2
-              className="mt-6 font-heading font-medium"
-              style={{ color: "hsl(40 30% 96%)", fontSize: "clamp(26px, 2.4vw, 38px)", lineHeight: 1.15 }}
-            >
+            <h2 className="t-h2 mt-5 text-cream">
               O contrato não termina quando é assinado. É aí que ele começa a custar.
             </h2>
 
