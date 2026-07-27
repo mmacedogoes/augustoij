@@ -43,6 +43,7 @@ import { updateMyProfile } from "@/lib/onboarding.functions";
 import { getUsoAtual } from "@/lib/uso.functions";
 import { getAssinaturaDetalhes, cancelarAssinaturaAsaas } from "@/lib/asaas.functions";
 import { UsageMeter } from "@/components/gates/UsageMeter";
+import { usePlanContext } from "@/hooks/usePlanContext";
 import type { UsoAtual } from "@/lib/uso-limits";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -68,6 +69,7 @@ type Profile = {
 };
 
 function ContaPage() {
+  const { data: planCtx } = usePlanContext();
   const router = useRouter();
   const fetchProfile = useServerFn(getProfile);
   const saveProfile = useServerFn(updateMyProfile);
@@ -287,6 +289,31 @@ function ContaPage() {
             <p className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
               Seu plano inclui mensagens ilimitadas.
             </p>
+          )}
+
+          {planCtx && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {planCtx.condominiosMax !== null && (
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+                  <UsageMeter
+                    used={planCtx.condominiosCount}
+                    limit={planCtx.condominiosMax}
+                    label="Condomínios cadastrados"
+                    unit="condomínios"
+                  />
+                </div>
+              )}
+              {planCtx.contratosGestaoAtivaMax !== null && planCtx.contratosGestaoAtivaMax > 0 && (
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+                  <UsageMeter
+                    used={planCtx.contratosGestaoAtivaCount}
+                    limit={planCtx.contratosGestaoAtivaMax}
+                    label="Contratos em gestão ativa"
+                    unit="contratos"
+                  />
+                </div>
+              )}
+            </div>
           )}
         </Card>
 

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PLANS } from "@/config/plans";
+import { PLANOS, type PlanoId as PlanoIdV2 } from "@/config/planos";
 import { resolvePlanId, isTrialExpired, gateMessages, efetivoPlanoId } from "@/lib/plan-gates";
 import { isAdminInternoServer } from "@/lib/admin-bypass";
 
@@ -13,6 +14,7 @@ async function assertUploadPermitido(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   userId: string,
   condominioId: string,
+  tipo?: string,
 ) {
   const [subRes, docsRes, admin] = await Promise.all([
     supabase
@@ -33,6 +35,46 @@ async function assertUploadPermitido(
   if (!cortesia && isTrialExpired(planoBruto, subRes.data?.trial_end ?? null)) {
     throw new Error(gateMessages.trialExpirado());
   }
+
+  // Regras específicas do plano Gratuito: 1 Convenção + 1 Contrato,
+  // contadas entre todos os condomínios do usuário (owner_id).
+  const planoV2Id: PlanoIdV2 = (planoId as string) in PLANOS ? (planoId as PlanoIdV2) : "gratuito";
+  const planoV2 = PLANOS[planoV2Id];
+  if (!cortesia && planoV2Id === "gratuito") {
+    const tipoNormalizado = tipo ?? null;
+    if (tipoNormalizado && !["convencao", "contrato"].includes(tipoNormalizado)) {
+      throw new Error(gateMessages.uploadGratuitoBloqueado());
+    }
+    const countOwnerTipo = async (t: "convencao" | "contrato") => {
+      const { count } = await supabase
+        .from("documentos")
+        .select("id, condominios!inner(owner_id)", { count: "exact", head: true })
+        .eq("condominios.owner_id", userId)
+        .eq("tipo", t);
+      return count ?? 0;
+    };
+    if (tipoNormalizado === "convencao") {
+      if ((await countOwnerTipo("convencao")) >= 1) {
+        throw new Error(gateMessages.uploadGratuitoConvencao());
+      }
+    } else if (tipoNormalizado === "contrato") {
+      if ((await countOwnerTipo("contrato")) >= 1) {
+        throw new Error(gateMessages.uploadGratuitoContrato());
+      }
+    } else {
+      // sem tipo (fluxo de getUploadUrl): permite se houver ao menos um dos slots livres
+      const [cCv, cCt] = await Promise.all([countOwnerTipo("convencao"), countOwnerTipo("contrato")]);
+      if (cCv >= 1 && cCt >= 1) {
+        throw new Error(gateMessages.uploadGratuitoBloqueado());
+      }
+    }
+    return;
+  }
+
+  // Planos pagos: se "documentosIlimitados" for true, nada a impor.
+  if (planoV2.limites.documentosIlimitados) return;
+
+  // Compat: fallback à regra antiga (não deveria ser alcançada com planos atuais).
   if (!plano.recursos.uploadDocumentos) {
     throw new Error(gateMessages.uploadDesabilitado(plano.nome));
   }
@@ -83,7 +125,7 @@ export const createDocumento = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await assertUploadPermitido(context.supabase, context.userId, data.condominioId);
+    await assertUploadPermitido(context.supabase, context.userId, data.condominioId, data.tipo);
     const { data: row, error } = await context.supabase
       .from("documentos")
       .insert({

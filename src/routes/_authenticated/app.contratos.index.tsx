@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
+import { GestaoContratosGate } from "@/components/gates/GestaoContratosGate";
 import {
   Select,
   SelectContent,
@@ -86,6 +87,7 @@ function Page() {
 
   return (
     <AppShell>
+      <GestaoContratosGate>
       <div className="max-w-6xl">
         <div className="mb-4">
           <ContratosTabs condominioId={condominioId === TODOS ? null : condominioId} />
@@ -229,6 +231,7 @@ function Page() {
           </Card>
         )}
       </div>
+      </GestaoContratosGate>
     </AppShell>
   );
 }

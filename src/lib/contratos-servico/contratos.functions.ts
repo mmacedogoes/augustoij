@@ -6,6 +6,65 @@ import { gerarChecklistsInterno } from "./checklists.functions";
 import { gerarEventosInterno } from "./eventos.functions";
 import { registrarAuditoriaContrato } from "./auditoria.server";
 import { sincronizarContratoNoAcervo } from "./ai-context.server";
+import { PLANOS, type PlanoId as PlanoIdV2 } from "@/config/planos";
+import { resolvePlanId, isTrialExpired, gateMessages } from "@/lib/plan-gates";
+import { isAdminInternoServer } from "@/lib/admin-bypass";
+
+async function assertNovoContratoPermitido(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  userId: string,
+) {
+  const [subRes, admin] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("plano_config_id, trial_end, cortesia")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    isAdminInternoServer(supabase, userId),
+  ]);
+  const planoBruto = resolvePlanId(subRes?.data?.plano_config_id ?? null);
+  const cortesia = subRes?.data?.cortesia === true || admin;
+  if (cortesia) return;
+  if (isTrialExpired(planoBruto, subRes?.data?.trial_end ?? null)) {
+    throw new Error(gateMessages.trialExpirado());
+  }
+  const planoV2Id: PlanoIdV2 = (planoBruto as string) in PLANOS ? (planoBruto as PlanoIdV2) : "gratuito";
+  const plano = PLANOS[planoV2Id];
+  const limite = plano.limites.contratosGestaoAtiva;
+  if (limite === 0) throw new Error(gateMessages.gestaoContinuaBloqueadaGratuito());
+  if (limite === null) {
+    // ilimitado por contrato, mas administradora dispara alerta interno de uso razoável.
+    const razoavel = ("usoRazoavelContratos" in plano.limites
+      ? (plano.limites as { usoRazoavelContratos?: number | null }).usoRazoavelContratos
+      : null) ?? null;
+    if (razoavel && razoavel > 0) {
+      const { count } = await supabase
+        .from("contratos_servico")
+        .select("id, condominios!inner(owner_id)", { count: "exact", head: true })
+        .eq("condominios.owner_id", userId)
+        .eq("situacao", "ativo");
+      if ((count ?? 0) + 1 >= razoavel) {
+        void supabase
+          .from("uso_razoavel_alertas")
+          .insert({
+            user_id: userId,
+            tipo: "contratos",
+            mes_ano: new Date().toISOString().slice(0, 7),
+            valor_atingido: (count ?? 0) + 1,
+          } as never);
+      }
+    }
+    return;
+  }
+  const { count } = await supabase
+    .from("contratos_servico")
+    .select("id, condominios!inner(owner_id)", { count: "exact", head: true })
+    .eq("condominios.owner_id", userId)
+    .eq("situacao", "ativo");
+  if ((count ?? 0) >= limite) {
+    throw new Error(gateMessages.contratosGestaoAtivaMax(plano.nome, limite));
+  }
+}
 import {
   contratoServicoSchema,
   idInput,
@@ -207,6 +266,8 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
       });
       return { id: data.id };
     }
+    // Barreira de plano só na criação (edição de contrato existente não conta).
+    await assertNovoContratoPermitido(context.supabase, context.userId);
     const { data: inserted, error } = await context.supabase
       .from("contratos_servico")
       .insert({ ...payload, criado_por: context.userId } as never)

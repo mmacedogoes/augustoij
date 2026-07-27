@@ -68,8 +68,22 @@ export const gateMessages = {
     `O upload de documentos não está disponível no plano ${planoNome}. Faça upgrade para enviar documentos.`,
   documentosMax: (planoNome: string, max: number) =>
     `Você atingiu o limite de ${max} documento${max === 1 ? "" : "s"} do plano ${planoNome}. Faça upgrade para enviar mais documentos.`,
+  uploadGratuitoConvencao: () =>
+    "No período gratuito você pode enviar 1 Convenção para testar. Para enviar mais documentos, escolha um plano.",
+  uploadGratuitoContrato: () =>
+    "No período gratuito você pode enviar 1 Contrato para testar. Para enviar mais documentos e ativar a gestão contínua, escolha um plano.",
+  uploadGratuitoBloqueado: () =>
+    "No período gratuito, o upload é limitado a 1 Convenção e 1 Contrato para você experimentar. Escolha um plano para enviar os demais documentos.",
   analiseContratos: () =>
     "A análise de contratos está disponível a partir do plano Essencial.",
+  analiseGratuitoConsumida: () =>
+    "No período gratuito você tem 1 análise completa de contrato para testar. Escolha um plano para rodar novas análises.",
+  gestaoContinuaBloqueadaGratuito: () =>
+    "A gestão contínua de contratos (agenda, checklists, alertas) está disponível a partir do plano Essencial.",
+  contratosGestaoAtivaMax: (planoNome: string, max: number) =>
+    `Seu plano ${planoNome} permite até ${max} contrato${max === 1 ? "" : "s"} em gestão ativa. Encerre um contrato ou faça upgrade para ativar mais.`,
+  painelConsolidadoBloqueado: () =>
+    "O painel consolidado da carteira está disponível a partir do plano Gestão.",
   condominiosMax: (planoNome: string, max: number) =>
     `Seu plano ${planoNome} permite até ${max} condomínio${max === 1 ? "" : "s"}. Faça upgrade para adicionar mais.`,
   usuariosMax: (planoNome: string, max: number) =>

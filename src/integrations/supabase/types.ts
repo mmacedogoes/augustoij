@@ -3246,6 +3246,36 @@ export type Database = {
         }
         Relationships: []
       }
+      uso_razoavel_alertas: {
+        Row: {
+          created_at: string
+          id: string
+          mes_ano: string
+          notificado_em: string | null
+          tipo: string
+          user_id: string
+          valor_atingido: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mes_ano: string
+          notificado_em?: string | null
+          tipo: string
+          user_id: string
+          valor_atingido: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mes_ano?: string
+          notificado_em?: string | null
+          tipo?: string
+          user_id?: string
+          valor_atingido?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
