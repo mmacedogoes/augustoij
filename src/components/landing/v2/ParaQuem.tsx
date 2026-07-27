@@ -1,6 +1,7 @@
 import { Icon } from "@iconify/react";
 import { SectionLabel } from "@/components/landing/SectionLabel";
 import { ArcoAugusto } from "@/components/landing/ArcoAugusto";
+import { Reveal } from "@/components/landing/Reveal";
 
 const PERFIS = [
   {
@@ -31,7 +32,7 @@ export function ParaQuem() {
       style={{ paddingTop: "clamp(80px, 10vw, 120px)", paddingBottom: "clamp(80px, 10vw, 120px)" }}
     >
       <div className="mx-auto w-full max-w-[var(--container-container)]">
-        <div className="mx-auto flex max-w-[720px] flex-col items-center text-center">
+        <Reveal className="mx-auto flex max-w-[720px] flex-col items-center text-center">
           <SectionLabel tone="dark">Para quem é</SectionLabel>
           <h2 className="t-h2 mt-5 text-verde">
             Feito para quem responde pelas decisões do condomínio.
@@ -40,11 +41,13 @@ export function ParaQuem() {
           <p className="t-lead mt-5 text-ardosia">
             Três perfis, uma mesma exigência: decisões fundamentadas, rápidas e defensáveis.
           </p>
-        </div>
+        </Reveal>
 
         <div className="mt-14 grid gap-6 md:grid-cols-3">
-          {PERFIS.map((p) => (
-            <article
+          {PERFIS.map((p, i) => (
+            <Reveal
+              as="article"
+              delay={80 + i * 80}
               key={p.titulo}
               className="flex flex-col rounded-2xl border border-borda bg-papel p-7 transition-colors duration-200 hover:border-dourado/60"
             >
@@ -53,7 +56,7 @@ export function ParaQuem() {
               </span>
               <h3 className="t-h4 mt-5 text-verde">{p.titulo}</h3>
               <p className="t-body mt-3 text-ardosia">{p.texto}</p>
-            </article>
+            </Reveal>
           ))}
         </div>
       </div>
