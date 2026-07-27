@@ -1,10 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/**
- * Etiqueta de seção — Inter caixa alta, tracking amplo.
- * `tone="dark"` para uso sobre fundos claros; `tone="light"` sobre verde escuro.
- */
 export function SectionLabel({
   children,
   tone = "dark",
