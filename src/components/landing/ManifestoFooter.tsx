@@ -23,10 +23,10 @@ function InstagramGlyph({ className }: { className?: string }) {
 
 const INSTAGRAM_URL = "https://www.instagram.com/augusto.ij?igsh=aHloYWZtaWQycGtw";
 
-export function ManifestoFooter() {
+export function ManifestoFooter({ showManifesto = true }: { showManifesto?: boolean } = {}) {
   return (
     <>
-      {/* Manifesto block */}
+      {showManifesto && (
       <section className="relative overflow-hidden bg-augusto-green px-6 py-28 text-center">
         <div className="landing-hero-bg absolute inset-0" aria-hidden="true" />
         <div className="relative mx-auto flex max-w-4xl flex-col items-center">
@@ -50,6 +50,7 @@ export function ManifestoFooter() {
           </Link>
         </div>
       </section>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-landing-rule bg-landing-surface px-6 py-16">
