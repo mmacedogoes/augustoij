@@ -276,6 +276,9 @@ function PlanCard({
       >
         {plan.ctaLabel}
       </button>
+      {plan.microcopy && (
+        <p className="mt-4 t-micro text-ardosia/80">{plan.microcopy}</p>
+      )}
     </div>
   );
 }
@@ -369,6 +372,13 @@ export function PlanosFaq() {
           </p>
         </div>
 
+        {/* Faixa de aviso */}
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-dourado/40 bg-dourado/5 px-5 py-4 text-center">
+          <p className="t-body-sm text-verde">
+            Teste o Augusto.IJ por 7 dias, com a sua convenção e um contrato de verdade. Sem cartão. Sem cobrança automática ao final.
+          </p>
+        </div>
+
         {/* Seletor de perfil */}
         <div className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-3">
           {PROFILES.map((p) => {
@@ -447,6 +457,8 @@ export function PlanosFaq() {
         <p className="mt-10 text-center t-micro text-ardosia">
           Todos os planos incluem acesso seguro via HTTPS, dados armazenados no Brasil e suporte por e-mail.
           Preços em reais. Plano anual cobrado à vista.
+          <br />
+          A gestão contínua de contratos está incluída em todos os planos pagos, conforme o limite de cada um.
         </p>
 
         {/* FAQ */}
