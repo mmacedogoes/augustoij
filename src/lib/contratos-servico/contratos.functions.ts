@@ -34,7 +34,9 @@ async function assertNovoContratoPermitido(
   if (limite === 0) throw new Error(gateMessages.gestaoContinuaBloqueadaGratuito());
   if (limite === null) {
     // ilimitado por contrato, mas administradora dispara alerta interno de uso razoável.
-    const razoavel = plano.limites.usoRazoavelContratos;
+    const razoavel = ("usoRazoavelContratos" in plano.limites
+      ? (plano.limites as { usoRazoavelContratos?: number | null }).usoRazoavelContratos
+      : null) ?? null;
     if (razoavel && razoavel > 0) {
       const { count } = await supabase
         .from("contratos_servico")
