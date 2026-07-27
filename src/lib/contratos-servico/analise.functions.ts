@@ -108,6 +108,7 @@ export const analisarContratoServico = createServerFn({ method: "POST" })
   .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     await ensureAcessoContratos(context);
+    await assertAnalisePermitida(context.supabase, context.userId);
 
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("Serviço de IA indisponível no momento.");
