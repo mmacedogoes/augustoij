@@ -231,6 +231,7 @@ function Page() {
           </Card>
         )}
       </div>
+      </GestaoContratosGate>
     </AppShell>
   );
 }
