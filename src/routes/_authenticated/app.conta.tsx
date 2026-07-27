@@ -43,6 +43,7 @@ import { updateMyProfile } from "@/lib/onboarding.functions";
 import { getUsoAtual } from "@/lib/uso.functions";
 import { getAssinaturaDetalhes, cancelarAssinaturaAsaas } from "@/lib/asaas.functions";
 import { UsageMeter } from "@/components/gates/UsageMeter";
+import { usePlanContext } from "@/hooks/usePlanContext";
 import type { UsoAtual } from "@/lib/uso-limits";
 import { supabase } from "@/integrations/supabase/client";
 import {
