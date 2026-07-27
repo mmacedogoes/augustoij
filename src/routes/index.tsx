@@ -4,6 +4,8 @@ import { Nav } from "@/components/landing/Nav";
 import { Hero } from "@/components/landing/v2/Hero";
 import { FaixaProva } from "@/components/landing/v2/FaixaProva";
 import { Metodo } from "@/components/landing/v2/Metodo";
+import { Situacoes } from "@/components/landing/v2/Situacoes";
+import { Credibilidade } from "@/components/landing/v2/Credibilidade";
 import { ScrollBlurOverlay } from "@/components/landing/ScrollBlurOverlay";
 import { useHashScroll } from "@/hooks/use-hash-scroll";
 
@@ -16,12 +18,6 @@ const ForWhomSection = lazy(() =>
 );
 const FeaturesSection = lazy(() =>
   import("@/components/landing/FeaturesSection").then((m) => ({ default: m.FeaturesSection })),
-);
-const AugustoNaPratica = lazy(() =>
-  import("@/components/landing/AugustoNaPratica").then((m) => ({ default: m.AugustoNaPratica })),
-);
-const TrustSection = lazy(() =>
-  import("@/components/landing/TrustSection").then((m) => ({ default: m.TrustSection })),
 );
 const PricingSection = lazy(() =>
   import("@/components/landing/PricingSection").then((m) => ({ default: m.PricingSection })),
