@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
+import { Reveal } from "@/components/landing/Reveal";
 import { useServerFn } from "@tanstack/react-start";
 import { SectionLabel } from "@/components/landing/SectionLabel";
 import { OutlineButton } from "@/components/landing/OutlineButton";
