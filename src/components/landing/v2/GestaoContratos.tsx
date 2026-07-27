@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
+import { Reveal } from "@/components/landing/Reveal";
 import { useServerFn } from "@tanstack/react-start";
 import { SectionLabel } from "@/components/landing/SectionLabel";
 import { OutlineButton } from "@/components/landing/OutlineButton";
@@ -71,7 +72,7 @@ export function GestaoContratos() {
       <div className="relative mx-auto w-full max-w-[var(--container-container)]">
         <div className="grid gap-14 md:grid-cols-[45%_55%] md:gap-10">
           {/* Coluna esquerda */}
-          <div>
+          <Reveal>
             <span
               className="inline-flex items-center rounded-full border px-3 py-1 font-body text-[11px] font-medium uppercase text-dourado-claro"
               style={{ letterSpacing: "0.2em", borderColor: "hsl(33 40% 54% / 0.55)" }}
@@ -79,10 +80,7 @@ export function GestaoContratos() {
               Em breve · Gestão de contratos
             </span>
 
-            <h2
-              className="mt-6 font-heading font-medium"
-              style={{ color: "hsl(40 30% 96%)", fontSize: "clamp(26px, 2.4vw, 38px)", lineHeight: 1.15 }}
-            >
+            <h2 className="t-h2 mt-5 text-cream">
               O contrato não termina quando é assinado. É aí que ele começa a custar.
             </h2>
 
@@ -170,7 +168,7 @@ export function GestaoContratos() {
             <p className="mt-8 font-heading text-[15px] italic" style={{ color: "hsl(38 45% 62%)" }}>
               Fiscalizar não é zelo. É defesa.
             </p>
-          </div>
+          </Reveal>
 
           {/* Coluna direita — placeholder do painel */}
           <div

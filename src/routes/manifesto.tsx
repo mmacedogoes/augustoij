@@ -2,6 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Nav } from "@/components/landing/Nav";
 import { ManifestoFooter } from "@/components/landing/ManifestoFooter";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
+import { SectionLabel } from "@/components/landing/SectionLabel";
+import { ArcoAugusto } from "@/components/landing/ArcoAugusto";
+import { Reveal } from "@/components/landing/Reveal";
+import { Icon } from "@iconify/react";
 
 export const Route = createFileRoute("/manifesto")({
   head: () => ({
@@ -38,44 +42,52 @@ const VALORES = [
 
 function ManifestoPage() {
   return (
-    <div className="min-h-screen bg-augusto-cream text-augusto-slate-dark">
+    <div className="min-h-screen bg-cream text-grafite">
       <Nav />
 
       {/* Hero, banda verde */}
-      <section className="bg-augusto-green px-6 py-24 md:py-28 text-center">
-        <div className="mx-auto max-w-[800px]">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
-            Manifesto
-          </div>
-          <h1 className="mt-6 font-serif italic text-augusto-cream text-5xl md:text-7xl lg:text-[80px] leading-[1.1]">
+      <section
+        className="bg-verde-profundo px-6 text-center"
+        style={{ paddingTop: "clamp(120px, 14vw, 168px)", paddingBottom: "clamp(80px, 10vw, 120px)" }}
+      >
+        <Reveal className="mx-auto flex max-w-[800px] flex-col items-center">
+          <SectionLabel tone="light">Manifesto</SectionLabel>
+          <h1 className="t-display mt-5 italic text-cream">
             Dura lex, sed Augusto.
           </h1>
-          <div className="mt-5 text-[13px] font-medium uppercase tracking-[0.24em] text-augusto-gold">
+          <ArcoAugusto width={60} color="hsl(33 40% 54%)" opacity={0.7} className="mt-8" />
+          <div className="mt-6 t-label text-dourado">
             A lei é dura, mas você tem Augusto.
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* Credo, card branco sobre creme */}
-      <section className="bg-augusto-cream px-6 py-24">
-        <div className="mx-auto max-w-[760px] rounded-2xl bg-white border border-augusto-gold/30 shadow-[0_30px_80px_-30px_rgba(0,81,43,0.25)] p-8 md:p-14 space-y-6">
+      <section
+        className="bg-cream px-6"
+        style={{ paddingTop: "clamp(80px, 10vw, 120px)", paddingBottom: "clamp(80px, 10vw, 120px)" }}
+      >
+        <Reveal className="mx-auto max-w-[760px] rounded-2xl bg-papel border border-borda p-8 md:p-14 space-y-6">
           {MANIFESTO.map((linha, i) => (
             <p
               key={i}
               className={
                 i % 2 === 0
-                  ? "border-l-4 border-augusto-gold pl-5 font-serif text-augusto-slate-dark text-[20px] leading-[1.7]"
-                  : "font-serif text-augusto-slate-dark text-[20px] leading-[1.7] pl-5"
+                  ? "border-l-4 border-dourado pl-5 t-h4 text-grafite"
+                  : "pl-5 t-h4 text-grafite"
               }
             >
               {linha}
             </p>
           ))}
-        </div>
+        </Reveal>
       </section>
 
       {/* Missão / Visão, banda creme-dark */}
-      <section className="bg-augusto-cream-dark px-6 py-24 border-y border-augusto-gold/20">
+      <section
+        className="bg-bege px-6 border-y border-borda"
+        style={{ paddingTop: "clamp(80px, 10vw, 120px)", paddingBottom: "clamp(80px, 10vw, 120px)" }}
+      >
         <div className="mx-auto max-w-[800px]">
           <Bloco label="Missão">
             Democratizar o acesso à inteligência jurídica condominial, garantindo a solidez
@@ -92,44 +104,48 @@ function ManifestoPage() {
       </section>
 
       {/* Valores, cards brancos sobre creme */}
-      <section className="bg-augusto-cream px-6 py-24">
+      <section
+        className="bg-cream px-6"
+        style={{ paddingTop: "clamp(80px, 10vw, 120px)", paddingBottom: "clamp(80px, 10vw, 120px)" }}
+      >
         <div className="mx-auto max-w-[900px]">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
-            Valores
-          </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {VALORES.map((v) => (
-              <div
+          <Reveal>
+            <SectionLabel tone="dark">Valores</SectionLabel>
+          </Reveal>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {VALORES.map((v, i) => (
+              <Reveal
                 key={v.nome}
-                className="border-l-4 border-augusto-gold bg-white px-5 py-4 rounded-r-md shadow-[0_10px_30px_-18px_rgba(0,81,43,0.25)]"
+                delay={i * 60}
+                className="border-l-4 border-dourado bg-papel px-5 py-4 rounded-r-md transition-colors duration-200 hover:bg-papel/80"
               >
-                <div className="font-serif text-augusto-green text-[20px] leading-tight">
-                  {v.nome}
-                </div>
-                <p className="mt-1 text-[15px] text-augusto-slate leading-[1.55]">{v.desc}</p>
-              </div>
+                <div className="t-h4 text-verde">{v.nome}</div>
+                <p className="mt-2 t-body-sm text-ardosia">{v.desc}</p>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* O símbolo, banda creme-dark */}
-      <section className="bg-augusto-cream-dark px-6 py-24 border-y border-augusto-gold/20">
+      <section
+        className="bg-bege px-6 border-y border-borda"
+        style={{ paddingTop: "clamp(80px, 10vw, 120px)", paddingBottom: "clamp(80px, 10vw, 120px)" }}
+      >
         <div className="mx-auto max-w-[1000px]">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold text-center">
-            O símbolo
-          </div>
-          <h2 className="mt-4 font-serif text-augusto-green text-4xl md:text-5xl leading-tight text-center">
-            Um aqueduto para o Direito.
-          </h2>
+          <Reveal className="flex flex-col items-center text-center">
+            <SectionLabel tone="dark">O símbolo</SectionLabel>
+            <h2 className="t-h2 mt-5 text-verde">Um aqueduto para o Direito.</h2>
+            <ArcoAugusto width={52} color="hsl(33 40% 54%)" opacity={0.55} className="mt-6" />
+          </Reveal>
 
-          <div className="mt-14 grid gap-10 lg:grid-cols-[300px_1fr] items-center">
-            <div className="mx-auto flex items-center justify-center rounded-2xl border border-augusto-gold/40 bg-augusto-cream p-10 shadow-[0_20px_60px_-30px_rgba(0,81,43,0.25)]">
+          <Reveal delay={80} className="mt-14 grid gap-10 lg:grid-cols-[300px_1fr] items-center">
+            <div className="mx-auto flex items-center justify-center rounded-2xl border border-borda bg-cream p-10">
               <AugustoLogo variant="icon-only" size={220} />
             </div>
 
             <div className="space-y-6">
-              <p className="border-l-4 border-augusto-gold pl-5 font-serif text-augusto-slate-dark text-[18px] leading-[1.75]">
+              <p className="border-l-4 border-dourado pl-5 t-body text-grafite">
                 O símbolo de Augusto.IJ é um aqueduto romano abstrato. Os três arcos
                 representam a tríade fundamental prática do Direito: lei, doutrina e
                 jurisprudência. A linha superior é o canal por onde a inteligência flui,
@@ -137,31 +153,35 @@ function ManifestoPage() {
                 centelha viva da inteligência, a alma de Augusto, que mora dentro da
                 estrutura jurídica.
               </p>
-              <p className="pl-5 text-[16px] text-augusto-slate leading-[1.7]">
+              <p className="pl-5 t-body-sm text-ardosia">
                 Engenharia civil romana, os aquedutos eram a obra-prima da infraestrutura
                 imperial, levando recursos vitais a comunidades inteiras que antes não
                 tinham.
               </p>
-              <p className="pl-5 font-serif italic text-augusto-green text-[22px] leading-[1.5]">
+              <p className="pl-5 t-quote text-verde">
                 Os romanos levaram água a cada cidade. Augusto leva o Direito a cada
                 condomínio.
               </p>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* CTA final, banda verde */}
-      <section className="bg-augusto-green px-6 py-24 text-center">
-        <p className="font-serif italic text-augusto-cream text-3xl md:text-4xl">
-          Pergunte ao Augusto.
-        </p>
-        <Link
-          to="/signup"
-          className="mt-8 inline-flex items-center gap-2 rounded-md bg-augusto-gold px-6 py-3 text-sm font-semibold text-augusto-green hover:bg-augusto-gold-light active:scale-[0.98] transition-all duration-200"
-        >
-          Começar agora →
-        </Link>
+      <section
+        className="bg-verde-profundo px-6 text-center"
+        style={{ paddingTop: "clamp(80px, 10vw, 120px)", paddingBottom: "clamp(80px, 10vw, 120px)" }}
+      >
+        <Reveal className="mx-auto max-w-[720px]">
+          <p className="t-h2 italic text-cream">Pergunte ao Augusto.</p>
+          <Link
+            to="/signup"
+            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-dourado px-7 py-3.5 t-button text-[hsl(30_60%_9%)] transition-colors duration-200 hover:bg-[hsl(33_40%_47%)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dourado focus-visible:ring-offset-2 focus-visible:ring-offset-verde-profundo"
+          >
+            Começar agora
+            <Icon icon="ph:arrow-right" width={18} />
+          </Link>
+        </Reveal>
       </section>
 
       <ManifestoFooter />
@@ -171,13 +191,9 @@ function ManifestoPage() {
 
 function Bloco({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-augusto-gold">
-        {label}
-      </div>
-      <p className="mt-3 font-serif text-augusto-green text-[26px] md:text-[30px] leading-snug">
-        {children}
-      </p>
-    </div>
+    <Reveal>
+      <SectionLabel tone="dark">{label}</SectionLabel>
+      <p className="mt-4 t-h3 text-verde">{children}</p>
+    </Reveal>
   );
 }

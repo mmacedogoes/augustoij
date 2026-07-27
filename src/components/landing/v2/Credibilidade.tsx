@@ -1,6 +1,8 @@
 import { Icon } from "@iconify/react";
 import { Link } from "@tanstack/react-router";
 import { SectionLabel } from "@/components/landing/SectionLabel";
+import { ArcoAugusto } from "@/components/landing/ArcoAugusto";
+import { Reveal } from "@/components/landing/Reveal";
 
 const CONFIANCA = [
   {
@@ -19,28 +21,30 @@ const CONFIANCA = [
 
 export function Credibilidade() {
   return (
-    <section id="credibilidade" className="relative w-full bg-papel px-6 py-[var(--spacing-section-mobile)] md:py-[var(--spacing-section)]">
+    <section
+      id="credibilidade"
+      className="relative w-full bg-papel px-6"
+      style={{ paddingTop: "clamp(80px, 10vw, 120px)", paddingBottom: "clamp(80px, 10vw, 120px)" }}
+    >
       <div className="mx-auto w-full max-w-[var(--container-container)]">
         {/* Cabeçalho */}
-        <div className="mx-auto flex max-w-[720px] flex-col items-center text-center">
+        <Reveal className="mx-auto flex max-w-[720px] flex-col items-center text-center">
           <SectionLabel tone="dark">QUEM JÁ USA</SectionLabel>
-          <h2
-            className="mt-4 font-heading font-medium text-verde"
-            style={{ fontSize: "clamp(26px, 2.4vw, 38px)", lineHeight: 1.15 }}
-          >
+          <h2 className="t-h2 mt-5 text-verde">
             Não é promessa nossa. É a rotina de quem administra condomínio.
           </h2>
-        </div>
+          <ArcoAugusto width={52} color="hsl(33 40% 54%)" opacity={0.55} className="mt-6" />
+        </Reveal>
 
         {/* Card depoimento */}
-        <div className="mx-auto mt-10 rounded-lg border border-borda bg-papel p-7 md:mt-12 md:p-[30px]" style={{ maxWidth: 640, boxShadow: "0 12px 40px -24px hsl(150 100% 16% / 0.18)" }}>
+        <Reveal delay={80} className="mx-auto mt-12 rounded-2xl border border-borda bg-papel p-7 md:mt-14 md:p-[30px]" style={{ maxWidth: 640, boxShadow: "0 12px 40px -24px hsl(150 100% 16% / 0.18)" }}>
           <div aria-hidden className="font-heading text-[44px] leading-none text-dourado">
             &ldquo;
           </div>
-          <p className="mt-2 font-heading font-medium text-verde" style={{ fontSize: 24, lineHeight: 1.35 }}>
+          <p className="t-quote mt-2 text-verde">
             Ela não encontrou a cláusula de barulho rapidamente. O Augusto.IJ encontrou na hora.
           </p>
-          <p className="mt-5 font-body text-[14px] leading-relaxed text-ardosia">
+          <p className="t-body-sm mt-5 text-ardosia">
             A administradora ficou de fazer a parte dela, e eu já estava com o meu resumo pronto. Ela disse que só tinha encontrado a cláusula de reincidência, não encontrou a de barulho rapidamente. O Augusto.IJ encontrou na hora. Só copiei e colei e disse: a cláusula é essa aqui. É uma inteligência bem atualizada, mais específica, mais direcionada. A margem de erro é bem pequena.
           </p>
 
@@ -60,27 +64,27 @@ export function Credibilidade() {
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
 
-        <p className="mx-auto mt-6 max-w-[560px] text-center font-body text-[12.5px] leading-relaxed text-ardosia">
+        <p className="mx-auto mt-6 max-w-[560px] text-center t-micro text-ardosia">
           Quem responde de memória demora. Quem consulta a base encontra na hora. O Augusto.IJ existe para dar essa velocidade à equipe também.
         </p>
 
         {/* Confiança */}
-        <div className="mx-auto mt-14 grid max-w-[880px] gap-8 md:mt-16 md:grid-cols-2 md:gap-12">
+        <Reveal delay={120} className="mx-auto mt-14 grid max-w-[880px] gap-8 md:mt-16 md:grid-cols-2 md:gap-12">
           {CONFIANCA.map((c) => (
             <div key={c.titulo} className="flex gap-4">
               <Icon icon={c.icon} className="mt-0.5 h-6 w-6 shrink-0 text-verde" />
               <div>
-                <h3 className="font-body text-[15px] font-medium text-grafite">{c.titulo}</h3>
-                <p className="mt-1.5 font-body text-[13px] leading-relaxed text-ardosia">{c.texto}</p>
+                <h3 className="t-h4 text-verde">{c.titulo}</h3>
+                <p className="t-body-sm mt-2 text-ardosia">{c.texto}</p>
               </div>
             </div>
           ))}
-        </div>
+        </Reveal>
 
         {/* Fundador */}
-        <div className="mt-16 flex flex-col items-center gap-3 text-center md:mt-20">
+        <Reveal delay={160} className="mt-16 flex flex-col items-center gap-3 text-center md:mt-20">
           <p className="font-heading text-[16px] italic text-ardosia">
             &ldquo;Faltava alguém entre o Direito e o cotidiano do condomínio.&rdquo;
           </p>
@@ -92,7 +96,7 @@ export function Credibilidade() {
             Ler a história completa
             <Icon icon="ph:arrow-right" className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

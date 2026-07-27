@@ -1,6 +1,8 @@
 import { Icon } from "@iconify/react";
 import { Link } from "@tanstack/react-router";
 import { SectionLabel } from "@/components/landing/SectionLabel";
+import { ArcoAugusto } from "@/components/landing/ArcoAugusto";
+import { Reveal } from "@/components/landing/Reveal";
 
 type Situacao = { titulo: string; maxima: string; entrega: string };
 
@@ -75,24 +77,26 @@ function ImagePlaceholder({
 
 export function Situacoes() {
   return (
-    <section id="situacoes" className="relative w-full bg-off px-6 py-[var(--spacing-section-mobile)] md:py-[var(--spacing-section)]">
+    <section
+      id="situacoes"
+      className="relative w-full bg-off px-6"
+      style={{ paddingTop: "clamp(80px, 10vw, 120px)", paddingBottom: "clamp(80px, 10vw, 120px)" }}
+    >
       <div className="mx-auto w-full max-w-[var(--container-container)]">
         {/* Cabeçalho */}
-        <div className="mx-auto flex max-w-[720px] flex-col items-center text-center">
+        <Reveal className="mx-auto flex max-w-[720px] flex-col items-center text-center">
           <SectionLabel tone="dark">O AUGUSTO.IJ NA PRÁTICA</SectionLabel>
-          <h2
-            className="mt-4 font-heading font-medium text-verde"
-            style={{ fontSize: "clamp(26px, 2.4vw, 38px)", lineHeight: 1.15 }}
-          >
+          <h2 className="t-h2 mt-5 text-verde">
             Quando a dúvida exige resposta, improviso não é uma opção.
           </h2>
-          <p className="mt-5 font-body text-[15px] leading-relaxed text-ardosia" style={{ maxWidth: "52ch" }}>
+          <ArcoAugusto width={52} color="hsl(33 40% 54%)" opacity={0.55} className="mt-6" />
+          <p className="t-lead mt-5 text-ardosia">
             Situações que chegam todos os dias à mesa de síndicos, administradoras e advogados, e o que o Augusto.IJ entrega em cada uma.
           </p>
-        </div>
+        </Reveal>
 
         {/* Corpo: 60/40 */}
-        <div className="mt-12 grid gap-10 md:mt-16 md:grid-cols-[60%_40%] md:gap-10">
+        <Reveal delay={80} className="mt-14 grid gap-10 md:mt-16 md:grid-cols-[60%_40%] md:gap-10">
           {/* Tabela desktop */}
           <div className="hidden md:block">
             <div className="grid grid-cols-[1fr_1fr] gap-6 border-b border-borda pb-3 font-body text-[11px] font-medium uppercase text-ardosia" style={{ letterSpacing: "0.18em" }}>
@@ -138,10 +142,10 @@ export function Situacoes() {
               className="md:!-rotate-[1.5deg] md:-mt-6 md:ml-8"
             />
           </div>
-        </div>
+        </Reveal>
 
         {/* Em síntese */}
-        <div className="mt-12 rounded-md border border-borda bg-papel p-6 md:mt-16 md:p-8">
+        <Reveal delay={120} className="mt-14 rounded-2xl border border-borda bg-papel p-6 md:mt-16 md:p-8">
           <div className="mb-4 font-body text-[11px] font-medium uppercase text-verde" style={{ letterSpacing: "0.18em" }}>
             Em síntese
           </div>
@@ -163,7 +167,7 @@ export function Situacoes() {
               <Icon icon="ph:arrow-right" className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
