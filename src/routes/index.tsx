@@ -6,6 +6,7 @@ import { FaixaProva } from "@/components/landing/v2/FaixaProva";
 import { Metodo } from "@/components/landing/v2/Metodo";
 import { Situacoes } from "@/components/landing/v2/Situacoes";
 import { Credibilidade } from "@/components/landing/v2/Credibilidade";
+import { GestaoContratos } from "@/components/landing/v2/GestaoContratos";
 import { ScrollBlurOverlay } from "@/components/landing/ScrollBlurOverlay";
 import { useHashScroll } from "@/hooks/use-hash-scroll";
 
@@ -83,6 +84,7 @@ function Landing() {
       </Suspense>
       <Situacoes />
       <Credibilidade />
+      <GestaoContratos />
       <Suspense fallback={<div className="h-24" aria-hidden />}>
         <PricingSection />
         <FaqSection />
