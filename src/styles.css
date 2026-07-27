@@ -308,6 +308,106 @@
   }
 }
 
+/* ---------- Landing v2 — escala tipográfica canônica ---------- */
+
+@utility t-display {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: clamp(40px, 5vw, 68px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+@utility t-h2 {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: clamp(34px, 3.6vw, 52px);
+  line-height: 1.15;
+  letter-spacing: -0.005em;
+}
+
+@utility t-h3 {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: clamp(26px, 2.2vw, 34px);
+  line-height: 1.2;
+}
+
+@utility t-h4 {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 19px;
+  line-height: 1.4;
+  @media (min-width: 768px) {
+    font-size: 20px;
+  }
+}
+
+@utility t-lead {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.65;
+  max-width: 60ch;
+  @media (min-width: 768px) {
+    font-size: 19px;
+  }
+}
+
+@utility t-body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.7;
+  max-width: 68ch;
+  @media (min-width: 768px) {
+    font-size: 17px;
+  }
+}
+
+@utility t-body-sm {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+@utility t-micro {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+@utility t-label {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+
+@utility t-quote {
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.35;
+}
+
+@utility t-button {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+@utility t-num {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 1;
+}
+
 /* ---------- App (área logada) — sistema visual interno ---------- */
 
 @utility app-page {

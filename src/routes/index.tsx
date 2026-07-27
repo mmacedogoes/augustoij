@@ -4,6 +4,7 @@ import { Nav } from "@/components/landing/Nav";
 import { Hero } from "@/components/landing/v2/Hero";
 import { FaixaProva } from "@/components/landing/v2/FaixaProva";
 import { Metodo } from "@/components/landing/v2/Metodo";
+import { ParaQuem } from "@/components/landing/v2/ParaQuem";
 import { Situacoes } from "@/components/landing/v2/Situacoes";
 import { Credibilidade } from "@/components/landing/v2/Credibilidade";
 import { GestaoContratos } from "@/components/landing/v2/GestaoContratos";
@@ -11,23 +12,11 @@ import { ScrollBlurOverlay } from "@/components/landing/ScrollBlurOverlay";
 import { useHashScroll } from "@/hooks/use-hash-scroll";
 
 // Seções abaixo da dobra: code-split para reduzir o JS inicial da home.
-const ProblemSection = lazy(() =>
-  import("@/components/landing/ProblemSection").then((m) => ({ default: m.ProblemSection })),
+const PlanosFaq = lazy(() =>
+  import("@/components/landing/v2/PlanosFaq").then((m) => ({ default: m.PlanosFaq })),
 );
-const ForWhomSection = lazy(() =>
-  import("@/components/landing/ForWhomSection").then((m) => ({ default: m.ForWhomSection })),
-);
-const FeaturesSection = lazy(() =>
-  import("@/components/landing/FeaturesSection").then((m) => ({ default: m.FeaturesSection })),
-);
-const PricingSection = lazy(() =>
-  import("@/components/landing/PricingSection").then((m) => ({ default: m.PricingSection })),
-);
-const FaqSection = lazy(() =>
-  import("@/components/landing/FaqSection").then((m) => ({ default: m.FaqSection })),
-);
-const FinalCtaSection = lazy(() =>
-  import("@/components/landing/FinalCtaSection").then((m) => ({ default: m.FinalCtaSection })),
+const Fecho = lazy(() =>
+  import("@/components/landing/v2/Fecho").then((m) => ({ default: m.Fecho })),
 );
 const ManifestoFooter = lazy(() =>
   import("@/components/landing/ManifestoFooter").then((m) => ({ default: m.ManifestoFooter })),
@@ -77,19 +66,14 @@ function Landing() {
       <Hero />
       <FaixaProva />
       <Metodo />
-      <Suspense fallback={<div className="h-24" aria-hidden />}>
-        <ProblemSection />
-        <ForWhomSection />
-        <FeaturesSection />
-      </Suspense>
+      <ParaQuem />
       <Situacoes />
       <Credibilidade />
       <GestaoContratos />
       <Suspense fallback={<div className="h-24" aria-hidden />}>
-        <PricingSection />
-        <FaqSection />
-        <FinalCtaSection />
-        <ManifestoFooter />
+        <PlanosFaq />
+        <Fecho />
+        <ManifestoFooter showManifesto={false} />
       </Suspense>
       <ScrollBlurOverlay />
     </div>
