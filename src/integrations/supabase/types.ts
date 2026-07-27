@@ -1536,6 +1536,27 @@ export type Database = {
           },
         ]
       }
+      contratos_waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          origem: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          origem?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          origem?: string
+        }
+        Relationships: []
+      }
       conversas: {
         Row: {
           condominio_id: string
