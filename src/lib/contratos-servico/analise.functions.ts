@@ -11,6 +11,41 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAcessoContratos } from "./guard";
 import { registrarEventoIa } from "@/lib/uso-ia.server";
+import { PLANOS, type PlanoId as PlanoIdV2 } from "@/config/planos";
+import { resolvePlanId, isTrialExpired, gateMessages } from "@/lib/plan-gates";
+import { isAdminInternoServer } from "@/lib/admin-bypass";
+
+async function assertAnalisePermitida(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  userId: string,
+) {
+  const [subRes, admin] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("plano_config_id, trial_end, cortesia")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    isAdminInternoServer(supabase, userId),
+  ]);
+  const planoBruto = resolvePlanId(subRes?.data?.plano_config_id ?? null);
+  const cortesia = subRes?.data?.cortesia === true || admin;
+  if (cortesia) return;
+  if (isTrialExpired(planoBruto, subRes?.data?.trial_end ?? null)) {
+    throw new Error(gateMessages.trialExpirado());
+  }
+  const planoV2Id: PlanoIdV2 = (planoBruto as string) in PLANOS ? (planoBruto as PlanoIdV2) : "gratuito";
+  const limite = PLANOS[planoV2Id].limites.analisesContrato;
+  if (limite === null) return; // ilimitado
+  const { count } = await supabase
+    .from("contratos_servico")
+    .select("id, condominios!inner(owner_id)", { count: "exact", head: true })
+    .eq("condominios.owner_id", userId)
+    .not("analise_em", "is", null);
+  if ((count ?? 0) >= limite) {
+    if (planoV2Id === "gratuito") throw new Error(gateMessages.analiseGratuitoConsumida());
+    throw new Error(gateMessages.analiseContratos());
+  }
+}
 
 const MODEL = "google/gemini-2.5-flash";
 const AIG_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
