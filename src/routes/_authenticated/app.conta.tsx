@@ -69,6 +69,7 @@ type Profile = {
 };
 
 function ContaPage() {
+  const { data: planCtx } = usePlanContext();
   const router = useRouter();
   const fetchProfile = useServerFn(getProfile);
   const saveProfile = useServerFn(updateMyProfile);
