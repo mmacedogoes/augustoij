@@ -240,7 +240,7 @@ export function podeUsar(planoId: PlanoId, recurso: RecursoKey): boolean {
 export function limiteDe(
   planoId: PlanoId,
   limite: LimiteKey,
-): number | null | undefined {
+): number | boolean | null | undefined {
   const plano = PLANOS[planoId];
   if (!plano) return undefined;
   return (plano.limites as LimitesPlano)[limite];
