@@ -290,6 +290,31 @@ function ContaPage() {
               Seu plano inclui mensagens ilimitadas.
             </p>
           )}
+
+          {planCtx && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {planCtx.condominiosMax !== null && (
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+                  <UsageMeter
+                    used={planCtx.condominiosCount}
+                    limit={planCtx.condominiosMax}
+                    label="Condomínios cadastrados"
+                    unit="condomínios"
+                  />
+                </div>
+              )}
+              {planCtx.contratosGestaoAtivaMax !== null && planCtx.contratosGestaoAtivaMax > 0 && (
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+                  <UsageMeter
+                    used={planCtx.contratosGestaoAtivaCount}
+                    limit={planCtx.contratosGestaoAtivaMax}
+                    label="Contratos em gestão ativa"
+                    unit="contratos"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </Card>
 
         <Card className="app-card p-6 space-y-4">
