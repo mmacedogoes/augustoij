@@ -87,6 +87,7 @@ function Page() {
 
   return (
     <AppShell>
+      <GestaoContratosGate>
       <div className="max-w-6xl">
         <div className="mb-4">
           <ContratosTabs condominioId={condominioId === TODOS ? null : condominioId} />
