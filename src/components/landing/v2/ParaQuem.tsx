@@ -8,19 +8,19 @@ const PERFIS = [
     icon: "ph:house-line",
     titulo: "Síndicos moradores",
     texto:
-      "Você preside seu prédio sem ter formação jurídica. O Augusto responde com a segurança de um advogado à mão, na linguagem do dia a dia.",
+      "Você preside seu prédio sem ter formação jurídica. O Augusto.IJ responde com a segurança de um advogado à mão, na linguagem do dia a dia.",
   },
   {
     icon: "ph:briefcase",
     titulo: "Síndicos profissionais e advogados",
     texto:
-      "Você toma dezenas de decisões por semana em múltiplos condomínios. O Augusto acelera consultas com fundamentação, precedentes e minutas prontas.",
+      "Você toma dezenas de decisões por semana em múltiplos condomínios. O Augusto.IJ acelera consultas com fundamentação, precedentes e minutas prontas.",
   },
   {
     icon: "ph:buildings",
     titulo: "Administradoras",
     texto:
-      "Sua equipe atende dezenas de condomínios. O Augusto padroniza a resposta jurídica e libera tempo para o que exige julgamento humano.",
+      "Sua equipe atende dezenas de condomínios. O Augusto.IJ padroniza a resposta jurídica e libera tempo para o que exige julgamento humano.",
   },
 ];
 
