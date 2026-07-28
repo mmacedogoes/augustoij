@@ -13,24 +13,33 @@ export function ArcoAugusto({
   className?: string;
   ariaHidden?: boolean;
 }) {
-  const height = width * (24 / 44);
-  const sw = strokeWidth ?? Math.max(1, width / 44);
-  // Ponto dourado posicionado DENTRO do vértice do arco (não acima),
-  // encostado por dentro no cume onde os dois arcos se encontram.
+  const height = width * (22 / 64);
   return (
     <svg
       width={width}
       height={height}
-      viewBox="0 0 44 24"
+      viewBox="0 0 64 22"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden={ariaHidden}
-      style={{ opacity }}
+      style={{ opacity, color }}
     >
-      <path d="M2 22 C 2 12, 10 4, 22 4" stroke={color} strokeWidth={sw} strokeLinecap="round" fill="none" />
-      <path d="M22 4 C 34 4, 42 12, 42 22" stroke={color} strokeWidth={sw} strokeLinecap="round" fill="none" />
-      <circle cx="22" cy="7.2" r={sw * 1.1} fill={color} />
+      <path
+        d="M4 20 A14 14 0 0 1 32 20"
+        stroke="currentColor"
+        strokeWidth={strokeWidth ?? 2}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M32 20 A14 14 0 0 1 60 20"
+        stroke="currentColor"
+        strokeWidth={strokeWidth ?? 2}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <circle cx="32" cy="9" r="2.6" fill="#B8935A" />
     </svg>
   );
 }
