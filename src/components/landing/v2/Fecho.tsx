@@ -39,7 +39,7 @@ export function Fecho() {
           className="mt-6 t-lead"
           style={{
             fontFamily: '"Inter", system-ui, sans-serif',
-            color: "hsl(var(--off) / 0.78)",
+            color: "hsl(30 6% 95% / 0.78)",
           }}
         >
           Não decida no improviso quando a convenção, o contrato ou uma assembleia exigirem mais do que bom senso. Com o Augusto.IJ, você consulta dúvidas, analisa documentos e prepara comunicações com fundamentação legal, jurisprudência citável, orientação prática e as regras e decisões do seu próprio condomínio.
@@ -61,7 +61,7 @@ export function Fecho() {
         <a
           href="#pricing"
           className="mt-3 t-micro underline underline-offset-4"
-          style={{ color: "hsl(var(--off) / 0.70)", fontFamily: '"Inter", system-ui, sans-serif' }}
+          style={{ color: "hsl(30 6% 95% / 0.70)", fontFamily: '"Inter", system-ui, sans-serif' }}
         >
           Ver planos e preços
         </a>
@@ -69,7 +69,7 @@ export function Fecho() {
         <div
           aria-hidden="true"
           className="mt-10"
-          style={{ width: "80px", height: "1px", background: "hsl(var(--off) / 0.14)" }}
+          style={{ width: "80px", height: "1px", background: "hsl(30 6% 95% / 0.14)" }}
         />
 
         <blockquote
@@ -77,7 +77,7 @@ export function Fecho() {
           style={{
             fontFamily: '"Cormorant Garamond", Georgia, serif',
             fontStyle: "italic",
-            color: "hsl(var(--off) / 0.85)",
+            color: "hsl(30 6% 95% / 0.85)",
             fontSize: "clamp(18px, 2.2vw, 22px)",
             lineHeight: 1.5,
           }}
@@ -105,7 +105,7 @@ export function Fecho() {
             fontSize: "11px",
             letterSpacing: "0.22em",
             textTransform: "uppercase",
-            color: "hsl(var(--off) / 0.70)",
+            color: "hsl(30 6% 95% / 0.70)",
             fontFamily: '"Inter", system-ui, sans-serif',
           }}
         >
@@ -129,7 +129,7 @@ export function Fecho() {
             fontSize: "10.5px",
             letterSpacing: "0.22em",
             textTransform: "uppercase",
-            color: "hsl(var(--off) / 0.60)",
+            color: "hsl(30 6% 95% / 0.60)",
             fontFamily: '"Inter", system-ui, sans-serif',
           }}
         >
