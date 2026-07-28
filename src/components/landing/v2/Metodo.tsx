@@ -105,19 +105,32 @@ function CardLei({ item, align = "left" }: { item: CardItem; align?: "left" | "r
         item.destaque ? "border-dourado" : "border-borda"
       }`}
     >
-      {item.destaque && (
-        <span
-          className="absolute right-3 top-3 rounded-full border border-dourado/60 px-2 py-[2px] font-body text-[10px] font-medium text-dourado-texto"
-          style={{ letterSpacing: "0.14em" }}
-        >
-          DECISÕES
-        </span>
-      )}
-      <h4
-        className={`font-body text-[15px] font-medium text-grafite ${align === "right" ? "text-left md:text-right" : ""}`}
+      <div
+        className="flex flex-wrap items-center justify-between"
+        style={{ gap: 8 }}
       >
-        {item.titulo}
-      </h4>
+        <h4
+          className={`font-body text-[15px] font-medium text-grafite ${align === "right" ? "text-left md:text-right" : ""}`}
+        >
+          {item.titulo}
+        </h4>
+        {item.destaque && (
+          <span
+            className="font-body font-medium"
+            style={{
+              fontSize: "11px",
+              color: "#8A6A38",
+              border: "1px solid #D9C29A",
+              borderRadius: "8px",
+              padding: "2px 8px",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+            }}
+          >
+            DECISÕES
+          </span>
+        )}
+      </div>
       <p
         className={`mt-1.5 font-body text-[13px] leading-relaxed text-ardosia ${
           align === "right" ? "text-left md:text-right" : ""
