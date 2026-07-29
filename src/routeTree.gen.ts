@@ -9,137 +9,91 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermosRouteImport } from './routes/termos'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as SegurancaRouteImport } from './routes/seguranca'
-import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
-import { Route as PrivacidadeRouteImport } from './routes/privacidade'
-import { Route as ManifestoRouteImport } from './routes/manifesto'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as HistoriaRouteImport } from './routes/historia'
-import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
-import { Route as ContatoRouteImport } from './routes/contato'
-import { Route as ConfirmarExclusaoRouteImport } from './routes/confirmar-exclusao'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as ConfirmarExclusaoRouteImport } from './routes/confirmar-exclusao'
+import { Route as ContatoRouteImport } from './routes/contato'
+import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
+import { Route as HistoriaRouteImport } from './routes/historia'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ManifestoRouteImport } from './routes/manifesto'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
+import { Route as SegurancaRouteImport } from './routes/seguranca'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermosRouteImport } from './routes/termos'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AuthConfirmarRouteImport } from './routes/auth.confirmar'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as AuthConfirmarRouteImport } from './routes/auth.confirmar'
-import { Route as ApiChatRouteImport } from './routes/api/chat'
-import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
-import { Route as ApiVozTranscreverRouteImport } from './routes/api/voz/transcrever'
-import { Route as ApiVozFalarRouteImport } from './routes/api/voz/falar'
-import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
-import { Route as ApiPublicAuthCheckRouteImport } from './routes/api/public/auth-check'
-import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
-import { Route as AuthenticatedAppContratosRouteImport } from './routes/_authenticated/app.contratos'
-import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
-import { Route as AuthenticatedAppAssinaturaRouteImport } from './routes/_authenticated/app.assinatura'
-import { Route as AuthenticatedAppAjudaRouteImport } from './routes/_authenticated/app.ajuda'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
-import { Route as AuthenticatedAppContratosIndexRouteImport } from './routes/_authenticated/app.contratos.index'
-import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
-import { Route as AuthenticatedAppAjudaIndexRouteImport } from './routes/_authenticated/app.ajuda.index'
+import { Route as AuthenticatedAppAjudaRouteImport } from './routes/_authenticated/app.ajuda'
+import { Route as AuthenticatedAppAssinaturaRouteImport } from './routes/_authenticated/app.assinatura'
+import { Route as AuthenticatedAppContaRouteImport } from './routes/_authenticated/app.conta'
+import { Route as AuthenticatedAppContratosRouteImport } from './routes/_authenticated/app.contratos'
+import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
+import { Route as ApiPublicAuthCheckRouteImport } from './routes/api/public/auth-check'
+import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
+import { Route as ApiVozFalarRouteImport } from './routes/api/voz/falar'
+import { Route as ApiVozTranscreverRouteImport } from './routes/api/voz/transcrever'
 import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authenticated/app.admin.index'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
-import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
-import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as ApiPublicHooksLembretesContratosRouteImport } from './routes/api/public/hooks/lembretes-contratos'
-import { Route as ApiPublicHooksHelpdeskLembretesRouteImport } from './routes/api/public/hooks/helpdesk-lembretes'
-import { Route as AuthenticatedAppSuporteTicketIdRouteImport } from './routes/_authenticated/app.suporte.$ticketId'
-import { Route as AuthenticatedAppContratosPainelRouteImport } from './routes/_authenticated/app.contratos.painel'
-import { Route as AuthenticatedAppContratosNovoRouteImport } from './routes/_authenticated/app.contratos.novo'
-import { Route as AuthenticatedAppContratosImportarRouteImport } from './routes/_authenticated/app.contratos.importar'
-import { Route as AuthenticatedAppContratosContratoIdRouteImport } from './routes/_authenticated/app.contratos.$contratoId'
-import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
-import { Route as AuthenticatedAppAssinaturaRetornoRouteImport } from './routes/_authenticated/app.assinatura.retorno'
-import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
-import { Route as AuthenticatedAppAjudaDicasIaRouteImport } from './routes/_authenticated/app.ajuda.dicas-ia'
-import { Route as AuthenticatedAppAjudaSecaoRouteImport } from './routes/_authenticated/app.ajuda.$secao'
-import { Route as AuthenticatedAppAdminUsoRouteImport } from './routes/_authenticated/app.admin.uso'
-import { Route as AuthenticatedAppAdminTreinamentoRouteImport } from './routes/_authenticated/app.admin.treinamento'
-import { Route as AuthenticatedAppAdminOrientacoesRouteImport } from './routes/_authenticated/app.admin.orientacoes'
-import { Route as AuthenticatedAppAdminImoveisRouteImport } from './routes/_authenticated/app.admin.imoveis'
-import { Route as AuthenticatedAppAdminFinanceiroRouteImport } from './routes/_authenticated/app.admin.financeiro'
-import { Route as AuthenticatedAppAdminCondominiosRouteImport } from './routes/_authenticated/app.admin.condominios'
-import { Route as AuthenticatedAppAdminCidadesNovasRouteImport } from './routes/_authenticated/app.admin.cidades-novas'
-import { Route as AuthenticatedAppAdminBlogRouteImport } from './routes/_authenticated/app.admin.blog'
 import { Route as AuthenticatedAppAdminAuditoriaRouteImport } from './routes/_authenticated/app.admin.auditoria'
-import { Route as AuthenticatedAppAdminUsuariosIndexRouteImport } from './routes/_authenticated/app.admin.usuarios.index'
-import { Route as AuthenticatedAppAdminImoveisIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.index'
+import { Route as AuthenticatedAppAdminBlogRouteImport } from './routes/_authenticated/app.admin.blog'
+import { Route as AuthenticatedAppAdminCidadesNovasRouteImport } from './routes/_authenticated/app.admin.cidades-novas'
+import { Route as AuthenticatedAppAdminCondominiosRouteImport } from './routes/_authenticated/app.admin.condominios'
+import { Route as AuthenticatedAppAdminFinanceiroRouteImport } from './routes/_authenticated/app.admin.financeiro'
+import { Route as AuthenticatedAppAdminImoveisRouteImport } from './routes/_authenticated/app.admin.imoveis'
+import { Route as AuthenticatedAppAdminOrientacoesRouteImport } from './routes/_authenticated/app.admin.orientacoes'
+import { Route as AuthenticatedAppAdminTreinamentoRouteImport } from './routes/_authenticated/app.admin.treinamento'
+import { Route as AuthenticatedAppAdminUsoRouteImport } from './routes/_authenticated/app.admin.uso'
+import { Route as AuthenticatedAppAjudaIndexRouteImport } from './routes/_authenticated/app.ajuda.index'
+import { Route as AuthenticatedAppAjudaSecaoRouteImport } from './routes/_authenticated/app.ajuda.$secao'
+import { Route as AuthenticatedAppAjudaDicasIaRouteImport } from './routes/_authenticated/app.ajuda.dicas-ia'
+import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
+import { Route as AuthenticatedAppAssinaturaRetornoRouteImport } from './routes/_authenticated/app.assinatura.retorno'
+import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
+import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
+import { Route as AuthenticatedAppContratosIndexRouteImport } from './routes/_authenticated/app.contratos.index'
+import { Route as AuthenticatedAppContratosContratoIdRouteImport } from './routes/_authenticated/app.contratos.$contratoId'
+import { Route as AuthenticatedAppContratosImportarRouteImport } from './routes/_authenticated/app.contratos.importar'
+import { Route as AuthenticatedAppContratosNovoRouteImport } from './routes/_authenticated/app.contratos.novo'
+import { Route as AuthenticatedAppContratosPainelRouteImport } from './routes/_authenticated/app.contratos.painel'
+import { Route as AuthenticatedAppSuporteTicketIdRouteImport } from './routes/_authenticated/app.suporte.$ticketId'
+import { Route as ApiPublicHooksHelpdeskLembretesRouteImport } from './routes/api/public/hooks/helpdesk-lembretes'
+import { Route as ApiPublicHooksLembretesContratosRouteImport } from './routes/api/public/hooks/lembretes-contratos'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AuthenticatedAppAdminHelpdeskIndexRouteImport } from './routes/_authenticated/app.admin.helpdesk.index'
-import { Route as AuthenticatedAppContratosContratoIdEditarRouteImport } from './routes/_authenticated/app.contratos.$contratoId.editar'
-import { Route as AuthenticatedAppAjudaPerfilPerfilRouteImport } from './routes/_authenticated/app.ajuda.perfil.$perfil'
-import { Route as AuthenticatedAppAdminUsuariosUserIdRouteImport } from './routes/_authenticated/app.admin.usuarios.$userId'
-import { Route as AuthenticatedAppAdminImoveisImportarRouteImport } from './routes/_authenticated/app.admin.imoveis.importar'
 import { Route as AuthenticatedAppAdminHelpdeskTicketIdRouteImport } from './routes/_authenticated/app.admin.helpdesk.$ticketId'
-import { Route as AuthenticatedAppAdminImoveisUnidadesIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.index'
-import { Route as AuthenticatedAppAdminImoveisProprietariosIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.index'
-import { Route as AuthenticatedAppAdminImoveisLocacaoIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.index'
-import { Route as AuthenticatedAppAdminImoveisHonorariosIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.honorarios.index'
+import { Route as AuthenticatedAppAdminImoveisIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.index'
+import { Route as AuthenticatedAppAdminImoveisImportarRouteImport } from './routes/_authenticated/app.admin.imoveis.importar'
+import { Route as AuthenticatedAppAdminUsuariosIndexRouteImport } from './routes/_authenticated/app.admin.usuarios.index'
+import { Route as AuthenticatedAppAdminUsuariosUserIdRouteImport } from './routes/_authenticated/app.admin.usuarios.$userId'
+import { Route as AuthenticatedAppAjudaPerfilPerfilRouteImport } from './routes/_authenticated/app.ajuda.perfil.$perfil'
+import { Route as AuthenticatedAppContratosContratoIdEditarRouteImport } from './routes/_authenticated/app.contratos.$contratoId.editar'
 import { Route as AuthenticatedAppAdminImoveisAdministracaoIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.administracao.index'
-import { Route as AuthenticatedAppAdminImoveisUnidadesIdRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.$id'
-import { Route as AuthenticatedAppAdminImoveisProprietariosIdRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.$id'
 import { Route as AuthenticatedAppAdminImoveisAdministracaoIdRouteImport } from './routes/_authenticated/app.admin.imoveis.administracao.$id'
+import { Route as AuthenticatedAppAdminImoveisHonorariosIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.honorarios.index'
+import { Route as AuthenticatedAppAdminImoveisLocacaoIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.index'
+import { Route as AuthenticatedAppAdminImoveisProprietariosIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.index'
+import { Route as AuthenticatedAppAdminImoveisProprietariosIdRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.$id'
+import { Route as AuthenticatedAppAdminImoveisUnidadesIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.index'
+import { Route as AuthenticatedAppAdminImoveisUnidadesIdRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.$id'
 import { Route as AuthenticatedAppAdminImoveisLocacaoIdIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id.index'
-import { Route as AuthenticatedAppAdminImoveisLocacaoIdEditarRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id.editar'
 import { Route as AuthenticatedAppAdminImoveisLocacaoIdAditivoRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id.aditivo'
+import { Route as AuthenticatedAppAdminImoveisLocacaoIdEditarRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id.editar'
 
-const TermosRoute = TermosRouteImport.update({
-  id: '/termos',
-  path: '/termos',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SegurancaRoute = SegurancaRouteImport.update({
-  id: '/seguranca',
-  path: '/seguranca',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
-  id: '/redefinir-senha',
-  path: '/redefinir-senha',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacidadeRoute = PrivacidadeRouteImport.update({
-  id: '/privacidade',
-  path: '/privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ManifestoRoute = ManifestoRouteImport.update({
-  id: '/manifesto',
-  path: '/manifesto',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HistoriaRoute = HistoriaRouteImport.update({
-  id: '/historia',
-  path: '/historia',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
-  id: '/esqueci-senha',
-  path: '/esqueci-senha',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContatoRoute = ContatoRouteImport.update({
-  id: '/contato',
-  path: '/contato',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfirmarExclusaoRoute = ConfirmarExclusaoRouteImport.update({
@@ -147,13 +101,74 @@ const ConfirmarExclusaoRoute = ConfirmarExclusaoRouteImport.update({
   path: '/confirmar-exclusao',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const ContatoRoute = ContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoriaRoute = HistoriaRouteImport.update({
+  id: '/historia',
+  path: '/historia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManifestoRoute = ManifestoRouteImport.update({
+  id: '/manifesto',
+  path: '/manifesto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SegurancaRoute = SegurancaRouteImport.update({
+  id: '/seguranca',
+  path: '/seguranca',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthConfirmarRoute = AuthConfirmarRouteImport.update({
+  id: '/auth/confirmar',
+  path: '/auth/confirmar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
@@ -166,60 +181,19 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthConfirmarRoute = AuthConfirmarRouteImport.update({
-  id: '/auth/confirmar',
-  path: '/auth/confirmar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiChatRoute = ApiChatRouteImport.update({
-  id: '/api/chat',
-  path: '/api/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiVozTranscreverRoute = ApiVozTranscreverRouteImport.update({
-  id: '/api/voz/transcrever',
-  path: '/api/voz/transcrever',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
+  id: '/app/admin',
+  path: '/app/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiVozFalarRoute = ApiVozFalarRouteImport.update({
-  id: '/api/voz/falar',
-  path: '/api/voz/falar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicDemoChatRoute = ApiPublicDemoChatRouteImport.update({
-  id: '/api/public/demo-chat',
-  path: '/api/public/demo-chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAuthCheckRoute = ApiPublicAuthCheckRouteImport.update({
-  id: '/api/public/auth-check',
-  path: '/api/public/auth-check',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
-  id: '/api/public/asaas-webhook',
-  path: '/api/public/asaas-webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedAppContratosRoute =
-  AuthenticatedAppContratosRouteImport.update({
-    id: '/app/contratos',
-    path: '/app/contratos',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
-  id: '/app/conta',
-  path: '/app/conta',
+const AuthenticatedAppAjudaRoute = AuthenticatedAppAjudaRouteImport.update({
+  id: '/app/ajuda',
+  path: '/app/ajuda',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppAssinaturaRoute =
@@ -228,174 +202,46 @@ const AuthenticatedAppAssinaturaRoute =
     path: '/app/assinatura',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppAjudaRoute = AuthenticatedAppAjudaRouteImport.update({
-  id: '/app/ajuda',
-  path: '/app/ajuda',
+const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
+  id: '/app/conta',
+  path: '/app/conta',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
-  id: '/app/admin',
-  path: '/app/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppContratosIndexRoute =
-  AuthenticatedAppContratosIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAppContratosRoute,
-  } as any)
-const AuthenticatedAppCondominiosIndexRoute =
-  AuthenticatedAppCondominiosIndexRouteImport.update({
-    id: '/app/condominios/',
-    path: '/app/condominios/',
+const AuthenticatedAppContratosRoute =
+  AuthenticatedAppContratosRouteImport.update({
+    id: '/app/contratos',
+    path: '/app/contratos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppAjudaIndexRoute =
-  AuthenticatedAppAjudaIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAppAjudaRoute,
-  } as any)
+const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
+  id: '/api/public/asaas-webhook',
+  path: '/api/public/asaas-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAuthCheckRoute = ApiPublicAuthCheckRouteImport.update({
+  id: '/api/public/auth-check',
+  path: '/api/public/auth-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDemoChatRoute = ApiPublicDemoChatRouteImport.update({
+  id: '/api/public/demo-chat',
+  path: '/api/public/demo-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVozFalarRoute = ApiVozFalarRouteImport.update({
+  id: '/api/voz/falar',
+  path: '/api/voz/falar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVozTranscreverRoute = ApiVozTranscreverRouteImport.update({
+  id: '/api/voz/transcrever',
+  path: '/api/voz/transcrever',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAppAdminIndexRoute =
   AuthenticatedAppAdminIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
-  id: '/lovable/email/auth/webhook',
-  path: '/lovable/email/auth/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
-  id: '/lovable/email/auth/preview',
-  path: '/lovable/email/auth/preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicHooksLembretesContratosRoute =
-  ApiPublicHooksLembretesContratosRouteImport.update({
-    id: '/api/public/hooks/lembretes-contratos',
-    path: '/api/public/hooks/lembretes-contratos',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksHelpdeskLembretesRoute =
-  ApiPublicHooksHelpdeskLembretesRouteImport.update({
-    id: '/api/public/hooks/helpdesk-lembretes',
-    path: '/api/public/hooks/helpdesk-lembretes',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthenticatedAppSuporteTicketIdRoute =
-  AuthenticatedAppSuporteTicketIdRouteImport.update({
-    id: '/app/suporte/$ticketId',
-    path: '/app/suporte/$ticketId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAppContratosPainelRoute =
-  AuthenticatedAppContratosPainelRouteImport.update({
-    id: '/painel',
-    path: '/painel',
-    getParentRoute: () => AuthenticatedAppContratosRoute,
-  } as any)
-const AuthenticatedAppContratosNovoRoute =
-  AuthenticatedAppContratosNovoRouteImport.update({
-    id: '/novo',
-    path: '/novo',
-    getParentRoute: () => AuthenticatedAppContratosRoute,
-  } as any)
-const AuthenticatedAppContratosImportarRoute =
-  AuthenticatedAppContratosImportarRouteImport.update({
-    id: '/importar',
-    path: '/importar',
-    getParentRoute: () => AuthenticatedAppContratosRoute,
-  } as any)
-const AuthenticatedAppContratosContratoIdRoute =
-  AuthenticatedAppContratosContratoIdRouteImport.update({
-    id: '/$contratoId',
-    path: '/$contratoId',
-    getParentRoute: () => AuthenticatedAppContratosRoute,
-  } as any)
-const AuthenticatedAppCondominiosIdRoute =
-  AuthenticatedAppCondominiosIdRouteImport.update({
-    id: '/app/condominios/$id',
-    path: '/app/condominios/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAppAssinaturaRetornoRoute =
-  AuthenticatedAppAssinaturaRetornoRouteImport.update({
-    id: '/retorno',
-    path: '/retorno',
-    getParentRoute: () => AuthenticatedAppAssinaturaRoute,
-  } as any)
-const AuthenticatedAppAjudaFaqRoute =
-  AuthenticatedAppAjudaFaqRouteImport.update({
-    id: '/faq',
-    path: '/faq',
-    getParentRoute: () => AuthenticatedAppAjudaRoute,
-  } as any)
-const AuthenticatedAppAjudaDicasIaRoute =
-  AuthenticatedAppAjudaDicasIaRouteImport.update({
-    id: '/dicas-ia',
-    path: '/dicas-ia',
-    getParentRoute: () => AuthenticatedAppAjudaRoute,
-  } as any)
-const AuthenticatedAppAjudaSecaoRoute =
-  AuthenticatedAppAjudaSecaoRouteImport.update({
-    id: '/$secao',
-    path: '/$secao',
-    getParentRoute: () => AuthenticatedAppAjudaRoute,
-  } as any)
-const AuthenticatedAppAdminUsoRoute =
-  AuthenticatedAppAdminUsoRouteImport.update({
-    id: '/uso',
-    path: '/uso',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const AuthenticatedAppAdminTreinamentoRoute =
-  AuthenticatedAppAdminTreinamentoRouteImport.update({
-    id: '/treinamento',
-    path: '/treinamento',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const AuthenticatedAppAdminOrientacoesRoute =
-  AuthenticatedAppAdminOrientacoesRouteImport.update({
-    id: '/orientacoes',
-    path: '/orientacoes',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const AuthenticatedAppAdminImoveisRoute =
-  AuthenticatedAppAdminImoveisRouteImport.update({
-    id: '/imoveis',
-    path: '/imoveis',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const AuthenticatedAppAdminFinanceiroRoute =
-  AuthenticatedAppAdminFinanceiroRouteImport.update({
-    id: '/financeiro',
-    path: '/financeiro',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const AuthenticatedAppAdminCondominiosRoute =
-  AuthenticatedAppAdminCondominiosRouteImport.update({
-    id: '/condominios',
-    path: '/condominios',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const AuthenticatedAppAdminCidadesNovasRoute =
-  AuthenticatedAppAdminCidadesNovasRouteImport.update({
-    id: '/cidades-novas',
-    path: '/cidades-novas',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const AuthenticatedAppAdminBlogRoute =
-  AuthenticatedAppAdminBlogRouteImport.update({
-    id: '/blog',
-    path: '/blog',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
 const AuthenticatedAppAdminAuditoriaRoute =
@@ -404,10 +250,170 @@ const AuthenticatedAppAdminAuditoriaRoute =
     path: '/auditoria',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
-const AuthenticatedAppAdminUsuariosIndexRoute =
-  AuthenticatedAppAdminUsuariosIndexRouteImport.update({
-    id: '/usuarios/',
-    path: '/usuarios/',
+const AuthenticatedAppAdminBlogRoute =
+  AuthenticatedAppAdminBlogRouteImport.update({
+    id: '/blog',
+    path: '/blog',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAdminCidadesNovasRoute =
+  AuthenticatedAppAdminCidadesNovasRouteImport.update({
+    id: '/cidades-novas',
+    path: '/cidades-novas',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAdminCondominiosRoute =
+  AuthenticatedAppAdminCondominiosRouteImport.update({
+    id: '/condominios',
+    path: '/condominios',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAdminFinanceiroRoute =
+  AuthenticatedAppAdminFinanceiroRouteImport.update({
+    id: '/financeiro',
+    path: '/financeiro',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisRoute =
+  AuthenticatedAppAdminImoveisRouteImport.update({
+    id: '/imoveis',
+    path: '/imoveis',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAdminOrientacoesRoute =
+  AuthenticatedAppAdminOrientacoesRouteImport.update({
+    id: '/orientacoes',
+    path: '/orientacoes',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAdminTreinamentoRoute =
+  AuthenticatedAppAdminTreinamentoRouteImport.update({
+    id: '/treinamento',
+    path: '/treinamento',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAdminUsoRoute =
+  AuthenticatedAppAdminUsoRouteImport.update({
+    id: '/uso',
+    path: '/uso',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAjudaIndexRoute =
+  AuthenticatedAppAjudaIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppAjudaRoute,
+  } as any)
+const AuthenticatedAppAjudaSecaoRoute =
+  AuthenticatedAppAjudaSecaoRouteImport.update({
+    id: '/$secao',
+    path: '/$secao',
+    getParentRoute: () => AuthenticatedAppAjudaRoute,
+  } as any)
+const AuthenticatedAppAjudaDicasIaRoute =
+  AuthenticatedAppAjudaDicasIaRouteImport.update({
+    id: '/dicas-ia',
+    path: '/dicas-ia',
+    getParentRoute: () => AuthenticatedAppAjudaRoute,
+  } as any)
+const AuthenticatedAppAjudaFaqRoute =
+  AuthenticatedAppAjudaFaqRouteImport.update({
+    id: '/faq',
+    path: '/faq',
+    getParentRoute: () => AuthenticatedAppAjudaRoute,
+  } as any)
+const AuthenticatedAppAssinaturaRetornoRoute =
+  AuthenticatedAppAssinaturaRetornoRouteImport.update({
+    id: '/retorno',
+    path: '/retorno',
+    getParentRoute: () => AuthenticatedAppAssinaturaRoute,
+  } as any)
+const AuthenticatedAppCondominiosIndexRoute =
+  AuthenticatedAppCondominiosIndexRouteImport.update({
+    id: '/app/condominios/',
+    path: '/app/condominios/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppCondominiosIdRoute =
+  AuthenticatedAppCondominiosIdRouteImport.update({
+    id: '/app/condominios/$id',
+    path: '/app/condominios/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppContratosIndexRoute =
+  AuthenticatedAppContratosIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppContratosRoute,
+  } as any)
+const AuthenticatedAppContratosContratoIdRoute =
+  AuthenticatedAppContratosContratoIdRouteImport.update({
+    id: '/$contratoId',
+    path: '/$contratoId',
+    getParentRoute: () => AuthenticatedAppContratosRoute,
+  } as any)
+const AuthenticatedAppContratosImportarRoute =
+  AuthenticatedAppContratosImportarRouteImport.update({
+    id: '/importar',
+    path: '/importar',
+    getParentRoute: () => AuthenticatedAppContratosRoute,
+  } as any)
+const AuthenticatedAppContratosNovoRoute =
+  AuthenticatedAppContratosNovoRouteImport.update({
+    id: '/novo',
+    path: '/novo',
+    getParentRoute: () => AuthenticatedAppContratosRoute,
+  } as any)
+const AuthenticatedAppContratosPainelRoute =
+  AuthenticatedAppContratosPainelRouteImport.update({
+    id: '/painel',
+    path: '/painel',
+    getParentRoute: () => AuthenticatedAppContratosRoute,
+  } as any)
+const AuthenticatedAppSuporteTicketIdRoute =
+  AuthenticatedAppSuporteTicketIdRouteImport.update({
+    id: '/app/suporte/$ticketId',
+    path: '/app/suporte/$ticketId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicHooksHelpdeskLembretesRoute =
+  ApiPublicHooksHelpdeskLembretesRouteImport.update({
+    id: '/api/public/hooks/helpdesk-lembretes',
+    path: '/api/public/hooks/helpdesk-lembretes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksLembretesContratosRoute =
+  ApiPublicHooksLembretesContratosRouteImport.update({
+    id: '/api/public/hooks/lembretes-contratos',
+    path: '/api/public/hooks/lembretes-contratos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedAppAdminHelpdeskIndexRoute =
+  AuthenticatedAppAdminHelpdeskIndexRouteImport.update({
+    id: '/helpdesk/',
+    path: '/helpdesk/',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAdminHelpdeskTicketIdRoute =
+  AuthenticatedAppAdminHelpdeskTicketIdRouteImport.update({
+    id: '/helpdesk/$ticketId',
+    path: '/helpdesk/$ticketId',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
 const AuthenticatedAppAdminImoveisIndexRoute =
@@ -416,23 +422,17 @@ const AuthenticatedAppAdminImoveisIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
   } as any)
-const AuthenticatedAppAdminHelpdeskIndexRoute =
-  AuthenticatedAppAdminHelpdeskIndexRouteImport.update({
-    id: '/helpdesk/',
-    path: '/helpdesk/',
+const AuthenticatedAppAdminImoveisImportarRoute =
+  AuthenticatedAppAdminImoveisImportarRouteImport.update({
+    id: '/importar',
+    path: '/importar',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminUsuariosIndexRoute =
+  AuthenticatedAppAdminUsuariosIndexRouteImport.update({
+    id: '/usuarios/',
+    path: '/usuarios/',
     getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const AuthenticatedAppContratosContratoIdEditarRoute =
-  AuthenticatedAppContratosContratoIdEditarRouteImport.update({
-    id: '/editar',
-    path: '/editar',
-    getParentRoute: () => AuthenticatedAppContratosContratoIdRoute,
-  } as any)
-const AuthenticatedAppAjudaPerfilPerfilRoute =
-  AuthenticatedAppAjudaPerfilPerfilRouteImport.update({
-    id: '/perfil/$perfil',
-    path: '/perfil/$perfil',
-    getParentRoute: () => AuthenticatedAppAjudaRoute,
   } as any)
 const AuthenticatedAppAdminUsuariosUserIdRoute =
   AuthenticatedAppAdminUsuariosUserIdRouteImport.update({
@@ -440,58 +440,22 @@ const AuthenticatedAppAdminUsuariosUserIdRoute =
     path: '/usuarios/$userId',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
-const AuthenticatedAppAdminImoveisImportarRoute =
-  AuthenticatedAppAdminImoveisImportarRouteImport.update({
-    id: '/importar',
-    path: '/importar',
-    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+const AuthenticatedAppAjudaPerfilPerfilRoute =
+  AuthenticatedAppAjudaPerfilPerfilRouteImport.update({
+    id: '/perfil/$perfil',
+    path: '/perfil/$perfil',
+    getParentRoute: () => AuthenticatedAppAjudaRoute,
   } as any)
-const AuthenticatedAppAdminHelpdeskTicketIdRoute =
-  AuthenticatedAppAdminHelpdeskTicketIdRouteImport.update({
-    id: '/helpdesk/$ticketId',
-    path: '/helpdesk/$ticketId',
-    getParentRoute: () => AuthenticatedAppAdminRoute,
-  } as any)
-const AuthenticatedAppAdminImoveisUnidadesIndexRoute =
-  AuthenticatedAppAdminImoveisUnidadesIndexRouteImport.update({
-    id: '/unidades/',
-    path: '/unidades/',
-    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
-  } as any)
-const AuthenticatedAppAdminImoveisProprietariosIndexRoute =
-  AuthenticatedAppAdminImoveisProprietariosIndexRouteImport.update({
-    id: '/proprietarios/',
-    path: '/proprietarios/',
-    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
-  } as any)
-const AuthenticatedAppAdminImoveisLocacaoIndexRoute =
-  AuthenticatedAppAdminImoveisLocacaoIndexRouteImport.update({
-    id: '/locacao/',
-    path: '/locacao/',
-    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
-  } as any)
-const AuthenticatedAppAdminImoveisHonorariosIndexRoute =
-  AuthenticatedAppAdminImoveisHonorariosIndexRouteImport.update({
-    id: '/honorarios/',
-    path: '/honorarios/',
-    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+const AuthenticatedAppContratosContratoIdEditarRoute =
+  AuthenticatedAppContratosContratoIdEditarRouteImport.update({
+    id: '/editar',
+    path: '/editar',
+    getParentRoute: () => AuthenticatedAppContratosContratoIdRoute,
   } as any)
 const AuthenticatedAppAdminImoveisAdministracaoIndexRoute =
   AuthenticatedAppAdminImoveisAdministracaoIndexRouteImport.update({
     id: '/administracao/',
     path: '/administracao/',
-    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
-  } as any)
-const AuthenticatedAppAdminImoveisUnidadesIdRoute =
-  AuthenticatedAppAdminImoveisUnidadesIdRouteImport.update({
-    id: '/unidades/$id',
-    path: '/unidades/$id',
-    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
-  } as any)
-const AuthenticatedAppAdminImoveisProprietariosIdRoute =
-  AuthenticatedAppAdminImoveisProprietariosIdRouteImport.update({
-    id: '/proprietarios/$id',
-    path: '/proprietarios/$id',
     getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
   } as any)
 const AuthenticatedAppAdminImoveisAdministracaoIdRoute =
@@ -500,22 +464,58 @@ const AuthenticatedAppAdminImoveisAdministracaoIdRoute =
     path: '/administracao/$id',
     getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
   } as any)
+const AuthenticatedAppAdminImoveisHonorariosIndexRoute =
+  AuthenticatedAppAdminImoveisHonorariosIndexRouteImport.update({
+    id: '/honorarios/',
+    path: '/honorarios/',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisLocacaoIndexRoute =
+  AuthenticatedAppAdminImoveisLocacaoIndexRouteImport.update({
+    id: '/locacao/',
+    path: '/locacao/',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisProprietariosIndexRoute =
+  AuthenticatedAppAdminImoveisProprietariosIndexRouteImport.update({
+    id: '/proprietarios/',
+    path: '/proprietarios/',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisProprietariosIdRoute =
+  AuthenticatedAppAdminImoveisProprietariosIdRouteImport.update({
+    id: '/proprietarios/$id',
+    path: '/proprietarios/$id',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisUnidadesIndexRoute =
+  AuthenticatedAppAdminImoveisUnidadesIndexRouteImport.update({
+    id: '/unidades/',
+    path: '/unidades/',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisUnidadesIdRoute =
+  AuthenticatedAppAdminImoveisUnidadesIdRouteImport.update({
+    id: '/unidades/$id',
+    path: '/unidades/$id',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
 const AuthenticatedAppAdminImoveisLocacaoIdIndexRoute =
   AuthenticatedAppAdminImoveisLocacaoIdIndexRouteImport.update({
     id: '/locacao/$id/',
     path: '/locacao/$id/',
     getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
   } as any)
-const AuthenticatedAppAdminImoveisLocacaoIdEditarRoute =
-  AuthenticatedAppAdminImoveisLocacaoIdEditarRouteImport.update({
-    id: '/locacao/$id/editar',
-    path: '/locacao/$id/editar',
-    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
-  } as any)
 const AuthenticatedAppAdminImoveisLocacaoIdAditivoRoute =
   AuthenticatedAppAdminImoveisLocacaoIdAditivoRouteImport.update({
     id: '/locacao/$id/aditivo',
     path: '/locacao/$id/aditivo',
+    getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
+  } as any)
+const AuthenticatedAppAdminImoveisLocacaoIdEditarRoute =
+  AuthenticatedAppAdminImoveisLocacaoIdEditarRouteImport.update({
+    id: '/locacao/$id/editar',
+    path: '/locacao/$id/editar',
     getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
   } as any)
 
@@ -1018,88 +1018,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/termos': {
-      id: '/termos'
-      path: '/termos'
-      fullPath: '/termos'
-      preLoaderRoute: typeof TermosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/seguranca': {
-      id: '/seguranca'
-      path: '/seguranca'
-      fullPath: '/seguranca'
-      preLoaderRoute: typeof SegurancaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/redefinir-senha': {
-      id: '/redefinir-senha'
-      path: '/redefinir-senha'
-      fullPath: '/redefinir-senha'
-      preLoaderRoute: typeof RedefinirSenhaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacidade': {
-      id: '/privacidade'
-      path: '/privacidade'
-      fullPath: '/privacidade'
-      preLoaderRoute: typeof PrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/manifesto': {
-      id: '/manifesto'
-      path: '/manifesto'
-      fullPath: '/manifesto'
-      preLoaderRoute: typeof ManifestoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/historia': {
-      id: '/historia'
-      path: '/historia'
-      fullPath: '/historia'
-      preLoaderRoute: typeof HistoriaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/esqueci-senha': {
-      id: '/esqueci-senha'
-      path: '/esqueci-senha'
-      fullPath: '/esqueci-senha'
-      preLoaderRoute: typeof EsqueciSenhaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contato': {
-      id: '/contato'
-      path: '/contato'
-      fullPath: '/contato'
-      preLoaderRoute: typeof ContatoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/confirmar-exclusao': {
-      id: '/confirmar-exclusao'
-      path: '/confirmar-exclusao'
-      fullPath: '/confirmar-exclusao'
-      preLoaderRoute: typeof ConfirmarExclusaoRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -1109,11 +1032,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/confirmar-exclusao': {
+      id: '/confirmar-exclusao'
+      path: '/confirmar-exclusao'
+      fullPath: '/confirmar-exclusao'
+      preLoaderRoute: typeof ConfirmarExclusaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contato': {
+      id: '/contato'
+      path: '/contato'
+      fullPath: '/contato'
+      preLoaderRoute: typeof ContatoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/esqueci-senha': {
+      id: '/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/esqueci-senha'
+      preLoaderRoute: typeof EsqueciSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/historia': {
+      id: '/historia'
+      path: '/historia'
+      fullPath: '/historia'
+      preLoaderRoute: typeof HistoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manifesto': {
+      id: '/manifesto'
+      path: '/manifesto'
+      fullPath: '/manifesto'
+      preLoaderRoute: typeof ManifestoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/redefinir-senha': {
+      id: '/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/redefinir-senha'
+      preLoaderRoute: typeof RedefinirSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seguranca': {
+      id: '/seguranca'
+      path: '/seguranca'
+      fullPath: '/seguranca'
+      preLoaderRoute: typeof SegurancaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/confirmar': {
+      id: '/auth/confirmar'
+      path: '/auth/confirmar'
+      fullPath: '/auth/confirmar'
+      preLoaderRoute: typeof AuthConfirmarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
@@ -1130,95 +1151,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/confirmar': {
-      id: '/auth/confirmar'
-      path: '/auth/confirmar'
-      fullPath: '/auth/confirmar'
-      preLoaderRoute: typeof AuthConfirmarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/chat': {
-      id: '/api/chat'
-      path: '/api/chat'
-      fullPath: '/api/chat'
-      preLoaderRoute: typeof ApiChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/onboarding': {
-      id: '/_authenticated/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
       path: '/app'
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/api/voz/transcrever': {
-      id: '/api/voz/transcrever'
-      path: '/api/voz/transcrever'
-      fullPath: '/api/voz/transcrever'
-      preLoaderRoute: typeof ApiVozTranscreverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/voz/falar': {
-      id: '/api/voz/falar'
-      path: '/api/voz/falar'
-      fullPath: '/api/voz/falar'
-      preLoaderRoute: typeof ApiVozFalarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/demo-chat': {
-      id: '/api/public/demo-chat'
-      path: '/api/public/demo-chat'
-      fullPath: '/api/public/demo-chat'
-      preLoaderRoute: typeof ApiPublicDemoChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/auth-check': {
-      id: '/api/public/auth-check'
-      path: '/api/public/auth-check'
-      fullPath: '/api/public/auth-check'
-      preLoaderRoute: typeof ApiPublicAuthCheckRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/asaas-webhook': {
-      id: '/api/public/asaas-webhook'
-      path: '/api/public/asaas-webhook'
-      fullPath: '/api/public/asaas-webhook'
-      preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/app/contratos': {
-      id: '/_authenticated/app/contratos'
-      path: '/app/contratos'
-      fullPath: '/app/contratos'
-      preLoaderRoute: typeof AuthenticatedAppContratosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/conta': {
-      id: '/_authenticated/app/conta'
-      path: '/app/conta'
-      fullPath: '/app/conta'
-      preLoaderRoute: typeof AuthenticatedAppContaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/assinatura': {
-      id: '/_authenticated/app/assinatura'
-      path: '/app/assinatura'
-      fullPath: '/app/assinatura'
-      preLoaderRoute: typeof AuthenticatedAppAssinaturaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/ajuda': {
-      id: '/_authenticated/app/ajuda'
-      path: '/app/ajuda'
-      fullPath: '/app/ajuda'
-      preLoaderRoute: typeof AuthenticatedAppAjudaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/admin': {
@@ -1228,193 +1165,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/contratos/': {
-      id: '/_authenticated/app/contratos/'
-      path: '/'
-      fullPath: '/app/contratos/'
-      preLoaderRoute: typeof AuthenticatedAppContratosIndexRouteImport
-      parentRoute: typeof AuthenticatedAppContratosRoute
-    }
-    '/_authenticated/app/condominios/': {
-      id: '/_authenticated/app/condominios/'
-      path: '/app/condominios'
-      fullPath: '/app/condominios/'
-      preLoaderRoute: typeof AuthenticatedAppCondominiosIndexRouteImport
+    '/_authenticated/app/ajuda': {
+      id: '/_authenticated/app/ajuda'
+      path: '/app/ajuda'
+      fullPath: '/app/ajuda'
+      preLoaderRoute: typeof AuthenticatedAppAjudaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/ajuda/': {
-      id: '/_authenticated/app/ajuda/'
-      path: '/'
-      fullPath: '/app/ajuda/'
-      preLoaderRoute: typeof AuthenticatedAppAjudaIndexRouteImport
-      parentRoute: typeof AuthenticatedAppAjudaRoute
+    '/_authenticated/app/assinatura': {
+      id: '/_authenticated/app/assinatura'
+      path: '/app/assinatura'
+      fullPath: '/app/assinatura'
+      preLoaderRoute: typeof AuthenticatedAppAssinaturaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/conta': {
+      id: '/_authenticated/app/conta'
+      path: '/app/conta'
+      fullPath: '/app/conta'
+      preLoaderRoute: typeof AuthenticatedAppContaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/contratos': {
+      id: '/_authenticated/app/contratos'
+      path: '/app/contratos'
+      fullPath: '/app/contratos'
+      preLoaderRoute: typeof AuthenticatedAppContratosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/asaas-webhook': {
+      id: '/api/public/asaas-webhook'
+      path: '/api/public/asaas-webhook'
+      fullPath: '/api/public/asaas-webhook'
+      preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/auth-check': {
+      id: '/api/public/auth-check'
+      path: '/api/public/auth-check'
+      fullPath: '/api/public/auth-check'
+      preLoaderRoute: typeof ApiPublicAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/demo-chat': {
+      id: '/api/public/demo-chat'
+      path: '/api/public/demo-chat'
+      fullPath: '/api/public/demo-chat'
+      preLoaderRoute: typeof ApiPublicDemoChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voz/falar': {
+      id: '/api/voz/falar'
+      path: '/api/voz/falar'
+      fullPath: '/api/voz/falar'
+      preLoaderRoute: typeof ApiVozFalarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voz/transcrever': {
+      id: '/api/voz/transcrever'
+      path: '/api/voz/transcrever'
+      fullPath: '/api/voz/transcrever'
+      preLoaderRoute: typeof ApiVozTranscreverRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/admin/': {
       id: '/_authenticated/app/admin/'
       path: '/'
       fullPath: '/app/admin/'
       preLoaderRoute: typeof AuthenticatedAppAdminIndexRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/webhook': {
-      id: '/lovable/email/auth/webhook'
-      path: '/lovable/email/auth/webhook'
-      fullPath: '/lovable/email/auth/webhook'
-      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/preview': {
-      id: '/lovable/email/auth/preview'
-      path: '/lovable/email/auth/preview'
-      fullPath: '/lovable/email/auth/preview'
-      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/lembretes-contratos': {
-      id: '/api/public/hooks/lembretes-contratos'
-      path: '/api/public/hooks/lembretes-contratos'
-      fullPath: '/api/public/hooks/lembretes-contratos'
-      preLoaderRoute: typeof ApiPublicHooksLembretesContratosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/helpdesk-lembretes': {
-      id: '/api/public/hooks/helpdesk-lembretes'
-      path: '/api/public/hooks/helpdesk-lembretes'
-      fullPath: '/api/public/hooks/helpdesk-lembretes'
-      preLoaderRoute: typeof ApiPublicHooksHelpdeskLembretesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/app/suporte/$ticketId': {
-      id: '/_authenticated/app/suporte/$ticketId'
-      path: '/app/suporte/$ticketId'
-      fullPath: '/app/suporte/$ticketId'
-      preLoaderRoute: typeof AuthenticatedAppSuporteTicketIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/contratos/painel': {
-      id: '/_authenticated/app/contratos/painel'
-      path: '/painel'
-      fullPath: '/app/contratos/painel'
-      preLoaderRoute: typeof AuthenticatedAppContratosPainelRouteImport
-      parentRoute: typeof AuthenticatedAppContratosRoute
-    }
-    '/_authenticated/app/contratos/novo': {
-      id: '/_authenticated/app/contratos/novo'
-      path: '/novo'
-      fullPath: '/app/contratos/novo'
-      preLoaderRoute: typeof AuthenticatedAppContratosNovoRouteImport
-      parentRoute: typeof AuthenticatedAppContratosRoute
-    }
-    '/_authenticated/app/contratos/importar': {
-      id: '/_authenticated/app/contratos/importar'
-      path: '/importar'
-      fullPath: '/app/contratos/importar'
-      preLoaderRoute: typeof AuthenticatedAppContratosImportarRouteImport
-      parentRoute: typeof AuthenticatedAppContratosRoute
-    }
-    '/_authenticated/app/contratos/$contratoId': {
-      id: '/_authenticated/app/contratos/$contratoId'
-      path: '/$contratoId'
-      fullPath: '/app/contratos/$contratoId'
-      preLoaderRoute: typeof AuthenticatedAppContratosContratoIdRouteImport
-      parentRoute: typeof AuthenticatedAppContratosRoute
-    }
-    '/_authenticated/app/condominios/$id': {
-      id: '/_authenticated/app/condominios/$id'
-      path: '/app/condominios/$id'
-      fullPath: '/app/condominios/$id'
-      preLoaderRoute: typeof AuthenticatedAppCondominiosIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/assinatura/retorno': {
-      id: '/_authenticated/app/assinatura/retorno'
-      path: '/retorno'
-      fullPath: '/app/assinatura/retorno'
-      preLoaderRoute: typeof AuthenticatedAppAssinaturaRetornoRouteImport
-      parentRoute: typeof AuthenticatedAppAssinaturaRoute
-    }
-    '/_authenticated/app/ajuda/faq': {
-      id: '/_authenticated/app/ajuda/faq'
-      path: '/faq'
-      fullPath: '/app/ajuda/faq'
-      preLoaderRoute: typeof AuthenticatedAppAjudaFaqRouteImport
-      parentRoute: typeof AuthenticatedAppAjudaRoute
-    }
-    '/_authenticated/app/ajuda/dicas-ia': {
-      id: '/_authenticated/app/ajuda/dicas-ia'
-      path: '/dicas-ia'
-      fullPath: '/app/ajuda/dicas-ia'
-      preLoaderRoute: typeof AuthenticatedAppAjudaDicasIaRouteImport
-      parentRoute: typeof AuthenticatedAppAjudaRoute
-    }
-    '/_authenticated/app/ajuda/$secao': {
-      id: '/_authenticated/app/ajuda/$secao'
-      path: '/$secao'
-      fullPath: '/app/ajuda/$secao'
-      preLoaderRoute: typeof AuthenticatedAppAjudaSecaoRouteImport
-      parentRoute: typeof AuthenticatedAppAjudaRoute
-    }
-    '/_authenticated/app/admin/uso': {
-      id: '/_authenticated/app/admin/uso'
-      path: '/uso'
-      fullPath: '/app/admin/uso'
-      preLoaderRoute: typeof AuthenticatedAppAdminUsoRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/_authenticated/app/admin/treinamento': {
-      id: '/_authenticated/app/admin/treinamento'
-      path: '/treinamento'
-      fullPath: '/app/admin/treinamento'
-      preLoaderRoute: typeof AuthenticatedAppAdminTreinamentoRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/_authenticated/app/admin/orientacoes': {
-      id: '/_authenticated/app/admin/orientacoes'
-      path: '/orientacoes'
-      fullPath: '/app/admin/orientacoes'
-      preLoaderRoute: typeof AuthenticatedAppAdminOrientacoesRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/_authenticated/app/admin/imoveis': {
-      id: '/_authenticated/app/admin/imoveis'
-      path: '/imoveis'
-      fullPath: '/app/admin/imoveis'
-      preLoaderRoute: typeof AuthenticatedAppAdminImoveisRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/_authenticated/app/admin/financeiro': {
-      id: '/_authenticated/app/admin/financeiro'
-      path: '/financeiro'
-      fullPath: '/app/admin/financeiro'
-      preLoaderRoute: typeof AuthenticatedAppAdminFinanceiroRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/_authenticated/app/admin/condominios': {
-      id: '/_authenticated/app/admin/condominios'
-      path: '/condominios'
-      fullPath: '/app/admin/condominios'
-      preLoaderRoute: typeof AuthenticatedAppAdminCondominiosRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/_authenticated/app/admin/cidades-novas': {
-      id: '/_authenticated/app/admin/cidades-novas'
-      path: '/cidades-novas'
-      fullPath: '/app/admin/cidades-novas'
-      preLoaderRoute: typeof AuthenticatedAppAdminCidadesNovasRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/_authenticated/app/admin/blog': {
-      id: '/_authenticated/app/admin/blog'
-      path: '/blog'
-      fullPath: '/app/admin/blog'
-      preLoaderRoute: typeof AuthenticatedAppAdminBlogRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
     '/_authenticated/app/admin/auditoria': {
@@ -1424,11 +1242,200 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminAuditoriaRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
-    '/_authenticated/app/admin/usuarios/': {
-      id: '/_authenticated/app/admin/usuarios/'
-      path: '/usuarios'
-      fullPath: '/app/admin/usuarios/'
-      preLoaderRoute: typeof AuthenticatedAppAdminUsuariosIndexRouteImport
+    '/_authenticated/app/admin/blog': {
+      id: '/_authenticated/app/admin/blog'
+      path: '/blog'
+      fullPath: '/app/admin/blog'
+      preLoaderRoute: typeof AuthenticatedAppAdminBlogRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/admin/cidades-novas': {
+      id: '/_authenticated/app/admin/cidades-novas'
+      path: '/cidades-novas'
+      fullPath: '/app/admin/cidades-novas'
+      preLoaderRoute: typeof AuthenticatedAppAdminCidadesNovasRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/admin/condominios': {
+      id: '/_authenticated/app/admin/condominios'
+      path: '/condominios'
+      fullPath: '/app/admin/condominios'
+      preLoaderRoute: typeof AuthenticatedAppAdminCondominiosRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/admin/financeiro': {
+      id: '/_authenticated/app/admin/financeiro'
+      path: '/financeiro'
+      fullPath: '/app/admin/financeiro'
+      preLoaderRoute: typeof AuthenticatedAppAdminFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/admin/imoveis': {
+      id: '/_authenticated/app/admin/imoveis'
+      path: '/imoveis'
+      fullPath: '/app/admin/imoveis'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/admin/orientacoes': {
+      id: '/_authenticated/app/admin/orientacoes'
+      path: '/orientacoes'
+      fullPath: '/app/admin/orientacoes'
+      preLoaderRoute: typeof AuthenticatedAppAdminOrientacoesRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/admin/treinamento': {
+      id: '/_authenticated/app/admin/treinamento'
+      path: '/treinamento'
+      fullPath: '/app/admin/treinamento'
+      preLoaderRoute: typeof AuthenticatedAppAdminTreinamentoRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/admin/uso': {
+      id: '/_authenticated/app/admin/uso'
+      path: '/uso'
+      fullPath: '/app/admin/uso'
+      preLoaderRoute: typeof AuthenticatedAppAdminUsoRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/ajuda/': {
+      id: '/_authenticated/app/ajuda/'
+      path: '/'
+      fullPath: '/app/ajuda/'
+      preLoaderRoute: typeof AuthenticatedAppAjudaIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAjudaRoute
+    }
+    '/_authenticated/app/ajuda/$secao': {
+      id: '/_authenticated/app/ajuda/$secao'
+      path: '/$secao'
+      fullPath: '/app/ajuda/$secao'
+      preLoaderRoute: typeof AuthenticatedAppAjudaSecaoRouteImport
+      parentRoute: typeof AuthenticatedAppAjudaRoute
+    }
+    '/_authenticated/app/ajuda/dicas-ia': {
+      id: '/_authenticated/app/ajuda/dicas-ia'
+      path: '/dicas-ia'
+      fullPath: '/app/ajuda/dicas-ia'
+      preLoaderRoute: typeof AuthenticatedAppAjudaDicasIaRouteImport
+      parentRoute: typeof AuthenticatedAppAjudaRoute
+    }
+    '/_authenticated/app/ajuda/faq': {
+      id: '/_authenticated/app/ajuda/faq'
+      path: '/faq'
+      fullPath: '/app/ajuda/faq'
+      preLoaderRoute: typeof AuthenticatedAppAjudaFaqRouteImport
+      parentRoute: typeof AuthenticatedAppAjudaRoute
+    }
+    '/_authenticated/app/assinatura/retorno': {
+      id: '/_authenticated/app/assinatura/retorno'
+      path: '/retorno'
+      fullPath: '/app/assinatura/retorno'
+      preLoaderRoute: typeof AuthenticatedAppAssinaturaRetornoRouteImport
+      parentRoute: typeof AuthenticatedAppAssinaturaRoute
+    }
+    '/_authenticated/app/condominios/': {
+      id: '/_authenticated/app/condominios/'
+      path: '/app/condominios'
+      fullPath: '/app/condominios/'
+      preLoaderRoute: typeof AuthenticatedAppCondominiosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/condominios/$id': {
+      id: '/_authenticated/app/condominios/$id'
+      path: '/app/condominios/$id'
+      fullPath: '/app/condominios/$id'
+      preLoaderRoute: typeof AuthenticatedAppCondominiosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/contratos/': {
+      id: '/_authenticated/app/contratos/'
+      path: '/'
+      fullPath: '/app/contratos/'
+      preLoaderRoute: typeof AuthenticatedAppContratosIndexRouteImport
+      parentRoute: typeof AuthenticatedAppContratosRoute
+    }
+    '/_authenticated/app/contratos/$contratoId': {
+      id: '/_authenticated/app/contratos/$contratoId'
+      path: '/$contratoId'
+      fullPath: '/app/contratos/$contratoId'
+      preLoaderRoute: typeof AuthenticatedAppContratosContratoIdRouteImport
+      parentRoute: typeof AuthenticatedAppContratosRoute
+    }
+    '/_authenticated/app/contratos/importar': {
+      id: '/_authenticated/app/contratos/importar'
+      path: '/importar'
+      fullPath: '/app/contratos/importar'
+      preLoaderRoute: typeof AuthenticatedAppContratosImportarRouteImport
+      parentRoute: typeof AuthenticatedAppContratosRoute
+    }
+    '/_authenticated/app/contratos/novo': {
+      id: '/_authenticated/app/contratos/novo'
+      path: '/novo'
+      fullPath: '/app/contratos/novo'
+      preLoaderRoute: typeof AuthenticatedAppContratosNovoRouteImport
+      parentRoute: typeof AuthenticatedAppContratosRoute
+    }
+    '/_authenticated/app/contratos/painel': {
+      id: '/_authenticated/app/contratos/painel'
+      path: '/painel'
+      fullPath: '/app/contratos/painel'
+      preLoaderRoute: typeof AuthenticatedAppContratosPainelRouteImport
+      parentRoute: typeof AuthenticatedAppContratosRoute
+    }
+    '/_authenticated/app/suporte/$ticketId': {
+      id: '/_authenticated/app/suporte/$ticketId'
+      path: '/app/suporte/$ticketId'
+      fullPath: '/app/suporte/$ticketId'
+      preLoaderRoute: typeof AuthenticatedAppSuporteTicketIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/hooks/helpdesk-lembretes': {
+      id: '/api/public/hooks/helpdesk-lembretes'
+      path: '/api/public/hooks/helpdesk-lembretes'
+      fullPath: '/api/public/hooks/helpdesk-lembretes'
+      preLoaderRoute: typeof ApiPublicHooksHelpdeskLembretesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/lembretes-contratos': {
+      id: '/api/public/hooks/lembretes-contratos'
+      path: '/api/public/hooks/lembretes-contratos'
+      fullPath: '/api/public/hooks/lembretes-contratos'
+      preLoaderRoute: typeof ApiPublicHooksLembretesContratosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/admin/helpdesk/': {
+      id: '/_authenticated/app/admin/helpdesk/'
+      path: '/helpdesk'
+      fullPath: '/app/admin/helpdesk/'
+      preLoaderRoute: typeof AuthenticatedAppAdminHelpdeskIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/admin/helpdesk/$ticketId': {
+      id: '/_authenticated/app/admin/helpdesk/$ticketId'
+      path: '/helpdesk/$ticketId'
+      fullPath: '/app/admin/helpdesk/$ticketId'
+      preLoaderRoute: typeof AuthenticatedAppAdminHelpdeskTicketIdRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
     '/_authenticated/app/admin/imoveis/': {
@@ -1438,26 +1445,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisIndexRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisRoute
     }
-    '/_authenticated/app/admin/helpdesk/': {
-      id: '/_authenticated/app/admin/helpdesk/'
-      path: '/helpdesk'
-      fullPath: '/app/admin/helpdesk/'
-      preLoaderRoute: typeof AuthenticatedAppAdminHelpdeskIndexRouteImport
+    '/_authenticated/app/admin/imoveis/importar': {
+      id: '/_authenticated/app/admin/imoveis/importar'
+      path: '/importar'
+      fullPath: '/app/admin/imoveis/importar'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisImportarRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/usuarios/': {
+      id: '/_authenticated/app/admin/usuarios/'
+      path: '/usuarios'
+      fullPath: '/app/admin/usuarios/'
+      preLoaderRoute: typeof AuthenticatedAppAdminUsuariosIndexRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/_authenticated/app/contratos/$contratoId/editar': {
-      id: '/_authenticated/app/contratos/$contratoId/editar'
-      path: '/editar'
-      fullPath: '/app/contratos/$contratoId/editar'
-      preLoaderRoute: typeof AuthenticatedAppContratosContratoIdEditarRouteImport
-      parentRoute: typeof AuthenticatedAppContratosContratoIdRoute
-    }
-    '/_authenticated/app/ajuda/perfil/$perfil': {
-      id: '/_authenticated/app/ajuda/perfil/$perfil'
-      path: '/perfil/$perfil'
-      fullPath: '/app/ajuda/perfil/$perfil'
-      preLoaderRoute: typeof AuthenticatedAppAjudaPerfilPerfilRouteImport
-      parentRoute: typeof AuthenticatedAppAjudaRoute
     }
     '/_authenticated/app/admin/usuarios/$userId': {
       id: '/_authenticated/app/admin/usuarios/$userId'
@@ -1466,67 +1466,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminUsuariosUserIdRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
-    '/_authenticated/app/admin/imoveis/importar': {
-      id: '/_authenticated/app/admin/imoveis/importar'
-      path: '/importar'
-      fullPath: '/app/admin/imoveis/importar'
-      preLoaderRoute: typeof AuthenticatedAppAdminImoveisImportarRouteImport
-      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    '/_authenticated/app/ajuda/perfil/$perfil': {
+      id: '/_authenticated/app/ajuda/perfil/$perfil'
+      path: '/perfil/$perfil'
+      fullPath: '/app/ajuda/perfil/$perfil'
+      preLoaderRoute: typeof AuthenticatedAppAjudaPerfilPerfilRouteImport
+      parentRoute: typeof AuthenticatedAppAjudaRoute
     }
-    '/_authenticated/app/admin/helpdesk/$ticketId': {
-      id: '/_authenticated/app/admin/helpdesk/$ticketId'
-      path: '/helpdesk/$ticketId'
-      fullPath: '/app/admin/helpdesk/$ticketId'
-      preLoaderRoute: typeof AuthenticatedAppAdminHelpdeskTicketIdRouteImport
-      parentRoute: typeof AuthenticatedAppAdminRoute
-    }
-    '/_authenticated/app/admin/imoveis/unidades/': {
-      id: '/_authenticated/app/admin/imoveis/unidades/'
-      path: '/unidades'
-      fullPath: '/app/admin/imoveis/unidades/'
-      preLoaderRoute: typeof AuthenticatedAppAdminImoveisUnidadesIndexRouteImport
-      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
-    }
-    '/_authenticated/app/admin/imoveis/proprietarios/': {
-      id: '/_authenticated/app/admin/imoveis/proprietarios/'
-      path: '/proprietarios'
-      fullPath: '/app/admin/imoveis/proprietarios/'
-      preLoaderRoute: typeof AuthenticatedAppAdminImoveisProprietariosIndexRouteImport
-      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
-    }
-    '/_authenticated/app/admin/imoveis/locacao/': {
-      id: '/_authenticated/app/admin/imoveis/locacao/'
-      path: '/locacao'
-      fullPath: '/app/admin/imoveis/locacao/'
-      preLoaderRoute: typeof AuthenticatedAppAdminImoveisLocacaoIndexRouteImport
-      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
-    }
-    '/_authenticated/app/admin/imoveis/honorarios/': {
-      id: '/_authenticated/app/admin/imoveis/honorarios/'
-      path: '/honorarios'
-      fullPath: '/app/admin/imoveis/honorarios/'
-      preLoaderRoute: typeof AuthenticatedAppAdminImoveisHonorariosIndexRouteImport
-      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    '/_authenticated/app/contratos/$contratoId/editar': {
+      id: '/_authenticated/app/contratos/$contratoId/editar'
+      path: '/editar'
+      fullPath: '/app/contratos/$contratoId/editar'
+      preLoaderRoute: typeof AuthenticatedAppContratosContratoIdEditarRouteImport
+      parentRoute: typeof AuthenticatedAppContratosContratoIdRoute
     }
     '/_authenticated/app/admin/imoveis/administracao/': {
       id: '/_authenticated/app/admin/imoveis/administracao/'
       path: '/administracao'
       fullPath: '/app/admin/imoveis/administracao/'
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisAdministracaoIndexRouteImport
-      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
-    }
-    '/_authenticated/app/admin/imoveis/unidades/$id': {
-      id: '/_authenticated/app/admin/imoveis/unidades/$id'
-      path: '/unidades/$id'
-      fullPath: '/app/admin/imoveis/unidades/$id'
-      preLoaderRoute: typeof AuthenticatedAppAdminImoveisUnidadesIdRouteImport
-      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
-    }
-    '/_authenticated/app/admin/imoveis/proprietarios/$id': {
-      id: '/_authenticated/app/admin/imoveis/proprietarios/$id'
-      path: '/proprietarios/$id'
-      fullPath: '/app/admin/imoveis/proprietarios/$id'
-      preLoaderRoute: typeof AuthenticatedAppAdminImoveisProprietariosIdRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisRoute
     }
     '/_authenticated/app/admin/imoveis/administracao/$id': {
@@ -1536,6 +1494,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisAdministracaoIdRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisRoute
     }
+    '/_authenticated/app/admin/imoveis/honorarios/': {
+      id: '/_authenticated/app/admin/imoveis/honorarios/'
+      path: '/honorarios'
+      fullPath: '/app/admin/imoveis/honorarios/'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisHonorariosIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/imoveis/locacao/': {
+      id: '/_authenticated/app/admin/imoveis/locacao/'
+      path: '/locacao'
+      fullPath: '/app/admin/imoveis/locacao/'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisLocacaoIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/imoveis/proprietarios/': {
+      id: '/_authenticated/app/admin/imoveis/proprietarios/'
+      path: '/proprietarios'
+      fullPath: '/app/admin/imoveis/proprietarios/'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisProprietariosIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/imoveis/proprietarios/$id': {
+      id: '/_authenticated/app/admin/imoveis/proprietarios/$id'
+      path: '/proprietarios/$id'
+      fullPath: '/app/admin/imoveis/proprietarios/$id'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisProprietariosIdRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/imoveis/unidades/': {
+      id: '/_authenticated/app/admin/imoveis/unidades/'
+      path: '/unidades'
+      fullPath: '/app/admin/imoveis/unidades/'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisUnidadesIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/imoveis/unidades/$id': {
+      id: '/_authenticated/app/admin/imoveis/unidades/$id'
+      path: '/unidades/$id'
+      fullPath: '/app/admin/imoveis/unidades/$id'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisUnidadesIdRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
     '/_authenticated/app/admin/imoveis/locacao/$id/': {
       id: '/_authenticated/app/admin/imoveis/locacao/$id/'
       path: '/locacao/$id'
@@ -1543,18 +1543,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdIndexRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisRoute
     }
-    '/_authenticated/app/admin/imoveis/locacao/$id/editar': {
-      id: '/_authenticated/app/admin/imoveis/locacao/$id/editar'
-      path: '/locacao/$id/editar'
-      fullPath: '/app/admin/imoveis/locacao/$id/editar'
-      preLoaderRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdEditarRouteImport
-      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
-    }
     '/_authenticated/app/admin/imoveis/locacao/$id/aditivo': {
       id: '/_authenticated/app/admin/imoveis/locacao/$id/aditivo'
       path: '/locacao/$id/aditivo'
       fullPath: '/app/admin/imoveis/locacao/$id/aditivo'
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdAditivoRouteImport
+      parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/admin/imoveis/locacao/$id/editar': {
+      id: '/_authenticated/app/admin/imoveis/locacao/$id/editar'
+      path: '/locacao/$id/editar'
+      fullPath: '/app/admin/imoveis/locacao/$id/editar'
+      preLoaderRoute: typeof AuthenticatedAppAdminImoveisLocacaoIdEditarRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisRoute
     }
   }
