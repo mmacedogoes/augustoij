@@ -100,6 +100,7 @@ export function ManifestoFooter({ showManifesto = true }: { showManifesto?: bool
             items={[
               { label: "Termos de Uso", to: "/termos" },
               { label: "Política de Privacidade", to: "/privacidade" },
+              { label: "Segurança", to: "/seguranca" },
               { label: "Contato DPO: dpo@augustoij.com.br", href: "mailto:dpo@augustoij.com.br" },
             ]}
           />
@@ -116,6 +117,10 @@ export function ManifestoFooter({ showManifesto = true }: { showManifesto?: bool
               <span className="text-augusto-slate/40">|</span>
               <Link to="/termos" className="rounded-sm text-augusto-slate transition-colors duration-200 hover:text-augusto-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold">
                 Termos de Uso
+              </Link>
+              <span className="text-augusto-slate/40">|</span>
+              <Link to="/seguranca" className="rounded-sm text-augusto-slate transition-colors duration-200 hover:text-augusto-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold">
+                Segurança
               </Link>
               <span className="text-augusto-slate/40">|</span>
               <a
