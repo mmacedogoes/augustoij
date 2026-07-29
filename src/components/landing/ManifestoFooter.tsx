@@ -79,10 +79,10 @@ export function ManifestoFooter({ showManifesto = true }: { showManifesto?: bool
           <FooterCol
             title="Plataforma"
             items={[
-              { label: "Como funciona", href: "#anatomia" },
-              { label: "Para Síndicos", href: "#features" },
-              { label: "Para Administradoras", href: "#features" },
-              { label: "Para Advogados", href: "#features" },
+              { label: "Como funciona", href: "#metodo" },
+              { label: "Para quem é", href: "#para-quem" },
+              { label: "Gestão de contratos", href: "#gestao-contratos" },
+              { label: "Situações do dia a dia", href: "#situacoes" },
               { label: "Planos", href: "#pricing" },
             ]}
           />
