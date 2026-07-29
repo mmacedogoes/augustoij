@@ -36,10 +36,7 @@ async function assertNovoContratoPermitido(
     // de contrato". Permite criar até `analisesContrato` contratos para
     // rodar essa análise; contamos TODOS os contratos do usuário
     // (ativos ou não) para não permitir burlar o limite encerrando.
-    const analisesMax = plano.limites.analisesContrato;
-    if (analisesMax === 0 || analisesMax === null && plano.id === "gratuito") {
-      throw new Error(gateMessages.gestaoContinuaBloqueadaGratuito());
-    }
+    const analisesMax = plano.limites.analisesContrato as number | null;
     if (typeof analisesMax === "number" && analisesMax > 0) {
       const { count } = await supabase
         .from("contratos_servico")
