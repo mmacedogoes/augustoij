@@ -31,7 +31,27 @@ async function assertNovoContratoPermitido(
   const planoV2Id: PlanoIdV2 = (planoBruto as string) in PLANOS ? (planoBruto as PlanoIdV2) : "gratuito";
   const plano = PLANOS[planoV2Id];
   const limite = plano.limites.contratosGestaoAtiva;
-  if (limite === 0) throw new Error(gateMessages.gestaoContinuaBloqueadaGratuito());
+  if (limite === 0) {
+    // Gratuito não tem gestão contínua, mas a landing promete "1 análise
+    // de contrato". Permite criar até `analisesContrato` contratos para
+    // rodar essa análise; contamos TODOS os contratos do usuário
+    // (ativos ou não) para não permitir burlar o limite encerrando.
+    const analisesMax = plano.limites.analisesContrato;
+    if (analisesMax === 0 || analisesMax === null && plano.id === "gratuito") {
+      throw new Error(gateMessages.gestaoContinuaBloqueadaGratuito());
+    }
+    if (typeof analisesMax === "number" && analisesMax > 0) {
+      const { count } = await supabase
+        .from("contratos_servico")
+        .select("id, condominios!inner(owner_id)", { count: "exact", head: true })
+        .eq("condominios.owner_id", userId);
+      if ((count ?? 0) >= analisesMax) {
+        throw new Error(gateMessages.analiseGratuitoConsumida());
+      }
+      return; // permite criar o contrato de trial
+    }
+    throw new Error(gateMessages.gestaoContinuaBloqueadaGratuito());
+  }
   if (limite === null) {
     // ilimitado por contrato, mas administradora dispara alerta interno de uso razoável.
     const razoavel = ("usoRazoavelContratos" in plano.limites
