@@ -19,8 +19,15 @@ export function GestaoContratosGate({
   const { data, isLoading } = usePlanContext();
   if (isLoading || !data) return <>{children}</>;
 
+  // No plano Gratuito, se o teste inclui análise de contrato
+  // (analisesContratoMax > 0), o usuário PRECISA conseguir criar ao menos
+  // 1 contrato para rodar a análise prometida na landing.
+  // Só bloqueamos totalmente quem não tem nem gestão ativa nem análise.
+  const temAnaliseTrial = (data.analisesContratoMax ?? 0) !== 0; // null = ilimitado
   const bloqueadoGratuito =
-    !data.cortesia && (data.contratosGestaoAtivaMax === 0 || data.planoId === "gratuito");
+    !data.cortesia &&
+    (data.contratosGestaoAtivaMax === 0 || data.planoId === "gratuito") &&
+    !temAnaliseTrial;
   const bloqueadoPainel = requerePainelConsolidado && !data.painelConsolidado;
 
   if (!bloqueadoGratuito && !bloqueadoPainel) return <>{children}</>;

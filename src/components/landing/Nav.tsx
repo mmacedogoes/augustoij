@@ -21,6 +21,11 @@ export function Nav() {
 
       if (pathname === "/") {
         event.preventDefault();
+        if (!id) {
+          if (window.location.hash) window.history.pushState(null, "", "/");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
         if (window.location.hash !== `#${id}`) {
           window.history.pushState(null, "", `#${id}`);
         }
@@ -72,7 +77,7 @@ export function Nav() {
         </Link>
 
         <nav className="hidden items-center gap-1 rounded-full border border-augusto-gold/20 bg-augusto-cream/5 p-1 md:flex">
-          <Link to="/" hash="features" onClick={handleSectionClick("features")} className={linkCls}>
+          <Link to="/" onClick={handleSectionClick("")} className={linkCls}>
             Início
           </Link>
           <Link to="/historia" className={linkCls}>
@@ -110,7 +115,7 @@ export function Nav() {
 
       {open && (
         <div className="flex flex-col gap-3 border-t border-augusto-gold/25 bg-augusto-green-dark px-6 py-6 shadow-[var(--landing-shadow-deep)] md:hidden">
-          <Link to="/" hash="features" onClick={handleSectionClick("features", true)} className={linkCls}>Início</Link>
+          <Link to="/" onClick={handleSectionClick("", true)} className={linkCls}>Início</Link>
           <Link to="/historia" className={linkCls} onClick={() => setOpen(false)}>História</Link>
           <Link to="/manifesto" className={linkCls} onClick={() => setOpen(false)}>Manifesto</Link>
           <Link to="/" hash="pricing" onClick={handleSectionClick("pricing", true)} className={linkCls}>Planos</Link>
