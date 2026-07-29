@@ -36,18 +36,19 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next, reque
       "permissions-policy": "camera=(), microphone=(self), geolocation=()",
       // COOP relax para permitir popup OAuth do Google/Lovable broker.
       "cross-origin-opener-policy": "same-origin-allow-popups",
-      // CSP em modo report-only: registra violações sem bloquear a página.
-      // Antes de promover para bloqueio (Content-Security-Policy sem
-      // -Report-Only) é preciso confirmar que Lovable AI, Asaas, Google
-      // Auth e Supabase Storage estão listados corretamente.
-      "content-security-policy-report-only": [
+      // CSP em modo de bloqueio. Se algum recurso legítimo for
+      // bloqueado, adicione a origem exata ao diretivo correspondente —
+      // NUNCA relaxe para `*` ou `'unsafe-eval'`.
+      "content-security-policy": [
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' https://*.lovable.app https://*.lovable.dev https://accounts.google.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' data: https://fonts.gstatic.com",
         "img-src 'self' data: blob: https:",
-        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.lovable.app https://*.lovable.dev https://ai.gateway.lovable.dev https://api.asaas.com https://sandbox.asaas.com https://api-sandbox.asaas.com https://api.bcb.gov.br",
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.lovable.app https://*.lovable.dev https://ai.gateway.lovable.dev https://api.asaas.com https://sandbox.asaas.com https://api-sandbox.asaas.com https://api.bcb.gov.br https://api.iconify.design",
         "frame-src 'self' https://sandbox.asaas.com https://www.asaas.com https://accounts.google.com",
+        "media-src 'self' blob: data:",
+        "worker-src 'self' blob:",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self' https://sandbox.asaas.com https://www.asaas.com",
