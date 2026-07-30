@@ -658,7 +658,21 @@ export function ChatPanel({
                 .join("");
               if (m.role === "assistant") {
                 const isUltima = idx === messages.length - 1;
-                const doc = detectarDocumento(text, isUltima && isLoading);
+                // Se a pergunta anterior pedia o arquivo, oferecemos o
+                // download mesmo que o modelo esqueça o marcador.
+                const anterior = messages[idx - 1];
+                const pedidoExplicito =
+                  anterior?.role === "user" &&
+                  RE_PEDIDO_ARQUIVO.test(
+                    anterior.parts
+                      .map((p) => (p.type === "text" ? p.text : ""))
+                      .join(""),
+                  );
+                const doc = detectarDocumento(
+                  text,
+                  isUltima && isLoading,
+                  Boolean(pedidoExplicito),
+                );
                 const estruturada = tryParsePerguntaEstruturada(text);
                 const isLast = idx === messages.length - 1;
                 const parcialEstruturado =
