@@ -1,22 +1,28 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { FileText, FileType2, Loader2 } from "lucide-react";
+import { FileText, FileType2, Loader2, Pencil, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { validarConteudo } from "@/lib/documento-export";
+import { EditorMinuta } from "@/components/chat/EditorMinuta";
+import { SalvarNoCondominioDialog } from "@/components/chat/SalvarNoCondominioDialog";
 
 type Formato = "pdf" | "docx";
 
 export function DocumentoDownload({
   conteudo,
   titulo,
+  condominioId,
 }: {
   conteudo: string;
   titulo: string;
+  condominioId?: string;
 }) {
   const [gerando, setGerando] = useState<Formato | null>(null);
   const [dispensado, setDispensado] = useState(false);
   const [gerado, setGerado] = useState<Formato | null>(null);
+  const [editorAberto, setEditorAberto] = useState(false);
+  const [salvarAberto, setSalvarAberto] = useState(false);
 
   if (dispensado) return null;
 
@@ -45,6 +51,7 @@ export function DocumentoDownload({
   }
 
   return (
+    <>
     <div className="mt-3 rounded-lg border bg-muted/30 p-3">
       <p className="text-xs font-medium text-muted-foreground mb-2">
         Deseja que eu gere o arquivo deste documento?
