@@ -123,6 +123,22 @@ const RE_DOC_MARCADOR = /\[\[DOCUMENTO:\s*([^\]]{1,120}?)\s*\]\]/i;
 const RE_DOC_HEURISTICA =
   /(CL[ÁA]USULA\s+(PRIMEIRA|1)|NOTIFICA[ÇC][ÃA]O\s+EXTRAJUDICIAL|^PARECER\b|COMUNICADO\s+AOS\s+CONDÔMINOS|Pelo presente instrumento)/im;
 
+/** O usuário pediu explicitamente o arquivo? (ex.: "me manda em docx") */
+const RE_PEDIDO_ARQUIVO =
+  /\b(pdf|docx?|word|arquivo|documento em anexo|baixar|download|exportar?|gera(r)?\s+o\s+(arquivo|documento))\b/i;
+
+/**
+ * Resposta longa e estruturada (título em markdown + seções/numeração) —
+ * cobre guias práticos, roteiros, checklists e manuais, que também são
+ * conteúdo exportável mesmo sem cara de peça jurídica.
+ */
+function pareceConteudoEstruturado(t: string): boolean {
+  if (t.length < 600) return false;
+  const temTitulo = /^#{1,3}\s+\S/m.test(t);
+  const secoes = (t.match(/^(#{2,4}\s+\S|\d+[.)]\s+\S|[-*]\s+\S)/gm) ?? []).length;
+  return temTitulo && secoes >= 3;
+}
+
 /**
  * Identifica se a mensagem do assistente contém uma minuta de documento
  * passível de exportação. Só oferece o download quando o streaming acabou.
@@ -130,12 +146,20 @@ const RE_DOC_HEURISTICA =
 function detectarDocumento(
   text: string,
   aindaStreaming: boolean,
+  pedidoExplicito = false,
 ): { titulo: string; conteudo: string; limparVisivel: (s: string) => string } | null {
   if (aindaStreaming) return null;
   const t = (text ?? "").trim();
   if (t.length < 300) return null;
   const m = t.match(RE_DOC_MARCADOR);
-  if (!m && !RE_DOC_HEURISTICA.test(t)) return null;
+  if (
+    !m &&
+    !RE_DOC_HEURISTICA.test(t) &&
+    !pareceConteudoEstruturado(t) &&
+    !pedidoExplicito
+  ) {
+    return null;
+  }
 
   const limpar = (s: string) =>
     s.replace(RE_DOC_MARCADOR, "").replace(/\n{3,}/g, "\n\n").trim();
