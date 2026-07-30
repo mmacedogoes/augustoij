@@ -87,11 +87,49 @@ export function DocumentoDownload({
           Não, obrigado
         </Button>
       </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={gerando !== null}
+          onClick={() => setEditorAberto(true)}
+        >
+          <Pencil className="h-4 w-4" />
+          Editar antes de gerar
+        </Button>
+        {condominioId && (
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={gerando !== null}
+            onClick={() => setSalvarAberto(true)}
+          >
+            <Save className="h-4 w-4" />
+            Salvar no condomínio
+          </Button>
+        )}
+      </div>
       {gerado && (
         <p className="mt-2 text-xs text-muted-foreground">
           Arquivo {gerado.toUpperCase()} baixado. Você pode gerar o outro formato se quiser.
         </p>
       )}
     </div>
+
+      <EditorMinuta
+        open={editorAberto}
+        onOpenChange={setEditorAberto}
+        conteudoInicial={conteudo}
+        tituloInicial={titulo}
+        condominioId={condominioId}
+      />
+      <SalvarNoCondominioDialog
+        open={salvarAberto}
+        onOpenChange={setSalvarAberto}
+        conteudo={conteudo}
+        titulo={titulo}
+        condominioId={condominioId}
+      />
+    </>
   );
 }

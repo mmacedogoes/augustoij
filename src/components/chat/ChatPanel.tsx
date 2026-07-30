@@ -720,6 +720,7 @@ export function ChatPanel({
                           <DocumentoDownload
                             conteudo={doc.conteudo}
                             titulo={doc.titulo}
+                            condominioId={condominioId}
                           />
                         )}
                         {isLast && !isLoading && sq!.opcoes.length > 0 && (
