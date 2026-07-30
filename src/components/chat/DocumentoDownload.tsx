@@ -1,22 +1,28 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { FileText, FileType2, Loader2 } from "lucide-react";
+import { FileText, FileType2, Loader2, Pencil, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { validarConteudo } from "@/lib/documento-export";
+import { EditorMinuta } from "@/components/chat/EditorMinuta";
+import { SalvarNoCondominioDialog } from "@/components/chat/SalvarNoCondominioDialog";
 
 type Formato = "pdf" | "docx";
 
 export function DocumentoDownload({
   conteudo,
   titulo,
+  condominioId,
 }: {
   conteudo: string;
   titulo: string;
+  condominioId?: string;
 }) {
   const [gerando, setGerando] = useState<Formato | null>(null);
   const [dispensado, setDispensado] = useState(false);
   const [gerado, setGerado] = useState<Formato | null>(null);
+  const [editorAberto, setEditorAberto] = useState(false);
+  const [salvarAberto, setSalvarAberto] = useState(false);
 
   if (dispensado) return null;
 
@@ -45,6 +51,7 @@ export function DocumentoDownload({
   }
 
   return (
+    <>
     <div className="mt-3 rounded-lg border bg-muted/30 p-3">
       <p className="text-xs font-medium text-muted-foreground mb-2">
         Deseja que eu gere o arquivo deste documento?
@@ -80,11 +87,49 @@ export function DocumentoDownload({
           Não, obrigado
         </Button>
       </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={gerando !== null}
+          onClick={() => setEditorAberto(true)}
+        >
+          <Pencil className="h-4 w-4" />
+          Editar antes de gerar
+        </Button>
+        {condominioId && (
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={gerando !== null}
+            onClick={() => setSalvarAberto(true)}
+          >
+            <Save className="h-4 w-4" />
+            Salvar no condomínio
+          </Button>
+        )}
+      </div>
       {gerado && (
         <p className="mt-2 text-xs text-muted-foreground">
           Arquivo {gerado.toUpperCase()} baixado. Você pode gerar o outro formato se quiser.
         </p>
       )}
     </div>
+
+      <EditorMinuta
+        open={editorAberto}
+        onOpenChange={setEditorAberto}
+        conteudoInicial={conteudo}
+        tituloInicial={titulo}
+        condominioId={condominioId}
+      />
+      <SalvarNoCondominioDialog
+        open={salvarAberto}
+        onOpenChange={setSalvarAberto}
+        conteudo={conteudo}
+        titulo={titulo}
+        condominioId={condominioId}
+      />
+    </>
   );
 }
