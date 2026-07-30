@@ -175,18 +175,55 @@ export async function gerarPdf(markdown: string, tituloPadrao: string): Promise<
     doc.setFontSize(opts.size);
     const lh = opts.size * 1.5;
     const indent = opts.indent ?? 0;
-    const linhas = doc.splitTextToSize(texto, larguraUtil - indent) as string[];
+
+    if (opts.align !== "justify") {
+      const linhas = doc.splitTextToSize(texto, larguraUtil - indent) as string[];
+      linhas.forEach((linha, i) => {
+        novaPaginaSePreciso(lh);
+        if (opts.align === "center") {
+          doc.text(linha, pageW / 2, y + opts.size, { align: "center" });
+        } else {
+          doc.text(linha, margem + (i === 0 ? indent : 0), y + opts.size);
+        }
+        y += lh;
+      });
+      return;
+    }
+
+    // Justificação manual: quebra por palavras respeitando o recuo da
+    // primeira linha e distribui o espaço restante entre as palavras.
+    const palavras = texto.split(/\s+/).filter(Boolean);
+    const linhas: Array<{ palavras: string[]; indent: number }> = [];
+    let atual: string[] = [];
+    let primeira = true;
+    const dispon = () => larguraUtil - (primeira ? indent : 0);
+    for (const palavra of palavras) {
+      const teste = atual.length ? `${atual.join(" ")} ${palavra}` : palavra;
+      if (atual.length && doc.getTextWidth(teste) > dispon()) {
+        linhas.push({ palavras: atual, indent: primeira ? indent : 0 });
+        primeira = false;
+        atual = [palavra];
+      } else {
+        atual = [...atual, palavra];
+      }
+    }
+    if (atual.length) linhas.push({ palavras: atual, indent: primeira ? indent : 0 });
+
     linhas.forEach((linha, i) => {
       novaPaginaSePreciso(lh);
-      if (opts.align === "center") {
-        doc.text(linha, pageW / 2, y + opts.size, { align: "center" });
-      } else if (opts.align === "justify" && i < linhas.length - 1) {
-        doc.text(linha, margem + (i === 0 ? indent : 0), y + opts.size, {
-          align: "justify",
-          maxWidth: larguraUtil - (i === 0 ? indent : 0),
-        });
+      const x0 = margem + linha.indent;
+      const largura = larguraUtil - linha.indent;
+      const ultima = i === linhas.length - 1;
+      if (ultima || linha.palavras.length < 2) {
+        doc.text(linha.palavras.join(" "), x0, y + opts.size);
       } else {
-        doc.text(linha, margem + (i === 0 ? indent : 0), y + opts.size);
+        const somaPalavras = linha.palavras.reduce((s, p) => s + doc.getTextWidth(p), 0);
+        const espaco = (largura - somaPalavras) / (linha.palavras.length - 1);
+        let x = x0;
+        for (const p of linha.palavras) {
+          doc.text(p, x, y + opts.size);
+          x += doc.getTextWidth(p) + espaco;
+        }
       }
       y += lh;
     });
