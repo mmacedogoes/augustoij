@@ -137,7 +137,10 @@ export function validarConteudo(markdown: string): string | null {
 
 const MM = (v: number) => v * 2.834645669; // mm -> pt
 
-export async function gerarPdf(markdown: string, tituloPadrao: string): Promise<void> {
+export async function gerarPdfBlob(
+  markdown: string,
+  tituloPadrao: string,
+): Promise<{ blob: Blob; nome: string; titulo: string }> {
   const { titulo, blocos } = parseDocumento(markdown, tituloPadrao);
   const [{ default: jsPDF }, reg, bold] = await Promise.all([
     import("jspdf"),
@@ -250,12 +253,20 @@ export async function gerarPdf(markdown: string, tituloPadrao: string): Promise<
     }
   }
 
-  baixarBlob(doc.output("blob"), nomeArquivo(titulo, "pdf"));
+  return { blob: doc.output("blob"), nome: nomeArquivo(titulo, "pdf"), titulo };
+}
+
+export async function gerarPdf(markdown: string, tituloPadrao: string): Promise<void> {
+  const { blob, nome } = await gerarPdfBlob(markdown, tituloPadrao);
+  baixarBlob(blob, nome);
 }
 
 // --------------------------------------------------------------- DOCX
 
-export async function gerarDocx(markdown: string, tituloPadrao: string): Promise<void> {
+export async function gerarDocxBlob(
+  markdown: string,
+  tituloPadrao: string,
+): Promise<{ blob: Blob; nome: string; titulo: string }> {
   const { titulo, blocos } = parseDocumento(markdown, tituloPadrao);
   const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
 
@@ -318,5 +329,10 @@ export async function gerarDocx(markdown: string, tituloPadrao: string): Promise
   });
 
   const blob = await Packer.toBlob(doc);
-  baixarBlob(blob, nomeArquivo(titulo, "docx"));
+  return { blob, nome: nomeArquivo(titulo, "docx"), titulo };
+}
+
+export async function gerarDocx(markdown: string, tituloPadrao: string): Promise<void> {
+  const { blob, nome } = await gerarDocxBlob(markdown, tituloPadrao);
+  baixarBlob(blob, nome);
 }
