@@ -601,6 +601,8 @@ export function ChatPanel({
                 .map((p) => (p.type === "text" ? p.text : ""))
                 .join("");
               if (m.role === "assistant") {
+                const isUltima = idx === messages.length - 1;
+                const doc = detectarDocumento(text, isUltima && isLoading);
                 const estruturada = tryParsePerguntaEstruturada(text);
                 const isLast = idx === messages.length - 1;
                 const parcialEstruturado =
@@ -640,8 +642,16 @@ export function ChatPanel({
                       <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
                       <div className="flex-1 min-w-0">
                         <MessageContent>
-                          <MessageResponse>{sq!.visible}</MessageResponse>
+                          <MessageResponse>
+                            {doc ? doc.limparVisivel(sq!.visible) : sq!.visible}
+                          </MessageResponse>
                         </MessageContent>
+                        {doc && (
+                          <DocumentoDownload
+                            conteudo={doc.conteudo}
+                            titulo={doc.titulo}
+                          />
+                        )}
                         {isLast && !isLoading && sq!.opcoes.length > 0 && (
                           <div className="mt-3 space-y-2">
                             {sq!.pergunta && (
