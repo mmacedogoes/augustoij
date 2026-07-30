@@ -121,6 +121,8 @@ export const createDocumento = createServerFn({ method: "POST" })
         titulo: z.string().trim().min(1).max(120).optional().nullable(),
         tipo: tipoEnum,
         storagePath: z.string().min(1),
+        /** Documentos gerados pelo próprio Augusto não precisam de indexação. */
+        indexar: z.boolean().optional(),
       })
       .parse(input),
   )
@@ -134,7 +136,7 @@ export const createDocumento = createServerFn({ method: "POST" })
         titulo: data.titulo ?? null,
         tipo: data.tipo,
         storage_path: data.storagePath,
-        status_processamento: "processando",
+        status_processamento: data.indexar === false ? "pronto" : "processando",
       })
       .select("id")
       .single();
