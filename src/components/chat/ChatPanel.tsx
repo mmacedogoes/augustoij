@@ -29,6 +29,7 @@ import { UsageFooter } from "@/components/chat/UsageFooter";
 import { UpgradeDialog } from "@/components/chat/UpgradeDialog";
 import { usePlanContext } from "@/hooks/usePlanContext";
 import { gateMessages } from "@/lib/plan-gates";
+import { DocumentoDownload } from "@/components/chat/DocumentoDownload";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -116,6 +117,38 @@ function pareceJsonEstruturadoParcial(text: string): boolean {
   if (!semFence.startsWith("{")) return false;
   return /"\s*tipo\s*"\s*:\s*"\s*pergunta_estruturada/i.test(semFence)
     || /pergunta_estruturada/i.test(semFence);
+}
+
+const RE_DOC_MARCADOR = /\[\[DOCUMENTO:\s*([^\]]{1,120}?)\s*\]\]/i;
+const RE_DOC_HEURISTICA =
+  /(CL[ÁA]USULA\s+(PRIMEIRA|1)|NOTIFICA[ÇC][ÃA]O\s+EXTRAJUDICIAL|^PARECER\b|COMUNICADO\s+AOS\s+CONDÔMINOS|Pelo presente instrumento)/im;
+
+/**
+ * Identifica se a mensagem do assistente contém uma minuta de documento
+ * passível de exportação. Só oferece o download quando o streaming acabou.
+ */
+function detectarDocumento(
+  text: string,
+  aindaStreaming: boolean,
+): { titulo: string; conteudo: string; limparVisivel: (s: string) => string } | null {
+  if (aindaStreaming) return null;
+  const t = (text ?? "").trim();
+  if (t.length < 300) return null;
+  const m = t.match(RE_DOC_MARCADOR);
+  if (!m && !RE_DOC_HEURISTICA.test(t)) return null;
+
+  const limpar = (s: string) =>
+    s.replace(RE_DOC_MARCADOR, "").replace(/\n{3,}/g, "\n\n").trim();
+
+  let titulo = m?.[1]?.trim() ?? "";
+  if (!titulo) {
+    const primeira = limpar(t)
+      .split("\n")
+      .map((l) => l.replace(/^#{1,6}\s*/, "").replace(/\*\*/g, "").trim())
+      .find((l) => l.length > 3);
+    titulo = primeira ?? "Documento";
+  }
+  return { titulo, conteudo: limpar(t), limparVisivel: limpar };
 }
 
 export function ChatPanel({
@@ -600,6 +633,8 @@ export function ChatPanel({
                 .map((p) => (p.type === "text" ? p.text : ""))
                 .join("");
               if (m.role === "assistant") {
+                const isUltima = idx === messages.length - 1;
+                const doc = detectarDocumento(text, isUltima && isLoading);
                 const estruturada = tryParsePerguntaEstruturada(text);
                 const isLast = idx === messages.length - 1;
                 const parcialEstruturado =
@@ -639,8 +674,16 @@ export function ChatPanel({
                       <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
                       <div className="flex-1 min-w-0">
                         <MessageContent>
-                          <MessageResponse>{sq!.visible}</MessageResponse>
+                          <MessageResponse>
+                            {doc ? doc.limparVisivel(sq!.visible) : sq!.visible}
+                          </MessageResponse>
                         </MessageContent>
+                        {doc && (
+                          <DocumentoDownload
+                            conteudo={doc.conteudo}
+                            titulo={doc.titulo}
+                          />
+                        )}
                         {isLast && !isLoading && sq!.opcoes.length > 0 && (
                           <div className="mt-3 space-y-2">
                             {sq!.pergunta && (

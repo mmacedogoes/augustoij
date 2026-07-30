@@ -1,77 +1,54 @@
 ## Objetivo
 
-Deixar o painel de cada contrato de locação (aba "Administração de Imóveis") realmente operacional para o dia a dia: lançar pagamentos mês a mês, pagamentos anuais de IPTU/TCR, acompanhar o valor inicial vs. valor atual do aluguel, receber alerta de renovação com sugestão de novo valor pelo índice do contrato e registrar manutenções feitas pela proprietária.
+Quando o Augusto redigir uma minuta (contrato, notificação, parecer, comunicado, ata, declaração etc.), a resposta no chat termina com um convite e aparece, abaixo da mensagem, um bloco com dois botões: **Gerar PDF** / **Gerar DOCX** (e "Não, obrigado"). O download é gerado no navegador, com a formatação padrão do escritório.
 
-Aproveita o que já existe (tabelas `pagamentos`, `reajustes`, `manutencoes`, funções `listPagamentosContrato`, `calcularReajuste`, `aplicarReajuste`, dashboard de alertas) e completa o que falta.
+## Como a detecção funciona (sem backend novo)
 
-## Escopo
+1. No prompt de sistema em `src/routes/api/chat.ts`, acrescento uma instrução: quando a resposta contiver uma **minuta redigida**, o modelo deve fechar a mensagem com um marcador em linha própria:
 
-### 1) Painel do contrato — pagamentos mês a mês
-Em `app.admin.imoveis.locacao.$id.painel.tsx`:
-- Grade "Aluguéis por competência" com uma linha por mês desde `data_inicio_vigencia` até o mês corrente: competência, vencimento, valor esperado, status, botão **Marcar como pago** (com data e valor efetivamente pago) e **Desfazer**. Já existe geração idempotente; só falta UI clara mês a mês.
-- Grade paralela "Condomínio por competência" — usa `pagamentos.tipo = 'condominio'`. Hoje só é gerado se `encargos_inquilino.condominio` estiver marcado; ajustar para sempre exibir a grade quando o encargo estiver ligado, com valor editável por mês.
-- Cada linha aceita: valor efetivamente pago, data, observação, comprovante (upload opcional no bucket `contratos`, subpasta `pagamentos/<uid>/`).
-- Indicador visual de atraso (usa `calcularMora` já pronta para exibir multa 2% + juros 1% a.m.).
-
-### 2) Pagamentos anuais — IPTU e TCR
-- Ajustar `buildParcelasEsperadas` em `pagamentos.functions.ts` para também gerar 1 parcela/ano de **TCR** quando `encargos_inquilino.tcr` (hoje só gera IPTU).
-- Bloco "Encargos anuais" no painel com uma linha por ano do contrato: IPTU e TCR, com valor, vencimento editável e botão marcar pago / anexar comprovante.
-
-### 3) Valor inicial × valor atual do aluguel
-- Adicionar coluna `valor_aluguel_inicial numeric` em `contratos_locacao` (migração), preenchida com o `valor_aluguel` atual dos contratos existentes.
-- No formulário do contrato exibir: **Valor inicial** (fixo, definido no cadastro) e **Valor atual** (somente leitura, = `valor_aluguel`, atualizado por reajustes).
-- Painel mostra card "Aluguel": inicial, atual, variação %, último reajuste (data + índice) a partir da tabela `reajustes`.
-
-### 4) Renovação/reajuste como pendência ativa
-- O contrato já tem `data_inicio_vigencia`, `periodicidade_reajuste_meses` e `mes_base_reajuste`. Calcular a próxima data de reajuste: (último reajuste em `reajustes` OU `data_inicio_vigencia`) + periodicidade.
-- Nova função `listReajustesPendentes` (server) devolvendo contratos com próxima data ≤ hoje + 30 dias e sem `aplicarReajuste` registrado depois dessa data.
-- No painel: card **"Reajuste pendente"** quando aplicável, com:
-  - Valor atual, índice do contrato, período de apuração (12 meses anteriores)
-  - Sugestão calculada por `calcularReajuste` (já existe, com fallback IPCA quando IGP-M for negativo)
-  - Valor novo sugerido + campo editável (o usuário pode ajustar)
-  - Botão **Aplicar reajuste** (usa `aplicarReajuste`, que grava histórico e atualiza `valor_aluguel`)
-  - Botão **Gerar comunicado ao inquilino** (texto pronto com valor antigo, novo, índice, % e vigência — copiar/WhatsApp via `wa.me` usando `inquilino_telefone`)
-  - Enquanto não aplicado, o card permanece como "pendência".
-- Adicionar contador na Home do módulo ("Reajustes pendentes: N") reusando `dashboard.functions.ts`.
-
-### 5) Manutenções da proprietária
-- A tabela `manutencoes` já existe. Adicionar UI:
-  - Aba/bloco **Manutenções** dentro do painel do contrato (filtrado pelo `imovel_id` do contrato) e também na página do imóvel.
-  - Listagem com colunas: título, responsável (proprietário/inquilino/administrador/condomínio), status, custo estimado/final, datas.
-  - Form novo/editar: título, descrição, responsável (padrão "proprietário"), status, custos, datas, anexos (bucket `contratos`, subpasta `manutencoes/<uid>/`).
-  - Server functions: `listManutencoes(imovelId)`, `upsertManutencao`, `removeManutencao`.
-
-## Detalhes técnicos
-
-**Migração única:**
-```sql
-ALTER TABLE public.contratos_locacao
-  ADD COLUMN IF NOT EXISTS valor_aluguel_inicial numeric;
-UPDATE public.contratos_locacao
-   SET valor_aluguel_inicial = valor_aluguel
- WHERE valor_aluguel_inicial IS NULL;
+```text
+[[DOCUMENTO: TÍTULO DO DOCUMENTO]]
+Deseja que eu gere o arquivo deste documento?
 ```
 
-**Arquivos novos**
-- `src/lib/imoveis/manutencoes.functions.ts`
-- `src/components/imoveis/PagamentosGrid.tsx` (grade mensal reutilizável por tipo)
-- `src/components/imoveis/ReajustePendenteCard.tsx`
-- `src/components/imoveis/ManutencoesPanel.tsx`
+2. No `ChatPanel.tsx`, ao renderizar cada mensagem do assistente, procuro esse marcador. Se existir: removo o marcador do texto exibido e mostro o bloco de ações de download logo abaixo da mensagem. Se não existir, nada muda — comportamento atual intacto.
 
-**Arquivos alterados**
-- `src/lib/imoveis/pagamentos.functions.ts` — gera TCR anual + sempre gera condomínio quando encargo ativo; permite gravar `valor_pago`/`comprovante_url` (colunas já existem em `pagamentos`? confirmar; se faltar, incluir na mesma migração).
-- `src/lib/imoveis/reajustes.functions.ts` — adiciona `listReajustesPendentes` e helper `proximaDataReajuste`.
-- `src/lib/imoveis/dashboard.functions.ts` — incluir "reajustes pendentes" na checklist.
-- `src/lib/imoveis/schemas.ts` — `valor_aluguel_inicial` no schema do contrato.
-- `src/routes/_authenticated/app.admin.imoveis.locacao.$id.tsx` — mostrar Valor inicial × atual no form.
-- `src/routes/_authenticated/app.admin.imoveis.locacao.$id.painel.tsx` — novos blocos (aluguel/condomínio mês a mês, encargos anuais, reajuste pendente, manutenções).
+Fallback: se o modelo esquecer o marcador, mantenho uma heurística leve (resposta longa contendo "CLÁUSULA", "NOTIFICAÇÃO", "PARECER", "COMUNICADO", "Pelo presente" etc.) para ainda oferecer o botão. Título nesse caso = primeira linha em caixa alta, ou "DOCUMENTO".
 
-**Regras mantidas**
-- Multa 2% + juros 1% a.m. já parametrizados no contrato — continuam usados no cálculo de mora exibido nas grades.
-- Idempotência dos pagamentos pela chave `(contrato_locacao_id, tipo, competencia)` já existente.
-- Cálculo do reajuste continua via API BCB (SGS) com cache `indices_bcb_cache` e fallback IPCA — sem mudança de lógica.
+## Formatação exigida
 
-## Fora de escopo (a menos que peça depois)
-- Envio automático de e-mail/WhatsApp ao inquilino (deixo só o botão "gerar mensagem/abrir WhatsApp").
-- Boleto/integração bancária para os aluguéis.
-- Painel de manutenções agregado (só listagem por imóvel/contrato).
+Um único módulo `src/lib/documento-export.ts` com as regras, usado pelos dois formatos:
+
+- Título: caixa alta, Cormorant Garamond, 14pt, negrito, centralizado.
+- Corpo: Cormorant Garamond, 12pt, entrelinha 1,5, recuo de primeira linha de 2 cm, justificado.
+- Margens A4 padrão (2,5 cm), rodapé sem numeração de página.
+- Parser simples do markdown que o modelo produz: `##`/`**texto**` viram subtítulos em negrito; linhas de assinatura e listas preservadas; tabelas convertidas em linhas de texto (raras em minutas).
+
+**PDF** — `jsPDF` (já no projeto), carregado por `import()` só no clique. Preciso embutir a fonte Cormorant Garamond (Regular + Bold) como VFS base64; hoje o jsPDF só tem as fontes padrão. Peso: ~2 arquivos de fonte carregados sob demanda, nunca no bundle inicial.
+
+**DOCX** — instalo `docx` (JS puro, roda no browser) e gero com `Packer.toBlob`, aplicando `font: "Cormorant Garamond"`, `size` 28/24 half-points, `spacing.line: 360`, `indent.firstLine: 1134` (2 cm em DXA). Se a fonte não estiver instalada na máquina do usuário, o Word cai para a serifada padrão — comportamento normal de DOCX, sem quebra.
+
+## Robustez
+
+- Validação antes de gerar: texto vazio/curto demais → toast "Não há conteúdo para gerar o arquivo", botão não dispara.
+- `try/catch` em toda a geração; falha → toast com mensagem clara, botão volta ao estado normal (nada de erro silencioso).
+- Estados do botão: **idle** → **gerando** (spinner + desabilitado) → **sucesso** (toast "Arquivo baixado") ou **erro**. Estado "vazio" coberto pela validação acima.
+- Casos de borda: clique duplo (botão desabilitado durante a geração), mensagem ainda em streaming (bloco só aparece após o fim do stream), texto muito longo (paginação automática do jsPDF), nome de arquivo sanitizado a partir do título.
+- Nada de rede, nada de storage, nada de chave: a geração é 100% local no navegador. Sem tabela nova, sem RLS nova, sem alteração de permissão — o conteúdo já é da própria conversa do usuário.
+
+## Arquivos tocados
+
+
+| Arquivo                                     | Mudança                                                      |
+| ------------------------------------------- | ------------------------------------------------------------ |
+| `src/lib/documento-export.ts`               | novo — regras de formatação + `gerarPdf()` / `gerarDocx()`   |
+| `src/assets/fonts/cormorant-*.ts`           | novo — fontes base64 para o jsPDF                            |
+| `src/components/chat/DocumentoDownload.tsx` | novo — bloco de botões com os 4 estados                      |
+| `src/components/chat/ChatPanel.tsx`         | detecta o marcador, limpa o texto exibido, renderiza o bloco |
+| `src/routes/api/chat.ts`                    | acrescenta a instrução do marcador ao prompt de sistema      |
+| `package.json`                              | adiciona `docx`                                              |
+
+
+## Fora de escopo (não faço agora)
+
+Salvar os documentos gerados no storage/histórico, editor de minuta antes do download, timbre/logo no cabeçalho, e assinatura eletrônica. Se quiser algum desses depois, é um passo separado.
