@@ -55,7 +55,7 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next, reque
         "object-src 'none'",
         "upgrade-insecure-requests",
       ].join("; "),
-    });
+    } as unknown as Parameters<typeof setResponseHeaders>[0]);
   } catch {
     /* fora de contexto de requisição — ignora */
   }
