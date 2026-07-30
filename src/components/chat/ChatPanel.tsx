@@ -119,6 +119,38 @@ function pareceJsonEstruturadoParcial(text: string): boolean {
     || /pergunta_estruturada/i.test(semFence);
 }
 
+const RE_DOC_MARCADOR = /\[\[DOCUMENTO:\s*([^\]]{1,120}?)\s*\]\]/i;
+const RE_DOC_HEURISTICA =
+  /(CL[ÁA]USULA\s+(PRIMEIRA|1)|NOTIFICA[ÇC][ÃA]O\s+EXTRAJUDICIAL|^PARECER\b|COMUNICADO\s+AOS\s+CONDÔMINOS|Pelo presente instrumento)/im;
+
+/**
+ * Identifica se a mensagem do assistente contém uma minuta de documento
+ * passível de exportação. Só oferece o download quando o streaming acabou.
+ */
+function detectarDocumento(
+  text: string,
+  aindaStreaming: boolean,
+): { titulo: string; conteudo: string; limparVisivel: (s: string) => string } | null {
+  if (aindaStreaming) return null;
+  const t = (text ?? "").trim();
+  if (t.length < 300) return null;
+  const m = t.match(RE_DOC_MARCADOR);
+  if (!m && !RE_DOC_HEURISTICA.test(t)) return null;
+
+  const limpar = (s: string) =>
+    s.replace(RE_DOC_MARCADOR, "").replace(/\n{3,}/g, "\n\n").trim();
+
+  let titulo = m?.[1]?.trim() ?? "";
+  if (!titulo) {
+    const primeira = limpar(t)
+      .split("\n")
+      .map((l) => l.replace(/^#{1,6}\s*/, "").replace(/\*\*/g, "").trim())
+      .find((l) => l.length > 3);
+    titulo = primeira ?? "Documento";
+  }
+  return { titulo, conteudo: limpar(t), limparVisivel: limpar };
+}
+
 export function ChatPanel({
   condominioId,
   hasReadyDocs,
