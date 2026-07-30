@@ -29,6 +29,7 @@ import { UsageFooter } from "@/components/chat/UsageFooter";
 import { UpgradeDialog } from "@/components/chat/UpgradeDialog";
 import { usePlanContext } from "@/hooks/usePlanContext";
 import { gateMessages } from "@/lib/plan-gates";
+import { DocumentoDownload } from "@/components/chat/DocumentoDownload";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
