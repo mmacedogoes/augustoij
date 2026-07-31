@@ -737,7 +737,7 @@ function VisualizarUnidadeDialog({
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm">{c.nome}</p>
                       {c.principal && (
-                        <span className="text-[10px] uppercase tracking-wide bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] uppercase tracking-wide bg-[color-mix(in_hsl,var(--augusto-gold)_18%,transparent)] text-augusto-green px-1.5 py-0.5 rounded">
                           Principal
                         </span>
                       )}
@@ -987,7 +987,7 @@ function CondominosDialog({
                     <p className="font-medium text-sm">
                       {c.nome}{" "}
                       {c.principal && (
-                        <span className="text-xs text-emerald-600 ml-1">(principal)</span>
+                        <span className="text-xs text-augusto-green ml-1">(principal)</span>
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -1163,7 +1163,7 @@ function ImportDialog({
           </div>
 
           {resultado && (
-            <div className="text-sm space-y-1 border rounded p-3 bg-slate-50 dark:bg-slate-900/40">
+            <div className="text-sm space-y-1 border rounded p-3 bg-muted/40">
               <p>
                 <strong>{resultado.unidadesCriadas}</strong> unidades criadas,{" "}
                 <strong>{resultado.unidadesAtualizadas}</strong> já existiam,{" "}

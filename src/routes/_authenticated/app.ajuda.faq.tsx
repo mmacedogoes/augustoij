@@ -59,8 +59,8 @@ function FAQ() {
       <div className="space-y-5 mt-4">
         {PERGUNTAS.map((p) => (
           <div key={p.q}>
-            <h3 className="font-semibold text-slate-900">{p.q}</h3>
-            <p className="text-slate-600 mt-1">{p.a}</p>
+            <h3 className="font-semibold text-foreground">{p.q}</h3>
+            <p className="text-muted-foreground mt-1">{p.a}</p>
           </div>
         ))}
       </div>

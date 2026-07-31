@@ -174,7 +174,7 @@ function BlocoPontos({
   pontos: { titulo: string; detalhe: string; clausula?: string | null }[];
 }) {
   const cor = tone === "pos"
-    ? "border-emerald-500/40 bg-emerald-500/5"
+    ? "border-augusto-green/40 bg-augusto-green/5"
     : tone === "warn"
       ? "border-amber-500/40 bg-amber-500/5"
       : "border-red-500/40 bg-red-500/5";

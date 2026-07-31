@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Loader2, Send, Paperclip, X, ChevronLeft, Lock, RotateCcw, CheckCircle2, FileText, Download, AlertCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
+import { AppSkeleton, AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -162,8 +164,14 @@ export function HelpdeskConversa({ ticketId, voltarHref, isAdmin }: { ticketId: 
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando chamado…
+      <div className="space-y-4">
+        <AppSkeleton className="h-8 w-40" />
+        <Card className="app-card p-5 sm:p-6">
+          <AppSkeletonLines lines={3} />
+        </Card>
+        <Card className="app-card p-5 sm:p-6">
+          <AppSkeletonLines lines={5} />
+        </Card>
       </div>
     );
   }
@@ -224,7 +232,7 @@ export function HelpdeskConversa({ ticketId, voltarHref, isAdmin }: { ticketId: 
       <Card className="app-card p-0 overflow-hidden">
         <div ref={scrollRef} className="max-h-[520px] overflow-y-auto p-5 sm:p-6 space-y-4">
           {mensagens.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma mensagem ainda.</p>
+            <AppEmptyState title="Nenhuma mensagem ainda." />
           ) : (
             mensagens.map((m) => (
               <MensagemBubble key={m.id} tipo={m.autor_tipo} conteudo={m.conteudo} anexos={m.anexos} createdAt={m.created_at} onAbrirAnexo={abrirAnexo} />

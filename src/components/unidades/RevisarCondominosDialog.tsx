@@ -246,7 +246,7 @@ export function RevisarCondominosDialog({
 function MatchBadge({ status }: { status?: "ok" | "ambiguo" | "sem_match" }) {
   if (status === "ok")
     return (
-      <span title="Casou com unidade existente" className="text-emerald-600">
+      <span title="Casou com unidade existente" className="text-augusto-green">
         <CheckCircle2 className="h-4 w-4" />
       </span>
     );
@@ -257,7 +257,7 @@ function MatchBadge({ status }: { status?: "ok" | "ambiguo" | "sem_match" }) {
       </span>
     );
   return (
-    <span title="Sem correspondência — criar nova unidade" className="text-slate-400">
+    <span title="Sem correspondência — criar nova unidade" className="text-muted-foreground">
       <XCircle className="h-4 w-4" />
     </span>
   );
