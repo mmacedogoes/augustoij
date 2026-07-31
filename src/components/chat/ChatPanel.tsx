@@ -881,9 +881,10 @@ export function ChatPanel({
                 e.target.files?.length && handleAttachFiles(Array.from(e.target.files))
               }
             />
-            <PromptInput onSubmit={handleSubmit}>
+            <PromptInput onSubmit={handleSubmit} className="landing-focus">
               <PromptInputTextarea
                 autoFocus
+                className="max-h-[200px] overflow-y-auto"
                 placeholder={
                   inputEnabled
                     ? "Pergunte sobre a convenção, ata, contratos…"
@@ -892,27 +893,26 @@ export function ChatPanel({
                 disabled={!inputEnabled}
               />
               <PromptInputFooter className="justify-between">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={attachLoading || bloqueadoPorLimite || !uploadPermitidoPeloPlano}
-                  title={
-                    !uploadPermitidoPeloPlano && planCtx
-                      ? gateMessages.uploadDesabilitado(planCtx.planoNome)
-                      : "Anexar documento à conversa"
-                  }
-                >
-                  {attachLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Paperclip className="h-4 w-4" />
-                  )}
-                  <span className="hidden sm:inline">Anexar</span>
-                </Button>
                 <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-[34px] w-[34px] p-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={attachLoading || bloqueadoPorLimite || !uploadPermitidoPeloPlano}
+                    aria-label="Anexar documento à conversa"
+                    title={
+                      !uploadPermitidoPeloPlano && planCtx
+                        ? gateMessages.uploadDesabilitado(planCtx.planoNome)
+                        : "Anexar documento à conversa"
+                    }
+                  >
+                    {attachLoading ? (
+                      <Loader2 className="h-[18px] w-[18px] animate-spin" />
+                    ) : (
+                      <Paperclip className="h-[18px] w-[18px]" />
+                    )}
+                  </Button>
                   <VoiceControls
                     disabled={!inputEnabled || isLoading}
                     onTranscribed={(text) => restoreInput(text)}
@@ -920,14 +920,31 @@ export function ChatPanel({
                       voiceRef.current = h;
                     }}
                   />
-                  <PromptInputSubmit status={status} disabled={!inputEnabled || isLoading} />
                 </div>
+                <PromptInputSubmit
+                  status={status}
+                  disabled={!inputEnabled || isLoading}
+                  className="h-[38px] w-[38px] rounded-full bg-augusto-green p-0 text-primary-foreground transition-transform duration-150 hover:bg-augusto-green/90 active:scale-[0.94]"
+                >
+                  {isLoading ? undefined : <ArrowUp className="h-4 w-4" />}
+                </PromptInputSubmit>
               </PromptInputFooter>
             </PromptInput>
-            <div className="space-y-1.5 px-2">
-              {uso && <UsageFooter uso={uso} />}
-              <p className="text-center text-[11px] leading-relaxed text-muted-foreground/80">
-                As respostas são geradas por IA e devem ser verificadas para casos críticos.
+            <div className="space-y-1 px-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+              {uso && (
+                <p className="tabular-nums">
+                  {uso.limiteDia !== null
+                    ? `${uso.mensagensDia} de ${uso.limiteDia} mensagens hoje`
+                    : `${uso.mensagensDia} mensagens hoje`}
+                  {" · "}
+                  {uso.limiteMes !== null
+                    ? `${uso.mensagensMes} de ${uso.limiteMes} no mês`
+                    : `${uso.mensagensMes} no mês`}
+                </p>
+              )}
+              <p>
+                As respostas do Augusto.IJ têm caráter informativo e não substituem a orientação de
+                um advogado para casos concretos.
               </p>
             </div>
           </>
