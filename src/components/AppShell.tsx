@@ -281,11 +281,18 @@ function SidebarInner({ compacto, nav, ehAtivo, onSignOut, onToggle }: SidebarPr
               <span
                 aria-hidden="true"
                 className={cn("app-rail", active ? "opacity-100" : "opacity-0 group-hover:opacity-60")}
+                style={{
+                  height: active ? "20px" : "0px",
+                  transition:
+                    "height var(--dur-base) var(--ease-out-quint), opacity var(--dur-base) var(--ease-out-quint)",
+                }}
               />
               <n.icon
                 className={cn(
-                  "h-4 w-4 shrink-0 transition-colors duration-200",
-                  active ? "text-augusto-gold" : "text-sidebar-foreground/70 group-hover:text-augusto-gold/80",
+                  "h-4 w-4 shrink-0 transition-all duration-[var(--dur-fast)] ease-[var(--ease-soft)]",
+                  active
+                    ? "text-augusto-gold"
+                    : "text-sidebar-foreground/70 group-hover:translate-x-0.5 group-hover:text-augusto-gold/80",
                 )}
                 strokeWidth={1.6}
               />
