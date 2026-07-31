@@ -1,54 +1,57 @@
 ## Objetivo
 
-Quando o Augusto redigir uma minuta (contrato, notificação, parecer, comunicado, ata, declaração etc.), a resposta no chat termina com um convite e aparece, abaixo da mensagem, um bloco com dois botões: **Gerar PDF** / **Gerar DOCX** (e "Não, obrigado"). O download é gerado no navegador, com a formatação padrão do escritório.
+Três correções no conteúdo dos documentos gerados:
 
-## Como a detecção funciona (sem backend novo)
+1. O arquivo (PDF/DOCX) nunca pode conter trechos de conversa ("Deseja que eu gere o arquivo deste documento?", "Segue abaixo...") nem o aviso de conteúdo gerado por inteligência artificial.
+2. Notificações de infração e comunicados não citam jurisprudência diretamente — a jurisprudência continua sendo a base do raciocínio, mas aparece só se o usuário pedir.
+3. Toda notificação precisa de data e horário da infração; se o usuário não informar, o Augusto pergunta antes de redigir, com opção de "não se aplica".
 
-1. No prompt de sistema em `src/routes/api/chat.ts`, acrescento uma instrução: quando a resposta contiver uma **minuta redigida**, o modelo deve fechar a mensagem com um marcador em linha própria:
+## 1. Limpeza do conteúdo exportado
 
-```text
-[[DOCUMENTO: TÍTULO DO DOCUMENTO]]
-Deseja que eu gere o arquivo deste documento?
-```
+Ponto único: `src/lib/documento-export.ts`, numa função `limparParaDocumento(markdown)` aplicada dentro de `parseDocumento` — assim PDF, DOCX, prévia do editor e "salvar no condomínio" ficam iguais, sem tocar no texto exibido no chat.
 
-2. No `ChatPanel.tsx`, ao renderizar cada mensagem do assistente, procuro esse marcador. Se existir: removo o marcador do texto exibido e mostro o bloco de ações de download logo abaixo da mensagem. Se não existir, nada muda — comportamento atual intacto.
+Ela remove, antes de montar os blocos:
 
-Fallback: se o modelo esquecer o marcador, mantenho uma heurística leve (resposta longa contendo "CLÁUSULA", "NOTIFICAÇÃO", "PARECER", "COMUNICADO", "Pelo presente" etc.) para ainda oferecer o botão. Título nesse caso = primeira linha em caixa alta, ou "DOCUMENTO".
+- o marcador `[[DOCUMENTO: ...]]` (hoje só é removido na tela do chat, não na geração);
+- a linha "Deseja que eu gere o arquivo deste documento?" e variações;
+- o parágrafo do disclaimer de IA (linha em itálico começando com ⚠️ e contendo "inteligência artificial" / "não substitui o parecer");
+- frases de moldura conversacional no início e no fim: "Segue abaixo...", "Elaborei...", "Preparei a minuta...", "Se quiser, posso...", "Qualquer ajuste, é só pedir", "Espero ter ajudado", "Fico à disposição", "Posso gerar em PDF/DOCX";
+- linhas soltas restantes com "PDF"/"DOCX"/"arquivo" em tom de pergunta.
 
-## Formatação exigida
+Regras de segurança da limpeza: só corta linhas inteiras que casem com os padrões, nunca no miolo do texto; se após a limpeza sobrar menos de ~40 caracteres, mantém o texto original (documento sempre sai, nunca vazio). `validarConteudo` continua barrando o caso realmente vazio com toast.
 
-Um único módulo `src/lib/documento-export.ts` com as regras, usado pelos dois formatos:
+Cobertura dos 4 estados: nada muda no fluxo — loading (spinner no botão), vazio (toast "Não há conteúdo"), erro (try/catch + toast), sucesso (toast + aviso "Arquivo baixado") já existem e permanecem.
 
-- Título: caixa alta, Cormorant Garamond, 14pt, negrito, centralizado.
-- Corpo: Cormorant Garamond, 12pt, entrelinha 1,5, recuo de primeira linha de 2 cm, justificado.
-- Margens A4 padrão (2,5 cm), rodapé sem numeração de página.
-- Parser simples do markdown que o modelo produz: `##`/`**texto**` viram subtítulos em negrito; linhas de assinatura e listas preservadas; tabelas convertidas em linhas de texto (raras em minutas).
+Teste: um arquivo `src/lib/documento-export.test.ts` com casos — marcador presente, disclaimer presente, frase de convite, texto limpo (não pode mudar), texto que ficaria vazio (fallback).
 
-**PDF** — `jsPDF` (já no projeto), carregado por `import()` só no clique. Preciso embutir a fonte Cormorant Garamond (Regular + Bold) como VFS base64; hoje o jsPDF só tem as fontes padrão. Peso: ~2 arquivos de fonte carregados sob demanda, nunca no bundle inicial.
+## 2. Jurisprudência fora de notificações e comunicados
 
-**DOCX** — instalo `docx` (JS puro, roda no browser) e gero com `Packer.toBlob`, aplicando `font: "Cormorant Garamond"`, `size` 28/24 half-points, `spacing.line: 360`, `indent.firstLine: 1134` (2 cm em DXA). Se a fonte não estiver instalada na máquina do usuário, o Word cai para a serifada padrão — comportamento normal de DOCX, sem quebra.
+Só prompt, em `src/routes/api/chat.ts`, num bloco novo "REGRAS DE REDAÇÃO DE PEÇAS":
 
-## Robustez
+- Em notificação de infração, advertência, multa e comunicado: proibido citar acórdão, REsp, súmula ou tribunal no corpo. Fundamentar apenas pela convenção/regimento do condomínio e pelo artigo de lei aplicável. A jurisprudência é usada para interpretar a norma e calibrar o texto, não para aparecer.
+- Exceção: se o usuário pedir expressamente ("cite a jurisprudência", "fundamenta com julgados"), aí cita.
+- Pareceres, análises e respostas de chat continuam exatamente como hoje, com jurisprudência citada — a restrição vale só para peça dirigida ao condômino.
 
-- Validação antes de gerar: texto vazio/curto demais → toast "Não há conteúdo para gerar o arquivo", botão não dispara.
-- `try/catch` em toda a geração; falha → toast com mensagem clara, botão volta ao estado normal (nada de erro silencioso).
-- Estados do botão: **idle** → **gerando** (spinner + desabilitado) → **sucesso** (toast "Arquivo baixado") ou **erro**. Estado "vazio" coberto pela validação acima.
-- Casos de borda: clique duplo (botão desabilitado durante a geração), mensagem ainda em streaming (bloco só aparece após o fim do stream), texto muito longo (paginação automática do jsPDF), nome de arquivo sanitizado a partir do título.
-- Nada de rede, nada de storage, nada de chave: a geração é 100% local no navegador. Sem tabela nova, sem RLS nova, sem alteração de permissão — o conteúdo já é da própria conversa do usuário.
+Isso não conflita com a diretiva de plano (`jurisprudenciaDirective`), que só restringe por plano; as duas somam.
+
+## 3. Data e horário da infração obrigatórios
+
+Também só prompt, reaproveitando o mecanismo de pergunta estruturada que já existe (`PerguntaEstruturada.tsx`):
+
+- Antes de redigir qualquer notificação/advertência, se a data OU o horário da infração não estiverem na conversa, o Augusto devolve a pergunta estruturada perguntando ambos, cada um com a opção "Não se aplica / não sei precisar" e campo livre.
+- Se o usuário responder "não se aplica", a peça usa uma fórmula neutra ("em data recente, conforme relato da administração") em vez de inventar data.
+- Nunca inventar data ou hora.
+
+Nenhum campo novo, nenhuma tela nova — a UI de pergunta estruturada já trata resposta, envio e erro.
 
 ## Arquivos tocados
 
+| Arquivo | Mudança |
+| --- | --- |
+| `src/lib/documento-export.ts` | nova `limparParaDocumento`, chamada em `parseDocumento` |
+| `src/lib/documento-export.test.ts` | novo — testes da limpeza |
+| `src/routes/api/chat.ts` | regras de peças (jurisprudência) + data/hora obrigatórias |
 
-| Arquivo                                     | Mudança                                                      |
-| ------------------------------------------- | ------------------------------------------------------------ |
-| `src/lib/documento-export.ts`               | novo — regras de formatação + `gerarPdf()` / `gerarDocx()`   |
-| `src/assets/fonts/cormorant-*.ts`           | novo — fontes base64 para o jsPDF                            |
-| `src/components/chat/DocumentoDownload.tsx` | novo — bloco de botões com os 4 estados                      |
-| `src/components/chat/ChatPanel.tsx`         | detecta o marcador, limpa o texto exibido, renderiza o bloco |
-| `src/routes/api/chat.ts`                    | acrescenta a instrução do marcador ao prompt de sistema      |
-| `package.json`                              | adiciona `docx`                                              |
+## Fora de escopo
 
-
-## Fora de escopo (não faço agora)
-
-Salvar os documentos gerados no storage/histórico, editor de minuta antes do download, timbre/logo no cabeçalho, e assinatura eletrônica. Se quiser algum desses depois, é um passo separado.
+Sem tabela nova, sem RLS nova, sem edge function, sem segredo: nada aqui toca dados ou rede — a geração continua 100% no navegador e o resto é texto de prompt. Não mexo no visual do chat, no editor de minuta nem no salvamento no condomínio.
