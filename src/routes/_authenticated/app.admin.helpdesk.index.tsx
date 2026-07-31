@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { adminListTickets, ASSUNTOS } from "@/lib/helpdesk.functions";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 export const Route = createFileRoute("/_authenticated/app/admin/helpdesk/")({
   component: AdminHelpdeskListPage,
@@ -45,11 +47,11 @@ function AdminHelpdeskListPage() {
     <AppShell>
       <div className="max-w-5xl">
         <AdminNav />
-        <div className="pb-5 border-b border-[var(--landing-rule)]">
+        <header className="app-page-header">
           <span className="app-eyebrow">Suporte</span>
-          <h1 className="app-title mt-2">Helpdesk</h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">Chamados abertos pelos usuários. Responda em até 24h úteis.</p>
-        </div>
+          <h1 className="app-title">Helpdesk</h1>
+          <p className="app-subtitle">Chamados abertos pelos usuários. Responda em até 24h úteis.</p>
+        </header>
 
         <Card className="app-card p-5 mt-6 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -64,8 +66,8 @@ function AdminHelpdeskListPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando…
+            <div className="py-2">
+              <AppSkeletonLines lines={5} />
             </div>
           ) : isError ? (
             <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
@@ -74,10 +76,7 @@ function AdminHelpdeskListPage() {
               <Button size="sm" variant="outline" className="mt-2" onClick={() => refetch()}>Tentar novamente</Button>
             </div>
           ) : !data || data.length === 0 ? (
-            <div className="rounded-md border border-dashed border-border/60 py-10 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-              <LifeBuoy className="h-6 w-6 text-muted-foreground" />
-              Nenhum chamado encontrado.
-            </div>
+            <AppEmptyState icon={<LifeBuoy />} title="Nenhum chamado encontrado" />
           ) : (
             <ul className="divide-y divide-[var(--landing-rule)] rounded-md border border-border/60">
               {(data as Array<{
@@ -96,7 +95,7 @@ function AdminHelpdeskListPage() {
                     <Link
                       to="/app/admin/helpdesk/$ticketId"
                       params={{ ticketId: t.id }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t.protocolo} · {assunto}</p>

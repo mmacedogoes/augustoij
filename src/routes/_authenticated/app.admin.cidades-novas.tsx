@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CheckCircle2, MapPin } from "lucide-react";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import {
   listCidadesNovasAlertas,
   marcarCidadeResolvida,
@@ -42,17 +43,20 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-5xl">
-        <h1 className="text-3xl font-bold text-primary">Cidades novas</h1>
-        <p className="text-muted-foreground">
-          Cidades cadastradas por usuários que ainda não têm legislação municipal indexada.
-        </p>
+        <header className="app-page-header">
+          <span className="app-eyebrow">Administração</span>
+          <h1 className="app-title">Cidades novas</h1>
+          <p className="app-subtitle">
+            Cidades cadastradas por usuários que ainda não têm legislação municipal indexada.
+          </p>
+        </header>
         <div className="mt-6"><AdminNav /></div>
 
         <Card className="app-card divide-y divide-[var(--landing-rule)]">
           {rows.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">Nenhuma cidade nova no momento.</p>
+            <AppEmptyState icon={<MapPin />} title="Nenhuma cidade nova no momento" />
           ) : rows.map((r) => (
-            <div key={r.id} className="p-4 flex flex-wrap items-center gap-3">
+            <div key={r.id} className="p-4 flex flex-wrap items-center gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
               <div className="flex items-center gap-2 flex-1 min-w-[220px]">
                 <MapPin className="h-4 w-4 text-accent" />
                 <div>
