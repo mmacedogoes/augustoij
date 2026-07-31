@@ -4,7 +4,20 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Paperclip, X, Loader2, AlertTriangle, Lock, ArrowUpRight } from "lucide-react";
+import {
+  Paperclip,
+  X,
+  Loader2,
+  AlertTriangle,
+  Lock,
+  ArrowUpRight,
+  ArrowUp,
+  Copy,
+  Megaphone,
+  PawPrint,
+  CalendarDays,
+  FileSearch,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Conversation,
@@ -19,13 +32,11 @@ import {
   PromptInputFooter,
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
-import { Shimmer } from "@/components/ai-elements/shimmer";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { createConversa, listMensagens, extractAttachmentForChat } from "@/lib/chat.functions";
 import { getUploadUrl, createDocumento, processDocumento } from "@/lib/documentos.functions";
 import { getUsoAtual } from "@/lib/uso.functions";
 import { avaliarLimite } from "@/lib/uso-limits";
-import { UsageFooter } from "@/components/chat/UsageFooter";
 import { UpgradeDialog } from "@/components/chat/UpgradeDialog";
 import { usePlanContext } from "@/hooks/usePlanContext";
 import { gateMessages } from "@/lib/plan-gates";
@@ -45,7 +56,6 @@ import {
   PerguntaEstruturada,
   tryParsePerguntaEstruturada,
 } from "@/components/chat/PerguntaEstruturada";
-import { AvisoJuridicoBanner } from "@/components/chat/AvisoJuridicoBanner";
 import { VoiceControls, type VoiceControlsHandle } from "@/components/chat/VoiceControls";
 
 type Props = {
@@ -72,6 +82,34 @@ const TIPO_LABEL: Record<ChatAttachment["classificacao"], string> = {
   regimento: "regimento interno",
   outro: "documento",
 };
+
+/** Sugestões do estado vazio — apenas preenchem o campo, não enviam nada. */
+const SUGESTOES = [
+  { icon: Megaphone, texto: "Redigir notificação por barulho fora do horário" },
+  { icon: PawPrint, texto: "O que diz a convenção sobre animais?" },
+  { icon: CalendarDays, texto: "Modelo de convocação de assembleia extraordinária" },
+  { icon: FileSearch, texto: "Analisar risco de um contrato de portaria" },
+] as const;
+
+/** Botão de copiar resposta (aparece no hover; sempre visível no toque). */
+function CopiarResposta({ texto }: { texto: string }) {
+  return (
+    <button
+      type="button"
+      aria-label="Copiar resposta"
+      title="Copiar resposta"
+      onClick={() => {
+        navigator.clipboard
+          .writeText(texto)
+          .then(() => toast.success("Resposta copiada"))
+          .catch(() => toast.error("Não foi possível copiar"));
+      }}
+      className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-50 transition-opacity duration-200 hover:bg-muted/60 hover:text-foreground md:opacity-0 md:group-hover/msg:opacity-100"
+    >
+      <Copy className="h-3.5 w-3.5" />
+    </button>
+  );
+}
 
 /**
  * Bloco 10 — perguntas estruturadas.
@@ -628,9 +666,8 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-col h-full min-h-[520px] border border-border rounded-lg overflow-hidden bg-card">
-      <AvisoJuridicoBanner />
       <Conversation className="flex-1">
-        <ConversationContent>
+        <ConversationContent className="gap-7 px-4 pb-2 sm:px-6">
           {!historyLoaded ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -642,15 +679,30 @@ export function ChatPanel({
               <p className="text-sm">Não foi possível carregar esta conversa.</p>
             </div>
           ) : messages.length === 0 ? (
-            <ConversationEmptyState
-              icon={<AugustoLogo variant="icon-only" theme="light" size={64} />}
-              title="Pergunte ao assistente"
-              description={
-                inputEnabled
-                  ? "Tire dúvidas sobre a convenção, regimento, atas e contratos do condomínio."
-                  : "Envie um documento na aba Documentos ou anexe um arquivo nesta conversa para começar."
-              }
-            />
+            <ConversationEmptyState className="gap-5">
+              <AugustoLogo variant="icon-only" theme="light" size={64} />
+              <div className="space-y-1.5">
+                <h3 className="app-section-title">Pergunte ao assistente</h3>
+                <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
+                  {inputEnabled
+                    ? "Tire dúvidas sobre a convenção, regimento, atas e contratos do condomínio."
+                    : "Envie um documento na aba Documentos ou anexe um arquivo nesta conversa para começar."}
+                </p>
+              </div>
+              <div className="grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2">
+                {SUGESTOES.map(({ icon: Icone, texto }) => (
+                  <button
+                    key={texto}
+                    type="button"
+                    onClick={() => restoreInput(texto)}
+                    className="app-card app-card-interactive flex items-start gap-2.5 p-[14px] text-left text-[13px] leading-snug text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold"
+                  >
+                    <Icone className="mt-px h-4 w-4 shrink-0 text-augusto-gold" strokeWidth={1.75} />
+                    <span>{texto}</span>
+                  </button>
+                ))}
+              </div>
+            </ConversationEmptyState>
           ) : (
             messages.map((m, idx) => {
               const text = m.parts
@@ -680,10 +732,9 @@ export function ChatPanel({
                 const sq = estruturada || parcialEstruturado ? null : extractStructuredQuestion(text);
                 if (estruturada) {
                   return (
-                    <Message key={m.id} from={m.role} className="max-w-full">
-                      <div className="flex gap-3 items-start">
-                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
-                        <div className="flex-1 min-w-0">
+                    <Message key={m.id} from={m.role} className="app-enter max-w-full">
+                      <div className="chat-assistant w-full">
+                        <div className="min-w-0">
                           <PerguntaEstruturada
                             dados={estruturada}
                             disabled={!isLast || isLoading}
@@ -696,10 +747,9 @@ export function ChatPanel({
                 }
                 if (parcialEstruturado) {
                   return (
-                    <Message key={m.id} from={m.role} className="max-w-full">
-                      <div className="flex gap-3 items-start">
-                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
-                        <div className="flex-1 min-w-0 text-sm text-muted-foreground italic">
+                    <Message key={m.id} from={m.role} className="app-enter max-w-full">
+                      <div className="chat-assistant w-full">
+                        <div className="min-w-0 text-sm italic text-muted-foreground">
                           Preparando opções…
                         </div>
                       </div>
@@ -707,11 +757,11 @@ export function ChatPanel({
                   );
                 }
                 return (
-                  <Message key={m.id} from={m.role} className="max-w-full">
-                    <div className="flex gap-3 items-start">
-                      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
-                      <div className="flex-1 min-w-0">
-                        <MessageContent>
+                  <Message key={m.id} from={m.role} className="app-enter max-w-full">
+                    <div className="chat-assistant group/msg relative w-full">
+                      <CopiarResposta texto={doc ? doc.limparVisivel(sq!.visible) : sq!.visible} />
+                      <div className="min-w-0 pr-8">
+                        <MessageContent className="bg-transparent p-0 text-foreground">
                           <MessageResponse>
                             {doc ? doc.limparVisivel(sq!.visible) : sq!.visible}
                           </MessageResponse>
@@ -751,24 +801,26 @@ export function ChatPanel({
                 );
               }
               return (
-                <Message key={m.id} from={m.role}>
-                  <MessageContent className="group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground">
+                <Message key={m.id} from={m.role} className="app-enter max-w-full">
+                  <div className="chat-user-bubble whitespace-pre-wrap break-words text-sm leading-relaxed">
                     {text}
-                  </MessageContent>
+                  </div>
                 </Message>
               );
             })
           )}
           {isLoading && (
-            <div className="px-4 py-2">
-              <Shimmer>Pensando…</Shimmer>
+            <div className="chat-assistant flex items-center gap-1.5 py-1" aria-label="Augusto.IJ está escrevendo">
+              <span className="chat-typing-dot" />
+              <span className="chat-typing-dot" style={{ animationDelay: "160ms" }} />
+              <span className="chat-typing-dot" style={{ animationDelay: "320ms" }} />
             </div>
           )}
         </ConversationContent>
-        <ConversationScrollButton />
+        <ConversationScrollButton className="h-9 w-9" />
       </Conversation>
 
-      <div className="border-t p-3 space-y-2" ref={formRef}>
+      <div className="chat-composer space-y-2 p-3" ref={formRef}>
         {attachments.length > 0 && (
           <div className="space-y-1">
             {attachments.map((att, i) => (
@@ -829,9 +881,10 @@ export function ChatPanel({
                 e.target.files?.length && handleAttachFiles(Array.from(e.target.files))
               }
             />
-            <PromptInput onSubmit={handleSubmit}>
+            <PromptInput onSubmit={handleSubmit} className="landing-focus">
               <PromptInputTextarea
                 autoFocus
+                className="max-h-[200px] overflow-y-auto"
                 placeholder={
                   inputEnabled
                     ? "Pergunte sobre a convenção, ata, contratos…"
@@ -840,27 +893,26 @@ export function ChatPanel({
                 disabled={!inputEnabled}
               />
               <PromptInputFooter className="justify-between">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={attachLoading || bloqueadoPorLimite || !uploadPermitidoPeloPlano}
-                  title={
-                    !uploadPermitidoPeloPlano && planCtx
-                      ? gateMessages.uploadDesabilitado(planCtx.planoNome)
-                      : "Anexar documento à conversa"
-                  }
-                >
-                  {attachLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Paperclip className="h-4 w-4" />
-                  )}
-                  <span className="hidden sm:inline">Anexar</span>
-                </Button>
                 <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-[34px] w-[34px] p-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={attachLoading || bloqueadoPorLimite || !uploadPermitidoPeloPlano}
+                    aria-label="Anexar documento à conversa"
+                    title={
+                      !uploadPermitidoPeloPlano && planCtx
+                        ? gateMessages.uploadDesabilitado(planCtx.planoNome)
+                        : "Anexar documento à conversa"
+                    }
+                  >
+                    {attachLoading ? (
+                      <Loader2 className="h-[18px] w-[18px] animate-spin" />
+                    ) : (
+                      <Paperclip className="h-[18px] w-[18px]" />
+                    )}
+                  </Button>
                   <VoiceControls
                     disabled={!inputEnabled || isLoading}
                     onTranscribed={(text) => restoreInput(text)}
@@ -868,14 +920,31 @@ export function ChatPanel({
                       voiceRef.current = h;
                     }}
                   />
-                  <PromptInputSubmit status={status} disabled={!inputEnabled || isLoading} />
                 </div>
+                <PromptInputSubmit
+                  status={status}
+                  disabled={!inputEnabled || isLoading}
+                  className="h-[38px] w-[38px] rounded-full bg-augusto-green p-0 text-primary-foreground transition-transform duration-150 hover:bg-augusto-green/90 active:scale-[0.94]"
+                >
+                  {isLoading ? undefined : <ArrowUp className="h-4 w-4" />}
+                </PromptInputSubmit>
               </PromptInputFooter>
             </PromptInput>
-            <div className="space-y-1.5 px-2">
-              {uso && <UsageFooter uso={uso} />}
-              <p className="text-center text-[11px] leading-relaxed text-muted-foreground/80">
-                As respostas são geradas por IA e devem ser verificadas para casos críticos.
+            <div className="space-y-1 px-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+              {uso && (
+                <p className="tabular-nums">
+                  {uso.limiteDia !== null
+                    ? `${uso.mensagensDia} de ${uso.limiteDia} mensagens hoje`
+                    : `${uso.mensagensDia} mensagens hoje`}
+                  {" · "}
+                  {uso.limiteMes !== null
+                    ? `${uso.mensagensMes} de ${uso.limiteMes} no mês`
+                    : `${uso.mensagensMes} no mês`}
+                </p>
+              )}
+              <p>
+                As respostas do Augusto.IJ têm caráter informativo e não substituem a orientação de
+                um advogado para casos concretos.
               </p>
             </div>
           </>

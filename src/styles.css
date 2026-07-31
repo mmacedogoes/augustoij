@@ -640,6 +640,63 @@
   }
 }
 
+/* ---------- Conversa (chat) ---------- */
+
+@keyframes augusto-typing {
+  0%,
+  70%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@utility chat-user-bubble {
+  margin-left: auto;
+  max-width: 78%;
+  background: color-mix(in hsl, var(--augusto-green) 8%, var(--card));
+  border: 1px solid color-mix(in hsl, var(--augusto-green) 14%, transparent);
+  border-radius: var(--app-radius);
+  border-bottom-right-radius: var(--app-radius-sm);
+  padding: 0.75rem 1rem;
+  color: var(--foreground);
+}
+
+@utility chat-assistant {
+  max-width: 68ch;
+  padding-left: 16px;
+  border-left: 2px solid color-mix(in hsl, var(--augusto-gold) 85%, transparent);
+}
+
+@utility chat-typing-dot {
+  display: inline-block;
+  height: 6px;
+  width: 6px;
+  border-radius: 9999px;
+  background: var(--augusto-gold);
+  animation: augusto-typing 1.15s var(--ease-soft) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-typing-dot {
+    animation: none !important;
+    opacity: 0.6;
+  }
+}
+
+@utility chat-composer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  border-top: 1px solid var(--landing-rule);
+  background: color-mix(in hsl, var(--background) 82%, transparent);
+  backdrop-filter: blur(12px) saturate(140%);
+}
+
 @utility app-enter {
   animation: augusto-fade-up var(--dur-base) var(--ease-out-quint) both;
 }

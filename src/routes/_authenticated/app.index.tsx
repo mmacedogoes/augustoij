@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Building, Plus, MessageSquare } from "lucide-react";
+import { Building, Plus } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { listCondominios, getProfile, getUsoMensal } from "@/lib/condominios.functions";
+import { listCondominios, getProfile } from "@/lib/condominios.functions";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 
@@ -27,7 +27,6 @@ type Condo = { id: string; nome: string; uf: string | null; qtd_unidades: number
 function HomePage() {
   const fetchCondos = useServerFn(listCondominios);
   const fetchProfile = useServerFn(getProfile);
-  const fetchUso = useServerFn(getUsoMensal);
 
   const condosQuery = useQuery<Condo[]>({
     queryKey: ["home", "condos"],
@@ -39,15 +38,8 @@ function HomePage() {
     queryFn: async () => (await fetchProfile()) as { nome?: string | null; email?: string | null },
     staleTime: 5 * 60_000,
   });
-  const usoQuery = useQuery<{ total_mensagens: number }>({
-    queryKey: ["home", "uso"],
-    queryFn: async () => (await fetchUso()) as { total_mensagens: number },
-    staleTime: 60_000,
-  });
-
   const condos = condosQuery.data ?? [];
   const nome = ((profileQuery.data?.nome || profileQuery.data?.email || "") as string).split(" ")[0];
-  const uso = usoQuery.data ?? { total_mensagens: 0 };
 
   const [activeCondoId, setActiveCondoId] = useState<string | null>(() =>
     typeof window === "undefined" ? null : window.localStorage.getItem("condoia.activeCondo"),
@@ -62,11 +54,11 @@ function HomePage() {
 
   // Toast único quando qualquer uma das cargas iniciais falha.
   useEffect(() => {
-    const err = condosQuery.error ?? profileQuery.error ?? usoQuery.error;
+    const err = condosQuery.error ?? profileQuery.error;
     if (err) {
       toast.error("Não conseguimos carregar seus dados. Verifique sua conexão e tente novamente.");
     }
-  }, [condosQuery.error, profileQuery.error, usoQuery.error]);
+  }, [condosQuery.error, profileQuery.error]);
 
   useEffect(() => {
     if (activeCondoId) window.localStorage.setItem("condoia.activeCondo", activeCondoId);
@@ -145,11 +137,7 @@ function HomePage() {
               initialConversaId={conversaId}
               onConversaCreated={(cid) => setConversaId(cid)}
             />
-            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <MessageSquare className="inline h-3 w-3 mr-1" />
-                {uso.total_mensagens} mensagens este mês
-              </span>
+            <div className="mt-3 flex items-center justify-end text-xs text-muted-foreground">
               <Link
                 to="/app/condominios/$id"
                 params={{ id: activeCondo.id }}
