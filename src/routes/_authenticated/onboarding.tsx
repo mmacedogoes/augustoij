@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Logo } from "@/components/Logo";
+import { limparCacheAcesso } from "./route";
 import { getProfile, createCondominio } from "@/lib/condominios.functions";
 import {
   listPlanosByTipo,
