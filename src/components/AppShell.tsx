@@ -255,10 +255,10 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
           </Sheet>
 
           <div
-            className="flex min-h-screen flex-col"
-            style={{ marginLeft: 0, transition: "margin var(--app-dur-slow) var(--app-ease)" }}
+            className="flex min-h-screen flex-col md:ml-[var(--app-shell-w)]"
+            style={{ transition: "margin var(--app-dur-slow) var(--app-ease)" }}
           >
-            <div className="md:ml-[var(--app-shell-w)] flex min-h-screen flex-col transition-[margin] duration-250 ease-out">
+            <>
               <TrialExpiredBanner />
               <UsageThresholdBanner />
 
