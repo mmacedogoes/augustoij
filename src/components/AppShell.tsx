@@ -285,6 +285,98 @@ type SidebarProps = {
   identidade?: { iniciais: string; nome: string; perfil: string | null } | null;
 };
 
+function MobileTabBar({
+  nav,
+  ehAtivo,
+}: {
+  nav: ReadonlyArray<NavItem>;
+  ehAtivo: (to: string) => boolean;
+}) {
+  const [maisAberto, setMaisAberto] = useState(false);
+  const excedente = nav.length > 5;
+  const visiveis = excedente ? nav.slice(0, 4) : nav;
+  const restantes = excedente ? nav.slice(4) : [];
+
+  const item = (n: NavItem) => {
+    const active = ehAtivo(n.to);
+    return (
+      <Link
+        key={n.to}
+        to={n.to as "/app"}
+        aria-current={active ? "page" : undefined}
+        className="relative flex flex-1 flex-col items-center justify-center gap-1 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70"
+      >
+        <span
+          aria-hidden="true"
+          className="absolute top-0 h-[2px] rounded-full bg-augusto-gold"
+          style={{
+            width: active ? "16px" : "0px",
+            opacity: active ? 1 : 0,
+            transition: "width var(--dur-base) var(--ease-out-quint), opacity var(--dur-base) var(--ease-out-quint)",
+          }}
+        />
+        <n.icon
+          className={cn("h-5 w-5", active ? "text-augusto-gold" : "text-muted-foreground")}
+          strokeWidth={1.6}
+        />
+        <span className={cn("text-[10px] leading-none", active ? "text-augusto-gold" : "text-muted-foreground")}>
+          {n.label}
+        </span>
+      </Link>
+    );
+  };
+
+  return (
+    <>
+      <nav
+        aria-label="Navegação principal"
+        className="fixed bottom-0 left-0 right-0 z-40 flex w-full border-t border-[var(--landing-rule)] bg-card md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {visiveis.map(item)}
+        {excedente && (
+          <button
+            type="button"
+            onClick={() => setMaisAberto(true)}
+            className="relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70"
+          >
+            <MoreHorizontal className="h-5 w-5" strokeWidth={1.6} />
+            <span className="text-[10px] leading-none">Mais</span>
+          </button>
+        )}
+      </nav>
+
+      <Sheet open={maisAberto} onOpenChange={setMaisAberto}>
+        <SheetContent side="bottom" className="md:hidden">
+          <SheetTitle className="text-base">Mais</SheetTitle>
+          <div className="mt-4 grid gap-1">
+            {restantes.map((n) => (
+              <Link
+                key={n.to}
+                to={n.to as "/app"}
+                onClick={() => setMaisAberto(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-foreground transition-colors duration-[var(--dur-fast)] hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70"
+              >
+                <n.icon className="h-4 w-4 text-augusto-gold" strokeWidth={1.6} />
+                {n.label}
+              </Link>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
+
+type SidebarPropsUnused = {
+  compacto: boolean;
+  nav: ReadonlyArray<NavItem>;
+  ehAtivo: (to: string) => boolean;
+  onSignOut: () => void;
+  onToggle: () => void;
+  identidade?: { iniciais: string; nome: string; perfil: string | null } | null;
+};
+
 function SidebarInner({ compacto, nav, ehAtivo, onSignOut, onToggle, identidade }: SidebarProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground">
