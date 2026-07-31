@@ -646,9 +646,8 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-col h-full min-h-[520px] border border-border rounded-lg overflow-hidden bg-card">
-      <AvisoJuridicoBanner />
       <Conversation className="flex-1">
-        <ConversationContent>
+        <ConversationContent className="gap-7 px-4 pb-2 sm:px-6">
           {!historyLoaded ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -660,15 +659,30 @@ export function ChatPanel({
               <p className="text-sm">Não foi possível carregar esta conversa.</p>
             </div>
           ) : messages.length === 0 ? (
-            <ConversationEmptyState
-              icon={<AugustoLogo variant="icon-only" theme="light" size={64} />}
-              title="Pergunte ao assistente"
-              description={
-                inputEnabled
-                  ? "Tire dúvidas sobre a convenção, regimento, atas e contratos do condomínio."
-                  : "Envie um documento na aba Documentos ou anexe um arquivo nesta conversa para começar."
-              }
-            />
+            <ConversationEmptyState className="gap-5">
+              <AugustoLogo variant="icon-only" theme="light" size={64} />
+              <div className="space-y-1.5">
+                <h3 className="app-section-title">Pergunte ao assistente</h3>
+                <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
+                  {inputEnabled
+                    ? "Tire dúvidas sobre a convenção, regimento, atas e contratos do condomínio."
+                    : "Envie um documento na aba Documentos ou anexe um arquivo nesta conversa para começar."}
+                </p>
+              </div>
+              <div className="grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2">
+                {SUGESTOES.map(({ icon: Icone, texto }) => (
+                  <button
+                    key={texto}
+                    type="button"
+                    onClick={() => restoreInput(texto)}
+                    className="app-card app-card-interactive flex items-start gap-2.5 p-[14px] text-left text-[13px] leading-snug text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold"
+                  >
+                    <Icone className="mt-px h-4 w-4 shrink-0 text-augusto-gold" strokeWidth={1.75} />
+                    <span>{texto}</span>
+                  </button>
+                ))}
+              </div>
+            </ConversationEmptyState>
           ) : (
             messages.map((m, idx) => {
               const text = m.parts
