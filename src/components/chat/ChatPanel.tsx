@@ -732,10 +732,9 @@ export function ChatPanel({
                 const sq = estruturada || parcialEstruturado ? null : extractStructuredQuestion(text);
                 if (estruturada) {
                   return (
-                    <Message key={m.id} from={m.role} className="max-w-full">
-                      <div className="flex gap-3 items-start">
-                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
-                        <div className="flex-1 min-w-0">
+                    <Message key={m.id} from={m.role} className="app-enter max-w-full">
+                      <div className="chat-assistant w-full">
+                        <div className="min-w-0">
                           <PerguntaEstruturada
                             dados={estruturada}
                             disabled={!isLast || isLoading}
@@ -748,10 +747,9 @@ export function ChatPanel({
                 }
                 if (parcialEstruturado) {
                   return (
-                    <Message key={m.id} from={m.role} className="max-w-full">
-                      <div className="flex gap-3 items-start">
-                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
-                        <div className="flex-1 min-w-0 text-sm text-muted-foreground italic">
+                    <Message key={m.id} from={m.role} className="app-enter max-w-full">
+                      <div className="chat-assistant w-full">
+                        <div className="min-w-0 text-sm italic text-muted-foreground">
                           Preparando opções…
                         </div>
                       </div>
@@ -759,11 +757,11 @@ export function ChatPanel({
                   );
                 }
                 return (
-                  <Message key={m.id} from={m.role} className="max-w-full">
-                    <div className="flex gap-3 items-start">
-                      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><AugustoLogo variant="icon-only" theme="light" size={24} /></div>
-                      <div className="flex-1 min-w-0">
-                        <MessageContent>
+                  <Message key={m.id} from={m.role} className="app-enter max-w-full">
+                    <div className="chat-assistant group/msg relative w-full">
+                      <CopiarResposta texto={doc ? doc.limparVisivel(sq!.visible) : sq!.visible} />
+                      <div className="min-w-0 pr-8">
+                        <MessageContent className="bg-transparent p-0 text-foreground">
                           <MessageResponse>
                             {doc ? doc.limparVisivel(sq!.visible) : sq!.visible}
                           </MessageResponse>
@@ -803,24 +801,26 @@ export function ChatPanel({
                 );
               }
               return (
-                <Message key={m.id} from={m.role}>
-                  <MessageContent className="group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground">
+                <Message key={m.id} from={m.role} className="app-enter max-w-full">
+                  <div className="chat-user-bubble whitespace-pre-wrap break-words text-sm leading-relaxed">
                     {text}
-                  </MessageContent>
+                  </div>
                 </Message>
               );
             })
           )}
           {isLoading && (
-            <div className="px-4 py-2">
-              <Shimmer>Pensando…</Shimmer>
+            <div className="chat-assistant flex items-center gap-1.5 py-1" aria-label="Augusto.IJ está escrevendo">
+              <span className="chat-typing-dot" />
+              <span className="chat-typing-dot" style={{ animationDelay: "160ms" }} />
+              <span className="chat-typing-dot" style={{ animationDelay: "320ms" }} />
             </div>
           )}
         </ConversationContent>
-        <ConversationScrollButton />
+        <ConversationScrollButton className="h-9 w-9" />
       </Conversation>
 
-      <div className="border-t p-3 space-y-2" ref={formRef}>
+      <div className="chat-composer space-y-2 p-3" ref={formRef}>
         {attachments.length > 0 && (
           <div className="space-y-1">
             {attachments.map((att, i) => (
