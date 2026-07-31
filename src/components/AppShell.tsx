@@ -138,92 +138,6 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
     navigate({ to: "/login", replace: true });
   }
 
-  function NavList({ compacto }: { compacto: boolean }) {
-    return (
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {nav.map((n) => {
-          const active = ehAtivo(n.to);
-          const link = (
-            <Link
-              key={n.to}
-              to={n.to as "/app"}
-              data-tour={n.tour}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "app-nav-item group",
-                active && "app-nav-item-active",
-                compacto && "justify-center px-0 pl-0",
-              )}
-            >
-              <span
-                aria-hidden="true"
-                className={cn("app-rail", active ? "opacity-100" : "opacity-0 group-hover:opacity-60")}
-              />
-              <n.icon
-                className={cn(
-                  "h-4 w-4 shrink-0 transition-colors duration-200",
-                  active ? "text-augusto-gold" : "text-sidebar-foreground/70 group-hover:text-augusto-gold/80",
-                )}
-                strokeWidth={1.6}
-              />
-              {!compacto && <span className="truncate">{n.label}</span>}
-            </Link>
-          );
-          if (!compacto) return link;
-          return (
-            <Tooltip key={n.to} delayDuration={120}>
-              <TooltipTrigger asChild>{link}</TooltipTrigger>
-              <TooltipContent side="right">{n.label}</TooltipContent>
-            </Tooltip>
-          );
-        })}
-      </nav>
-    );
-  }
-
-  function SidebarInner({ compacto }: { compacto: boolean }) {
-    return (
-      <div className="flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground">
-        <Link
-          to="/app"
-          className={cn(
-            "flex items-center overflow-hidden border-b border-sidebar-border/40 transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/60",
-            compacto ? "justify-center p-4" : "p-5",
-          )}
-          aria-label="Ir para o início"
-        >
-          <AugustoLogo variant={compacto ? "icon-only" : "horizontal"} theme="dark" size={compacto ? 32 : 180} />
-        </Link>
-
-        <NavList compacto={compacto} />
-
-        <div className="space-y-1 border-t border-sidebar-border/40 p-3">
-          <button
-            onClick={handleSignOut}
-            className={cn("app-nav-item w-full", compacto && "justify-center px-0 pl-0")}
-          >
-            <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.6} />
-            {!compacto && <span>Sair</span>}
-          </button>
-          <button
-            onClick={alternarRecolhida}
-            className={cn("app-nav-item hidden w-full md:flex", compacto && "justify-center px-0 pl-0")}
-            aria-label={compacto ? "Expandir menu" : "Recolher menu"}
-          >
-            {compacto ? (
-              <PanelLeftOpen className="h-4 w-4 shrink-0" strokeWidth={1.6} />
-            ) : (
-              <>
-                <PanelLeftClose className="h-4 w-4 shrink-0" strokeWidth={1.6} />
-                <span>Recolher</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <AppShellContext.Provider value={true}>
       <TooltipProvider>
@@ -243,14 +157,26 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
               transition: "width var(--app-dur-slow) var(--app-ease)",
             }}
           >
-            <SidebarInner compacto={recolhida} />
+            <SidebarInner
+              compacto={recolhida}
+              nav={nav}
+              ehAtivo={ehAtivo}
+              onSignOut={handleSignOut}
+              onToggle={alternarRecolhida}
+            />
           </aside>
 
           {/* Drawer mobile */}
           <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
             <SheetContent side="left" className="w-[17rem] border-sidebar-border/60 bg-sidebar p-0">
               <SheetTitle className="sr-only">Menu</SheetTitle>
-              <SidebarInner compacto={false} />
+              <SidebarInner
+                compacto={false}
+                nav={nav}
+                ehAtivo={ehAtivo}
+                onSignOut={handleSignOut}
+                onToggle={alternarRecolhida}
+              />
             </SheetContent>
           </Sheet>
 
