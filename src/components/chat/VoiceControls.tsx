@@ -341,28 +341,24 @@ export function VoiceControls({ disabled, onTranscribed, onReady }: Props) {
       <Button
         type="button"
         variant={recording ? "destructive" : "ghost"}
-        size="sm"
-        className="gap-1.5"
+        className="h-[34px] w-[34px] p-0"
         onClick={recording ? stopRecording : startRecording}
         disabled={disabled || transcribing}
+        aria-label={recording ? "Parar gravação" : "Falar"}
         title={recording ? "Parar gravação" : "Ditar por voz"}
       >
         {transcribing ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-[18px] w-[18px] animate-spin" />
         ) : recording ? (
-          <MicOff className="h-4 w-4" />
+          <MicOff className="h-[18px] w-[18px]" />
         ) : (
-          <Mic className="h-4 w-4" />
+          <Mic className="h-[18px] w-[18px]" />
         )}
-        <span className="hidden sm:inline">
-          {recording ? "Parar" : transcribing ? "Transcrevendo…" : "Falar"}
-        </span>
       </Button>
       <Button
         type="button"
         variant="ghost"
-        size="sm"
-        className="gap-1.5"
+        className="h-[34px] w-[34px] p-0"
         onClick={() => {
           if (speaking) {
             stopSpeaking();
@@ -370,6 +366,7 @@ export function VoiceControls({ disabled, onTranscribed, onReady }: Props) {
           }
           setAutoSpeak((v) => !v);
         }}
+        aria-label={speaking ? "Silenciar" : "Silencioso"}
         title={
           speaking
             ? "Silenciar Augusto"
@@ -379,15 +376,12 @@ export function VoiceControls({ disabled, onTranscribed, onReady }: Props) {
         }
       >
         {speaking ? (
-          <VolumeX className="h-4 w-4 text-augusto-gold" />
+          <VolumeX className="h-[18px] w-[18px] text-augusto-gold" />
         ) : autoSpeak ? (
-          <Volume2 className="h-4 w-4 text-augusto-gold" />
+          <Volume2 className="h-[18px] w-[18px] text-augusto-gold" />
         ) : (
-          <Volume2 className="h-4 w-4" />
+          <Volume2 className="h-[18px] w-[18px]" />
         )}
-        <span className="hidden sm:inline">
-          {speaking ? "Falando…" : autoSpeak ? "Auto-falar" : "Silencioso"}
-        </span>
       </Button>
     </div>
   );
