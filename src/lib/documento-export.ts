@@ -30,13 +30,49 @@ function limparInline(s: string): string {
 
 const RE_ASSINATURA = /^(_{3,}|-{3,}\s*$|\s*_+\s*$)/;
 
+/** Linhas de conversa/aviso que nunca podem entrar no arquivo gerado. */
+const RE_LINHAS_REMOVIVEIS: RegExp[] = [
+  /^\s*\[\[DOCUMENTO:[^\]]*\]\]\s*$/i,
+  /deseja que eu gere o arquivo/i,
+  /inteligência artificial/i,
+  /não substitui o parecer/i,
+  /processados conforme LGPD/i,
+  /^\s*[*_>\s]*⚠️/,
+  /^\s*(segue|segue abaixo|abaixo segue|elaborei|preparei|redigi|minutei)\b[^.]{0,120}[:.]?\s*$/i,
+  /^\s*(se quiser|se desejar|caso queira|qualquer ajuste|fico à disposição|espero ter ajudado|posso (também )?(gerar|ajustar|adaptar))\b.*$/i,
+  /^\s*.{0,120}\b(pdf|docx|word)\b.{0,120}\?\s*$/i,
+];
+
+/**
+ * Remove do markdown as marcas de conversa e o disclaimer de IA antes de
+ * transformar o texto em documento. Nunca corta no meio de um parágrafo:
+ * só descarta linhas inteiras. Se a limpeza esvaziar o conteúdo, devolve
+ * o texto original (o documento sempre sai).
+ */
+export function limparParaDocumento(markdown: string): string {
+  const original = markdown ?? "";
+  const limpo = original
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .filter((linha) => {
+      const l = linha.trim();
+      if (!l) return true;
+      return !RE_LINHAS_REMOVIVEIS.some((re) => re.test(l));
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return limpo.length >= 40 ? limpo : original.trim();
+}
+
 /**
  * Converte o markdown simples produzido pelo modelo em blocos tipados.
  * O primeiro título (# / ## na primeira linha) é usado como título do
  * documento quando nenhum título explícito é informado.
  */
 export function parseDocumento(markdown: string, tituloPadrao: string) {
-  const linhas = markdown.replace(/\r\n/g, "\n").split("\n");
+  const linhas = limparParaDocumento(markdown).split("\n");
   const blocos: Bloco[] = [];
   let titulo = "";
   let buffer: string[] = [];
