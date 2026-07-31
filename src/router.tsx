@@ -18,6 +18,9 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    // Pré-carrega o chunk da rota ao passar o mouse: clique fica instantâneo.
+    defaultPreload: "intent",
+    defaultPreloadDelay: 50,
     // Query owns freshness; keep preload cache warm for 30s to avoid refetch on hover-preload.
     defaultPreloadStaleTime: 30_000,
   });
