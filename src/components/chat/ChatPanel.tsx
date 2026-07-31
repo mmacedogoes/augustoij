@@ -83,6 +83,14 @@ const TIPO_LABEL: Record<ChatAttachment["classificacao"], string> = {
   outro: "documento",
 };
 
+/** Sugestões do estado vazio — apenas preenchem o campo, não enviam nada. */
+const SUGESTOES = [
+  { icon: Megaphone, texto: "Redigir notificação por barulho fora do horário" },
+  { icon: PawPrint, texto: "O que diz a convenção sobre animais?" },
+  { icon: CalendarDays, texto: "Modelo de convocação de assembleia extraordinária" },
+  { icon: FileSearch, texto: "Analisar risco de um contrato de portaria" },
+] as const;
+
 /**
  * Bloco 10 — perguntas estruturadas.
  * A IA pode emitir um bloco fenced ```pergunta-estruturada\n{json}\n```
