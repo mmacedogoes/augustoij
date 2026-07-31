@@ -163,6 +163,7 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
               ehAtivo={ehAtivo}
               onSignOut={handleSignOut}
               onToggle={alternarRecolhida}
+              identidade={identidade}
             />
           </aside>
 
@@ -176,6 +177,7 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
                 ehAtivo={ehAtivo}
                 onSignOut={handleSignOut}
                 onToggle={alternarRecolhida}
+                identidade={identidade}
               />
             </SheetContent>
           </Sheet>
@@ -187,7 +189,9 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
             <TrialExpiredBanner />
               <UsageThresholdBanner />
 
-              <header className="app-topbar sticky top-0 z-30 flex h-14 items-center gap-3 px-3 sm:px-4">
+              <header
+                className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--landing-rule)] bg-background/80 px-3 backdrop-blur-[12px] sm:px-4"
+              >
                 <button
                   type="button"
                   onClick={() => setMenuAberto(true)}
@@ -201,18 +205,32 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
                   <AugustoLogo variant="horizontal" theme="light" size={124} />
                 </Link>
 
-                <span className="hidden min-w-0 truncate font-serif text-[17px] leading-none text-augusto-green md:block">
+                <span className="app-eyebrow hidden min-w-0 truncate md:inline-flex">
                   {tituloAtual}
                 </span>
 
                 <div className="ml-auto flex items-center gap-1">
                   <NotificationsBell />
                   <HelpMenu onStartTour={() => setForceTour(true)} />
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    aria-label="Sair"
+                    className="inline-grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 md:hidden"
+                  >
+                    <LogOut className="h-5 w-5" strokeWidth={1.6} />
+                  </button>
                 </div>
               </header>
 
-            <main className="app-enter flex-1 p-4 sm:p-6 md:p-8 lg:p-10">{children}</main>
+            <main className="flex-1 p-4 pb-[72px] sm:p-6 md:p-8 md:pb-8 lg:p-10 lg:pb-10">
+              <div key={pathname} className="app-enter">
+                {children}
+              </div>
+            </main>
           </div>
+
+          <MobileTabBar nav={nav} ehAtivo={ehAtivo} />
 
           {profile && (!profile.onboarding_tour_completo || forceTour) && (
             <OnboardingTour
