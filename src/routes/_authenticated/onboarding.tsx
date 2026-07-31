@@ -195,6 +195,7 @@ function OnboardingPage() {
         } });
       }
       await concluir({});
+      limparCacheAcesso();
       toast.success("Tudo pronto! Bem-vindo ao Augusto.IJ.");
       navigate({ to: "/app" });
     } catch (e) {
