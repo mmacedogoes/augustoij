@@ -27,7 +27,6 @@ type Condo = { id: string; nome: string; uf: string | null; qtd_unidades: number
 function HomePage() {
   const fetchCondos = useServerFn(listCondominios);
   const fetchProfile = useServerFn(getProfile);
-  const fetchUso = useServerFn(getUsoMensal);
 
   const condosQuery = useQuery<Condo[]>({
     queryKey: ["home", "condos"],
