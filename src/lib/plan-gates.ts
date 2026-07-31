@@ -98,14 +98,13 @@ export const gateMessages = {
 } as const;
 
 /**
- * Diretiva a ser adicionada ao system prompt quando o plano do usuário
- * NÃO inclui jurisprudência completa. O modelo continua respondendo,
- * mas sem citar acórdãos.
+ * Jurisprudência NÃO é mais restrita por plano — todos os planos têm acesso
+ * completo. A função é mantida (e sempre retorna null) para preservar os
+ * pontos de chamada existentes no prompt do chat.
  */
-export function jurisprudenciaDirective(planoId: PlanId): string | null {
-  if (hasFeature(planoId, "jurisprudenciaCompleta")) return null;
-  const nome = PLANS[planoId].nome;
-  return `\nRESTRIÇÃO DE PLANO: O usuário está no plano ${nome}. NÃO inclua citações de jurisprudência ou referências a acórdãos (STJ, STF, TJ) nas respostas. Responda com base na legislação vigente (Código Civil, Lei 4.591/64) e em orientações gerais, sem mencionar precedentes específicos.\n`;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function jurisprudenciaDirective(_planoId: PlanId): string | null {
+  return null;
 }
 
 /** true quando o trial do plano gratuito acabou. */
