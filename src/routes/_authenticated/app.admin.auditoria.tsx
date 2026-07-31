@@ -6,9 +6,11 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, History } from "lucide-react";
 import { toast } from "sonner";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { listAuditLog } from "@/lib/admin.functions";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 export const Route = createFileRoute("/_authenticated/app/admin/auditoria")({
   component: Page,
@@ -104,10 +106,13 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-6xl">
-        <h1 className="text-3xl font-bold text-primary">Auditoria</h1>
-        <p className="text-muted-foreground">
-          Ações administrativas com captura de IP e User Agent, para conformidade LGPD.
-        </p>
+        <header className="app-page-header">
+          <span className="app-eyebrow">Administração</span>
+          <h1 className="app-title">Auditoria</h1>
+          <p className="app-subtitle">
+            Ações administrativas com captura de IP e User Agent, para conformidade LGPD.
+          </p>
+        </header>
         <div className="mt-6">
           <AdminNav />
         </div>
@@ -154,13 +159,19 @@ function Page() {
         </Card>
 
         <Card className="app-card divide-y divide-[var(--landing-rule)] text-xs">
-          {rows.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">
-              {loading ? "Carregando…" : "Sem registros para os filtros atuais."}
-            </p>
+          {loading && rows.length === 0 ? (
+            <div className="p-4">
+              <AppSkeletonLines lines={6} />
+            </div>
+          ) : rows.length === 0 ? (
+            <AppEmptyState
+              icon={<History />}
+              title="Sem registros para os filtros atuais"
+              description="Ajuste os filtros de busca, ação ou período."
+            />
           ) : (
             rows.map((r) => (
-              <div key={r.id} className="p-3 space-y-1">
+              <div key={r.id} className="p-3 space-y-1 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-muted-foreground">
                     {new Date(r.created_at).toLocaleString("pt-BR")}
