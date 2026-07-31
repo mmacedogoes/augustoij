@@ -476,7 +476,7 @@
   position: relative;
   border: 1px solid var(--landing-rule);
   background: var(--card);
-  border-radius: 0.875rem;
+  border-radius: var(--app-radius);
   box-shadow: 0 1px 0 hsl(0 0% 100% / 0.6) inset, 0 10px 30px -22px hsl(152 100% 10% / 0.18);
   transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
 }
@@ -646,6 +646,39 @@
 
 @utility app-fade {
   animation: augusto-fade-in var(--dur-base) var(--ease-soft) both;
+}
+
+@keyframes augusto-skeleton-shine {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@utility app-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in hsl, var(--muted) 90%, transparent);
+  border-radius: var(--app-radius-sm);
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in hsl, var(--augusto-gold) 12%, transparent),
+      transparent
+    );
+    animation: augusto-skeleton-shine 1.6s var(--ease-soft) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      display: none;
+    }
+  }
 }
 
 @utility app-stagger {
