@@ -55,11 +55,11 @@ function HomePage() {
 
   // Toast único quando qualquer uma das cargas iniciais falha.
   useEffect(() => {
-    const err = condosQuery.error ?? profileQuery.error ?? usoQuery.error;
+    const err = condosQuery.error ?? profileQuery.error;
     if (err) {
       toast.error("Não conseguimos carregar seus dados. Verifique sua conexão e tente novamente.");
     }
-  }, [condosQuery.error, profileQuery.error, usoQuery.error]);
+  }, [condosQuery.error, profileQuery.error]);
 
   useEffect(() => {
     if (activeCondoId) window.localStorage.setItem("condoia.activeCondo", activeCondoId);
