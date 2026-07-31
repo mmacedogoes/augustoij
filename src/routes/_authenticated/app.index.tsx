@@ -124,8 +124,8 @@ function HomePage() {
         </header>
 
         {!activeCondo ? (
-          <Card className="flex-1 flex flex-col items-center justify-center text-center p-8 sm:p-12 border-dashed border-[var(--landing-rule)] bg-gradient-to-b from-card to-muted/30">
-            <span className="app-icon-frame h-14 w-14 rounded-2xl">
+          <Card className="app-card flex-1 flex flex-col items-center justify-center text-center p-8 sm:p-12 border-dashed border-[var(--landing-rule)] bg-gradient-to-b from-card to-muted/30">
+            <span className="app-icon-frame h-14 w-14 rounded-[var(--app-radius)]">
               <Building className="h-6 w-6" strokeWidth={1.5} />
             </span>
             <h2 className="app-section-title mt-5">Comece cadastrando um condomínio</h2>

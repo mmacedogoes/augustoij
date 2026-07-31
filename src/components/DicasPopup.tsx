@@ -76,7 +76,7 @@ export function DicasPopup({ userId, enabled }: { userId: string; enabled: boole
     <div className="fixed bottom-4 right-4 z-40 max-w-[340px] bg-card border border-border shadow-md rounded-lg p-4 text-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 text-foreground font-medium">
-          <Lightbulb className="h-4 w-4 text-emerald-500" />
+          <Lightbulb className="h-4 w-4 text-augusto-gold" />
           Dica rápida
         </div>
         <button

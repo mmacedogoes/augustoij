@@ -55,7 +55,7 @@ function RetornoPage() {
       <div className="mb-8">
         <AugustoLogo variant="stacked" theme="light" size={200} showTagline />
       </div>
-      <div className="w-full max-w-[460px] rounded-xl border border-border bg-card text-card-foreground p-10 shadow-sm text-center">
+      <div className="w-full max-w-[460px] rounded-[var(--app-radius)] border border-border bg-card text-card-foreground p-10 shadow-sm text-center">
         {temErro ? (
           <>
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">

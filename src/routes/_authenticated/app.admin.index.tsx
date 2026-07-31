@@ -52,15 +52,16 @@ function AdminDashboardPage() {
   return (
     <AppShell>
       <div className="max-w-6xl space-y-6">
-        <header>
-          <h1 className="text-3xl font-semibold text-primary tracking-tight">Administração</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+        <header className="app-page-header">
+          <span className="app-eyebrow">Administração</span>
+          <h1 className="app-title">Administração</h1>
+          <p className="app-subtitle">
             Visão geral do negócio · {d ? fmtMes(d.mes) : "carregando…"}
           </p>
         </header>
         <AdminNav />
 
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
           <Kpi
             label="MRR"
             value={d ? brl(d.mrr) : null}
@@ -94,14 +95,14 @@ function AdminDashboardPage() {
         </section>
 
         {d ? (
-          <Suspense fallback={<Skeleton className="h-[520px] w-full rounded-2xl" />}>
+          <Suspense fallback={<Skeleton className="h-[520px] w-full rounded-[var(--app-radius)]" />}>
             <AdminDashboardCharts d={d} />
           </Suspense>
         ) : (
-          <Skeleton className="h-[520px] w-full rounded-2xl" />
+          <Skeleton className="h-[520px] w-full rounded-[var(--app-radius)]" />
         )}
 
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
           <MiniStat
             icon={Building2}
             label="Condomínios"
@@ -169,7 +170,7 @@ function Kpi({
     muted: "bg-muted text-muted-foreground ring-border",
   };
   return (
-    <Card className="group p-5 border-border/60 rounded-2xl transition-all duration-200 hover:border-border hover:shadow-sm">
+    <Card className="app-card-interactive group p-5 transition-all duration-200 hover:border-border">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
         <span
@@ -204,7 +205,7 @@ function MiniStat({
   const iconColor =
     tone === "danger" ? "text-destructive" : tone === "accent" ? "text-accent" : "text-muted-foreground";
   return (
-    <Card className="p-4 border-border/60 rounded-xl transition-all duration-200 hover:border-border">
+    <Card className="app-card p-4 transition-all duration-200 hover:border-border">
       <div className="flex items-center gap-2">
         <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>

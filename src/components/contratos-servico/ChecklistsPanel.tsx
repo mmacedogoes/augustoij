@@ -176,7 +176,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--app-radius)] border border-border bg-card px-3 py-2">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -219,7 +219,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
       </div>
 
       {vazio ? (
-        <Card className="p-8 text-center">
+        <Card className="app-card p-8 text-center">
           <p className="mb-3 text-sm text-muted-foreground">
             Este contrato ainda não tem checklists gerados.
           </p>

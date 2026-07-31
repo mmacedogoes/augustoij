@@ -208,7 +208,7 @@ function Coluna({
   onRemover: (i: Obrigacao) => void;
 }) {
   return (
-    <Card className="p-4">
+    <Card className="app-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-medium text-primary">{titulo}</h4>
         <Button size="sm" variant="outline" onClick={onNovo}>

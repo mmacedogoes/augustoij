@@ -58,14 +58,14 @@ export function AjudaShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <AppShell>
-      <div className="max-w-6xl mx-auto bg-white text-slate-900 rounded-lg border border-border shadow-sm overflow-hidden">
+      <div className="app-card max-w-6xl mx-auto text-foreground overflow-hidden">
         <div className="grid md:grid-cols-[260px_1fr]">
-          <aside className="bg-slate-50 border-r border-border p-5 text-sm">
-            <h2 className="text-base font-semibold mb-4 text-slate-900">Manual do Augusto.IJ</h2>
+          <aside className="bg-muted/40 border-r border-[var(--landing-rule)] p-5 text-sm">
+            <h2 className="app-section-title mb-4">Manual do Augusto.IJ</h2>
             <nav className="space-y-5">
               {SECOES.map((sec) => (
                 <div key={sec.titulo}>
-                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">{sec.titulo}</p>
+                  <p className="app-eyebrow mb-2">{sec.titulo}</p>
                   <ul className="space-y-1">
                     {sec.links.map((l) => {
                       const active = pathname === l.to;
@@ -73,10 +73,10 @@ export function AjudaShell({ children }: { children: ReactNode }) {
                         <li key={l.to}>
                           <Link
                             to={l.to as never}
-                            className={`block rounded px-2 py-1.5 ${
+                            className={`relative block rounded-[var(--app-radius-sm)] px-3 py-1.5 transition-colors duration-[var(--dur-fast)] ${
                               active
-                                ? "bg-emerald-50 text-emerald-700 font-medium"
-                                : "text-slate-700 hover:bg-slate-100"
+                                ? "bg-[color-mix(in_hsl,var(--augusto-gold)_14%,transparent)] text-augusto-green font-medium before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[2px] before:-translate-y-1/2 before:rounded-full before:bg-[var(--augusto-gold)]"
+                                : "text-foreground/80 hover:bg-muted"
                             }`}
                           >
                             {l.label}

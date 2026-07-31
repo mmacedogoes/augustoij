@@ -335,7 +335,7 @@ export function UnidadesPanel({
 
   if (loading) {
     return (
-      <Card className="p-8 text-center text-sm text-muted-foreground">
+      <Card className="app-card p-8 text-center text-sm text-muted-foreground">
         <Loader2 className="h-5 w-5 mx-auto mb-2 animate-spin" /> Carregando unidades...
       </Card>
     );
@@ -344,7 +344,7 @@ export function UnidadesPanel({
   return (
     <div className="space-y-4">
       {isOwner && sugestoes.length > 0 && (
-        <Card className="p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
+        <Card className="app-card p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
           <div className="flex-1 min-w-[220px]">
             <p className="text-sm font-medium">
@@ -432,14 +432,14 @@ export function UnidadesPanel({
       </div>
 
       {unidades.length === 0 ? (
-        <Card className="p-8 text-center border-dashed">
+        <Card className="app-card p-8 text-center border-dashed">
           <p className="text-sm text-muted-foreground">
             Nenhuma unidade cadastrada.{" "}
             {isOwner && "Use 'Nova unidade' ou 'Importar unidades e condôminos'."}
           </p>
         </Card>
       ) : (
-        <Card className="divide-y">
+        <Card className="app-card divide-y divide-[var(--landing-rule)]">
           {unidades.map((u) => (
             <div key={u.id} className="p-4 flex items-center gap-3">
               <button
@@ -731,13 +731,13 @@ function VisualizarUnidadeDialog({
                 Nenhum condômino cadastrado nesta unidade.
               </p>
             ) : (
-              <div className="divide-y border rounded">
+              <div className="divide-y divide-[var(--landing-rule)] border rounded">
                 {condominos.map((c) => (
                   <div key={c.id} className="p-3">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm">{c.nome}</p>
                       {c.principal && (
-                        <span className="text-[10px] uppercase tracking-wide bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] uppercase tracking-wide bg-[color-mix(in_hsl,var(--augusto-gold)_18%,transparent)] text-augusto-green px-1.5 py-0.5 rounded">
                           Principal
                         </span>
                       )}
@@ -980,14 +980,14 @@ function CondominosDialog({
           {(unidade.condominos ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum condômino cadastrado ainda.</p>
           ) : (
-            <div className="divide-y border rounded">
+            <div className="divide-y divide-[var(--landing-rule)] border rounded">
               {(unidade.condominos ?? []).map((c) => (
                 <div key={c.id} className="p-3 flex items-center gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">
                       {c.nome}{" "}
                       {c.principal && (
-                        <span className="text-xs text-emerald-600 ml-1">(principal)</span>
+                        <span className="text-xs text-augusto-green ml-1">(principal)</span>
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -1163,7 +1163,7 @@ function ImportDialog({
           </div>
 
           {resultado && (
-            <div className="text-sm space-y-1 border rounded p-3 bg-slate-50 dark:bg-slate-900/40">
+            <div className="text-sm space-y-1 border rounded p-3 bg-muted/40">
               <p>
                 <strong>{resultado.unidadesCriadas}</strong> unidades criadas,{" "}
                 <strong>{resultado.unidadesAtualizadas}</strong> já existiam,{" "}

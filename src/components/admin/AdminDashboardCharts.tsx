@@ -80,7 +80,7 @@ function EmptyState({ label }: { label: string }) {
 export default function AdminDashboardCharts({ d }: { d: AdminOverview }) {
   return (
     <>
-      <Card className="p-5 sm:p-6 border-border/60 rounded-2xl">
+      <Card className="app-card p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
@@ -132,7 +132,7 @@ export default function AdminDashboardCharts({ d }: { d: AdminOverview }) {
       </Card>
 
       <section className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <Card className="p-5 sm:p-6 border-border/60 rounded-2xl lg:col-span-2">
+        <Card className="app-card p-5 sm:p-6 lg:col-span-2">
           <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
             Distribuição de assinaturas
           </p>
@@ -178,7 +178,7 @@ export default function AdminDashboardCharts({ d }: { d: AdminOverview }) {
           )}
         </Card>
 
-        <Card className="p-5 sm:p-6 border-border/60 rounded-2xl lg:col-span-3">
+        <Card className="app-card p-5 sm:p-6 lg:col-span-3">
           <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Atividade</p>
           <h3 className="mt-1 text-lg font-semibold text-primary">Mensagens · últimos 30 dias</h3>
           <div className="mt-4 h-56">

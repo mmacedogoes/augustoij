@@ -110,6 +110,10 @@
 
 :root {
   --radius: 0.5rem;
+  /* Raio unificado da área logada */
+  --app-radius: 0.875rem;
+  --app-radius-sm: 0.625rem;
+  --app-radius-lg: 1.125rem;
   /* Sistema de movimento */
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
@@ -472,7 +476,7 @@
   position: relative;
   border: 1px solid var(--landing-rule);
   background: var(--card);
-  border-radius: 0.875rem;
+  border-radius: var(--app-radius);
   box-shadow: 0 1px 0 hsl(0 0% 100% / 0.6) inset, 0 10px 30px -22px hsl(152 100% 10% / 0.18);
   transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
 }
@@ -642,6 +646,39 @@
 
 @utility app-fade {
   animation: augusto-fade-in var(--dur-base) var(--ease-soft) both;
+}
+
+@keyframes augusto-skeleton-shine {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@utility app-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in hsl, var(--muted) 90%, transparent);
+  border-radius: var(--app-radius-sm);
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in hsl, var(--augusto-gold) 12%, transparent),
+      transparent
+    );
+    animation: augusto-skeleton-shine 1.6s var(--ease-soft) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      display: none;
+    }
+  }
 }
 
 @utility app-stagger {

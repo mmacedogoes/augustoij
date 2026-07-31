@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { ArrowLeft, Building, Eye } from "lucide-react";
+import { ArrowLeft, Building, Eye, MessageSquare } from "lucide-react";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -207,9 +209,16 @@ function CondominioDetail() {
         )}
         <div className="mt-3 flex items-center gap-3">
           <div className="rounded-md bg-accent/10 p-3"><Building className="h-6 w-6 text-accent" /></div>
-          <div>
-            <h1 className="text-2xl font-bold text-primary">{condo?.nome ?? "Carregando..."}</h1>
-            <p className="text-sm text-muted-foreground">{condo?.uf ?? "—"} • {condo?.qtd_unidades ?? 0} unidades</p>
+          <div className="min-w-0">
+            {condo ? (
+              <header className="app-page-header">
+                <span className="app-eyebrow">Condomínio</span>
+                <h1 className="app-title">{condo.nome}</h1>
+                <p className="app-subtitle">{condo.uf ?? "—"} • {condo.qtd_unidades ?? 0} unidades</p>
+              </header>
+            ) : (
+              <AppSkeletonLines lines={2} className="w-64" />
+            )}
           </div>
         </div>
 
@@ -257,13 +266,17 @@ function CondominioDetail() {
           </TabsContent>
           <TabsContent value="historico">
             {conversas.length === 0 ? (
-              <Card className="p-8 text-center border-dashed">
-                <p className="text-sm text-muted-foreground">Sem conversas ainda.</p>
+              <Card className="app-card p-8 border-dashed">
+                <AppEmptyState
+                  icon={<MessageSquare />}
+                  title="Sem conversas ainda"
+                  description="Inicie uma conversa com a IA para vê-la aqui."
+                />
               </Card>
             ) : (
-              <Card className="divide-y">
+              <Card className="app-card divide-y divide-[var(--landing-rule)]">
                 {conversas.map((c) => (
-                  <div key={c.id} className="flex items-center gap-3 p-4">
+                  <div key={c.id} className="flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
                         {c.titulo || "Conversa sem título"}
@@ -337,7 +350,7 @@ function CondominioDetail() {
           ) : null}
           <TabsContent value="config">
             <div className="space-y-4">
-              <Card className="p-6 space-y-3">
+              <Card className="app-card p-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">Dados do condomínio</h3>
                   {canEdit && !editing && (
@@ -480,7 +493,7 @@ function CondominioDetail() {
               </Card>
 
               {isPJ && !adminView && (
-                <Card className="p-6 space-y-4">
+                <Card className="app-card p-6 space-y-4">
                   <div>
                     <h3 className="font-semibold">Operadores do condomínio</h3>
                     <p className="text-xs text-muted-foreground">
@@ -589,7 +602,7 @@ function CondominioDetail() {
                     </Dialog>
                   </div>
                   {membros.length > 0 && (
-                    <div className="divide-y border rounded-md">
+                    <div className="divide-y divide-[var(--landing-rule)] border rounded-md">
                       {membros.map((m) => (
                         <div key={m.id} className="flex items-center justify-between p-3">
                           <div className="min-w-0">

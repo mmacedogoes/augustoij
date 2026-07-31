@@ -9,6 +9,7 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { ContratoForm, type ContratoFormValues } from "@/components/contratos-servico/ContratoForm";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -145,15 +146,13 @@ function Page() {
     <AppShell>
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <p className="app-eyebrow">Gestão de Contratos</p>
-            <h1 className="mt-1.5 font-serif text-3xl leading-tight text-primary sm:text-4xl">
-              Novo contrato
-            </h1>
-            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          <header className="app-page-header min-w-0">
+            <span className="app-eyebrow">Gestão de Contratos</span>
+            <h1 className="app-title">Novo contrato</h1>
+            <p className="app-subtitle max-w-xl">
               Envie o arquivo para o Augusto ler e preencher tudo, ou cadastre à mão.
             </p>
-          </div>
+          </header>
           <div className="flex items-center gap-3">
             <ContratosTabs condominioId={null} />
             <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/contratos" })}>
@@ -163,7 +162,7 @@ function Page() {
         </div>
 
         {modo === "escolher" && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 app-stagger">
             <ChoiceCard
               icon={<Wand2 className="h-5 w-5" />}
               recommended
@@ -183,7 +182,7 @@ function Page() {
         )}
 
         {modo === "ia_upload" && (
-          <Card className="space-y-5 p-6">
+          <Card className="app-card space-y-5 p-6">
             <div className="flex items-start gap-3">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-augusto-gold/15 text-augusto-gold">
                 <Sparkles className="h-5 w-5" />
@@ -260,7 +259,7 @@ function Page() {
         )}
 
         {modo === "ia_processando" && (
-          <Card className="flex flex-col items-center gap-3 p-12 text-center">
+          <Card className="app-card flex flex-col items-center gap-3 p-12 text-center">
             <div className="grid h-12 w-12 place-items-center rounded-full bg-augusto-gold/15">
               <Loader2 className="h-6 w-6 animate-spin text-augusto-gold" />
             </div>
@@ -296,7 +295,7 @@ function Page() {
             )}
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-              <Card className="p-5">
+              <Card className="app-card p-5">
                 <ContratoForm
                   initial={initialForm}
                   submitLabel="Salvar contrato"
@@ -313,7 +312,7 @@ function Page() {
         )}
 
         {modo === "manual" && (
-          <Card className="p-5">
+          <Card className="app-card p-5">
             <ContratoForm
               onSaved={(id) => navigate({ to: "/app/contratos/$contratoId", params: { contratoId: id } })}
               submitLabel="Criar contrato"
@@ -340,7 +339,7 @@ function ChoiceCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative flex flex-col items-start gap-4 rounded-2xl border border-border bg-card p-6 text-left transition-all duration-200",
+        "group relative flex flex-col items-start gap-4 rounded-[var(--app-radius)] border border-border bg-card p-6 text-left transition-all duration-200",
         "hover:-translate-y-0.5 hover:border-augusto-gold/50 hover:shadow-lg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       )}
@@ -350,7 +349,7 @@ function ChoiceCard({
           Recomendado
         </span>
       )}
-      <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/5 text-primary transition-colors group-hover:bg-augusto-gold/15 group-hover:text-augusto-gold">
+      <div className="grid h-11 w-11 place-items-center rounded-[var(--app-radius)] bg-primary/5 text-primary transition-colors group-hover:bg-augusto-gold/15 group-hover:text-augusto-gold">
         {icon}
       </div>
       <div>
@@ -384,7 +383,7 @@ function ObrigacoesReviewSidebar({
   const prest = obrigacoes.map((o, i) => ({ o, i })).filter((x) => x.o.parte === "prestador");
 
   return (
-    <aside className="space-y-5 rounded-2xl border border-border bg-card p-5">
+    <aside className="space-y-5 rounded-[var(--app-radius)] border border-border bg-card p-5">
       <div>
         <h2 className="font-serif text-lg text-primary">Obrigações identificadas</h2>
         <p className="text-xs text-muted-foreground">
@@ -413,7 +412,7 @@ function ObrigGrupo({
         <Button size="sm" variant="ghost" onClick={onAdd}>+ Adicionar</Button>
       </div>
       {itens.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Nenhuma obrigação identificada.</p>
+        <AppEmptyState title="Nenhuma obrigação identificada" />
       ) : (
         <ul className="space-y-2">
           {itens.map(({ o, i }) => (

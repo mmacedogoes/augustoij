@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ContratoStatusBadge } from "@/components/contratos-servico/ContratoStatusBadge";
+import { AppSkeleton } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { Proximos30DiasPanel } from "@/components/contratos-servico/Proximos30DiasPanel";
 import {
   listCondominiosParaContratos,
@@ -93,13 +95,13 @@ function Page() {
           <ContratosTabs condominioId={condominioId === TODOS ? null : condominioId} />
         </div>
         <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
-          <div>
-            <p className="app-eyebrow">Contratos de prestação de serviços</p>
-            <h1 className="text-3xl font-serif text-primary">Contratos</h1>
-            <p className="text-muted-foreground">
+          <header className="app-page-header">
+            <span className="app-eyebrow">Contratos de prestação de serviços</span>
+            <h1 className="app-title">Contratos</h1>
+            <p className="app-subtitle">
               Gestão dos contratos firmados pelos condomínios (portaria, limpeza, elevadores etc.).
             </p>
-          </div>
+          </header>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate({ to: "/app/contratos/importar" })}>
               <Sparkles className="h-4 w-4 mr-1" /> Importar com IA
@@ -120,7 +122,7 @@ function Page() {
           <Proximos30DiasPanel />
         </div>
 
-        <Card className="p-4 mb-4">
+        <Card className="app-card p-5 sm:p-6 mb-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Select value={condominioId} onValueChange={setCondominioId}>
               <SelectTrigger>
@@ -174,20 +176,29 @@ function Page() {
             {erro}
           </div>
         ) : rows === null ? (
-          <p className="text-sm text-muted-foreground">Carregando contratos…</p>
+          <Card className="app-card p-5 sm:p-6">
+            <AppSkeleton className="h-4 w-40 mb-4" />
+            <div className="space-y-3">
+              <AppSkeleton className="h-10 w-full" />
+              <AppSkeleton className="h-10 w-full" />
+              <AppSkeleton className="h-10 w-full" />
+            </div>
+          </Card>
         ) : total === 0 ? (
-          <Card className="p-10 text-center">
-            <FileText className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" strokeWidth={1.2} />
-            <p className="font-medium text-primary">Nenhum contrato encontrado</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Cadastre o primeiro contrato para começar a acompanhar prestadores, vigências e obrigações.
-            </p>
-            <Button onClick={() => navigate({ to: "/app/contratos/novo" })}>
-              <Plus className="h-4 w-4 mr-1" /> Novo contrato
-            </Button>
+          <Card className="app-card p-10">
+            <AppEmptyState
+              icon={<FileText strokeWidth={1.2} />}
+              title="Nenhum contrato encontrado"
+              description="Cadastre o primeiro contrato para começar a acompanhar prestadores, vigências e obrigações."
+              action={
+                <Button onClick={() => navigate({ to: "/app/contratos/novo" })}>
+                  <Plus className="h-4 w-4 mr-1" /> Novo contrato
+                </Button>
+              }
+            />
           </Card>
         ) : (
-          <Card className="overflow-hidden">
+          <Card className="app-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
@@ -200,9 +211,9 @@ function Page() {
                     <Th>Status</Th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-[var(--landing-rule)]">
                   {rows.map((r) => (
-                    <tr key={r.id} className="hover:bg-muted/30 cursor-pointer">
+                    <tr key={r.id} className="hover:bg-muted/40 transition-colors duration-[var(--dur-fast)] cursor-pointer">
                       <Td>
                         <Link
                           to="/app/contratos/$contratoId"
@@ -238,12 +249,12 @@ function Page() {
 
 function Counter({ label, value, tone }: { label: string; value: number; tone: "emerald" | "amber" | "red" }) {
   const tones: Record<typeof tone, string> = {
-    emerald: "text-emerald-700",
-    amber: "text-amber-700",
-    red: "text-red-700",
+    emerald: "text-augusto-green",
+    amber: "text-amber-700 dark:text-amber-400",
+    red: "text-destructive",
   };
   return (
-    <Card className="p-4">
+    <Card className="app-card p-5 sm:p-6">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={`text-3xl font-semibold ${tones[tone]}`}>{value}</p>
     </Card>

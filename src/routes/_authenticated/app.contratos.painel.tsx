@@ -34,6 +34,8 @@ import {
 import { listCondominiosParaContratos } from "@/lib/contratos-servico/contratos.functions";
 import { etiquetaTipoEvento, type TipoEvento } from "@/lib/contratos-servico/eventos-core";
 import { rotuloIndiceContrato } from "@/lib/contratos-servico/indices";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 const TODOS = "__todos";
 
@@ -92,15 +94,13 @@ function Page() {
       <GestaoContratosGate>
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <p className="app-eyebrow">Gestão de Contratos</p>
-            <h1 className="mt-1.5 font-serif text-3xl leading-tight text-primary sm:text-4xl">
-              Painel
-            </h1>
-            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          <header className="app-page-header min-w-0">
+            <span className="app-eyebrow">Gestão de Contratos</span>
+            <h1 className="app-title">Painel</h1>
+            <p className="app-subtitle max-w-xl">
               Visão consolidada das pendências, agenda e não conformidades da carteira.
             </p>
-          </div>
+          </header>
           <div className="flex flex-wrap items-center gap-3">
             <ContratosTabs condominioId={condFiltro} />
             <Button size="sm" variant="augusto" asChild>
@@ -130,7 +130,7 @@ function Page() {
           <Kpi to="/app/contratos/painel" label="Não conformidades trabalhistas" value={ind?.nao_conformidades_mes} icon={<ShieldAlert className="h-4 w-4" />} tone="vermelho" />
         </div>
 
-        <Card className="p-4 mb-4">
+        <Card className="app-card p-5 sm:p-6 mb-4">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Valor mensal contratado</p>
           <p className="text-2xl font-serif text-primary mt-1">
             {ind === null ? "…" : formatBRL(ind.valor_mensal_total)}
@@ -144,9 +144,9 @@ function Page() {
           ) : reaj.length === 0 ? (
             <Vazio texto="Nenhum reajuste pendente na carteira." />
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-[var(--landing-rule)]">
               {reaj.slice(0, 12).map((r) => (
-                <li key={r.contrato_id} className="py-2 flex flex-wrap items-center justify-between gap-3">
+                <li key={r.contrato_id} className="py-2 flex flex-wrap items-center justify-between gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                   <div>
                     <p className="text-sm font-medium">{r.prestador_nome}</p>
                     <p className="text-xs text-muted-foreground">
@@ -194,9 +194,9 @@ function Page() {
           ) : checklists.length === 0 ? (
             <Vazio texto="Todos os checklists do mês estão em dia." />
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-[var(--landing-rule)]">
               {checklists.slice(0, 15).map((c) => (
-                <li key={c.contrato_id} className="py-2 flex flex-wrap items-center justify-between gap-3">
+                <li key={c.contrato_id} className="py-2 flex flex-wrap items-center justify-between gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                   <div>
                     <p className="text-sm font-medium">{c.prestador_nome}</p>
                     <p className="text-xs text-muted-foreground">
@@ -224,9 +224,9 @@ function Page() {
 
         {ncs && ncs.length > 0 ? (
           <Bloco titulo="Não conformidades trabalhistas" icon={<ShieldAlert className="h-4 w-4 text-destructive" />}>
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-[var(--landing-rule)]">
               {ncs.map((n, i) => (
-                <li key={i} className="py-2">
+                <li key={i} className="py-2 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                   <p className="text-sm font-medium">{n.prestador_nome}</p>
                   <p className="text-xs text-muted-foreground">
                     {n.condominio_nome} · {n.descricao}
@@ -284,7 +284,7 @@ function Kpi({
 
 function Bloco({ titulo, icon, children }: { titulo: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <Card className="p-4 mb-4">
+    <Card className="app-card p-5 sm:p-6 mb-4">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-augusto-green">{icon}</span>
         <h2 className="text-lg font-serif text-primary">{titulo}</h2>
@@ -294,14 +294,10 @@ function Bloco({ titulo, icon, children }: { titulo: string; icon: React.ReactNo
   );
 }
 function Loading() {
-  return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando…
-    </div>
-  );
+  return <AppSkeletonLines lines={3} />;
 }
 function Vazio({ texto }: { texto: string }) {
-  return <p className="text-sm text-muted-foreground">{texto}</p>;
+  return <AppEmptyState title={texto} />;
 }
 
 function AgendaAgrupada({ rows }: { rows: EventoProximo[] }) {

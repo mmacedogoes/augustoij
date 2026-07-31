@@ -31,6 +31,7 @@ import {
   adminUpdateSubscription,
   type UsuarioDetalhe,
 } from "@/lib/admin.functions";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { PLANS, PLAN_IDS, CLASSIFICACAO_VINCULADO, type PlanId } from "@/config/plans";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios/$userId")({
@@ -89,7 +90,7 @@ function AdminUsuarioDetalhePage() {
                 {data.profile.papel_sistema.replace(/_/g, " ")}
               </Badge>
               {data.subscription.cortesia && (
-                <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20 border-0">
+                <Badge className="bg-augusto-green/15 text-augusto-green hover:bg-augusto-green/20 border-0">
                   <Sparkles className="h-3 w-3 mr-1" /> Cortesia
                 </Badge>
               )}
@@ -115,7 +116,7 @@ function AdminUsuarioDetalhePage() {
         </div>
 
         {/* KPIs */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 app-stagger">
           <Kpi icon={Building2} label="Condomínios" value={String(data.condominios.length)} />
           <Kpi icon={MessageSquare} label="Mensagens no mês" value={data.usoMes.mensagens.toLocaleString("pt-BR")} />
           <Kpi icon={Wallet} label="Custo do mês" value={BRL(data.usoMes.custo_brl)} />
@@ -128,7 +129,7 @@ function AdminUsuarioDetalhePage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           {/* Dados pessoais */}
-          <Card className="p-5 space-y-3">
+          <Card className="app-card p-5 space-y-3">
             <div className="flex items-center gap-2">
               <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
                 <ShieldCheck className="h-4 w-4" strokeWidth={1.75} />
@@ -147,7 +148,7 @@ function AdminUsuarioDetalhePage() {
           </Card>
 
           {/* Financeiro */}
-          <Card className="p-5 space-y-3">
+          <Card className="app-card p-5 space-y-3">
             <div className="flex items-center gap-2">
               <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
                 <Wallet className="h-4 w-4" strokeWidth={1.75} />
@@ -172,7 +173,7 @@ function AdminUsuarioDetalhePage() {
         <PlanoControls detalhe={data} onSaved={() => refetch()} updateSub={updateSub} />
 
         {/* Condomínios */}
-        <Card className="p-5">
+        <Card className="app-card p-5">
           <div className="flex items-center gap-2 mb-3">
             <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
               <Building2 className="h-4 w-4" strokeWidth={1.75} />
@@ -180,11 +181,11 @@ function AdminUsuarioDetalhePage() {
             <h2 className="font-semibold">Condomínios ({data.condominios.length})</h2>
           </div>
           {data.condominios.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum condomínio cadastrado.</p>
+            <AppEmptyState icon={<Building2 />} title="Nenhum condomínio cadastrado" />
           ) : (
-            <ul className="divide-y divide-border/60">
+            <ul className="divide-y divide-[var(--landing-rule)]">
               {data.condominios.map((c) => (
-                <li key={c.id} className="py-2.5 flex items-center justify-between gap-3">
+                <li key={c.id} className="py-2.5 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{c.nome}</p>
                     <p className="text-xs text-muted-foreground">
@@ -214,7 +215,7 @@ function Kpi({
   value: string;
 }) {
   return (
-    <Card className="p-4 transition-shadow duration-200 hover:shadow-sm">
+    <Card className="app-card-interactive p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4" strokeWidth={1.75} />
         <span className="text-[11px] uppercase tracking-wide font-medium">{label}</span>
@@ -239,7 +240,7 @@ function MembrosVinculadosCard({
   membros: UsuarioDetalhe["membrosVinculados"];
 }) {
   return (
-    <Card className="p-5">
+    <Card className="app-card p-5">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary shrink-0">
@@ -258,15 +259,17 @@ function MembrosVinculadosCard({
       </div>
 
       {membros.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Este titular ainda não cadastrou usuários vinculados.
-        </p>
+        <AppEmptyState
+          icon={<Users />}
+          title="Nenhum usuário vinculado"
+          description="Este titular ainda não cadastrou usuários vinculados."
+        />
       ) : (
-        <ul className="divide-y divide-border/60 -mx-1">
+        <ul className="divide-y divide-[var(--landing-rule)] -mx-1">
           {membros.map((m) => (
             <li
               key={`${m.condominio_id}:${m.user_id}`}
-              className="px-1 py-3 flex flex-wrap items-center gap-3"
+              className="px-1 py-3 flex flex-wrap items-center gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground truncate">
@@ -332,7 +335,7 @@ function DetalheSkeleton() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border/60 bg-card p-4 space-y-2.5">
+          <div key={i} className="rounded-[var(--app-radius)] border border-border/60 bg-card p-4 space-y-2.5">
             <div className="h-3 w-20 rounded bg-muted/60 animate-pulse" />
             <div className="h-6 w-16 rounded bg-muted/70 animate-pulse" />
           </div>
@@ -340,7 +343,7 @@ function DetalheSkeleton() {
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+          <div key={i} className="rounded-[var(--app-radius)] border border-border/60 bg-card p-5 space-y-3">
             <div className="h-5 w-32 rounded bg-muted/60 animate-pulse" />
             <div className="space-y-2 pt-1">
               {Array.from({ length: 5 }).map((__, j) => (
@@ -350,7 +353,7 @@ function DetalheSkeleton() {
           </div>
         ))}
       </div>
-      <div className="rounded-xl border border-border/60 bg-card p-5 space-y-4">
+      <div className="rounded-[var(--app-radius)] border border-border/60 bg-card p-5 space-y-4">
         <div className="h-5 w-44 rounded bg-muted/60 animate-pulse" />
         <div className="h-20 w-full rounded-lg bg-muted/40 animate-pulse" />
         <div className="grid gap-4 sm:grid-cols-2">
@@ -421,7 +424,7 @@ function PlanoControls({
   }
 
   return (
-    <Card className="p-5">
+    <Card className="app-card p-5">
       <div className="flex items-center gap-2 mb-4">
         <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
           <Unlock className="h-4 w-4" strokeWidth={1.75} />
@@ -439,7 +442,7 @@ function PlanoControls({
         className={cn(
           "rounded-lg border p-4 flex items-start gap-4 transition-colors duration-200",
           cortesia
-            ? "border-emerald-500/30 bg-emerald-500/5"
+            ? "border-augusto-green/30 bg-augusto-green/5"
             : "border-border bg-muted/30",
         )}
       >
@@ -451,7 +454,7 @@ function PlanoControls({
         />
         <div className="flex-1 min-w-0">
           <Label htmlFor="cortesia" className="cursor-pointer flex items-center gap-1.5 font-medium">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-500" /> Conta cortesia — sem limites
+            <Sparkles className="h-3.5 w-3.5 text-augusto-green" /> Conta cortesia — sem limites
           </Label>
           <p className="text-xs text-muted-foreground mt-0.5">
             Ignora limites de mensagens, upload de documentos e cadastro de condomínios.

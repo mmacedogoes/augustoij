@@ -41,6 +41,8 @@ import {
   updateConfigAlertas,
   getConsumoPorOrigemMes,
 } from "@/lib/admin-uso.functions";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 export const Route = createFileRoute("/_authenticated/app/admin/uso")({
   component: UsoPage,
@@ -62,10 +64,13 @@ function UsoPage() {
   return (
     <AppShell>
       <div className="max-w-6xl">
-        <h1 className="text-3xl font-bold text-primary">Uso & Custos</h1>
-        <p className="text-muted-foreground">
-          Consumo de mensagens, storage e desempenho por usuário. Configure alertas de uso.
-        </p>
+        <header className="app-page-header">
+          <span className="app-eyebrow">Administração</span>
+          <h1 className="app-title">Uso & Custos</h1>
+          <p className="app-subtitle">
+            Consumo de mensagens, storage e desempenho por usuário. Configure alertas de uso.
+          </p>
+        </header>
         <div className="mt-6">
           <AdminNav />
         </div>
@@ -123,7 +128,7 @@ function OverviewTab() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
         <Metric
           icon={MessagesSquare}
           label="Mensagens no mês"
@@ -159,15 +164,15 @@ function OverviewTab() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <Card className="p-5 sm:p-6 border-border/60 rounded-2xl lg:col-span-3">
+        <Card className="app-card p-5 sm:p-6 lg:col-span-3">
           <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Atividade</p>
           <h3 className="mt-1 text-lg font-semibold text-primary">Mensagens por dia · 30 dias</h3>
           <div className="mt-4 h-56">
             {!r ? (
-              <Skeleton className="h-full w-full rounded-xl" />
+              <Skeleton className="h-full w-full rounded-[var(--app-radius)]" />
             ) : serie.length === 0 ? (
-              <div className="h-full grid place-items-center text-xs text-muted-foreground">
-                Sem dados no período.
+              <div className="h-full grid place-items-center">
+                <AppEmptyState icon={<MessagesSquare />} title="Sem dados no período" className="py-0" />
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -222,7 +227,7 @@ function OverviewTab() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6 border-border/60 rounded-2xl lg:col-span-2">
+        <Card className="app-card p-5 sm:p-6 lg:col-span-2">
           <div className="flex items-center justify-between gap-2">
             <div>
               <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
@@ -235,7 +240,7 @@ function OverviewTab() {
             {!r ? (
               Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)
             ) : top.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-6 text-center">Sem consumo registrado.</p>
+              <AppEmptyState icon={<Coins />} title="Sem consumo registrado" className="py-6" />
             ) : (
               top.map((u) => (
                 <Link
@@ -266,7 +271,7 @@ function OverviewTab() {
       </div>
 
       {/* Operacional */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 app-stagger">
         <MiniCard
           icon={HardDrive}
           label="Storage total"
@@ -315,7 +320,7 @@ function ConsumoPorOrigem() {
   const linhas = data?.linhas ?? [];
   const maxCred = useMemo(() => Math.max(1, ...linhas.map((l) => l.credits)), [linhas]);
   return (
-    <Card className="p-5 sm:p-6 border-border/60 rounded-2xl">
+    <Card className="app-card p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
@@ -334,9 +339,7 @@ function ConsumoPorOrigem() {
         {!data ? (
           Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)
         ) : linhas.filter((l) => l.credits > 0).length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4 text-center">
-            Sem consumo registrado neste mês.
-          </p>
+          <AppEmptyState icon={<Coins />} title="Sem consumo registrado neste mês" className="py-4" />
         ) : (
           linhas
             .filter((l) => l.credits > 0)
@@ -393,7 +396,7 @@ function Metric({
   return (
     <Card
       title={title}
-      className="p-5 border-border/60 rounded-2xl transition-all duration-200 hover:border-border hover:shadow-sm"
+      className="p-5 border-border/60 rounded-[var(--app-radius)] transition-all duration-200 hover:border-border hover:shadow-sm"
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
@@ -429,7 +432,7 @@ function MiniCard({
   const iconColor =
     tone === "danger" ? "text-destructive" : tone === "accent" ? "text-accent" : "text-muted-foreground";
   return (
-    <Card className="p-4 border-border/60 rounded-xl transition-all duration-200 hover:border-border">
+    <Card className="app-card p-4 transition-all duration-200 hover:border-border">
       <div className="flex items-center gap-2">
         <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
@@ -497,7 +500,7 @@ function UsuariosTab() {
           Recalcular mês
         </Button>
       </div>
-      <Card className="overflow-hidden border-border/70">
+      <Card className="app-card overflow-hidden border-border/70">
         <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground bg-muted/40 border-b border-border/60">
           <div className="col-span-3">Usuário</div>
           <div className="col-span-3">Mensagens</div>
@@ -505,11 +508,13 @@ function UsuariosTab() {
           <div className="col-span-1 text-right">Créditos</div>
           <div className="col-span-2 text-right">Custo total</div>
         </div>
-        <div className="divide-y divide-border/60">
-          {rows.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground text-center">
-              {loading ? "Carregando…" : "Sem dados no período."}
-            </p>
+        <div className="divide-y divide-[var(--landing-rule)]">
+          {loading && rows.length === 0 ? (
+            <div className="p-6">
+              <AppSkeletonLines lines={4} />
+            </div>
+          ) : rows.length === 0 ? (
+            <AppEmptyState icon={<Users />} title="Sem dados no período" />
           ) : (
             rows.map((r) => (
               <div
@@ -632,7 +637,7 @@ function AlertasTab() {
     listFn({ data: undefined as never }).then((x) => setRows(x as typeof rows)).catch(() => {});
   }, [cfgFn, listFn]);
 
-  if (!cfg) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  if (!cfg) return <div className="max-w-xl"><AppSkeletonLines lines={5} /></div>;
 
   const salvar = async () => {
     const thr = thresholdsStr.split(",").map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0);
@@ -655,7 +660,7 @@ function AlertasTab() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-5 space-y-4">
+      <Card className="app-card p-5 space-y-4">
         <h3 className="text-sm font-semibold text-primary">Configuração de alertas</h3>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
@@ -707,7 +712,7 @@ function AlertasTab() {
         </div>
       </Card>
 
-      <Card className="divide-y">
+      <Card className="app-card divide-y divide-[var(--landing-rule)]">
         <div className="p-3 text-xs uppercase text-muted-foreground">Alertas disparados neste mês</div>
         {rows.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Nenhum alerta no período.</p>

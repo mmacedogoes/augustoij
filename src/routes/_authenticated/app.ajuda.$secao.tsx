@@ -265,14 +265,14 @@ function SecaoGenerica() {
   return (
     <AjudaShell>
       <h1 className="text-2xl font-semibold mb-3">{data.titulo}</h1>
-      <p className="text-slate-600">{data.descricao}</p>
+      <p className="text-muted-foreground">{data.descricao}</p>
       <h2 className="text-lg font-semibold mt-6 mb-2">Passo a passo</h2>
       <ul className="list-disc pl-6 space-y-2">
         {data.bullets.map((b) => (
           <li key={b}>{b}</li>
         ))}
       </ul>
-      <div className="mt-8 p-4 bg-slate-50 border border-dashed border-slate-300 rounded text-sm text-slate-500">
+      <div className="mt-8 p-4 bg-muted/40 border border-dashed border-border rounded text-sm text-muted-foreground">
         Vídeo demonstrativo em produção. Em breve aqui.
       </div>
     </AjudaShell>

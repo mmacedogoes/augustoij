@@ -57,7 +57,7 @@ export function CondominioContratosTab({ condominioId }: { condominioId: string 
 
   if (erro) {
     return (
-      <Card className="p-4 text-sm text-destructive">{erro}</Card>
+      <Card className="app-card p-4 text-sm text-destructive">{erro}</Card>
     );
   }
   if (!rows || !ind) {
@@ -101,7 +101,7 @@ export function CondominioContratosTab({ condominioId }: { condominioId: string 
       </div>
 
       {rows.length === 0 ? (
-        <Card className="border-dashed p-8 text-center">
+        <Card className="app-card border-dashed p-8 text-center">
           <FileText className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
             Nenhum contrato cadastrado para este condomínio.
@@ -113,7 +113,7 @@ export function CondominioContratosTab({ condominioId }: { condominioId: string 
           </Button>
         </Card>
       ) : (
-        <Card className="divide-y overflow-hidden">
+        <Card className="app-card divide-y divide-[var(--landing-rule)] overflow-hidden">
           {rows.map((r) => (
             <Link
               key={r.id}
@@ -160,7 +160,7 @@ function MiniKPI({
         ? "bg-augusto-gold/10 text-augusto-gold"
         : "bg-destructive/10 text-destructive";
   return (
-    <Card className="p-3">
+    <Card className="app-card p-3">
       <div className="mb-1 flex items-center gap-2">
         <span className={`grid h-6 w-6 place-items-center rounded-full ${chip}`}>
           <span className="[&_svg]:h-3.5 [&_svg]:w-3.5">{icon}</span>

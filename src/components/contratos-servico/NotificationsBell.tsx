@@ -129,7 +129,7 @@ export function NotificationsBell() {
           ) : !rows || rows.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">Nenhuma notificação por aqui.</p>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-[var(--landing-rule)]">
               {rows.map((n) => (
                 <li key={n.id}>
                   <button

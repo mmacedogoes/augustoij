@@ -31,7 +31,7 @@ export function RetencoesCard({ contratoId }: { contratoId: string }) {
   }, [fn, contratoId]);
 
   return (
-    <Card className="p-4 mb-6">
+    <Card className="app-card p-4 mb-6">
       <div className="mb-3">
         <h3 className="text-lg font-serif text-primary">Retenções aplicáveis</h3>
         <p className="text-xs text-muted-foreground">

@@ -1,7 +1,8 @@
-import { cn } from "@/lib/utils";
+import { AppSkeleton } from "@/components/ui/app-skeleton";
 
-function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("animate-pulse rounded-md bg-primary/10", className)} {...props} />;
+/** Alias do AppSkeleton para uniformizar o brilho em todo o app. */
+function Skeleton(props: React.HTMLAttributes<HTMLDivElement>) {
+  return <AppSkeleton {...props} />;
 }
 
 export { Skeleton };

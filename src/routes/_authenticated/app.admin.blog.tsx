@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit, Upload, Loader2 } from "lucide-react";
+import { Plus, Trash2, Edit, Upload, Loader2, Newspaper } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
@@ -29,6 +29,8 @@ import {
   adminDeletePost,
   adminUploadCapaBlog,
 } from "@/lib/blog.functions";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 export const Route = createFileRoute("/_authenticated/app/admin/blog")({
   component: AdminBlogPage,
@@ -85,8 +87,11 @@ function AdminBlogPage() {
   return (
     <AppShell>
       <div className="max-w-6xl">
-        <h1 className="text-3xl font-bold text-primary">Blog</h1>
-        <p className="text-muted-foreground">Publique artigos para a comunidade.</p>
+        <header className="app-page-header">
+          <span className="app-eyebrow">Administração</span>
+          <h1 className="app-title">Blog</h1>
+          <p className="app-subtitle">Publique artigos para a comunidade.</p>
+        </header>
         <div className="mt-6">
           <AdminNav />
         </div>
@@ -146,21 +151,21 @@ function PostsList({ refreshKey }: { refreshKey: number }) {
   }, [refresh, refreshKey]);
 
   return (
-    <Card className="divide-y">
+    <Card className="app-card divide-y divide-[var(--landing-rule)]">
       {loading ? (
-        <p className="p-4 text-sm text-muted-foreground flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
-        </p>
+        <div className="p-4">
+          <AppSkeletonLines lines={4} />
+        </div>
       ) : err ? (
         <div className="p-4 flex items-center justify-between gap-3">
           <p className="text-sm text-red-500">{err}</p>
           <Button size="sm" variant="outline" onClick={refresh}>Tentar de novo</Button>
         </div>
       ) : rows.length === 0 ? (
-        <p className="p-4 text-sm text-muted-foreground">Nenhum post cadastrado.</p>
+        <AppEmptyState icon={<Newspaper />} title="Nenhum post cadastrado" />
       ) : (
         rows.map((p) => (
-          <div key={p.id} className="p-4 flex items-center gap-3">
+          <div key={p.id} className="p-4 flex items-center gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
             <div className="flex-1">
               <p className="font-medium text-primary">{p.titulo}</p>
               <p className="text-xs text-muted-foreground">
@@ -536,7 +541,7 @@ function CategoriasTab() {
   }, [list]);
   useEffect(refresh, [refresh]);
   return (
-    <Card className="p-5 space-y-4">
+    <Card className="app-card p-5 space-y-4">
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -554,14 +559,18 @@ function CategoriasTab() {
         <Input placeholder="Nova categoria" value={nome} onChange={(e) => setNome(e.target.value)} />
         <Button type="submit"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
       </form>
-      <ul className="divide-y rounded-md border">
+      <ul className="divide-y divide-[var(--landing-rule)] rounded-md border">
         {cats.map((c) => (
-          <li key={c.id} className="p-3 text-sm flex justify-between">
+          <li key={c.id} className="p-3 text-sm flex justify-between hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
             <span className="text-primary font-medium">{c.nome}</span>
             <span className="text-xs text-muted-foreground">/{c.slug}</span>
           </li>
         ))}
-        {cats.length === 0 && <li className="p-3 text-sm text-muted-foreground">Nenhuma categoria.</li>}
+        {cats.length === 0 && (
+          <li className="p-3">
+            <AppEmptyState icon={<Newspaper />} title="Nenhuma categoria" className="py-4" />
+          </li>
+        )}
       </ul>
     </Card>
   );

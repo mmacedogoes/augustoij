@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, Pencil } from "lucide-react";
+import { Plus, Trash2, Loader2, Pencil, FileText } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import {
   upsertOrientacao,
   deleteOrientacao,
 } from "@/lib/admin-kb.functions";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 export const Route = createFileRoute("/_authenticated/app/admin/orientacoes")({
   component: Page,
@@ -93,11 +94,14 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-4xl">
-        <h1 className="text-3xl font-bold text-primary">Orientações da IA</h1>
-        <p className="text-muted-foreground">
-          Regras e diretrizes globais injetadas no prompt do assistente. Use para definir tom,
-          limites éticos, citação obrigatória, etc.
-        </p>
+        <header className="app-page-header">
+          <span className="app-eyebrow">Administração</span>
+          <h1 className="app-title">Orientações da IA</h1>
+          <p className="app-subtitle">
+            Regras e diretrizes globais injetadas no prompt do assistente. Use para definir tom,
+            limites éticos, citação obrigatória, etc.
+          </p>
+        </header>
         <div className="mt-6">
           <AdminNav />
         </div>
@@ -108,12 +112,12 @@ function Page() {
           </Button>
         </div>
 
-        <Card className="divide-y">
+        <Card className="app-card divide-y divide-[var(--landing-rule)]">
           {rows.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">Nenhuma orientação cadastrada.</p>
+            <AppEmptyState icon={<FileText />} title="Nenhuma orientação cadastrada" />
           ) : (
             rows.map((r) => (
-              <div key={r.id} className="p-4 flex gap-3">
+              <div key={r.id} className="p-4 flex gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-primary truncate">{r.titulo}</p>

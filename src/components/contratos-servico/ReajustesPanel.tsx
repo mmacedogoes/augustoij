@@ -199,7 +199,7 @@ export function ReajustesPanel({ contrato, onChange }: { contrato: Ficha; onChan
 
   return (
     <div className="space-y-4">
-      <Card className="p-4">
+      <Card className="app-card p-4">
         <div className="flex items-center gap-2 mb-3">
           <TrendingUp className="h-4 w-4 text-augusto-green" />
           <h3 className="text-lg font-serif text-primary">Situação atual</h3>
@@ -216,17 +216,17 @@ export function ReajustesPanel({ contrato, onChange }: { contrato: Ficha; onChan
       </Card>
 
       {semReajuste ? (
-        <Card className="p-4 text-sm text-muted-foreground">
+        <Card className="app-card p-4 text-sm text-muted-foreground">
           Este contrato não possui reajuste programado (índice "{rotuloIndiceContrato(contrato.indice_reajuste)}" ou mês base não definido).
         </Card>
       ) : carregando ? (
-        <Card className="p-4 flex items-center gap-2 text-sm text-muted-foreground">
+        <Card className="app-card p-4 flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Consultando índice…
         </Card>
       ) : erro ? (
-        <Card className="p-4 text-sm text-destructive">{erro}</Card>
+        <Card className="app-card p-4 text-sm text-destructive">{erro}</Card>
       ) : sug && pendente ? (
-        <Card className="p-4 border-augusto-gold/40 bg-augusto-gold/5">
+        <Card className="app-card p-4 border-augusto-gold/40 bg-augusto-gold/5">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
             <div>
               <p className="app-eyebrow text-augusto-gold">Reajuste pendente</p>
@@ -295,12 +295,12 @@ export function ReajustesPanel({ contrato, onChange }: { contrato: Ficha; onChan
           </div>
         </Card>
       ) : (
-        <Card className="p-4 text-sm text-muted-foreground">
+        <Card className="app-card p-4 text-sm text-muted-foreground">
           Nenhum reajuste pendente para {sug ? formatDate(sug.competencia) : "esta competência"}.
         </Card>
       )}
 
-      <Card className="p-4">
+      <Card className="app-card p-4">
         <div className="flex items-center gap-2 mb-3">
           <History className="h-4 w-4 text-augusto-green" />
           <h3 className="text-lg font-serif text-primary">Histórico</h3>

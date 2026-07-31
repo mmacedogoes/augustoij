@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { listCondominios, createCondominio } from "@/lib/condominios.functions";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { usePlanContext } from "@/hooks/usePlanContext";
 import { gateMessages } from "@/lib/plan-gates";
 import { toast } from "sonner";
@@ -208,13 +209,13 @@ function CondominiosPage() {
           </div>
         )}
 
-        <div className="mt-2 grid sm:grid-cols-2 gap-4">
+        <div className="mt-2 grid sm:grid-cols-2 gap-4 app-stagger">
           {items.length === 0 ? (
-            <Card className="p-10 text-center border-dashed border-[var(--landing-rule)] col-span-full bg-gradient-to-b from-card to-muted/30">
-              <span className="app-icon-frame mx-auto h-14 w-14 rounded-2xl">
-                <Building className="h-6 w-6" strokeWidth={1.5} />
-              </span>
-              <p className="mt-4 text-sm text-muted-foreground">Nenhum condomínio cadastrado ainda.</p>
+            <Card className="app-card p-10 border-dashed border-[var(--landing-rule)] col-span-full bg-gradient-to-b from-card to-muted/30">
+              <AppEmptyState
+                icon={<Building strokeWidth={1.5} />}
+                title="Nenhum condomínio cadastrado ainda"
+              />
             </Card>
           ) : items.map((c) => (
             <Link

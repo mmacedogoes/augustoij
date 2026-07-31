@@ -26,6 +26,7 @@ import {
   type Obrigacao,
 } from "@/components/contratos-servico/ObrigacoesEditor";
 import { AvisosSwitch } from "@/components/contratos-servico/AvisosSwitch";
+import { AppSkeleton, AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { EncerrarSuspenderMenu } from "@/components/contratos-servico/EncerrarSuspenderMenu";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -209,7 +210,10 @@ function Page() {
   if (!ficha) {
     return (
       <AppShell>
-        <p className="text-sm text-muted-foreground">Carregando contrato…</p>
+        <div className="max-w-4xl space-y-4">
+          <AppSkeletonLines lines={2} className="w-72" />
+          <AppSkeleton className="h-32 w-full" />
+        </div>
       </AppShell>
     );
   }
@@ -229,17 +233,17 @@ function Page() {
         </div>
 
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="app-eyebrow">
+          <header className="app-page-header">
+            <span className="app-eyebrow">
               {c.tipos_servico_contrato?.nome ?? "Contrato de prestação de serviços"}
-            </p>
-            <h1 className="mt-1.5 font-serif text-3xl leading-tight text-primary sm:text-4xl">{c.prestador_nome}</h1>
-            <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            </span>
+            <h1 className="app-title">{c.prestador_nome}</h1>
+            <p className="app-subtitle flex flex-wrap items-center gap-2">
               <Building2 className="h-3.5 w-3.5" />
               {c.condominios?.nome ?? "Condomínio"}
               <ContratoStatusBadge status={status} />
             </p>
-          </div>
+          </header>
           <div className="flex flex-wrap gap-2">
             <AvisosSwitch
               contratoId={contratoId}
@@ -298,8 +302,8 @@ function Page() {
             </TabsList>
           </div>
           <TabsContent value="informacoes" className="mt-4 space-y-4">
-            <Card className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-augusto-gold/20 bg-gradient-to-br from-card to-augusto-gold/[0.04] p-5 transition-all duration-200 hover:border-augusto-gold/40 hover:shadow-sm">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-augusto-gold/15 text-augusto-gold ring-1 ring-augusto-gold/20">
+            <Card className="app-card-interactive grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-augusto-gold/20 bg-gradient-to-br from-card to-augusto-gold/[0.04] p-5 transition-all duration-200 hover:border-augusto-gold/40">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--app-radius)] bg-augusto-gold/15 text-augusto-gold ring-1 ring-augusto-gold/20">
                 <FileText className="h-5 w-5" />
               </span>
               <div className="min-w-0">
@@ -613,7 +617,7 @@ function StatBadge({
   const tones: Record<string, string> = {
     default: "bg-augusto-gold/10 text-augusto-gold ring-augusto-gold/25",
     muted: "bg-muted text-muted-foreground ring-border",
-    positive: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/25 dark:text-emerald-400",
+    positive: "bg-augusto-green/10 text-augusto-green ring-augusto-green/25",
     warning: "bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-400",
   };
   return (
@@ -679,7 +683,7 @@ function ClauseRow({
           empty
             ? "text-muted-foreground"
             : positive === true
-              ? "text-emerald-600 dark:text-emerald-400"
+              ? "text-augusto-green"
               : "text-foreground"
         }`}
       >

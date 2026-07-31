@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Sparkles, Download, PencilLine, MailX, Trash2, Shield, ExternalLink, Loader2, XCircle, CreditCard } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { Card } from "@/components/ui/card";
 import { ListaMeusChamados } from "@/components/helpdesk/ListaMeusChamados";
 import { Button } from "@/components/ui/button";
@@ -160,13 +161,13 @@ function ContaPage() {
   return (
     <AppShell>
       <div className="max-w-3xl space-y-6">
-        <div className="pb-5 border-b border-[var(--landing-rule)]">
+        <header className="app-page-header">
           <span className="app-eyebrow">Perfil</span>
-          <h1 className="app-title mt-2">Conta e plano</h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">Gerencie seus dados, plano e segurança.</p>
-        </div>
+          <h1 className="app-title">Conta e plano</h1>
+          <p className="app-subtitle">Gerencie seus dados, plano e segurança.</p>
+        </header>
 
-        <Card className="app-card p-6 space-y-5">
+        <Card className="app-card p-5 sm:p-6 space-y-5">
           <div id="dados" className="flex items-center justify-between scroll-mt-24">
             <h2 className="app-section-title">Seus dados</h2>
             {profile?.tipo_pessoa && (
@@ -204,7 +205,7 @@ function ContaPage() {
           </div>
         </Card>
 
-        <Card className="app-card p-6 space-y-5">
+        <Card className="app-card p-5 sm:p-6 space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Plano atual</p>
@@ -317,7 +318,7 @@ function ContaPage() {
           )}
         </Card>
 
-        <Card className="app-card p-6 space-y-4">
+        <Card className="app-card p-5 sm:p-6 space-y-4">
           <h2 className="app-section-title">Segurança</h2>
           <div className="grid sm:grid-cols-2 gap-4 max-w-xl">
             <div className="space-y-1.5">
@@ -426,7 +427,7 @@ function PrivacidadeSection() {
   }
 
   return (
-    <Card className="app-card p-6 space-y-5">
+    <Card className="app-card p-5 sm:p-6 space-y-5">
       <div className="flex items-center gap-2.5">
         <span className="app-icon-frame h-8 w-8">
           <Shield className="h-4 w-4" strokeWidth={1.6} />
@@ -629,8 +630,8 @@ function PagamentoInfo() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-border/60 bg-muted/30 p-4 text-xs text-muted-foreground">
-        Carregando informações de pagamento…
+      <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+        <AppSkeletonLines lines={2} />
       </div>
     );
   }

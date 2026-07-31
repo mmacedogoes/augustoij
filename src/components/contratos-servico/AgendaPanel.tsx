@@ -123,7 +123,7 @@ export function AgendaPanel({ contratoId }: { contratoId: string }) {
   }
 
   return (
-    <Card className="p-4">
+    <Card className="app-card p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-lg font-serif text-primary">Agenda do contrato</h3>
@@ -221,7 +221,7 @@ function Secao({
   return (
     <div>
       <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{titulo}</p>
-      <ul className="divide-y divide-border rounded-md border border-border">
+      <ul className="divide-y divide-[var(--landing-rule)] rounded-md border border-border">
         {itens.map((ev) => (
           <li key={ev.id} className="flex flex-wrap items-start justify-between gap-3 px-3 py-2.5">
             <div className="min-w-0 flex-1">

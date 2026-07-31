@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { Button } from "@/components/ui/button";
 import { ContratoForm, type ContratoFormValues } from "@/components/contratos-servico/ContratoForm";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { getContratoServico } from "@/lib/contratos-servico/contratos.functions";
 
 export const Route = createFileRoute("/_authenticated/app/contratos/$contratoId/editar")({
@@ -73,16 +74,16 @@ function Page() {
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar à ficha
         </Button>
-        <div className="mb-6">
-          <p className="app-eyebrow">Contratos</p>
-          <h1 className="text-3xl font-serif text-primary">Editar contrato</h1>
-        </div>
+        <header className="app-page-header">
+          <span className="app-eyebrow">Contratos</span>
+          <h1 className="app-title">Editar contrato</h1>
+        </header>
         {erro ? (
           <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
             {erro}
           </div>
         ) : !initial ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+          <AppSkeletonLines lines={5} />
         ) : (
           <ContratoForm
             initial={initial}
