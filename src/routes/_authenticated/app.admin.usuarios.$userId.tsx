@@ -214,7 +214,7 @@ function Kpi({
   value: string;
 }) {
   return (
-    <Card className="app-card app-card-interactive p-4">
+    <Card className="app-card-interactive p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4" strokeWidth={1.75} />
         <span className="text-[11px] uppercase tracking-wide font-medium">{label}</span>

@@ -169,7 +169,7 @@ function Kpi({
     muted: "bg-muted text-muted-foreground ring-border",
   };
   return (
-    <Card className="app-card app-card-interactive group p-5 transition-all duration-200 hover:border-border">
+    <Card className="app-card-interactive group p-5 transition-all duration-200 hover:border-border">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
         <span
