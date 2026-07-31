@@ -91,6 +91,26 @@ const SUGESTOES = [
   { icon: FileSearch, texto: "Analisar risco de um contrato de portaria" },
 ] as const;
 
+/** Botão de copiar resposta (aparece no hover; sempre visível no toque). */
+function CopiarResposta({ texto }: { texto: string }) {
+  return (
+    <button
+      type="button"
+      aria-label="Copiar resposta"
+      title="Copiar resposta"
+      onClick={() => {
+        navigator.clipboard
+          .writeText(texto)
+          .then(() => toast.success("Resposta copiada"))
+          .catch(() => toast.error("Não foi possível copiar"));
+      }}
+      className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-50 transition-opacity duration-200 hover:bg-muted/60 hover:text-foreground md:opacity-0 md:group-hover/msg:opacity-100"
+    >
+      <Copy className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
 /**
  * Bloco 10 — perguntas estruturadas.
  * A IA pode emitir um bloco fenced ```pergunta-estruturada\n{json}\n```
