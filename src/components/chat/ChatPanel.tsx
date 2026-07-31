@@ -4,7 +4,20 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Paperclip, X, Loader2, AlertTriangle, Lock, ArrowUpRight } from "lucide-react";
+import {
+  Paperclip,
+  X,
+  Loader2,
+  AlertTriangle,
+  Lock,
+  ArrowUpRight,
+  ArrowUp,
+  Copy,
+  Megaphone,
+  PawPrint,
+  CalendarDays,
+  FileSearch,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Conversation,
@@ -19,13 +32,11 @@ import {
   PromptInputFooter,
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
-import { Shimmer } from "@/components/ai-elements/shimmer";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { createConversa, listMensagens, extractAttachmentForChat } from "@/lib/chat.functions";
 import { getUploadUrl, createDocumento, processDocumento } from "@/lib/documentos.functions";
 import { getUsoAtual } from "@/lib/uso.functions";
 import { avaliarLimite } from "@/lib/uso-limits";
-import { UsageFooter } from "@/components/chat/UsageFooter";
 import { UpgradeDialog } from "@/components/chat/UpgradeDialog";
 import { usePlanContext } from "@/hooks/usePlanContext";
 import { gateMessages } from "@/lib/plan-gates";
@@ -45,7 +56,6 @@ import {
   PerguntaEstruturada,
   tryParsePerguntaEstruturada,
 } from "@/components/chat/PerguntaEstruturada";
-import { AvisoJuridicoBanner } from "@/components/chat/AvisoJuridicoBanner";
 import { VoiceControls, type VoiceControlsHandle } from "@/components/chat/VoiceControls";
 
 type Props = {
