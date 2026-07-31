@@ -368,15 +368,6 @@ function MobileTabBar({
   );
 }
 
-type SidebarPropsUnused = {
-  compacto: boolean;
-  nav: ReadonlyArray<NavItem>;
-  ehAtivo: (to: string) => boolean;
-  onSignOut: () => void;
-  onToggle: () => void;
-  identidade?: { iniciais: string; nome: string; perfil: string | null } | null;
-};
-
 function SidebarInner({ compacto, nav, ehAtivo, onSignOut, onToggle, identidade }: SidebarProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground">
