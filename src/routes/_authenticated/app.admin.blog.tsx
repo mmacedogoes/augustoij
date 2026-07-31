@@ -146,7 +146,7 @@ function PostsList({ refreshKey }: { refreshKey: number }) {
   }, [refresh, refreshKey]);
 
   return (
-    <Card className="divide-y">
+    <Card className="divide-y divide-[var(--landing-rule)]">
       {loading ? (
         <p className="p-4 text-sm text-muted-foreground flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
@@ -554,7 +554,7 @@ function CategoriasTab() {
         <Input placeholder="Nova categoria" value={nome} onChange={(e) => setNome(e.target.value)} />
         <Button type="submit"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
       </form>
-      <ul className="divide-y rounded-md border">
+      <ul className="divide-y divide-[var(--landing-rule)] rounded-md border">
         {cats.map((c) => (
           <li key={c.id} className="p-3 text-sm flex justify-between">
             <span className="text-primary font-medium">{c.nome}</span>

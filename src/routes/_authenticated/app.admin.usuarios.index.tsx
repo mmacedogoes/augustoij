@@ -321,7 +321,7 @@ function AdminUsuariosPage() {
           </form>
         </Card>
 
-        <Card className="divide-y">
+        <Card className="divide-y divide-[var(--landing-rule)]">
           {loading && rows.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">Carregando…</p>
           ) : rows.length === 0 ? (

@@ -261,7 +261,7 @@ function CondominioDetail() {
                 <p className="text-sm text-muted-foreground">Sem conversas ainda.</p>
               </Card>
             ) : (
-              <Card className="divide-y">
+              <Card className="divide-y divide-[var(--landing-rule)]">
                 {conversas.map((c) => (
                   <div key={c.id} className="flex items-center gap-3 p-4">
                     <div className="flex-1 min-w-0">
@@ -589,7 +589,7 @@ function CondominioDetail() {
                     </Dialog>
                   </div>
                   {membros.length > 0 && (
-                    <div className="divide-y border rounded-md">
+                    <div className="divide-y divide-[var(--landing-rule)] border rounded-md">
                       {membros.map((m) => (
                         <div key={m.id} className="flex items-center justify-between p-3">
                           <div className="min-w-0">

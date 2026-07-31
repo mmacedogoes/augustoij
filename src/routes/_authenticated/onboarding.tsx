@@ -220,7 +220,7 @@ function OnboardingPage() {
         </div>
 
         {step === 1 && (
-          <div className="rounded-xl border border-augusto-cream/15 bg-augusto-green-dark p-8">
+          <div className="rounded-[var(--app-radius)] border border-augusto-cream/15 bg-augusto-green-dark p-8">
             <h1 className="text-2xl font-bold">Confirme seus dados</h1>
             <p className="text-augusto-cream/70 mt-1 text-sm">Você pode alterar esses dados depois em seu perfil.</p>
             <div className="mt-6 grid sm:grid-cols-2 gap-4">
@@ -286,7 +286,7 @@ function OnboardingPage() {
                 const destaque = p.id === "pj_starter";
                 return (
                   <div key={p.id}
-                    className={`relative rounded-xl border p-6 flex flex-col ${
+                    className={`relative rounded-[var(--app-radius)] border p-6 flex flex-col ${
                       destaque ? "border-augusto-gold bg-augusto-green-dark" : "border-augusto-cream/15 bg-augusto-green-dark"
                     }`}>
                     {destaque && (
@@ -326,7 +326,7 @@ function OnboardingPage() {
         )}
 
         {step === 3 && (
-          <div className="rounded-xl border border-augusto-cream/15 bg-augusto-green-dark p-8">
+          <div className="rounded-[var(--app-radius)] border border-augusto-cream/15 bg-augusto-green-dark p-8">
             <div className="flex items-center gap-2"><Building2 className="h-5 w-5 text-augusto-gold-light" />
               <h2 className="text-2xl font-bold">Cadastre seu primeiro condomínio</h2>
             </div>

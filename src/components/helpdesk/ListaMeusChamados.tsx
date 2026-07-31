@@ -57,7 +57,7 @@ export function ListaMeusChamados() {
           Você ainda não abriu nenhum chamado.
         </div>
       ) : (
-        <ul className="divide-y divide-border/60 rounded-md border border-border/60">
+        <ul className="divide-y divide-[var(--landing-rule)] rounded-md border border-border/60">
           {data.map((t) => {
             const st = STATUS[t.status] ?? STATUS.aberto;
             const assunto = ASSUNTOS.find((a) => a.value === t.assunto)?.label ?? t.assunto;

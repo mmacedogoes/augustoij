@@ -37,7 +37,7 @@ export function Proximos30DiasPanel() {
       ) : rows && rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhum evento previsto nos próximos 30 dias.</p>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-[var(--landing-rule)]">
           {rows!.slice(0, 12).map((ev) => (
             <li key={ev.id}>
               <Link

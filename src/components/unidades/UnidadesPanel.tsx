@@ -439,7 +439,7 @@ export function UnidadesPanel({
           </p>
         </Card>
       ) : (
-        <Card className="divide-y">
+        <Card className="divide-y divide-[var(--landing-rule)]">
           {unidades.map((u) => (
             <div key={u.id} className="p-4 flex items-center gap-3">
               <button
@@ -731,7 +731,7 @@ function VisualizarUnidadeDialog({
                 Nenhum condômino cadastrado nesta unidade.
               </p>
             ) : (
-              <div className="divide-y border rounded">
+              <div className="divide-y divide-[var(--landing-rule)] border rounded">
                 {condominos.map((c) => (
                   <div key={c.id} className="p-3">
                     <div className="flex items-center gap-2">
@@ -980,7 +980,7 @@ function CondominosDialog({
           {(unidade.condominos ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum condômino cadastrado ainda.</p>
           ) : (
-            <div className="divide-y border rounded">
+            <div className="divide-y divide-[var(--landing-rule)] border rounded">
               {(unidade.condominos ?? []).map((c) => (
                 <div key={c.id} className="p-3 flex items-center gap-2">
                   <div className="flex-1 min-w-0">

@@ -159,12 +159,12 @@ function OverviewTab() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <Card className="p-5 sm:p-6 border-border/60 rounded-2xl lg:col-span-3">
+        <Card className="p-5 sm:p-6 border-border/60 rounded-[var(--app-radius)] lg:col-span-3">
           <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Atividade</p>
           <h3 className="mt-1 text-lg font-semibold text-primary">Mensagens por dia · 30 dias</h3>
           <div className="mt-4 h-56">
             {!r ? (
-              <Skeleton className="h-full w-full rounded-xl" />
+              <Skeleton className="h-full w-full rounded-[var(--app-radius)]" />
             ) : serie.length === 0 ? (
               <div className="h-full grid place-items-center text-xs text-muted-foreground">
                 Sem dados no período.
@@ -222,7 +222,7 @@ function OverviewTab() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6 border-border/60 rounded-2xl lg:col-span-2">
+        <Card className="p-5 sm:p-6 border-border/60 rounded-[var(--app-radius)] lg:col-span-2">
           <div className="flex items-center justify-between gap-2">
             <div>
               <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
@@ -315,7 +315,7 @@ function ConsumoPorOrigem() {
   const linhas = data?.linhas ?? [];
   const maxCred = useMemo(() => Math.max(1, ...linhas.map((l) => l.credits)), [linhas]);
   return (
-    <Card className="p-5 sm:p-6 border-border/60 rounded-2xl">
+    <Card className="p-5 sm:p-6 border-border/60 rounded-[var(--app-radius)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
@@ -393,7 +393,7 @@ function Metric({
   return (
     <Card
       title={title}
-      className="p-5 border-border/60 rounded-2xl transition-all duration-200 hover:border-border hover:shadow-sm"
+      className="p-5 border-border/60 rounded-[var(--app-radius)] transition-all duration-200 hover:border-border hover:shadow-sm"
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
@@ -429,7 +429,7 @@ function MiniCard({
   const iconColor =
     tone === "danger" ? "text-destructive" : tone === "accent" ? "text-accent" : "text-muted-foreground";
   return (
-    <Card className="p-4 border-border/60 rounded-xl transition-all duration-200 hover:border-border">
+    <Card className="p-4 border-border/60 rounded-[var(--app-radius)] transition-all duration-200 hover:border-border">
       <div className="flex items-center gap-2">
         <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
@@ -505,7 +505,7 @@ function UsuariosTab() {
           <div className="col-span-1 text-right">Créditos</div>
           <div className="col-span-2 text-right">Custo total</div>
         </div>
-        <div className="divide-y divide-border/60">
+        <div className="divide-y divide-[var(--landing-rule)]">
           {rows.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground text-center">
               {loading ? "Carregando…" : "Sem dados no período."}
@@ -707,7 +707,7 @@ function AlertasTab() {
         </div>
       </Card>
 
-      <Card className="divide-y">
+      <Card className="divide-y divide-[var(--landing-rule)]">
         <div className="p-3 text-xs uppercase text-muted-foreground">Alertas disparados neste mês</div>
         {rows.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Nenhum alerta no período.</p>

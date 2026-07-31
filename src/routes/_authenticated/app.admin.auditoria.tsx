@@ -153,7 +153,7 @@ function Page() {
           </Button>
         </Card>
 
-        <Card className="divide-y text-xs">
+        <Card className="divide-y divide-[var(--landing-rule)] text-xs">
           {rows.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
               {loading ? "Carregando…" : "Sem registros para os filtros atuais."}

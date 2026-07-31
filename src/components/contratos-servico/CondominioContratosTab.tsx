@@ -113,7 +113,7 @@ export function CondominioContratosTab({ condominioId }: { condominioId: string 
           </Button>
         </Card>
       ) : (
-        <Card className="divide-y overflow-hidden">
+        <Card className="divide-y divide-[var(--landing-rule)] overflow-hidden">
           {rows.map((r) => (
             <Link
               key={r.id}

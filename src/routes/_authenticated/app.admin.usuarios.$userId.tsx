@@ -182,7 +182,7 @@ function AdminUsuarioDetalhePage() {
           {data.condominios.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum condomínio cadastrado.</p>
           ) : (
-            <ul className="divide-y divide-border/60">
+            <ul className="divide-y divide-[var(--landing-rule)]">
               {data.condominios.map((c) => (
                 <li key={c.id} className="py-2.5 flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -262,7 +262,7 @@ function MembrosVinculadosCard({
           Este titular ainda não cadastrou usuários vinculados.
         </p>
       ) : (
-        <ul className="divide-y divide-border/60 -mx-1">
+        <ul className="divide-y divide-[var(--landing-rule)] -mx-1">
           {membros.map((m) => (
             <li
               key={`${m.condominio_id}:${m.user_id}`}
@@ -332,7 +332,7 @@ function DetalheSkeleton() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border/60 bg-card p-4 space-y-2.5">
+          <div key={i} className="rounded-[var(--app-radius)] border border-border/60 bg-card p-4 space-y-2.5">
             <div className="h-3 w-20 rounded bg-muted/60 animate-pulse" />
             <div className="h-6 w-16 rounded bg-muted/70 animate-pulse" />
           </div>
@@ -340,7 +340,7 @@ function DetalheSkeleton() {
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+          <div key={i} className="rounded-[var(--app-radius)] border border-border/60 bg-card p-5 space-y-3">
             <div className="h-5 w-32 rounded bg-muted/60 animate-pulse" />
             <div className="space-y-2 pt-1">
               {Array.from({ length: 5 }).map((__, j) => (
@@ -350,7 +350,7 @@ function DetalheSkeleton() {
           </div>
         ))}
       </div>
-      <div className="rounded-xl border border-border/60 bg-card p-5 space-y-4">
+      <div className="rounded-[var(--app-radius)] border border-border/60 bg-card p-5 space-y-4">
         <div className="h-5 w-44 rounded bg-muted/60 animate-pulse" />
         <div className="h-20 w-full rounded-lg bg-muted/40 animate-pulse" />
         <div className="grid gap-4 sm:grid-cols-2">

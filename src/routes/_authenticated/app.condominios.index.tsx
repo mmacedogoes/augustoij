@@ -211,7 +211,7 @@ function CondominiosPage() {
         <div className="mt-2 grid sm:grid-cols-2 gap-4">
           {items.length === 0 ? (
             <Card className="p-10 text-center border-dashed border-[var(--landing-rule)] col-span-full bg-gradient-to-b from-card to-muted/30">
-              <span className="app-icon-frame mx-auto h-14 w-14 rounded-2xl">
+              <span className="app-icon-frame mx-auto h-14 w-14 rounded-[var(--app-radius)]">
                 <Building className="h-6 w-6" strokeWidth={1.5} />
               </span>
               <p className="mt-4 text-sm text-muted-foreground">Nenhum condomínio cadastrado ainda.</p>

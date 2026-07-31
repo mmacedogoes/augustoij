@@ -101,7 +101,7 @@ export function ResponsaveisPanel({ contratoId }: { contratoId: string }) {
       ) : (
         <>
           {rows && rows.length > 0 ? (
-            <ul className="mb-3 divide-y divide-border rounded-md border border-border">
+            <ul className="mb-3 divide-y divide-[var(--landing-rule)] rounded-md border border-border">
               {rows.map((r) => (
                 <li key={r.user_id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
                   <div className="min-w-0">

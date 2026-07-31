@@ -123,7 +123,7 @@ export function AditivosPanel({
           Nenhum aditivo registrado ainda. Use o botão acima para incluir o primeiro.
         </p>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-[var(--landing-rule)]">
           {rows.map((a) => (
             <li key={a.id} className="py-3 flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">

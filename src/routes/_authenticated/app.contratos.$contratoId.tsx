@@ -299,7 +299,7 @@ function Page() {
           </div>
           <TabsContent value="informacoes" className="mt-4 space-y-4">
             <Card className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-augusto-gold/20 bg-gradient-to-br from-card to-augusto-gold/[0.04] p-5 transition-all duration-200 hover:border-augusto-gold/40 hover:shadow-sm">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-augusto-gold/15 text-augusto-gold ring-1 ring-augusto-gold/20">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--app-radius)] bg-augusto-gold/15 text-augusto-gold ring-1 ring-augusto-gold/20">
                 <FileText className="h-5 w-5" />
               </span>
               <div className="min-w-0">

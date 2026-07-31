@@ -176,7 +176,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--app-radius)] border border-border bg-card px-3 py-2">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"

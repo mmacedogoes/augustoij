@@ -200,7 +200,7 @@ function Page() {
                     <Th>Status</Th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-[var(--landing-rule)]">
                   {rows.map((r) => (
                     <tr key={r.id} className="hover:bg-muted/30 cursor-pointer">
                       <Td>

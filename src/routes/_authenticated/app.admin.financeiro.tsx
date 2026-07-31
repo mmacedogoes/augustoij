@@ -130,7 +130,7 @@ function CustosTab() {
           <p className="mt-2 text-2xl font-bold text-primary">{brl((r?.custos_clientes_mes ?? 0) + (r?.despesas_mes ?? 0))}</p>
         </Card>
       </div>
-      <Card className="divide-y">
+      <Card className="divide-y divide-[var(--landing-rule)]">
         <div className="p-4 text-xs uppercase text-muted-foreground grid grid-cols-12 gap-2">
           <div className="col-span-5">Cliente</div>
           <div className="col-span-2 text-right">Mensagens</div>
@@ -254,7 +254,7 @@ function DespesasTab() {
           <Button type="submit"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
         </form>
       </Card>
-      <Card className="divide-y">
+      <Card className="divide-y divide-[var(--landing-rule)]">
         {rows.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Nenhuma despesa registrada.</p>
         ) : (
@@ -319,7 +319,7 @@ function CancelamentosTab() {
           </div>
         )}
       </Card>
-      <Card className="divide-y">
+      <Card className="divide-y divide-[var(--landing-rule)]">
         <div className="p-4 text-xs uppercase text-muted-foreground grid grid-cols-12 gap-2">
           <div className="col-span-4">Cliente</div>
           <div className="col-span-2">Plano</div>

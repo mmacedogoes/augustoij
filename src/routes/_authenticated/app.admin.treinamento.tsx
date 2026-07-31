@@ -216,7 +216,7 @@ function Page() {
             </p>
           </Card>
         ) : (
-          <Card className="divide-y">
+          <Card className="divide-y divide-[var(--landing-rule)]">
             {docs.map((d) => (
               <div key={d.id} className="flex items-center gap-3 p-4">
                 <FileText className="h-5 w-5 text-accent shrink-0" />

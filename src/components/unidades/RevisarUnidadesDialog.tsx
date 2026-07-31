@@ -174,7 +174,7 @@ export function RevisarUnidadesDialog({
               <span>Vagas</span>
               <span />
             </div>
-            <div className="divide-y">
+            <div className="divide-y divide-[var(--landing-rule)]">
               {linhas.map((l, i) => (
                 <div key={i} className="grid grid-cols-[80px_100px_140px_120px_100px_80px_40px] gap-2 py-2 items-center">
                   <Input value={l.bloco} onChange={(e) => update(i, { bloco: e.target.value })} className="h-9" />

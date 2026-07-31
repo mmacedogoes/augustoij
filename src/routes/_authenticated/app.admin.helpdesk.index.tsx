@@ -79,7 +79,7 @@ function AdminHelpdeskListPage() {
               Nenhum chamado encontrado.
             </div>
           ) : (
-            <ul className="divide-y divide-border/60 rounded-md border border-border/60">
+            <ul className="divide-y divide-[var(--landing-rule)] rounded-md border border-border/60">
               {(data as Array<{
                 id: string;
                 protocolo: string;

@@ -144,7 +144,7 @@ function Page() {
           ) : reaj.length === 0 ? (
             <Vazio texto="Nenhum reajuste pendente na carteira." />
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-[var(--landing-rule)]">
               {reaj.slice(0, 12).map((r) => (
                 <li key={r.contrato_id} className="py-2 flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -194,7 +194,7 @@ function Page() {
           ) : checklists.length === 0 ? (
             <Vazio texto="Todos os checklists do mês estão em dia." />
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-[var(--landing-rule)]">
               {checklists.slice(0, 15).map((c) => (
                 <li key={c.contrato_id} className="py-2 flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -224,7 +224,7 @@ function Page() {
 
         {ncs && ncs.length > 0 ? (
           <Bloco titulo="Não conformidades trabalhistas" icon={<ShieldAlert className="h-4 w-4 text-destructive" />}>
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-[var(--landing-rule)]">
               {ncs.map((n, i) => (
                 <li key={i} className="py-2">
                   <p className="text-sm font-medium">{n.prestador_nome}</p>

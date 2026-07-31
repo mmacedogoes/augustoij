@@ -340,7 +340,7 @@ function ChoiceCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative flex flex-col items-start gap-4 rounded-2xl border border-border bg-card p-6 text-left transition-all duration-200",
+        "group relative flex flex-col items-start gap-4 rounded-[var(--app-radius)] border border-border bg-card p-6 text-left transition-all duration-200",
         "hover:-translate-y-0.5 hover:border-augusto-gold/50 hover:shadow-lg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       )}
@@ -350,7 +350,7 @@ function ChoiceCard({
           Recomendado
         </span>
       )}
-      <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/5 text-primary transition-colors group-hover:bg-augusto-gold/15 group-hover:text-augusto-gold">
+      <div className="grid h-11 w-11 place-items-center rounded-[var(--app-radius)] bg-primary/5 text-primary transition-colors group-hover:bg-augusto-gold/15 group-hover:text-augusto-gold">
         {icon}
       </div>
       <div>
@@ -384,7 +384,7 @@ function ObrigacoesReviewSidebar({
   const prest = obrigacoes.map((o, i) => ({ o, i })).filter((x) => x.o.parte === "prestador");
 
   return (
-    <aside className="space-y-5 rounded-2xl border border-border bg-card p-5">
+    <aside className="space-y-5 rounded-[var(--app-radius)] border border-border bg-card p-5">
       <div>
         <h2 className="font-serif text-lg text-primary">Obrigações identificadas</h2>
         <p className="text-xs text-muted-foreground">
