@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { listCondominios, getProfile, getUsoMensal } from "@/lib/condominios.functions";
+import { listCondominios, getProfile } from "@/lib/condominios.functions";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 
