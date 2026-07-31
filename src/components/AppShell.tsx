@@ -281,9 +281,10 @@ type SidebarProps = {
   ehAtivo: (to: string) => boolean;
   onSignOut: () => void;
   onToggle: () => void;
+  identidade?: { iniciais: string; nome: string; perfil: string | null } | null;
 };
 
-function SidebarInner({ compacto, nav, ehAtivo, onSignOut, onToggle }: SidebarProps) {
+function SidebarInner({ compacto, nav, ehAtivo, onSignOut, onToggle, identidade }: SidebarProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground">
       <Link
@@ -344,6 +345,32 @@ function SidebarInner({ compacto, nav, ehAtivo, onSignOut, onToggle }: SidebarPr
       </nav>
 
       <div className="space-y-1 border-t border-sidebar-border/40 p-3">
+        {identidade && (
+          <div
+            className={cn(
+              "mb-2 flex items-center gap-3 rounded-lg px-2 py-2",
+              compacto && "justify-center px-0",
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-semibold text-augusto-gold"
+              style={{ background: "color-mix(in hsl, var(--augusto-gold) 16%, transparent)" }}
+            >
+              {identidade.iniciais}
+            </span>
+            {!compacto && (
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate text-[13px] text-sidebar-foreground">{identidade.nome}</span>
+                {identidade.perfil && (
+                  <span className="block truncate text-[11px] text-sidebar-foreground/60">
+                    {identidade.perfil}
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+        )}
         <button
           onClick={onSignOut}
           className={cn("app-nav-item w-full", compacto && "justify-center px-0 pl-0")}
