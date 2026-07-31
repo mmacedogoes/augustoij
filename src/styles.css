@@ -531,3 +531,105 @@
   font-family: var(--font-serif);
   font-weight: 700;
 }
+
+/* ---------- App shell — tokens de superfície, elevação e movimento ---------- */
+:root {
+  --app-surface: var(--landing-surface);
+  --app-panel: var(--card);
+  --app-panel-hover: var(--landing-panel-muted);
+  --app-rule: var(--landing-rule);
+  --app-shadow-soft: 0 1px 0 hsl(0 0% 100% / 0.55) inset, 0 10px 30px -24px hsl(152 100% 10% / 0.22);
+  --app-shadow-raised: 0 1px 0 hsl(0 0% 100% / 0.65) inset, 0 22px 48px -30px hsl(152 100% 10% / 0.3);
+  --app-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --app-dur-fast: 150ms;
+  --app-dur: 200ms;
+  --app-dur-slow: 250ms;
+  --app-sidebar-w: 15rem;
+  --app-sidebar-w-collapsed: 4.5rem;
+}
+
+.dark {
+  --app-shadow-soft: 0 1px 0 hsl(0 0% 100% / 0.05) inset, 0 10px 30px -24px hsl(0 0% 0% / 0.6);
+  --app-shadow-raised: 0 1px 0 hsl(0 0% 100% / 0.07) inset, 0 22px 48px -30px hsl(0 0% 0% / 0.7);
+}
+
+@utility app-surface {
+  background:
+    radial-gradient(1200px 420px at 78% -8%, color-mix(in hsl, var(--augusto-gold) 9%, transparent), transparent 70%),
+    var(--background);
+}
+
+@utility app-topbar {
+  border-bottom: 1px solid var(--app-rule);
+  background: color-mix(in hsl, var(--card) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+@utility app-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.75rem 0.625rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: color-mix(in hsl, var(--sidebar-foreground) 82%, transparent);
+  transition:
+    background-color var(--app-dur) var(--app-ease),
+    color var(--app-dur) var(--app-ease),
+    transform var(--app-dur-fast) var(--app-ease);
+  &:hover {
+    background: color-mix(in hsl, var(--sidebar-accent) 70%, transparent);
+    color: var(--sidebar-accent-foreground);
+  }
+  &:active {
+    transform: scale(0.985);
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in hsl, var(--augusto-gold) 75%, transparent);
+  }
+}
+
+@utility app-nav-item-active {
+  background: color-mix(in hsl, var(--sidebar-accent) 95%, transparent);
+  color: var(--sidebar-accent-foreground);
+  font-weight: 500;
+}
+
+@utility app-rail {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 1.25rem;
+  width: 2px;
+  translate: 0 -50%;
+  border-radius: 9999px;
+  background: var(--augusto-gold);
+  transition: opacity var(--app-dur) var(--app-ease), height var(--app-dur) var(--app-ease);
+}
+
+@utility app-enter {
+  animation: app-enter var(--app-dur-slow) var(--app-ease) both;
+}
+
+@keyframes app-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-enter {
+    animation: none;
+  }
+  * {
+    scroll-behavior: auto;
+  }
+}

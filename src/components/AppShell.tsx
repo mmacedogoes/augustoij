@@ -1,6 +1,16 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Building, User, LogOut, Shield, FileText } from "lucide-react";
-import { useMemo } from "react";
+import {
+  LayoutDashboard,
+  Building,
+  User,
+  LogOut,
+  Shield,
+  FileText,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
+import { useMemo, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
@@ -15,6 +25,9 @@ import { HelpMenu } from "@/components/HelpMenu";
 import { NotificationsBell } from "@/components/contratos-servico/NotificationsBell";
 import { TrialExpiredBanner } from "@/components/gates/PlanGates";
 import { UsageThresholdBanner } from "@/components/gates/UsageThresholdBanner";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { useState, createContext, useContext } from "react";
 
 // Marca que já existe um AppShell montado acima na árvore (layout /app).
@@ -31,6 +44,10 @@ const baseNav = [
 const contratosNav = { to: "/app/contratos/painel", label: "Gestão de Contratos", icon: FileText, tour: "nav-contratos" } as const;
 const adminNav = { to: "/app/admin", label: "Admin", icon: Shield, tour: "nav-admin" } as const;
 
+type NavItem = { to: string; label: string; icon: typeof Building; tour: string };
+
+const COLLAPSE_KEY = "augusto.sidebarRecolhida";
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const jaMontado = useContext(AppShellContext);
   if (jaMontado) return <>{children}</>;
@@ -44,6 +61,34 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
   const checkAdmin = useServerFn(isCurrentUserAdmin);
   const fetchProfile = useServerFn(getProfile);
   const [forceTour, setForceTour] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [recolhida, setRecolhida] = useState(false);
+
+  // Preferência de sidebar recolhida (lida depois da hidratação).
+  useEffect(() => {
+    try {
+      setRecolhida(window.localStorage.getItem(COLLAPSE_KEY) === "1");
+    } catch {
+      /* storage indisponível — mantém expandida */
+    }
+  }, []);
+
+  function alternarRecolhida() {
+    setRecolhida((v) => {
+      const proximo = !v;
+      try {
+        window.localStorage.setItem(COLLAPSE_KEY, proximo ? "1" : "0");
+      } catch {
+        /* ignora */
+      }
+      return proximo;
+    });
+  }
+
+  // Fecha o drawer ao trocar de rota.
+  useEffect(() => {
+    setMenuAberto(false);
+  }, [pathname]);
 
   // Um único fetch em paralelo, cacheado por 5min entre trocas de rota.
   const { data: shellData } = useQuery({
@@ -73,17 +118,17 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
 
   // "Gestão de Contratos" liberado a qualquer usuário autenticado
   // (RLS filtra por dono do condomínio). Admin ganha acesso extra ao painel /admin.
-  const nav = useMemo(
+  const nav = useMemo<ReadonlyArray<NavItem>>(
     () =>
-      isAdmin
-        ? ([...baseNav, contratosNav, adminNav] as ReadonlyArray<
-            typeof baseNav[number] | typeof contratosNav | typeof adminNav
-          >)
-        : ([...baseNav, contratosNav] as ReadonlyArray<
-            typeof baseNav[number] | typeof contratosNav
-          >),
+      (isAdmin ? [...baseNav, contratosNav, adminNav] : [...baseNav, contratosNav]) as NavItem[],
     [isAdmin],
   );
+
+  const ehAtivo = (to: string) => pathname === to || (to !== "/app" && pathname.startsWith(to));
+  const tituloAtual = useMemo(() => {
+    const item = [...nav].reverse().find((n) => ehAtivo(n.to));
+    return item?.label ?? "Início";
+  }, [nav, pathname]);
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -95,120 +140,191 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
 
   return (
     <AppShellContext.Provider value={true}>
-    <div className="min-h-screen bg-background">
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 bg-sidebar text-sidebar-foreground flex-col overflow-hidden border-r border-sidebar-border/60">
-        <Link
-          to="/app"
-          className="p-5 border-b border-sidebar-border/40 flex items-center overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/60 rounded-none transition-opacity hover:opacity-90"
+      <TooltipProvider>
+        <div
+          className="app-surface min-h-screen"
+          style={
+            {
+              "--app-shell-w": recolhida ? "var(--app-sidebar-w-collapsed)" : "var(--app-sidebar-w)",
+            } as React.CSSProperties
+          }
         >
-          <AugustoLogo variant="horizontal" theme="dark" size={180} />
-        </Link>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {nav.map((n) => {
-            const active = pathname === n.to || (n.to !== "/app" && pathname.startsWith(n.to));
-            return (
-              <Link
-                key={n.to}
-                to={n.to as "/app"}
-                data-tour={n.tour}
-                className={`group relative flex items-center gap-3 rounded-md pl-4 pr-3 py-2.5 text-sm transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 focus-visible:ring-offset-0 ${
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground/85 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/60"
-                }`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-augusto-gold transition-opacity duration-200 ${
-                    active ? "opacity-100" : "opacity-0 group-hover:opacity-60"
-                  }`}
-                />
-                <n.icon
-                  className={`h-4 w-4 transition-colors duration-200 ${active ? "text-augusto-gold" : "text-sidebar-foreground/70 group-hover:text-augusto-gold/80"}`}
-                  strokeWidth={1.6}
-                />
-                <span className="truncate">{n.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        <button
-          onClick={handleSignOut}
-          className="m-3 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/80 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70"
-        >
-          <LogOut className="h-4 w-4" strokeWidth={1.6} /> Sair
-        </button>
-      </aside>
+          {/* Sidebar desktop */}
+          <aside
+            className="fixed inset-y-0 left-0 z-40 hidden border-r border-sidebar-border/60 md:block"
+            style={{
+              width: "var(--app-shell-w)",
+              transition: "width var(--app-dur-slow) var(--app-ease)",
+            }}
+          >
+            <SidebarInner
+              compacto={recolhida}
+              nav={nav}
+              ehAtivo={ehAtivo}
+              onSignOut={handleSignOut}
+              onToggle={alternarRecolhida}
+            />
+          </aside>
 
-      <header className="md:hidden border-b border-border bg-card sticky top-0 z-40 shadow-[0_1px_0_0_var(--landing-rule)]">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <Link to="/app" className="flex items-center">
-            <AugustoLogo variant="horizontal" theme="light" size={140} />
-          </Link>
-          <div className="flex items-center gap-1">
-            <NotificationsBell />
-            <HelpMenu onStartTour={() => setForceTour(true)} />
-            <button
-              onClick={handleSignOut}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70"
-            >
-              Sair
-            </button>
+          {/* Drawer mobile */}
+          <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
+            <SheetContent side="left" className="w-[17rem] border-sidebar-border/60 bg-sidebar p-0">
+              <SheetTitle className="sr-only">Menu</SheetTitle>
+              <SidebarInner
+                compacto={false}
+                nav={nav}
+                ehAtivo={ehAtivo}
+                onSignOut={handleSignOut}
+                onToggle={alternarRecolhida}
+              />
+            </SheetContent>
+          </Sheet>
+
+          <div
+            className="flex min-h-screen flex-col md:ml-[var(--app-shell-w)]"
+            style={{ transition: "margin var(--app-dur-slow) var(--app-ease)" }}
+          >
+            <TrialExpiredBanner />
+              <UsageThresholdBanner />
+
+              <header className="app-topbar sticky top-0 z-30 flex h-14 items-center gap-3 px-3 sm:px-4">
+                <button
+                  type="button"
+                  onClick={() => setMenuAberto(true)}
+                  aria-label="Abrir menu"
+                  className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 active:scale-95 md:hidden"
+                >
+                  <Menu className="h-5 w-5" strokeWidth={1.6} />
+                </button>
+
+                <Link to="/app" className="flex items-center md:hidden" aria-label="Início">
+                  <AugustoLogo variant="horizontal" theme="light" size={124} />
+                </Link>
+
+                <span className="hidden min-w-0 truncate font-serif text-[17px] leading-none text-augusto-green md:block">
+                  {tituloAtual}
+                </span>
+
+                <div className="ml-auto flex items-center gap-1">
+                  <NotificationsBell />
+                  <HelpMenu onStartTour={() => setForceTour(true)} />
+                </div>
+              </header>
+
+            <main className="app-enter flex-1 p-4 sm:p-6 md:p-8 lg:p-10">{children}</main>
           </div>
+
+          {profile && (!profile.onboarding_tour_completo || forceTour) && (
+            <OnboardingTour
+              perfil={(profile.perfil_atuacao as never) ?? null}
+              forceRun={forceTour}
+              onClose={() => {
+                setForceTour(false);
+                // Marca o tour como concluído no cache do query (evita reabrir).
+                queryClient.setQueryData<{ isAdmin: boolean; profile: typeof profile } | undefined>(
+                  ["app-shell-bootstrap"],
+                  (prev) =>
+                    prev
+                      ? { ...prev, profile: prev.profile ? { ...prev.profile, onboarding_tour_completo: true } : prev.profile }
+                      : prev,
+                );
+              }}
+            />
+          )}
+
+          {profile && pathname === "/app" && (
+            <DicasPopup userId={profile.id} enabled={profile.dicas_ativas !== false} />
+          )}
         </div>
-        <nav className="flex border-t border-border overflow-x-auto">
-          {nav.map((n) => {
-            const active = pathname === n.to || (n.to !== "/app" && pathname.startsWith(n.to));
-            return (
-              <Link
-                key={n.to}
-                to={n.to as "/app"}
-                data-tour={n.tour}
-                className={`flex-1 min-w-[88px] px-3 py-2.5 text-xs text-center transition-colors duration-200 border-b-2 ${
-                  active
-                    ? "text-augusto-green font-semibold border-augusto-gold"
-                    : "text-muted-foreground border-transparent hover:text-foreground"
-                }`}
-              >
-                {n.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </header>
-
-      <div className="md:ml-60 flex flex-col min-h-screen">
-        <TrialExpiredBanner />
-        <UsageThresholdBanner />
-        <div className="hidden md:flex h-12 items-center justify-end gap-1 border-b border-border/70 bg-card/70 backdrop-blur-sm px-4 sticky top-0 z-30">
-          <NotificationsBell />
-          <HelpMenu onStartTour={() => setForceTour(true)} />
-        </div>
-        <main className="p-4 md:p-8 lg:p-10 flex-1">{children}</main>
-      </div>
-
-      {profile && (!profile.onboarding_tour_completo || forceTour) && (
-        <OnboardingTour
-          perfil={(profile.perfil_atuacao as never) ?? null}
-          forceRun={forceTour}
-          onClose={() => {
-            setForceTour(false);
-            // Marca o tour como concluído no cache do query (evita reabrir).
-            queryClient.setQueryData<{ isAdmin: boolean; profile: typeof profile } | undefined>(
-              ["app-shell-bootstrap"],
-              (prev) =>
-                prev
-                  ? { ...prev, profile: prev.profile ? { ...prev.profile, onboarding_tour_completo: true } : prev.profile }
-                  : prev,
-            );
-          }}
-        />
-      )}
-
-      {profile && pathname === "/app" && (
-        <DicasPopup userId={profile.id} enabled={profile.dicas_ativas !== false} />
-      )}
-    </div>
+      </TooltipProvider>
     </AppShellContext.Provider>
+  );
+}
+
+type SidebarProps = {
+  compacto: boolean;
+  nav: ReadonlyArray<NavItem>;
+  ehAtivo: (to: string) => boolean;
+  onSignOut: () => void;
+  onToggle: () => void;
+};
+
+function SidebarInner({ compacto, nav, ehAtivo, onSignOut, onToggle }: SidebarProps) {
+  return (
+    <div className="flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground">
+      <Link
+        to="/app"
+        className={cn(
+          "flex items-center overflow-hidden border-b border-sidebar-border/40 transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/60",
+          compacto ? "justify-center p-4" : "p-5",
+        )}
+        aria-label="Ir para o início"
+      >
+        <AugustoLogo variant={compacto ? "icon-only" : "horizontal"} theme="dark" size={compacto ? 32 : 180} />
+      </Link>
+
+      <nav className="flex-1 space-y-1 px-3 py-4">
+        {nav.map((n) => {
+          const active = ehAtivo(n.to);
+          const link = (
+            <Link
+              key={n.to}
+              to={n.to as "/app"}
+              data-tour={n.tour}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "app-nav-item group",
+                active && "app-nav-item-active",
+                compacto && "justify-center px-0 pl-0",
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn("app-rail", active ? "opacity-100" : "opacity-0 group-hover:opacity-60")}
+              />
+              <n.icon
+                className={cn(
+                  "h-4 w-4 shrink-0 transition-colors duration-200",
+                  active ? "text-augusto-gold" : "text-sidebar-foreground/70 group-hover:text-augusto-gold/80",
+                )}
+                strokeWidth={1.6}
+              />
+              {!compacto && <span className="truncate">{n.label}</span>}
+            </Link>
+          );
+          if (!compacto) return link;
+          return (
+            <Tooltip key={n.to} delayDuration={120}>
+              <TooltipTrigger asChild>{link}</TooltipTrigger>
+              <TooltipContent side="right">{n.label}</TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </nav>
+
+      <div className="space-y-1 border-t border-sidebar-border/40 p-3">
+        <button
+          onClick={onSignOut}
+          className={cn("app-nav-item w-full", compacto && "justify-center px-0 pl-0")}
+        >
+          <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.6} />
+          {!compacto && <span>Sair</span>}
+        </button>
+        <button
+          onClick={onToggle}
+          className={cn("app-nav-item hidden w-full md:flex", compacto && "justify-center px-0 pl-0")}
+          aria-label={compacto ? "Expandir menu" : "Recolher menu"}
+        >
+          {compacto ? (
+            <PanelLeftOpen className="h-4 w-4 shrink-0" strokeWidth={1.6} />
+          ) : (
+            <>
+              <PanelLeftClose className="h-4 w-4 shrink-0" strokeWidth={1.6} />
+              <span>Recolher</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
