@@ -26,7 +26,7 @@ export function ListaMeusChamados() {
   });
 
   return (
-    <Card className="app-card app-card p-6 space-y-4" id="suporte">
+    <Card className="app-card p-6 space-y-4" id="suporte">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span className="app-icon-frame h-8 w-8"><LifeBuoy className="h-4 w-4" strokeWidth={1.6} /></span>

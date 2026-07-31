@@ -51,7 +51,7 @@ function AdminHelpdeskListPage() {
           <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">Chamados abertos pelos usuários. Responda em até 24h úteis.</p>
         </div>
 
-        <Card className="app-card app-card p-5 mt-6 space-y-4">
+        <Card className="app-card p-5 mt-6 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
