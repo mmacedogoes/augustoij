@@ -192,7 +192,7 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
           )}
           aria-label="Ir para o início"
         >
-          <AugustoLogo variant={compacto ? "icon" : "horizontal"} theme="dark" size={compacto ? 32 : 180} />
+          <AugustoLogo variant={compacto ? "icon-only" : "horizontal"} theme="dark" size={compacto ? 32 : 180} />
         </Link>
 
         <NavList compacto={compacto} />
