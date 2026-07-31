@@ -22,6 +22,8 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, Upload, FileText, ArrowLeft, Sparkles, Trash2, Plus, CheckCircle2, AlertTriangle } from "lucide-react";
 import { ContratoForm, type ContratoFormValues } from "@/components/contratos-servico/ContratoForm";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { listCondominiosParaContratos } from "@/lib/contratos-servico/contratos.functions";
 import {
   extrairContratoServico,
@@ -188,13 +190,13 @@ function Page() {
       <div className="max-w-5xl space-y-6">
         <ContratosTabs condominioId={condominioId || null} />
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="app-eyebrow">Contratos</p>
-            <h1 className="text-3xl font-serif text-primary">Importar contrato com IA</h1>
-            <p className="text-muted-foreground">
+          <header className="app-page-header">
+            <span className="app-eyebrow">Contratos</span>
+            <h1 className="app-title">Importar contrato com IA</h1>
+            <p className="app-subtitle">
               A IA lê o arquivo e sugere os campos e obrigações. Nada é salvo sem sua confirmação.
             </p>
-          </div>
+          </header>
           <Button variant="outline" onClick={() => navigate({ to: "/app/contratos" })}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
           </Button>
@@ -207,7 +209,7 @@ function Page() {
             <div>
               <Label>Condomínio</Label>
               {!condos ? (
-                <div className="mt-2 text-sm text-muted-foreground">Carregando…</div>
+                <div className="mt-2"><AppSkeletonLines lines={2} /></div>
               ) : condos.length === 0 ? (
                 <div className="mt-2 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
                   Cadastre um condomínio antes de importar contratos.
@@ -277,10 +279,13 @@ function Page() {
                 {!condominioId ? (
                   <div className="mt-2 text-sm text-muted-foreground">Selecione um condomínio para listar os documentos.</div>
                 ) : carregandoDocs ? (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando…</div>
+                  <div className="mt-2"><AppSkeletonLines lines={2} /></div>
                 ) : !docs || docs.length === 0 ? (
-                  <div className="mt-2 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-                    Nenhum contrato encontrado no acervo deste condomínio.
+                  <div className="mt-2 rounded-md border border-border bg-muted/40">
+                    <AppEmptyState
+                      title="Nenhum contrato encontrado"
+                      description="Não há documentos no acervo deste condomínio."
+                    />
                   </div>
                 ) : (
                   <Select value={docId} onValueChange={setDocId}>
@@ -322,7 +327,7 @@ function Page() {
         {passo === "revisao" && extracao && (
           <div className="space-y-6">
             {extracao.extracaoOk ? (
-              <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+              <div className="flex items-start gap-2 rounded-md border border-augusto-green/30 bg-augusto-green/5 p-3 text-sm text-foreground">
                 <CheckCircle2 className="mt-0.5 h-4 w-4" />
                 <div>
                   <div className="font-medium">Extração concluída.</div>

@@ -617,7 +617,7 @@ function StatBadge({
   const tones: Record<string, string> = {
     default: "bg-augusto-gold/10 text-augusto-gold ring-augusto-gold/25",
     muted: "bg-muted text-muted-foreground ring-border",
-    positive: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/25 dark:text-emerald-400",
+    positive: "bg-augusto-green/10 text-augusto-green ring-augusto-green/25",
     warning: "bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-400",
   };
   return (
@@ -683,7 +683,7 @@ function ClauseRow({
           empty
             ? "text-muted-foreground"
             : positive === true
-              ? "text-emerald-600 dark:text-emerald-400"
+              ? "text-augusto-green"
               : "text-foreground"
         }`}
       >

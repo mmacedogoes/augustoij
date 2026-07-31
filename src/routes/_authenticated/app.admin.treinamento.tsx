@@ -51,6 +51,7 @@ import {
   deleteKbDocumento,
   getKbFileUrl,
 } from "@/lib/admin-kb.functions";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 export const Route = createFileRoute("/_authenticated/app/admin/treinamento")({
   component: Page,
@@ -154,11 +155,14 @@ function Page() {
   return (
     <AppShell>
       <div className="max-w-6xl">
-        <h1 className="text-3xl font-bold text-primary">Treinar a IA</h1>
-        <p className="text-muted-foreground">
-          Alimente o assistente com jurisprudências, artigos, peças e legislação. O conteúdo é
-          indexado por embeddings e usado em todas as respostas.
-        </p>
+        <header className="app-page-header">
+          <span className="app-eyebrow">Administração</span>
+          <h1 className="app-title">Treinar a IA</h1>
+          <p className="app-subtitle">
+            Alimente o assistente com jurisprudências, artigos, peças e legislação. O conteúdo é
+            indexado por embeddings e usado em todas as respostas.
+          </p>
+        </header>
         <div className="mt-6">
           <AdminNav />
         </div>
@@ -209,16 +213,17 @@ function Page() {
         </div>
 
         {docs.length === 0 ? (
-          <Card className="app-card p-8 text-center border-dashed">
-            <BookOpen className="h-10 w-10 text-muted-foreground mx-auto" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              Nenhum conteúdo na base ainda. Comece adicionando uma jurisprudência ou um artigo.
-            </p>
+          <Card className="app-card border-dashed">
+            <AppEmptyState
+              icon={<BookOpen />}
+              title="Nenhum conteúdo na base ainda"
+              description="Comece adicionando uma jurisprudência ou um artigo."
+            />
           </Card>
         ) : (
           <Card className="app-card divide-y divide-[var(--landing-rule)]">
             {docs.map((d) => (
-              <div key={d.id} className="flex items-center gap-3 p-4">
+              <div key={d.id} className="flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                 <FileText className="h-5 w-5 text-accent shrink-0" />
                 <div className="flex-1 min-w-0">
                   {d.storage_path || d.url ? (

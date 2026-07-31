@@ -31,6 +31,7 @@ import {
   adminUpdateSubscription,
   type UsuarioDetalhe,
 } from "@/lib/admin.functions";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { PLANS, PLAN_IDS, CLASSIFICACAO_VINCULADO, type PlanId } from "@/config/plans";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios/$userId")({
@@ -115,7 +116,7 @@ function AdminUsuarioDetalhePage() {
         </div>
 
         {/* KPIs */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 app-stagger">
           <Kpi icon={Building2} label="Condomínios" value={String(data.condominios.length)} />
           <Kpi icon={MessageSquare} label="Mensagens no mês" value={data.usoMes.mensagens.toLocaleString("pt-BR")} />
           <Kpi icon={Wallet} label="Custo do mês" value={BRL(data.usoMes.custo_brl)} />
@@ -180,11 +181,11 @@ function AdminUsuarioDetalhePage() {
             <h2 className="font-semibold">Condomínios ({data.condominios.length})</h2>
           </div>
           {data.condominios.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum condomínio cadastrado.</p>
+            <AppEmptyState icon={<Building2 />} title="Nenhum condomínio cadastrado" />
           ) : (
             <ul className="divide-y divide-[var(--landing-rule)]">
               {data.condominios.map((c) => (
-                <li key={c.id} className="py-2.5 flex items-center justify-between gap-3">
+                <li key={c.id} className="py-2.5 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{c.nome}</p>
                     <p className="text-xs text-muted-foreground">
@@ -258,15 +259,17 @@ function MembrosVinculadosCard({
       </div>
 
       {membros.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Este titular ainda não cadastrou usuários vinculados.
-        </p>
+        <AppEmptyState
+          icon={<Users />}
+          title="Nenhum usuário vinculado"
+          description="Este titular ainda não cadastrou usuários vinculados."
+        />
       ) : (
         <ul className="divide-y divide-[var(--landing-rule)] -mx-1">
           {membros.map((m) => (
             <li
               key={`${m.condominio_id}:${m.user_id}`}
-              className="px-1 py-3 flex flex-wrap items-center gap-3"
+              className="px-1 py-3 flex flex-wrap items-center gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground truncate">

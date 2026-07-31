@@ -41,6 +41,8 @@ import {
   updateConfigAlertas,
   getConsumoPorOrigemMes,
 } from "@/lib/admin-uso.functions";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 export const Route = createFileRoute("/_authenticated/app/admin/uso")({
   component: UsoPage,
@@ -62,10 +64,13 @@ function UsoPage() {
   return (
     <AppShell>
       <div className="max-w-6xl">
-        <h1 className="text-3xl font-bold text-primary">Uso & Custos</h1>
-        <p className="text-muted-foreground">
-          Consumo de mensagens, storage e desempenho por usuário. Configure alertas de uso.
-        </p>
+        <header className="app-page-header">
+          <span className="app-eyebrow">Administração</span>
+          <h1 className="app-title">Uso & Custos</h1>
+          <p className="app-subtitle">
+            Consumo de mensagens, storage e desempenho por usuário. Configure alertas de uso.
+          </p>
+        </header>
         <div className="mt-6">
           <AdminNav />
         </div>
@@ -123,7 +128,7 @@ function OverviewTab() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
         <Metric
           icon={MessagesSquare}
           label="Mensagens no mês"
@@ -166,8 +171,8 @@ function OverviewTab() {
             {!r ? (
               <Skeleton className="h-full w-full rounded-[var(--app-radius)]" />
             ) : serie.length === 0 ? (
-              <div className="h-full grid place-items-center text-xs text-muted-foreground">
-                Sem dados no período.
+              <div className="h-full grid place-items-center">
+                <AppEmptyState icon={<MessagesSquare />} title="Sem dados no período" className="py-0" />
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -235,7 +240,7 @@ function OverviewTab() {
             {!r ? (
               Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)
             ) : top.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-6 text-center">Sem consumo registrado.</p>
+              <AppEmptyState icon={<Coins />} title="Sem consumo registrado" className="py-6" />
             ) : (
               top.map((u) => (
                 <Link
@@ -266,7 +271,7 @@ function OverviewTab() {
       </div>
 
       {/* Operacional */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 app-stagger">
         <MiniCard
           icon={HardDrive}
           label="Storage total"
@@ -334,9 +339,7 @@ function ConsumoPorOrigem() {
         {!data ? (
           Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)
         ) : linhas.filter((l) => l.credits > 0).length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4 text-center">
-            Sem consumo registrado neste mês.
-          </p>
+          <AppEmptyState icon={<Coins />} title="Sem consumo registrado neste mês" className="py-4" />
         ) : (
           linhas
             .filter((l) => l.credits > 0)
@@ -506,10 +509,12 @@ function UsuariosTab() {
           <div className="col-span-2 text-right">Custo total</div>
         </div>
         <div className="divide-y divide-[var(--landing-rule)]">
-          {rows.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground text-center">
-              {loading ? "Carregando…" : "Sem dados no período."}
-            </p>
+          {loading && rows.length === 0 ? (
+            <div className="p-6">
+              <AppSkeletonLines lines={4} />
+            </div>
+          ) : rows.length === 0 ? (
+            <AppEmptyState icon={<Users />} title="Sem dados no período" />
           ) : (
             rows.map((r) => (
               <div
@@ -632,7 +637,7 @@ function AlertasTab() {
     listFn({ data: undefined as never }).then((x) => setRows(x as typeof rows)).catch(() => {});
   }, [cfgFn, listFn]);
 
-  if (!cfg) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  if (!cfg) return <div className="max-w-xl"><AppSkeletonLines lines={5} /></div>;
 
   const salvar = async () => {
     const thr = thresholdsStr.split(",").map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0);

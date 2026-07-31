@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Loader2, LifeBuoy, Plus, AlertCircle, ChevronRight } from "lucide-react";
+import { LifeBuoy, Plus, AlertCircle, ChevronRight, Inbox } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { listMeusTickets, ASSUNTOS } from "@/lib/helpdesk.functions";
@@ -26,7 +28,7 @@ export function ListaMeusChamados() {
   });
 
   return (
-    <Card className="app-card p-6 space-y-4" id="suporte">
+    <Card className="app-card p-5 sm:p-6 space-y-4" id="suporte">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span className="app-icon-frame h-8 w-8"><LifeBuoy className="h-4 w-4" strokeWidth={1.6} /></span>
@@ -41,9 +43,7 @@ export function ListaMeusChamados() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando…
-        </div>
+        <AppSkeletonLines lines={4} />
       ) : isError ? (
         <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
           <div className="flex items-center gap-2 text-destructive font-medium mb-1">
@@ -53,20 +53,21 @@ export function ListaMeusChamados() {
           <Button size="sm" variant="outline" className="mt-2" onClick={() => refetch()}>Tentar novamente</Button>
         </div>
       ) : !data || data.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border/60 py-8 text-center text-sm text-muted-foreground">
-          Você ainda não abriu nenhum chamado.
-        </div>
+        <AppEmptyState
+          icon={<Inbox />}
+          title="Você ainda não abriu nenhum chamado."
+        />
       ) : (
         <ul className="divide-y divide-[var(--landing-rule)] rounded-md border border-border/60">
           {data.map((t) => {
             const st = STATUS[t.status] ?? STATUS.aberto;
             const assunto = ASSUNTOS.find((a) => a.value === t.assunto)?.label ?? t.assunto;
             return (
-              <li key={t.id}>
+              <li key={t.id} className="hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
                 <Link
                   to="/app/suporte/$ticketId"
                   params={{ ticketId: t.id }}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors"
+                  className="flex items-center gap-3 px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t.protocolo} · {assunto}</p>
