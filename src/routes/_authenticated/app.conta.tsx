@@ -166,7 +166,7 @@ function ContaPage() {
           <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">Gerencie seus dados, plano e segurança.</p>
         </div>
 
-        <Card className="app-card p-6 space-y-5">
+        <Card className="app-card app-card p-6 space-y-5">
           <div id="dados" className="flex items-center justify-between scroll-mt-24">
             <h2 className="app-section-title">Seus dados</h2>
             {profile?.tipo_pessoa && (
@@ -204,7 +204,7 @@ function ContaPage() {
           </div>
         </Card>
 
-        <Card className="app-card p-6 space-y-5">
+        <Card className="app-card app-card p-6 space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Plano atual</p>
@@ -317,7 +317,7 @@ function ContaPage() {
           )}
         </Card>
 
-        <Card className="app-card p-6 space-y-4">
+        <Card className="app-card app-card p-6 space-y-4">
           <h2 className="app-section-title">Segurança</h2>
           <div className="grid sm:grid-cols-2 gap-4 max-w-xl">
             <div className="space-y-1.5">
@@ -426,7 +426,7 @@ function PrivacidadeSection() {
   }
 
   return (
-    <Card className="app-card p-6 space-y-5">
+    <Card className="app-card app-card p-6 space-y-5">
       <div className="flex items-center gap-2.5">
         <span className="app-icon-frame h-8 w-8">
           <Shield className="h-4 w-4" strokeWidth={1.6} />

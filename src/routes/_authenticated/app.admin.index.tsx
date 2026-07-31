@@ -169,7 +169,7 @@ function Kpi({
     muted: "bg-muted text-muted-foreground ring-border",
   };
   return (
-    <Card className="group p-5 border-border/60 rounded-[var(--app-radius)] transition-all duration-200 hover:border-border hover:shadow-sm">
+    <Card className="app-card app-card-interactive group p-5 transition-all duration-200 hover:border-border">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
         <span
@@ -204,7 +204,7 @@ function MiniStat({
   const iconColor =
     tone === "danger" ? "text-destructive" : tone === "accent" ? "text-accent" : "text-muted-foreground";
   return (
-    <Card className="p-4 border-border/60 rounded-[var(--app-radius)] transition-all duration-200 hover:border-border">
+    <Card className="app-card p-4 transition-all duration-200 hover:border-border">
       <div className="flex items-center gap-2">
         <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>

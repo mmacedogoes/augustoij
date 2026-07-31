@@ -210,7 +210,7 @@ function CondominiosPage() {
 
         <div className="mt-2 grid sm:grid-cols-2 gap-4">
           {items.length === 0 ? (
-            <Card className="p-10 text-center border-dashed border-[var(--landing-rule)] col-span-full bg-gradient-to-b from-card to-muted/30">
+            <Card className="app-card p-10 text-center border-dashed border-[var(--landing-rule)] col-span-full bg-gradient-to-b from-card to-muted/30">
               <span className="app-icon-frame mx-auto h-14 w-14 rounded-[var(--app-radius)]">
                 <Building className="h-6 w-6" strokeWidth={1.5} />
               </span>
@@ -223,7 +223,7 @@ function CondominiosPage() {
               params={{ id: c.id }}
               className="group focus-visible:outline-none"
             >
-              <Card className="app-card-interactive p-5 group-focus-visible:ring-2 group-focus-visible:ring-augusto-gold/70">
+              <Card className="app-card app-card-interactive p-5 group-focus-visible:ring-2 group-focus-visible:ring-augusto-gold/70">
                 <div className="flex items-center gap-3.5">
                   <span className="app-icon-frame group-hover:bg-augusto-gold/20 group-hover:border-augusto-gold/50">
                     <Building className="h-5 w-5" strokeWidth={1.6} />

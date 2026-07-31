@@ -48,7 +48,7 @@ function Page() {
         </p>
         <div className="mt-6"><AdminNav /></div>
 
-        <Card className="divide-y divide-[var(--landing-rule)]">
+        <Card className="app-card divide-y divide-[var(--landing-rule)]">
           {rows.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">Nenhuma cidade nova no momento.</p>
           ) : rows.map((r) => (

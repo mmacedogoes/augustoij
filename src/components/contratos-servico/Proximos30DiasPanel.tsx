@@ -23,7 +23,7 @@ export function Proximos30DiasPanel() {
   }, [listFn]);
 
   return (
-    <Card className="p-4">
+    <Card className="app-card p-4">
       <div className="mb-3 flex items-center gap-2">
         <CalendarClock className="h-4 w-4 text-augusto-green" />
         <h2 className="text-lg font-serif text-primary">Próximos 30 dias</h2>

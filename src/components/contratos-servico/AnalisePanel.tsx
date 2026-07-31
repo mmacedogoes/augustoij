@@ -100,7 +100,7 @@ export function AnalisePanel({
   }
 
   return (
-    <Card className="p-4">
+    <Card className="app-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h3 className="text-lg font-serif text-primary">Análise com o Augusto</h3>

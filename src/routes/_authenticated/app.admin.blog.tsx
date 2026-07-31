@@ -146,7 +146,7 @@ function PostsList({ refreshKey }: { refreshKey: number }) {
   }, [refresh, refreshKey]);
 
   return (
-    <Card className="divide-y divide-[var(--landing-rule)]">
+    <Card className="app-card divide-y divide-[var(--landing-rule)]">
       {loading ? (
         <p className="p-4 text-sm text-muted-foreground flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
@@ -536,7 +536,7 @@ function CategoriasTab() {
   }, [list]);
   useEffect(refresh, [refresh]);
   return (
-    <Card className="p-5 space-y-4">
+    <Card className="app-card p-5 space-y-4">
       <form
         onSubmit={async (e) => {
           e.preventDefault();

@@ -169,7 +169,7 @@ export function HelpdeskConversa({ ticketId, voltarHref, isAdmin }: { ticketId: 
   }
   if (isError || !data) {
     return (
-      <Card className="app-card p-8 text-center space-y-3">
+      <Card className="app-card app-card p-8 text-center space-y-3">
         <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
         <p className="text-sm text-muted-foreground">
           {error instanceof Error ? error.message : "Não foi possível carregar o chamado."}
@@ -196,7 +196,7 @@ export function HelpdeskConversa({ ticketId, voltarHref, isAdmin }: { ticketId: 
           <Link to={voltarHref as never}><ChevronLeft className="h-4 w-4" /> Voltar</Link>
         </Button>
       </div>
-      <Card className="app-card p-5 sm:p-6">
+      <Card className="app-card app-card p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -221,7 +221,7 @@ export function HelpdeskConversa({ ticketId, voltarHref, isAdmin }: { ticketId: 
         </div>
       </Card>
 
-      <Card className="app-card p-0 overflow-hidden">
+      <Card className="app-card app-card p-0 overflow-hidden">
         <div ref={scrollRef} className="max-h-[520px] overflow-y-auto p-5 sm:p-6 space-y-4">
           {mensagens.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Nenhuma mensagem ainda.</p>

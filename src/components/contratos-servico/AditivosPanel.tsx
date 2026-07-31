@@ -98,7 +98,7 @@ export function AditivosPanel({
   }
 
   return (
-    <Card className="p-4">
+    <Card className="app-card p-4">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="text-lg font-serif text-primary">Aditivos</h3>

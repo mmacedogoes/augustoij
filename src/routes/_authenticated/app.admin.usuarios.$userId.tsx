@@ -128,7 +128,7 @@ function AdminUsuarioDetalhePage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           {/* Dados pessoais */}
-          <Card className="p-5 space-y-3">
+          <Card className="app-card p-5 space-y-3">
             <div className="flex items-center gap-2">
               <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
                 <ShieldCheck className="h-4 w-4" strokeWidth={1.75} />
@@ -147,7 +147,7 @@ function AdminUsuarioDetalhePage() {
           </Card>
 
           {/* Financeiro */}
-          <Card className="p-5 space-y-3">
+          <Card className="app-card p-5 space-y-3">
             <div className="flex items-center gap-2">
               <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
                 <Wallet className="h-4 w-4" strokeWidth={1.75} />
@@ -172,7 +172,7 @@ function AdminUsuarioDetalhePage() {
         <PlanoControls detalhe={data} onSaved={() => refetch()} updateSub={updateSub} />
 
         {/* Condomínios */}
-        <Card className="p-5">
+        <Card className="app-card p-5">
           <div className="flex items-center gap-2 mb-3">
             <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
               <Building2 className="h-4 w-4" strokeWidth={1.75} />
@@ -214,7 +214,7 @@ function Kpi({
   value: string;
 }) {
   return (
-    <Card className="p-4 transition-shadow duration-200 hover:shadow-sm">
+    <Card className="app-card app-card-interactive p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4" strokeWidth={1.75} />
         <span className="text-[11px] uppercase tracking-wide font-medium">{label}</span>
@@ -239,7 +239,7 @@ function MembrosVinculadosCard({
   membros: UsuarioDetalhe["membrosVinculados"];
 }) {
   return (
-    <Card className="p-5">
+    <Card className="app-card p-5">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary shrink-0">
@@ -421,7 +421,7 @@ function PlanoControls({
   }
 
   return (
-    <Card className="p-5">
+    <Card className="app-card p-5">
       <div className="flex items-center gap-2 mb-4">
         <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
           <Unlock className="h-4 w-4" strokeWidth={1.75} />

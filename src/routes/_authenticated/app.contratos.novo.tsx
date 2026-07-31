@@ -183,7 +183,7 @@ function Page() {
         )}
 
         {modo === "ia_upload" && (
-          <Card className="space-y-5 p-6">
+          <Card className="app-card space-y-5 p-6">
             <div className="flex items-start gap-3">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-augusto-gold/15 text-augusto-gold">
                 <Sparkles className="h-5 w-5" />
@@ -260,7 +260,7 @@ function Page() {
         )}
 
         {modo === "ia_processando" && (
-          <Card className="flex flex-col items-center gap-3 p-12 text-center">
+          <Card className="app-card flex flex-col items-center gap-3 p-12 text-center">
             <div className="grid h-12 w-12 place-items-center rounded-full bg-augusto-gold/15">
               <Loader2 className="h-6 w-6 animate-spin text-augusto-gold" />
             </div>
@@ -296,7 +296,7 @@ function Page() {
             )}
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-              <Card className="p-5">
+              <Card className="app-card p-5">
                 <ContratoForm
                   initial={initialForm}
                   submitLabel="Salvar contrato"
@@ -313,7 +313,7 @@ function Page() {
         )}
 
         {modo === "manual" && (
-          <Card className="p-5">
+          <Card className="app-card p-5">
             <ContratoForm
               onSaved={(id) => navigate({ to: "/app/contratos/$contratoId", params: { contratoId: id } })}
               submitLabel="Criar contrato"

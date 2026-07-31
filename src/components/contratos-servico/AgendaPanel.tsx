@@ -123,7 +123,7 @@ export function AgendaPanel({ contratoId }: { contratoId: string }) {
   }
 
   return (
-    <Card className="p-4">
+    <Card className="app-card p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-lg font-serif text-primary">Agenda do contrato</h3>

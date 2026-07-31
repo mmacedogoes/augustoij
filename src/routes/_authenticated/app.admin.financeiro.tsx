@@ -84,19 +84,19 @@ function ReceitaTab() {
   if (!r) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <p className="text-xs uppercase text-muted-foreground">MRR projetado</p>
         <p className="mt-2 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
       </Card>
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <p className="text-xs uppercase text-muted-foreground">Assinaturas ativas</p>
         <p className="mt-2 text-2xl font-bold text-primary">{r.assinaturas_ativas}</p>
       </Card>
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <p className="text-xs uppercase text-muted-foreground">Ticket médio</p>
         <p className="mt-2 text-2xl font-bold text-primary">{brl(r.ticket_medio)}</p>
       </Card>
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <p className="text-xs uppercase text-muted-foreground">Receita do mês</p>
         <p className="mt-2 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
         <p className="mt-1 text-xs text-muted-foreground">Estimativa baseada nas assinaturas ativas.</p>
@@ -117,20 +117,20 @@ function CustosTab() {
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-3 gap-4">
-        <Card className="p-5">
+        <Card className="app-card p-5">
           <p className="text-xs uppercase text-muted-foreground">Custo clientes (mês)</p>
           <p className="mt-2 text-2xl font-bold text-primary">{brl(r?.custos_clientes_mes ?? 0)}</p>
         </Card>
-        <Card className="p-5">
+        <Card className="app-card p-5">
           <p className="text-xs uppercase text-muted-foreground">Despesas operacionais (mês)</p>
           <p className="mt-2 text-2xl font-bold text-primary">{brl(r?.despesas_mes ?? 0)}</p>
         </Card>
-        <Card className="p-5">
+        <Card className="app-card p-5">
           <p className="text-xs uppercase text-muted-foreground">Custo total</p>
           <p className="mt-2 text-2xl font-bold text-primary">{brl((r?.custos_clientes_mes ?? 0) + (r?.despesas_mes ?? 0))}</p>
         </Card>
       </div>
-      <Card className="divide-y divide-[var(--landing-rule)]">
+      <Card className="app-card divide-y divide-[var(--landing-rule)]">
         <div className="p-4 text-xs uppercase text-muted-foreground grid grid-cols-12 gap-2">
           <div className="col-span-5">Cliente</div>
           <div className="col-span-2 text-right">Mensagens</div>
@@ -165,15 +165,15 @@ function MargemTab() {
   const margem = r.margem_mes;
   return (
     <div className="grid sm:grid-cols-3 gap-4">
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <p className="text-xs uppercase text-muted-foreground">Receita</p>
         <p className="mt-2 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
       </Card>
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <p className="text-xs uppercase text-muted-foreground">Custo total</p>
         <p className="mt-2 text-2xl font-bold text-primary">{brl(r.custos_clientes_mes + r.despesas_mes)}</p>
       </Card>
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <p className="text-xs uppercase text-muted-foreground">Margem do mês</p>
         <p className={`mt-2 text-2xl font-bold ${margem >= 0 ? "text-emerald-500" : "text-red-500"}`}>
           {brl(margem)}
@@ -233,7 +233,7 @@ function DespesasTab() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <form onSubmit={add} className="grid md:grid-cols-6 gap-2 items-end">
           <div className="md:col-span-2">
             <Label className="text-xs">Descrição</Label>
@@ -254,7 +254,7 @@ function DespesasTab() {
           <Button type="submit"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
         </form>
       </Card>
-      <Card className="divide-y divide-[var(--landing-rule)]">
+      <Card className="app-card divide-y divide-[var(--landing-rule)]">
         {rows.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Nenhuma despesa registrada.</p>
         ) : (
@@ -304,7 +304,7 @@ function CancelamentosTab() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <p className="text-xs uppercase text-muted-foreground mb-3">Motivos declarados</p>
         {data.agregado.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum cancelamento registrado.</p>
@@ -319,7 +319,7 @@ function CancelamentosTab() {
           </div>
         )}
       </Card>
-      <Card className="divide-y divide-[var(--landing-rule)]">
+      <Card className="app-card divide-y divide-[var(--landing-rule)]">
         <div className="p-4 text-xs uppercase text-muted-foreground grid grid-cols-12 gap-2">
           <div className="col-span-4">Cliente</div>
           <div className="col-span-2">Plano</div>

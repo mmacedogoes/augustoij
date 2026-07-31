@@ -120,7 +120,7 @@ function Page() {
           <Proximos30DiasPanel />
         </div>
 
-        <Card className="p-4 mb-4">
+        <Card className="app-card p-4 mb-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Select value={condominioId} onValueChange={setCondominioId}>
               <SelectTrigger>
@@ -176,7 +176,7 @@ function Page() {
         ) : rows === null ? (
           <p className="text-sm text-muted-foreground">Carregando contratos…</p>
         ) : total === 0 ? (
-          <Card className="p-10 text-center">
+          <Card className="app-card p-10 text-center">
             <FileText className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" strokeWidth={1.2} />
             <p className="font-medium text-primary">Nenhum contrato encontrado</p>
             <p className="text-sm text-muted-foreground mb-4">
@@ -187,7 +187,7 @@ function Page() {
             </Button>
           </Card>
         ) : (
-          <Card className="overflow-hidden">
+          <Card className="app-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
@@ -243,7 +243,7 @@ function Counter({ label, value, tone }: { label: string; value: number; tone: "
     red: "text-red-700",
   };
   return (
-    <Card className="p-4">
+    <Card className="app-card p-4">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={`text-3xl font-semibold ${tones[tone]}`}>{value}</p>
     </Card>

@@ -130,7 +130,7 @@ function Page() {
           <Kpi to="/app/contratos/painel" label="Não conformidades trabalhistas" value={ind?.nao_conformidades_mes} icon={<ShieldAlert className="h-4 w-4" />} tone="vermelho" />
         </div>
 
-        <Card className="p-4 mb-4">
+        <Card className="app-card p-4 mb-4">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Valor mensal contratado</p>
           <p className="text-2xl font-serif text-primary mt-1">
             {ind === null ? "…" : formatBRL(ind.valor_mensal_total)}
@@ -284,7 +284,7 @@ function Kpi({
 
 function Bloco({ titulo, icon, children }: { titulo: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <Card className="p-4 mb-4">
+    <Card className="app-card p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-augusto-green">{icon}</span>
         <h2 className="text-lg font-serif text-primary">{titulo}</h2>

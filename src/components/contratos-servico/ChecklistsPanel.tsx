@@ -219,7 +219,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
       </div>
 
       {vazio ? (
-        <Card className="p-8 text-center">
+        <Card className="app-card p-8 text-center">
           <p className="mb-3 text-sm text-muted-foreground">
             Este contrato ainda não tem checklists gerados.
           </p>

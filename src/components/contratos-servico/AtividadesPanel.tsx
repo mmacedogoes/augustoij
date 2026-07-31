@@ -72,7 +72,7 @@ export function AtividadesPanel({ contratoId }: { contratoId: string }) {
   }, [contratoId]);
 
   return (
-    <Card className="p-4">
+    <Card className="app-card p-4">
       <div className="mb-4">
         <h3 className="text-lg font-serif text-primary">Atividades</h3>
         <p className="text-sm text-muted-foreground">

@@ -335,7 +335,7 @@ export function UnidadesPanel({
 
   if (loading) {
     return (
-      <Card className="p-8 text-center text-sm text-muted-foreground">
+      <Card className="app-card p-8 text-center text-sm text-muted-foreground">
         <Loader2 className="h-5 w-5 mx-auto mb-2 animate-spin" /> Carregando unidades...
       </Card>
     );
@@ -344,7 +344,7 @@ export function UnidadesPanel({
   return (
     <div className="space-y-4">
       {isOwner && sugestoes.length > 0 && (
-        <Card className="p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
+        <Card className="app-card p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
           <div className="flex-1 min-w-[220px]">
             <p className="text-sm font-medium">
@@ -432,14 +432,14 @@ export function UnidadesPanel({
       </div>
 
       {unidades.length === 0 ? (
-        <Card className="p-8 text-center border-dashed">
+        <Card className="app-card p-8 text-center border-dashed">
           <p className="text-sm text-muted-foreground">
             Nenhuma unidade cadastrada.{" "}
             {isOwner && "Use 'Nova unidade' ou 'Importar unidades e condôminos'."}
           </p>
         </Card>
       ) : (
-        <Card className="divide-y divide-[var(--landing-rule)]">
+        <Card className="app-card divide-y divide-[var(--landing-rule)]">
           {unidades.map((u) => (
             <div key={u.id} className="p-4 flex items-center gap-3">
               <button

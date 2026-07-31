@@ -134,7 +134,7 @@ function AssinaturaPage() {
       </div>
 
       {/* Conta vinculada */}
-      <Card className="border-augusto-green/20">
+      <Card className="app-card border-augusto-green/20">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2 text-augusto-green">
             <UserCheck className="h-4 w-4" />
@@ -190,7 +190,7 @@ function AssinaturaPage() {
       </Card>
 
       {pendenteAtiva && pendente.data?.asaas_payment_url && (
-        <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+        <Card className="app-card border-amber-300 bg-amber-50 dark:bg-amber-950/20">
           <CardContent className="pt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm">
               Você já tem uma assinatura aguardando pagamento
@@ -212,7 +212,7 @@ function AssinaturaPage() {
         </Card>
       )}
 
-      <Card className="border-augusto-gold/25">
+      <Card className="app-card border-augusto-gold/25">
         <CardHeader>
           <CardTitle className="text-lg text-augusto-green">
             Plano {planoInfo.nome}

@@ -302,7 +302,7 @@ function AdminUsuariosPage() {
           <AdminNav />
         </div>
 
-        <Card className="p-4 mb-4">
+        <Card className="app-card p-4 mb-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -321,7 +321,7 @@ function AdminUsuariosPage() {
           </form>
         </Card>
 
-        <Card className="divide-y divide-[var(--landing-rule)]">
+        <Card className="app-card divide-y divide-[var(--landing-rule)]">
           {loading && rows.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">Carregando…</p>
           ) : rows.length === 0 ? (

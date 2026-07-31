@@ -112,7 +112,7 @@ function Page() {
           <AdminNav />
         </div>
 
-        <Card className="p-4 mb-4 flex flex-wrap gap-2 items-end">
+        <Card className="app-card p-4 mb-4 flex flex-wrap gap-2 items-end">
           <div className="flex-1 min-w-[180px]">
             <label className="text-xs text-muted-foreground">Buscar (IP ou metadata)</label>
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ex.: 187. ou email" />
@@ -153,7 +153,7 @@ function Page() {
           </Button>
         </Card>
 
-        <Card className="divide-y divide-[var(--landing-rule)] text-xs">
+        <Card className="app-card divide-y divide-[var(--landing-rule)] text-xs">
           {rows.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
               {loading ? "Carregando…" : "Sem registros para os filtros atuais."}

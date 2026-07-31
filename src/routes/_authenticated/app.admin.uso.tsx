@@ -159,7 +159,7 @@ function OverviewTab() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <Card className="p-5 sm:p-6 border-border/60 rounded-[var(--app-radius)] lg:col-span-3">
+        <Card className="app-card p-5 sm:p-6 lg:col-span-3">
           <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Atividade</p>
           <h3 className="mt-1 text-lg font-semibold text-primary">Mensagens por dia · 30 dias</h3>
           <div className="mt-4 h-56">
@@ -222,7 +222,7 @@ function OverviewTab() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6 border-border/60 rounded-[var(--app-radius)] lg:col-span-2">
+        <Card className="app-card p-5 sm:p-6 lg:col-span-2">
           <div className="flex items-center justify-between gap-2">
             <div>
               <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
@@ -315,7 +315,7 @@ function ConsumoPorOrigem() {
   const linhas = data?.linhas ?? [];
   const maxCred = useMemo(() => Math.max(1, ...linhas.map((l) => l.credits)), [linhas]);
   return (
-    <Card className="p-5 sm:p-6 border-border/60 rounded-[var(--app-radius)]">
+    <Card className="app-card p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
@@ -429,7 +429,7 @@ function MiniCard({
   const iconColor =
     tone === "danger" ? "text-destructive" : tone === "accent" ? "text-accent" : "text-muted-foreground";
   return (
-    <Card className="p-4 border-border/60 rounded-[var(--app-radius)] transition-all duration-200 hover:border-border">
+    <Card className="app-card p-4 transition-all duration-200 hover:border-border">
       <div className="flex items-center gap-2">
         <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
         <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</p>
@@ -497,7 +497,7 @@ function UsuariosTab() {
           Recalcular mês
         </Button>
       </div>
-      <Card className="overflow-hidden border-border/70">
+      <Card className="app-card overflow-hidden border-border/70">
         <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground bg-muted/40 border-b border-border/60">
           <div className="col-span-3">Usuário</div>
           <div className="col-span-3">Mensagens</div>
@@ -655,7 +655,7 @@ function AlertasTab() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-5 space-y-4">
+      <Card className="app-card p-5 space-y-4">
         <h3 className="text-sm font-semibold text-primary">Configuração de alertas</h3>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
@@ -707,7 +707,7 @@ function AlertasTab() {
         </div>
       </Card>
 
-      <Card className="divide-y divide-[var(--landing-rule)]">
+      <Card className="app-card divide-y divide-[var(--landing-rule)]">
         <div className="p-3 text-xs uppercase text-muted-foreground">Alertas disparados neste mês</div>
         {rows.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Nenhum alerta no período.</p>

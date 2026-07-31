@@ -308,11 +308,11 @@ export function DocumentosPanel({
   return (
     <div className="space-y-4">
       {readOnly ? (
-        <Card className="p-4 text-xs text-amber-200 border-amber-500/30 bg-amber-500/5">
+        <Card className="app-card p-4 text-xs text-amber-200 border-amber-500/30 bg-amber-500/5">
           Modo visualizador (admin) — upload e exclusão desabilitados.
         </Card>
       ) : (
-      <Card className="p-5">
+      <Card className="app-card p-5">
         <div className="space-y-3">
           <div>
             <p className="text-sm font-medium text-primary">Enviar documentos</p>
@@ -474,14 +474,14 @@ export function DocumentosPanel({
       )}
 
       {docs.length === 0 ? (
-        <Card className="p-8 text-center border-dashed">
+        <Card className="app-card p-8 text-center border-dashed">
           <FileText className="h-10 w-10 text-muted-foreground mx-auto" />
           <p className="mt-3 text-sm text-muted-foreground">
             Nenhum documento enviado ainda.
           </p>
         </Card>
       ) : (
-        <Card className="divide-y divide-[var(--landing-rule)]">
+        <Card className="app-card divide-y divide-[var(--landing-rule)]">
           {docs.map((d) => (
             <div key={d.id} className="flex items-center gap-3 p-4">
               <FileText className="h-5 w-5 text-accent shrink-0" />

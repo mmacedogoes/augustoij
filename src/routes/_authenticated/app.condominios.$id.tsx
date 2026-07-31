@@ -257,11 +257,11 @@ function CondominioDetail() {
           </TabsContent>
           <TabsContent value="historico">
             {conversas.length === 0 ? (
-              <Card className="p-8 text-center border-dashed">
+              <Card className="app-card p-8 text-center border-dashed">
                 <p className="text-sm text-muted-foreground">Sem conversas ainda.</p>
               </Card>
             ) : (
-              <Card className="divide-y divide-[var(--landing-rule)]">
+              <Card className="app-card divide-y divide-[var(--landing-rule)]">
                 {conversas.map((c) => (
                   <div key={c.id} className="flex items-center gap-3 p-4">
                     <div className="flex-1 min-w-0">
@@ -337,7 +337,7 @@ function CondominioDetail() {
           ) : null}
           <TabsContent value="config">
             <div className="space-y-4">
-              <Card className="p-6 space-y-3">
+              <Card className="app-card p-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">Dados do condomínio</h3>
                   {canEdit && !editing && (
@@ -480,7 +480,7 @@ function CondominioDetail() {
               </Card>
 
               {isPJ && !adminView && (
-                <Card className="p-6 space-y-4">
+                <Card className="app-card p-6 space-y-4">
                   <div>
                     <h3 className="font-semibold">Operadores do condomínio</h3>
                     <p className="text-xs text-muted-foreground">

@@ -82,7 +82,7 @@ export function ResponsaveisPanel({ contratoId }: { contratoId: string }) {
   }
 
   return (
-    <Card className="p-4">
+    <Card className="app-card p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-serif text-primary">Responsáveis</h3>
