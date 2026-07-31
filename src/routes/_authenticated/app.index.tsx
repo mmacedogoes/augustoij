@@ -145,11 +145,7 @@ function HomePage() {
               initialConversaId={conversaId}
               onConversaCreated={(cid) => setConversaId(cid)}
             />
-            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <MessageSquare className="inline h-3 w-3 mr-1" />
-                {uso.total_mensagens} mensagens este mês
-              </span>
+            <div className="mt-3 flex items-center justify-end text-xs text-muted-foreground">
               <Link
                 to="/app/condominios/$id"
                 params={{ id: activeCondo.id }}
