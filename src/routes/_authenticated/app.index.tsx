@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Building, Plus, MessageSquare } from "lucide-react";
+import { Building, Plus } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -39,15 +39,8 @@ function HomePage() {
     queryFn: async () => (await fetchProfile()) as { nome?: string | null; email?: string | null },
     staleTime: 5 * 60_000,
   });
-  const usoQuery = useQuery<{ total_mensagens: number }>({
-    queryKey: ["home", "uso"],
-    queryFn: async () => (await fetchUso()) as { total_mensagens: number },
-    staleTime: 60_000,
-  });
-
   const condos = condosQuery.data ?? [];
   const nome = ((profileQuery.data?.nome || profileQuery.data?.email || "") as string).split(" ")[0];
-  const uso = usoQuery.data ?? { total_mensagens: 0 };
 
   const [activeCondoId, setActiveCondoId] = useState<string | null>(() =>
     typeof window === "undefined" ? null : window.localStorage.getItem("condoia.activeCondo"),
