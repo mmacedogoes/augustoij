@@ -1,41 +1,57 @@
-# Fim da tela branca ao navegar pelo menu lateral
+# Reformulação visual da área do usuário
 
-## O que está acontecendo (causa real)
+Objetivo: deixar a área logada (`/app`) mais moderna, minimalista e fluida, mantendo exatamente a mesma paleta (verde institucional, dourado, creme) e as mesmas fontes (Cormorant Garamond + Inter) da landing page. Nenhuma função, consulta, regra de negócio ou rota muda — só camada visual.
 
-Três coisas se somam a cada clique no menu:
+## 1. Base do design system (src/styles.css)
 
-1. **O menu lateral não é permanente.** O `AppShell` (logo, menu, avisos) é renderizado *dentro de cada página*, não em um layout compartilhado. Ao trocar de rota, o React desmonta a tela inteira — inclusive o menu — e remonta tudo do zero. Por isso a tela pisca em branco em vez de só o conteúdo trocar.
-2. **Cada clique faz duas chamadas de rede antes de renderizar.** O `beforeLoad` do grupo autenticado chama `supabase.auth.getUser()` (bate no servidor) e depois busca o `profiles` no banco. A navegação fica bloqueada esperando as duas — em rede lenta são centenas de ms de nada na tela.
-3. **O código da próxima tela só começa a baixar no clique.** O router está sem `defaultPreload`, então o chunk JS da rota destino não é pré-carregado no hover.
+Sem cores novas. Apenas organização e refino dos tokens existentes, todos em HSL:
 
-O `pendingComponent` atual (skeleton após 200ms) está no nível do grupo autenticado, ou seja, ele *substitui a tela inteira, menu incluído* — o que reforça a sensação de recarregar a página.
+- Escala de espaçamento consistente 4/8px aplicada por utilitários (`--app-gap-*`), acabando com margens avulsas.
+- Tokens de superfície da área logada derivados dos que já existem: `--app-surface`, `--app-panel`, `--app-panel-hover`, `--app-rule`, para o app respirar o mesmo creme/papel da landing.
+- Tokens de elevação suaves (`--app-shadow-soft`, `--app-shadow-card`) — sombras discretas, nada de card pesado.
+- Tokens de movimento: `--app-ease` e durações de 150–250ms, usados em todas as transições.
+- Hierarquia tipográfica fechada em utilitários: eyebrow (11px, tracking largo, dourado), título de página (Cormorant, 30–40px fluido), título de seção, corpo (15px/1.6) e legenda (13px). Já existem `app-eyebrow`, `app-title`, `app-section-title` — serão padronizados e usados em todas as telas.
 
-## Correção passo a passo
+## 2. Menu lateral retrátil (src/components/AppShell.tsx)
 
-### 1. Layout persistente para `/app` (o ponto principal)
-- Criar `src/routes/_authenticated/app.tsx` como rota de layout: renderiza `<AppShell><Outlet /></AppShell>`.
-- Para não mexer nos ~45 arquivos que já usam `<AppShell>`, o `AppShell` ganha um `AppShellContext`: quando já existe um shell acima na árvore, ele apenas devolve `children` (sem duplicar menu/cabeçalho). Assim nada quebra e o menu passa a permanecer montado entre navegações.
-- Resultado: ao clicar no menu, só a área de conteúdo troca.
+- Sidebar com dois estados: expandida (240px) e recolhida (72px, só ícones + tooltip). Transição de largura em 200ms, conteúdo acompanha sem "pulo".
+- Botão de recolher no rodapé da sidebar; preferência guardada em localStorage.
+- Item ativo com barra dourada, fundo sutil e ícone dourado (já existe, será refinado com transição).
+- Mobile: em vez da barra de abas com scroll horizontal, um drawer lateral (Sheet do shadcn) aberto pelo ícone de menu no header, com overlay e animação de entrada. Header mobile fica limpo: logo, sino, ajuda, menu.
+- Topbar desktop mais leve: fundo translúcido com blur, borda de 1px em `--app-rule`, altura 56px, e o título da página atual à esquerda.
 
-### 2. Skeleton no lugar certo
-- Remover o `pendingComponent` de tela cheia do `_authenticated` e colocar um `pendingComponent` no novo layout `/app`, com `pendingMs: 150` e `pendingMinMs: 0` — ele aparece **dentro** da área de conteúdo, com o menu visível.
-- Mantém os 4 estados: loading (skeleton na área de conteúdo), erro (`errorComponent` no layout com mensagem clara e botão "Tentar de novo"), vazio e sucesso continuam por conta de cada página.
+## 3. Padrão de páginas
 
-### 3. Não bater na rede a cada clique
-- No `beforeLoad` do `_authenticated`: trocar `supabase.auth.getUser()` por `supabase.auth.getSession()` (lê o token local, sem round-trip) e manter a validação real no servidor/RLS.
-- Guardar o resultado do `profiles` (onboarding + papel) em cache curto em memória por `user.id`, invalidado no `onAuthStateChange` e ao concluir o onboarding. A verificação continua existindo, só não repete a consulta a cada clique.
-- Segurança inalterada: quem autoriza de verdade continua sendo a RLS do banco e as server functions; o `beforeLoad` é só roteamento/UX.
+Um cabeçalho de página consistente em todas as telas: eyebrow + título serif + subtítulo + ações à direita, com o grid responsivo `grid-cols-[minmax(0,1fr)_auto]` que já é usado no início (evita quebra em mobile).
 
-### 4. Pré-carregar no hover
-- No `src/router.tsx`: `defaultPreload: "intent"` e `defaultPreloadDelay: 50`. O chunk da rota destino baixa enquanto o mouse está sobre o item do menu; o clique fica instantâneo.
+Cards e painéis: raio 16px, borda 1px em `--app-rule`, fundo `--app-panel`, sombra suave, hover elevando 1px com transição de 200ms. Tabelas e listas ganham linhas com hover e zebra sutil, tipografia tabular nos números.
 
-## Tratamento de erro e bordas
-- `try/catch` no `beforeLoad`: falha de rede não derruba a tela — se houver sessão válida em cache, segue; senão redireciona para `/login` com aviso via toast.
-- Sessão expirada durante a navegação: redirect para `/login` (sem loop, `replace`).
-- Usuário sem permissão: os gates existentes (`app.admin.tsx`, `app.admin.imoveis.tsx`) e a RLS continuam iguais.
-- Cache de perfil limpo em logout, para não vazar estado entre contas.
+Estados visuais completos e padronizados: skeletons com shimmer no lugar de tela vazia, empty states com ícone em moldura, mensagem curta e ação primária, erro com card discreto e botão de tentar de novo, botões com estado de carregamento.
 
-## Impacto / o que não muda
-- Nenhuma alteração de banco, de RLS ou de segredo — é correção de front/roteamento.
-- Nenhuma página precisa ser reescrita; `<AppShell>` continua funcionando onde já está.
-- Checagem depois: navegar entre Início, Condomínios, Gestão de Contratos, Conta e Admin conferindo que o menu não pisca e que rotas protegidas seguem protegidas.
+## 4. Animações (leves e proporcionais)
+
+- Entrada de conteúdo: fade + 8px de subida, 200ms, escalonado só nos cards do topo.
+- Sidebar, drawer, tooltips, dropdowns: 150–250ms com easing suave.
+- Hover/press em botões e cards: escala 0.99 no active, sem exagero.
+- Tudo respeitando `prefers-reduced-motion`.
+
+## 5. Variantes shadcn com personalidade
+
+Refino das variantes já existentes (`augusto`, `augusto-outline`, `augusto-gold`) e adição de uma variante `ghost` discreta para ações secundárias: foco visível em anel dourado, disabled com opacidade e cursor correto, todos os estados com a mesma curva de transição. Nada de cor chumbada — só tokens.
+
+## 6. Telas cobertas
+
+Nesta reformulação: shell (sidebar/topbar/drawer), Início (`/app`), Condomínios (lista e detalhe), Conta, e o painel de Gestão de Contratos. As telas de Admin herdam o shell e os tokens, sem reescrita de layout.
+
+## Notas técnicas
+
+- Só arquivos de apresentação: `src/styles.css`, `src/components/AppShell.tsx`, componentes de UI e o JSX das rotas listadas. Nenhuma alteração em `*.functions.ts`, RLS, queries ou rotas.
+- Sem hardcode de cor; tudo por token semântico, então dark mode continua funcionando.
+- Mobile-first: breakpoints sm/md/lg, alvos de toque de 44px, sem overflow horizontal.
+- A fluidez atual (layout persistente `/app`, preload no hover, skeleton só na área de conteúdo) é preservada — o shell continua montado uma única vez.
+
+## Previews
+
+Não consigo capturar a área logada agora porque a sessão do preview está deslogada. Duas opções:
+1. Você faz login no preview e eu capturo as telas atuais e gero 3 direções visuais renderizadas para você escolher antes de codar.
+2. Aprova o plano e eu implemento direto a direção descrita acima.
