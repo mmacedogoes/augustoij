@@ -15,7 +15,12 @@ import { HelpMenu } from "@/components/HelpMenu";
 import { NotificationsBell } from "@/components/contratos-servico/NotificationsBell";
 import { TrialExpiredBanner } from "@/components/gates/PlanGates";
 import { UsageThresholdBanner } from "@/components/gates/UsageThresholdBanner";
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
+
+// Marca que já existe um AppShell montado acima na árvore (layout /app).
+// Páginas que ainda usam <AppShell> continuam funcionando: nesse caso o
+// componente apenas repassa o conteúdo, sem duplicar menu/cabeçalho.
+const AppShellContext = createContext(false);
 
 const baseNav = [
   { to: "/app", label: "Início", icon: LayoutDashboard, tour: "nav-dashboard" },
@@ -27,6 +32,12 @@ const contratosNav = { to: "/app/contratos/painel", label: "Gestão de Contratos
 const adminNav = { to: "/app/admin", label: "Admin", icon: Shield, tour: "nav-admin" } as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const jaMontado = useContext(AppShellContext);
+  if (jaMontado) return <>{children}</>;
+  return <AppShellRoot>{children}</AppShellRoot>;
+}
+
+function AppShellRoot({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -83,6 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <AppShellContext.Provider value={true}>
     <div className="min-h-screen bg-background">
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 bg-sidebar text-sidebar-foreground flex-col overflow-hidden border-r border-sidebar-border/60">
         <Link
@@ -197,5 +209,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <DicasPopup userId={profile.id} enabled={profile.dicas_ativas !== false} />
       )}
     </div>
+    </AppShellContext.Provider>
   );
 }
