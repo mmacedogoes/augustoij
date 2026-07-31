@@ -258,8 +258,7 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
             className="flex min-h-screen flex-col md:ml-[var(--app-shell-w)]"
             style={{ transition: "margin var(--app-dur-slow) var(--app-ease)" }}
           >
-            <>
-              <TrialExpiredBanner />
+            <TrialExpiredBanner />
               <UsageThresholdBanner />
 
               <header className="app-topbar sticky top-0 z-30 flex h-14 items-center gap-3 px-3 sm:px-4">
@@ -286,8 +285,7 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
                 </div>
               </header>
 
-              <main className="app-enter flex-1 p-4 sm:p-6 md:p-8 lg:p-10">{children}</main>
-            </div>
+            <main className="app-enter flex-1 p-4 sm:p-6 md:p-8 lg:p-10">{children}</main>
           </div>
 
           {profile && (!profile.onboarding_tour_completo || forceTour) && (
