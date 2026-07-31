@@ -110,6 +110,10 @@
 
 :root {
   --radius: 0.5rem;
+  /* Raio unificado da área logada */
+  --app-radius: 0.875rem;
+  --app-radius-sm: 0.625rem;
+  --app-radius-lg: 1.125rem;
   /* Sistema de movimento */
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
