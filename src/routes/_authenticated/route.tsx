@@ -1,33 +1,54 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
+type AcessoCache = { userId: string; onboarding_completo: boolean; papel_sistema: string | null };
+
+let cacheAcesso: AcessoCache | null = null;
+
+/** Limpa o cache de roteamento (logout, conclusão de onboarding). */
+export function limparCacheAcesso() {
+  cacheAcesso = null;
+}
+
+supabase.auth.onAuthStateChange(() => {
+  cacheAcesso = null;
+});
+
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  // Mostra um skeleton logo (200ms) em vez de tela branca durante navegações.
-  pendingMs: 200,
-  pendingComponent: () => (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-5xl space-y-4">
-        <div className="h-8 w-56 rounded-md bg-muted/60 animate-pulse" />
-        <div className="h-4 w-80 rounded-md bg-muted/40 animate-pulse" />
-        <div className="h-40 rounded-lg bg-muted/40 animate-pulse" />
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="h-32 rounded-lg bg-muted/40 animate-pulse" />
-          <div className="h-32 rounded-lg bg-muted/40 animate-pulse" />
-        </div>
-      </div>
-    </div>
-  ),
   beforeLoad: async ({ location }) => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/login" });
+    // getSession lê o token local: sem round-trip a cada clique no menu.
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData.session?.user;
+    if (!user) throw redirect({ to: "/login" });
 
-    // Onboarding gate
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_completo, papel_sistema")
-      .eq("id", data.user.id)
-      .maybeSingle();
+    let profile: { onboarding_completo: boolean | null; papel_sistema: string | null } | null = null;
+    if (cacheAcesso && cacheAcesso.userId === user.id) {
+      profile = {
+        onboarding_completo: cacheAcesso.onboarding_completo,
+        papel_sistema: cacheAcesso.papel_sistema,
+      };
+    } else {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("onboarding_completo, papel_sistema")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (error) throw error;
+        profile = data;
+        if (data) {
+          cacheAcesso = {
+            userId: user.id,
+            onboarding_completo: !!data.onboarding_completo,
+            papel_sistema: data.papel_sistema ?? null,
+          };
+        }
+      } catch {
+        // Rede caindo: não derruba a navegação; o RLS continua protegendo os dados.
+        profile = null;
+      }
+    }
 
     const onOnboarding = location.pathname.startsWith("/onboarding");
     // Pré-onboarding: usuário recém-confirmado que escolheu um plano pago
@@ -44,7 +65,7 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/app" });
     }
 
-    return { user: data.user, papel: profile?.papel_sistema ?? null };
+    return { user, papel: profile?.papel_sistema ?? null };
   },
   component: () => <Outlet />,
 });

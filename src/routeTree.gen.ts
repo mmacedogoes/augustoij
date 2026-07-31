@@ -23,6 +23,7 @@ import { Route as SegurancaRouteImport } from './routes/seguranca'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthConfirmarRouteImport } from './routes/auth.confirmar'
@@ -156,6 +157,11 @@ const TermosRoute = TermosRouteImport.update({
   path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -182,36 +188,36 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
-  id: '/app/',
-  path: '/app/',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
-  id: '/app/admin',
-  path: '/app/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppAjudaRoute = AuthenticatedAppAjudaRouteImport.update({
-  id: '/app/ajuda',
-  path: '/app/ajuda',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/ajuda',
+  path: '/ajuda',
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppAssinaturaRoute =
   AuthenticatedAppAssinaturaRouteImport.update({
-    id: '/app/assinatura',
-    path: '/app/assinatura',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/assinatura',
+    path: '/assinatura',
+    getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 const AuthenticatedAppContaRoute = AuthenticatedAppContaRouteImport.update({
-  id: '/app/conta',
-  path: '/app/conta',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/conta',
+  path: '/conta',
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppContratosRoute =
   AuthenticatedAppContratosRouteImport.update({
-    id: '/app/contratos',
-    path: '/app/contratos',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/contratos',
+    path: '/contratos',
+    getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
   id: '/api/public/asaas-webhook',
@@ -330,15 +336,15 @@ const AuthenticatedAppAssinaturaRetornoRoute =
   } as any)
 const AuthenticatedAppCondominiosIndexRoute =
   AuthenticatedAppCondominiosIndexRouteImport.update({
-    id: '/app/condominios/',
-    path: '/app/condominios/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/condominios/',
+    path: '/condominios/',
+    getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 const AuthenticatedAppCondominiosIdRoute =
   AuthenticatedAppCondominiosIdRouteImport.update({
-    id: '/app/condominios/$id',
-    path: '/app/condominios/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/condominios/$id',
+    path: '/condominios/$id',
+    getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 const AuthenticatedAppContratosIndexRoute =
   AuthenticatedAppContratosIndexRouteImport.update({
@@ -372,9 +378,9 @@ const AuthenticatedAppContratosPainelRoute =
   } as any)
 const AuthenticatedAppSuporteTicketIdRoute =
   AuthenticatedAppSuporteTicketIdRouteImport.update({
-    id: '/app/suporte/$ticketId',
-    path: '/app/suporte/$ticketId',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/suporte/$ticketId',
+    path: '/suporte/$ticketId',
+    getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 const ApiPublicHooksHelpdeskLembretesRoute =
   ApiPublicHooksHelpdeskLembretesRouteImport.update({
@@ -533,6 +539,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/app': typeof AuthenticatedAppRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/auth/confirmar': typeof AuthConfirmarRoute
@@ -687,6 +694,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/auth/confirmar': typeof AuthConfirmarRoute
@@ -767,6 +775,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/termos'
+    | '/app'
     | '/onboarding'
     | '/api/chat'
     | '/auth/confirmar'
@@ -920,6 +929,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/termos'
+    | '/_authenticated/app'
     | '/_authenticated/onboarding'
     | '/api/chat'
     | '/auth/confirmar'
@@ -1116,6 +1126,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/app': {
+      id: '/_authenticated/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AuthenticatedAppRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -1153,45 +1170,45 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
-      path: '/app'
+      path: '/'
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/admin': {
       id: '/_authenticated/app/admin'
-      path: '/app/admin'
+      path: '/admin'
       fullPath: '/app/admin'
       preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/ajuda': {
       id: '/_authenticated/app/ajuda'
-      path: '/app/ajuda'
+      path: '/ajuda'
       fullPath: '/app/ajuda'
       preLoaderRoute: typeof AuthenticatedAppAjudaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/assinatura': {
       id: '/_authenticated/app/assinatura'
-      path: '/app/assinatura'
+      path: '/assinatura'
       fullPath: '/app/assinatura'
       preLoaderRoute: typeof AuthenticatedAppAssinaturaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/conta': {
       id: '/_authenticated/app/conta'
-      path: '/app/conta'
+      path: '/conta'
       fullPath: '/app/conta'
       preLoaderRoute: typeof AuthenticatedAppContaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/contratos': {
       id: '/_authenticated/app/contratos'
-      path: '/app/contratos'
+      path: '/contratos'
       fullPath: '/app/contratos'
       preLoaderRoute: typeof AuthenticatedAppContratosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/api/public/asaas-webhook': {
       id: '/api/public/asaas-webhook'
@@ -1335,17 +1352,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/app/condominios/': {
       id: '/_authenticated/app/condominios/'
-      path: '/app/condominios'
+      path: '/condominios'
       fullPath: '/app/condominios/'
       preLoaderRoute: typeof AuthenticatedAppCondominiosIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/condominios/$id': {
       id: '/_authenticated/app/condominios/$id'
-      path: '/app/condominios/$id'
+      path: '/condominios/$id'
       fullPath: '/app/condominios/$id'
       preLoaderRoute: typeof AuthenticatedAppCondominiosIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/contratos/': {
       id: '/_authenticated/app/contratos/'
@@ -1384,10 +1401,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/app/suporte/$ticketId': {
       id: '/_authenticated/app/suporte/$ticketId'
-      path: '/app/suporte/$ticketId'
+      path: '/suporte/$ticketId'
       fullPath: '/app/suporte/$ticketId'
       preLoaderRoute: typeof AuthenticatedAppSuporteTicketIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/api/public/hooks/helpdesk-lembretes': {
       id: '/api/public/hooks/helpdesk-lembretes'
@@ -1732,8 +1749,7 @@ const AuthenticatedAppContratosRouteWithChildren =
     AuthenticatedAppContratosRouteChildren,
   )
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
   AuthenticatedAppAjudaRoute: typeof AuthenticatedAppAjudaRouteWithChildren
   AuthenticatedAppAssinaturaRoute: typeof AuthenticatedAppAssinaturaRouteWithChildren
@@ -1745,8 +1761,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppCondominiosIndexRoute: typeof AuthenticatedAppCondominiosIndexRoute
 }
 
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppAdminRoute: AuthenticatedAppAdminRouteWithChildren,
   AuthenticatedAppAjudaRoute: AuthenticatedAppAjudaRouteWithChildren,
   AuthenticatedAppAssinaturaRoute: AuthenticatedAppAssinaturaRouteWithChildren,
@@ -1756,6 +1771,19 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
   AuthenticatedAppSuporteTicketIdRoute: AuthenticatedAppSuporteTicketIdRoute,
   AuthenticatedAppCondominiosIndexRoute: AuthenticatedAppCondominiosIndexRoute,
+}
+
+const AuthenticatedAppRouteWithChildren =
+  AuthenticatedAppRoute._addFileChildren(AuthenticatedAppRouteChildren)
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppRoute: typeof AuthenticatedAppRouteWithChildren
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppRoute: AuthenticatedAppRouteWithChildren,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1794,13 +1822,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
