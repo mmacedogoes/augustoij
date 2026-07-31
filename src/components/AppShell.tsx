@@ -116,6 +116,22 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
   const isAdmin = shellData?.isAdmin ?? false;
   const profile = shellData?.profile ?? null;
 
+  // Identidade do usuário — usa somente campos já retornados por getProfile.
+  const identidade = useMemo(() => {
+    const p = profile as ({ nome?: string | null; email?: string | null; perfil_atuacao?: string | null } | null);
+    if (!p) return null;
+    const nome = (p.nome ?? "").trim();
+    const email = (p.email ?? "").trim();
+    const base = nome || email;
+    if (!base) return null;
+    const iniciais = (nome ? nome.split(/\s+/) : [email])
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase() ?? "")
+      .join("");
+    return { iniciais: iniciais || base[0].toUpperCase(), nome: nome || email, perfil: p.perfil_atuacao ?? null };
+  }, [profile]);
+
   // "Gestão de Contratos" liberado a qualquer usuário autenticado
   // (RLS filtra por dono do condomínio). Admin ganha acesso extra ao painel /admin.
   const nav = useMemo<ReadonlyArray<NavItem>>(
