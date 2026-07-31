@@ -66,7 +66,7 @@ function Page() {
                   </p>
                 </div>
               </div>
-              <span className={`text-xs rounded-full px-2 py-0.5 ${r.status === "pendente" ? "bg-amber-500/15 text-amber-300" : "bg-emerald-500/15 text-emerald-300"}`}>
+              <span className={`text-xs rounded-full px-2 py-0.5 ${r.status === "pendente" ? "bg-amber-500/15 text-amber-300" : "bg-augusto-green/15 text-augusto-green"}`}>
                 {r.status === "pendente" ? "Pendente" : "Atualizada"}
               </span>
               {r.status === "pendente" && (

@@ -357,7 +357,7 @@ function AdminUsuariosPage() {
                     </span>
                   )}
                   {u.ativo ? (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 text-emerald-500 text-xs px-2 py-1">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-augusto-green/10 text-augusto-green text-xs px-2 py-1">
                       Ativo
                     </span>
                   ) : (

@@ -198,7 +198,7 @@ function MargemTab() {
       </Card>
       <Card className="app-card p-5">
         <p className="text-xs uppercase text-muted-foreground">Margem do mês</p>
-        <p className={`mt-2 text-2xl font-bold ${margem >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+        <p className={`mt-2 text-2xl font-bold ${margem >= 0 ? "text-augusto-green" : "text-red-500"}`}>
           {brl(margem)}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">

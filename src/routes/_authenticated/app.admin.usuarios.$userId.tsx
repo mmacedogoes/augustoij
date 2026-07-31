@@ -90,7 +90,7 @@ function AdminUsuarioDetalhePage() {
                 {data.profile.papel_sistema.replace(/_/g, " ")}
               </Badge>
               {data.subscription.cortesia && (
-                <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20 border-0">
+                <Badge className="bg-augusto-green/15 text-augusto-green hover:bg-augusto-green/20 border-0">
                   <Sparkles className="h-3 w-3 mr-1" /> Cortesia
                 </Badge>
               )}
@@ -442,7 +442,7 @@ function PlanoControls({
         className={cn(
           "rounded-lg border p-4 flex items-start gap-4 transition-colors duration-200",
           cortesia
-            ? "border-emerald-500/30 bg-emerald-500/5"
+            ? "border-augusto-green/30 bg-augusto-green/5"
             : "border-border bg-muted/30",
         )}
       >
@@ -454,7 +454,7 @@ function PlanoControls({
         />
         <div className="flex-1 min-w-0">
           <Label htmlFor="cortesia" className="cursor-pointer flex items-center gap-1.5 font-medium">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-500" /> Conta cortesia — sem limites
+            <Sparkles className="h-3.5 w-3.5 text-augusto-green" /> Conta cortesia — sem limites
           </Label>
           <p className="text-xs text-muted-foreground mt-0.5">
             Ignora limites de mensagens, upload de documentos e cadastro de condomínios.
