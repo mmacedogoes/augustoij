@@ -52,15 +52,16 @@ function AdminDashboardPage() {
   return (
     <AppShell>
       <div className="max-w-6xl space-y-6">
-        <header>
-          <h1 className="text-3xl font-semibold text-primary tracking-tight">Administração</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+        <header className="app-page-header">
+          <span className="app-eyebrow">Administração</span>
+          <h1 className="app-title">Administração</h1>
+          <p className="app-subtitle">
             Visão geral do negócio · {d ? fmtMes(d.mes) : "carregando…"}
           </p>
         </header>
         <AdminNav />
 
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
           <Kpi
             label="MRR"
             value={d ? brl(d.mrr) : null}
@@ -101,7 +102,7 @@ function AdminDashboardPage() {
           <Skeleton className="h-[520px] w-full rounded-[var(--app-radius)]" />
         )}
 
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
           <MiniStat
             icon={Building2}
             label="Condomínios"

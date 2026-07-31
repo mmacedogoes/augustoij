@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ExternalLink, Loader2, ShieldCheck, UserCheck, AlertTriangle } from "lucide-react";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
 import { PLANS as PLAN_CONFIG, type PlanId } from "@/config/plans";
 import {
@@ -111,7 +112,7 @@ function AssinaturaPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-augusto-cream/40 to-background">
-      <header className="border-b border-augusto-gold/20 bg-white/70 backdrop-blur-sm">
+      <header className="border-b border-augusto-gold/20 bg-card/70 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
           <Link to="/" aria-label="Voltar ao início">
             <AugustoLogo variant="horizontal" theme="light" size={180} />
@@ -123,15 +124,14 @@ function AssinaturaPage() {
       </header>
 
       <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
-      <div>
-        <h1 className="font-serif text-3xl text-augusto-green tracking-tight">
-          Confirmar assinatura
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      <header className="app-page-header">
+        <span className="app-eyebrow">Assinatura</span>
+        <h1 className="app-title">Confirmar assinatura</h1>
+        <p className="app-subtitle">
           A cobrança será vinculada à sua conta Augusto.IJ. Seu plano atual
           permanece ativo até a confirmação da primeira cobrança pelo Asaas.
         </p>
-      </div>
+      </header>
 
       {/* Conta vinculada */}
       <Card className="app-card border-augusto-green/20">
@@ -143,7 +143,7 @@ function AssinaturaPage() {
         </CardHeader>
         <CardContent className="text-sm space-y-1">
           {perfil.isLoading ? (
-            <div className="text-muted-foreground">Carregando dados da conta…</div>
+            <AppSkeletonLines lines={3} />
           ) : perfil.data ? (
             <>
               <div>

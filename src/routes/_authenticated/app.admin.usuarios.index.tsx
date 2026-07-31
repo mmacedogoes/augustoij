@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX, ChevronRight, Sparkles, Loader2, Users } from "lucide-react";
 import { Link, MatchRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -20,6 +20,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios/")({
   component: AdminUsuariosPage,
@@ -114,10 +116,11 @@ function AdminUsuariosPage() {
     <AppShell>
       <div className="max-w-6xl">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold text-primary">Usuários</h1>
-            <p className="text-muted-foreground">Gerencie papéis, perfis e atividade dos usuários do Augusto.IJ.</p>
-          </div>
+          <header className="app-page-header">
+            <span className="app-eyebrow">Administração</span>
+            <h1 className="app-title">Usuários</h1>
+            <p className="app-subtitle">Gerencie papéis, perfis e atividade dos usuários do Augusto.IJ.</p>
+          </header>
           <Dialog open={openCreate} onOpenChange={setOpenCreate}>
             <DialogTrigger asChild>
               <Button>
@@ -323,14 +326,16 @@ function AdminUsuariosPage() {
 
         <Card className="app-card divide-y divide-[var(--landing-rule)]">
           {loading && rows.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">Carregando…</p>
+            <div className="p-4">
+              <AppSkeletonLines lines={5} />
+            </div>
           ) : rows.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">Nenhum usuário encontrado.</p>
+            <AppEmptyState icon={<Users />} title="Nenhum usuário encontrado" />
           ) : (
             rows.map((u) => (
               <div
                 key={u.id}
-                className={`p-4 flex flex-wrap items-center gap-3 ${u.ativo ? "" : "opacity-70"}`}
+                className={`p-4 flex flex-wrap items-center gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)] ${u.ativo ? "" : "opacity-70"}`}
               >
                 <div className="flex-1 min-w-[220px]">
                   <p className="font-medium text-primary">{u.nome || "—"}</p>
