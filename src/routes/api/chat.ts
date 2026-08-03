@@ -398,6 +398,20 @@ export const Route = createFileRoute("/api/chat")({
 
           // Orientações globais do administrador
           let orientacoesBlock = "";
+
+          // Cadastro de unidades/condôminos do condomínio selecionado.
+          // Necessário para qualificar destinatários em notificações e multas.
+          let cadastroBlock = "";
+          try {
+            const { data: unidadesCad } = await supabase
+              .from("unidades")
+              .select("bloco, numero, tipo, condominos(nome, cpf, tipo, principal)")
+              .eq("condominio_id", condominioId);
+            cadastroBlock = blocoCadastroCondominial(unidadesCad as never, userText);
+          } catch (e) {
+            console.error("Cadastro condominial fetch failed:", e);
+          }
+
           try {
             // Lidas com service role: o conteúdo é interno (super admin)
             // e não deve ser exposto via RLS a usuários autenticados.
