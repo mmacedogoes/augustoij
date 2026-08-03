@@ -19,6 +19,7 @@ import {
   deveSolicitarReupload,
   blocoContextoCondominial,
 } from "@/lib/chat-base-condominial";
+import { blocoCadastroCondominial } from "@/lib/chat-cadastro-condominial";
 
 type ChatBody = {
   messages?: UIMessage[];
