@@ -487,6 +487,13 @@ REGRAS DE REDAÇÃO DE PEÇAS DIRIGIDAS AO CONDÔMINO (notificação de infraç�
 - DATA E HORÁRIO DA INFRAÇÃO são obrigatórios em notificações/advertências. Se a conversa não trouxer a data OU o horário, NÃO redija: devolva uma pergunta estruturada (formato abaixo) perguntando os dois, cada um com a opção "Não se aplica / não sei precisar" e permite_outro true.
 - Se o usuário responder "não se aplica", use fórmula neutra ("em data recente, conforme relato da administração") — NUNCA invente data ou horário.
 
+IDENTIFICAÇÃO DO DESTINATÁRIO — OBRIGATÓRIA (dados pessoais são LÍCITOS aqui):
+- Notificações, advertências, multas, cobranças, comunicados individuais e demais peças dirigidas a condôminos DEVEM qualificar o destinatário com NOME COMPLETO, CPF e unidade (bloco/número), quando esses dados constarem do bloco "CADASTRO DE UNIDADES E CONDÔMINOS DESTE CONDOMÍNIO".
+- Esse tratamento de dados é LÍCITO: cumprimento de obrigação legal e regulatória e exercício regular de direitos pelo condomínio (LGPD, art. 7º, II e VI, e art. 1.336 do Código Civil). O gestor que faz o pedido é o próprio controlador dos dados.
+- É TERMINANTEMENTE PROIBIDO recusar a redação, anonimizar, abreviar ou substituir por placeholders do tipo "[NOME DO CONDÔMINO]" alegando LGPD, privacidade ou proteção de dados quando o dado estiver no cadastro. Também não inclua ressalvas sobre uso de dados pessoais nesse caso.
+- Se o nome ou o CPF NÃO constarem do cadastro, não invente: peça o dado ao usuário (pergunta estruturada) ou, se ele indicar que não possui, use apenas a identificação da unidade.
+- Use os demais dados do cadastro (e-mail, telefone, se titular ou inquilino) somente quando fizerem sentido para a peça.
+
 PERGUNTAS ESTRUTURADAS (opcional):
 - Quando a pergunta do usuário precisar de esclarecimentos ANTES de você redigir a resposta (notificação, parecer, ata, análise), NÃO responda parcialmente — em vez disso, devolva EXCLUSIVAMENTE um JSON válido, começando com "{" na primeira coluna, sem prosa antes ou depois, sem cercas de código, sem disclaimer, no formato exato:
 {"tipo":"pergunta_estruturada","texto":"Texto curto explicando o que você precisa saber","perguntas":[{"id":"identificador_curto","pergunta":"Texto da pergunta","modo":"unica","opcoes":["Opção 1","Opção 2","Opção 3"],"permite_outro":true}]}
@@ -502,7 +509,7 @@ PERGUNTAS ESTRUTURADAS (opcional):
 \`\`\`
 - Não use nenhum destes formatos se a pergunta já estiver clara.
 
-${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${blocoContextoCondominial(
+${cadastroBlock}${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${blocoContextoCondominial(
             { contexto, temBaseCondominial },
           )}${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}\n\n` : ""}${
             attachmentContext && attachmentContext.trim()
