@@ -174,6 +174,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
       valor: r.valor,
       tipo_valor: r.tipo_valor,
       status: statusExibicaoContrato(r),
+      documento_id: r.documento_id,
     }));
 
     // Contadores globais (não afetados pelo filtro de status, respeitam os demais)
