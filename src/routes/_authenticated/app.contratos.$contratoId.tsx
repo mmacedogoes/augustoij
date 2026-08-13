@@ -100,6 +100,8 @@ function Page() {
   const [ficha, setFicha] = useState<Ficha | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [confirmar, setConfirmar] = useState(false);
+  const [editContratoOpen, setEditContratoOpen] = useState(false);
+  const [editObrigacoesOpen, setEditObrigacoesOpen] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [countAditivos, setCountAditivos] = useState<number>(0);
   const [aba, setAba] = useState<string>("informacoes");
@@ -267,22 +269,43 @@ function Page() {
               <Sparkles className="mr-1 h-4 w-4" /> Analisar com Augusto
             </Button>
             <EncerrarSuspenderMenu contratoId={contratoId} situacao={c.situacao} onChange={carregar} />
-            <Button
-              variant="outline"
-              onClick={() =>
-                navigate({
-                  to: "/app/contratos/$contratoId/editar",
-                  params: { contratoId },
-                })
-              }
-            >
-              <Pencil className="mr-1 h-4 w-4" /> Editar
+            <Button variant="outline" onClick={() => setEditContratoOpen(true)}>
+              <Pencil className="mr-1 h-4 w-4" /> Editar dados
             </Button>
             <Button variant="ghost" onClick={() => setConfirmar(true)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
               <Trash2 className="mr-1 h-4 w-4" /> Excluir
             </Button>
           </div>
         </div>
+
+        <EditContratoModal 
+          open={editContratoOpen} 
+          onOpenChange={setEditContratoOpen} 
+          initialValues={{
+            id: c.id,
+            condominio_id: c.condominio_id,
+            tipo_servico_id: c.tipo_servico_id,
+            situacao: c.situacao,
+            prestador_nome: c.prestador_nome,
+            objeto: c.objeto,
+            data_inicio: c.data_inicio,
+            prazo_indeterminado: c.prazo_indeterminado,
+            data_fim: c.data_fim,
+            valor: Number(c.valor),
+            tipo_valor: c.tipo_valor,
+            dia_vencimento: c.dia_vencimento,
+            indice_reajuste: c.indice_reajuste as any,
+            mes_base_reajuste: c.mes_base_reajuste,
+          }}
+          onSaved={carregar}
+        />
+        <EditObrigacoesModal
+          open={editObrigacoesOpen}
+          onOpenChange={setEditObrigacoesOpen}
+          contratoId={contratoId}
+          initialObrigacoes={ficha.obrigacoes}
+          onSaved={carregar}
+        />
 
         {countAditivos > 0 && (
           <div className="mb-4">
@@ -470,7 +493,9 @@ function Page() {
                       {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do prestador
                     </StatBadge>
                   </div>
-                  <ObrigacoesEditor contratoId={contratoId} itens={ficha.obrigacoes} onChange={carregar} />
+                  <Button variant="outline" size="sm" onClick={() => setEditObrigacoesOpen(true)}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" /> Editar obrigações
+                  </Button>
                 </InfoCard>
               </div>
             </div>
