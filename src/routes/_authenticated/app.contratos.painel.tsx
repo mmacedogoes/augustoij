@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, FileText, Loader2,
-  Plus, ShieldAlert, TrendingUp,
+  Plus, ShieldAlert, TrendingUp, Info, ArrowRight, Wallet, Activity,
 } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
@@ -36,6 +36,8 @@ import { etiquetaTipoEvento, type TipoEvento } from "@/lib/contratos-servico/eve
 import { rotuloIndiceContrato } from "@/lib/contratos-servico/indices";
 import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
+import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TODOS = "__todos";
 
@@ -89,16 +91,51 @@ function Page() {
     });
   }
 
+  const pendenciasPrincipais = useMemo(() => {
+    const list = [];
+    if (ind?.reajustes_pendentes) {
+      list.push({
+        tipo: "Reajustes pendentes",
+        icon: <TrendingUp className="h-4 w-4" />,
+        qtd: ind.reajustes_pendentes,
+        tone: "ambar" as const,
+        cta: "Revisar reajustes",
+        hash: "reajustes",
+      });
+    }
+    if (ind?.checklists_pendentes_mes) {
+      list.push({
+        tipo: "Checklists pendentes",
+        icon: <ClipboardList className="h-4 w-4" />,
+        qtd: ind.checklists_pendentes_mes,
+        tone: "ambar" as const,
+        cta: "Ver checklists",
+        hash: "checklists",
+      });
+    }
+    if (ind?.nao_conformidades_mes) {
+      list.push({
+        tipo: "Não conformidades",
+        icon: <ShieldAlert className="h-4 w-4" />,
+        qtd: ind.nao_conformidades_mes,
+        tone: "vermelho" as const,
+        cta: "Tratar pendências",
+        hash: "checklists",
+      });
+    }
+    return list;
+  }, [ind]);
+
   return (
     <AppShell>
       <GestaoContratosGate requerePainelConsolidado>
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <header className="app-page-header min-w-0">
             <span className="app-eyebrow">Gestão de Contratos</span>
             <h1 className="app-title">Painel</h1>
             <p className="app-subtitle max-w-xl">
-              Visão consolidada das pendências, agenda e não conformidades da carteira.
+              Central de comando da carteira de contratos.
             </p>
           </header>
           <div className="flex flex-wrap items-center gap-3">
@@ -109,9 +146,9 @@ function Page() {
           </div>
         </div>
 
-        <div className="mb-4 max-w-sm">
+        <div className="max-w-sm">
           <Select value={condominioId} onValueChange={handleCondominio}>
-            <SelectTrigger><SelectValue placeholder="Condomínio" /></SelectTrigger>
+            <SelectTrigger className="bg-card border-augusto-gold/20"><SelectValue placeholder="Condomínio" /></SelectTrigger>
             <SelectContent>
               <SelectItem value={TODOS}>Todos os condomínios</SelectItem>
               {condos.map((c) => (
@@ -121,171 +158,160 @@ function Page() {
           </Select>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-4">
-          <Kpi to="/app/contratos" label="Vigentes" value={ind?.vigentes} icon={<CheckCircle2 className="h-4 w-4" />} tone="neutro" />
-          <Kpi to="/app/contratos" label="Vencendo em 90 dias" value={ind?.vencendo_90d} icon={<CalendarClock className="h-4 w-4" />} tone="ambar" />
-          <Kpi to="/app/contratos" label="Vencidos" value={ind?.vencidos} icon={<AlertTriangle className="h-4 w-4" />} tone="vermelho" />
-          <Kpi to="/app/contratos/painel" label="Reajustes pendentes" value={ind?.reajustes_pendentes} icon={<TrendingUp className="h-4 w-4" />} tone="ambar" />
-          <Kpi to="/app/contratos/painel" label="Checklists do mês pendentes" value={ind?.checklists_pendentes_mes} icon={<ClipboardList className="h-4 w-4" />} tone="ambar" />
-          <Kpi to="/app/contratos/painel" label="Não conformidades trabalhistas" value={ind?.nao_conformidades_mes} icon={<ShieldAlert className="h-4 w-4" />} tone="vermelho" />
+        {/* Faixa de Saúde da Carteira */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <HealthCard 
+            label="Contratos Vigentes" 
+            value={ind?.vigentes} 
+            icon={<CheckCircle2 className="h-5 w-5 text-augusto-green" />} 
+          />
+          <HealthCard 
+            label="Exige Atenção" 
+            value={ind?.total_com_pendencias} 
+            icon={<AlertTriangle className="h-5 w-5 text-augusto-gold" />} 
+            tone={ind?.total_com_pendencias ? "ambar" : "neutro"}
+          />
+          <HealthCard 
+            label="Vencidos/Críticos" 
+            value={(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0)} 
+            icon={<ShieldAlert className="h-5 w-5 text-destructive" />} 
+            tone={(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0) > 0 ? "vermelho" : "neutro"}
+          />
+          <TooltipProvider>
+            <Card className="app-card p-4 border-augusto-gold/10 bg-gradient-to-br from-card to-augusto-gold/[0.03]">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Valor Anual Estimado</span>
+                <Tooltip>
+                  <TooltipTrigger><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
+                  <TooltipContent>Soma dos contratos mensais (x12) + contratos globais ativos.</TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-xl font-serif text-primary">
+                {ind === null ? "…" : formatBRL(ind.valor_anual_estimado)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Recorrente: {ind ? formatBRL(ind.valor_mensal_total) : "—"}/mês
+              </p>
+            </Card>
+          </TooltipProvider>
         </div>
 
-        <Card className="app-card p-5 sm:p-6 mb-4">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Valor mensal contratado</p>
-          <p className="text-2xl font-serif text-primary mt-1">
-            {ind === null ? "…" : formatBRL(ind.valor_mensal_total)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Soma dos contratos mensais ativos.</p>
-        </Card>
-
-        <Bloco titulo="Reajustes pendentes" icon={<TrendingUp className="h-4 w-4" />}>
-          {reaj === null ? (
-            <Loading />
-          ) : reaj.length === 0 ? (
-            <Vazio texto="Nenhum reajuste pendente na carteira." />
-          ) : (
-            <ul className="divide-y divide-[var(--landing-rule)]">
-              {reaj.slice(0, 12).map((r) => (
-                <li key={r.contrato_id} className="py-2 flex flex-wrap items-center justify-between gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
-                  <div>
-                    <p className="text-sm font-medium">{r.prestador_nome}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {r.condominio_nome} · competência {formatDate(r.competencia)} · {rotuloIndiceContrato(r.indice_reajuste)} ·{" "}
-                      {r.dias_ate_data_base < 0
-                        ? `vencida há ${Math.abs(r.dias_ate_data_base)} dias`
-                        : `em ${r.dias_ate_data_base} dias`}
-                    </p>
+        <div className="grid lg:grid-cols-[1fr_340px] gap-6">
+          <div className="space-y-6">
+            {/* Bloco: Requer Atenção Agora (Lista Densa) */}
+            <Card className="app-card border-augusto-gold/30">
+              <div className="p-5 border-b border-augusto-gold/10 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-augusto-gold" />
+                  <h2 className="text-lg font-serif text-primary">Requer atenção agora</h2>
+                </div>
+                {ind?.total_com_pendencias ? (
+                  <span className="text-xs font-medium text-augusto-gold bg-augusto-gold/10 px-2 py-0.5 rounded-full">
+                    {ind.total_com_pendencias} pendências
+                  </span>
+                ) : null}
+              </div>
+              <div className="divide-y divide-augusto-gold/5">
+                {ind === null ? (
+                  <div className="p-10"><Loading /></div>
+                ) : pendenciasPrincipais.length === 0 ? (
+                  <div className="p-10 text-center">
+                    <CheckCircle2 className="h-10 w-10 text-augusto-green mx-auto mb-3 opacity-20" />
+                    <p className="text-sm text-muted-foreground">Tudo em dia! Nenhuma pendência crítica encontrada.</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm">{formatBRL(r.valor_atual)}</span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        navigate({
-                          to: "/app/contratos/$contratoId",
-                          params: { contratoId: r.contrato_id },
-                          hash: "reajustes",
-                        })
-                      }
-                    >
-                      Revisar
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Bloco>
+                ) : (
+                  pendenciasPrincipais.map((p, i) => (
+                    <div key={i} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "h-10 w-10 rounded-full flex items-center justify-center",
+                          p.tone === "ambar" ? "bg-augusto-gold/15 text-augusto-gold" : "bg-destructive/15 text-destructive"
+                        )}>
+                          {p.icon}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-primary">{p.tipo}</p>
+                          <p className="text-xs text-muted-foreground">{p.qtd} {p.qtd === 1 ? "item identificado" : "itens identificados"}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-augusto-gold hover:text-augusto-gold hover:bg-augusto-gold/10" asChild>
+                        <Link to="/app/contratos" hash={p.hash}>
+                          {p.cta} <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                        </Link>
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
 
-        <Bloco titulo="Próximos 30 dias" icon={<CalendarClock className="h-4 w-4" />}>
-          {eventos === null ? (
-            <Loading />
-          ) : eventos.length === 0 ? (
-            <Vazio texto="Nenhum evento previsto nos próximos 30 dias." />
-          ) : (
-            <AgendaAgrupada rows={eventos} />
-          )}
-        </Bloco>
+            <Bloco titulo="Eventos da Agenda" icon={<CalendarClock className="h-4 w-4" />}>
+              {eventos === null ? (
+                <Loading />
+              ) : eventos.length === 0 ? (
+                <Vazio texto="Nenhum evento previsto nos próximos 30 dias." />
+              ) : (
+                <AgendaAgrupada rows={eventos} />
+              )}
+            </Bloco>
+          </div>
 
-        <Bloco titulo="Pendências de checklist do mês" icon={<ClipboardList className="h-4 w-4" />}>
-          {checklists === null ? (
-            <Loading />
-          ) : checklists.length === 0 ? (
-            <Vazio texto="Todos os checklists do mês estão em dia." />
-          ) : (
-            <ul className="divide-y divide-[var(--landing-rule)]">
-              {checklists.slice(0, 15).map((c) => (
-                <li key={c.contrato_id} className="py-2 flex flex-wrap items-center justify-between gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
-                  <div>
-                    <p className="text-sm font-medium">{c.prestador_nome}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {c.condominio_nome} · {c.tipos.map(traduzirTipoChecklist).join(", ")}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      navigate({
-                        to: "/app/contratos/$contratoId",
-                        params: { contratoId: c.contrato_id },
-                        hash: "checklists",
-                      })
-                    }
-                  >
-                    Abrir
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Bloco>
+          <aside className="space-y-6">
+            <Card className="app-card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="h-4 w-4 text-augusto-green" />
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Distribuição da Carteira</h3>
+              </div>
+              {ind === null ? (
+                <Loading />
+              ) : ind.distribuicao_tipos.length === 0 ? (
+                <Vazio texto="Nenhum contrato ativo." />
+              ) : (
+                <DistribuicaoBarras rows={ind.distribuicao_tipos} />
+              )}
+            </Card>
 
-        {ncs && ncs.length > 0 ? (
-          <Bloco titulo="Não conformidades trabalhistas" icon={<ShieldAlert className="h-4 w-4 text-destructive" />}>
-            <ul className="divide-y divide-[var(--landing-rule)]">
-              {ncs.map((n, i) => (
-                <li key={i} className="py-2 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
-                  <p className="text-sm font-medium">{n.prestador_nome}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {n.condominio_nome} · {n.descricao}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </Bloco>
-        ) : null}
-
-        <Bloco titulo="Distribuição por tipo de serviço" icon={<FileText className="h-4 w-4" />}>
-          {ind === null ? (
-            <Loading />
-          ) : ind.distribuicao_tipos.length === 0 ? (
-            <Vazio texto="Nenhum contrato ativo na carteira." />
-          ) : (
-            <DistribuicaoBarras rows={ind.distribuicao_tipos} />
-          )}
-        </Bloco>
+            <Card className="app-card p-5 bg-augusto-green/[0.02] border-augusto-green/10">
+              <h3 className="text-sm font-semibold text-primary mb-2">Dica do Augusto</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Mantenha os campos "Mês-base" e "Índice de Reajuste" preenchidos para que eu possa gerar lembretes automáticos na sua agenda.
+              </p>
+            </Card>
+          </aside>
+        </div>
       </div>
       </GestaoContratosGate>
     </AppShell>
   );
 }
 
-function Kpi({
-  label, value, icon, tone, to,
-}: {
-  label: string;
-  value: number | undefined;
-  icon: React.ReactNode;
-  tone: "neutro" | "ambar" | "vermelho";
-  to: string;
+function HealthCard({ 
+  label, value, icon, tone = "neutro" 
+}: { 
+  label: string; value: number | undefined; icon: React.ReactNode; tone?: "neutro" | "ambar" | "vermelho" 
 }) {
-  const cls =
-    tone === "vermelho"
-      ? "border-destructive/40 text-destructive"
-      : tone === "ambar"
-        ? "border-augusto-gold/40 text-augusto-gold"
-        : "border-border text-muted-foreground";
   return (
-    <Link to={to as "/app/contratos"} className="block group">
-      <Card className={`p-3 transition hover:shadow-sm ${cls}`}>
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide">
-          <span>{label}</span>
-          <span>{icon}</span>
-        </div>
-        <p className="text-2xl font-serif text-primary mt-1">
-          {value === undefined ? "…" : value}
-        </p>
-      </Card>
-    </Link>
+    <Card className={cn(
+      "app-card p-4 flex flex-col justify-between h-full transition-all border-l-4",
+      tone === "neutro" ? "border-l-border bg-card" : 
+      tone === "ambar" ? "border-l-augusto-gold bg-augusto-gold/[0.02]" : 
+      "border-l-destructive bg-destructive/[0.02]"
+    )}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
+        {icon}
+      </div>
+      <p className="text-2xl font-serif text-primary">
+        {value === undefined ? "…" : value}
+      </p>
+    </Card>
   );
 }
 
 function Bloco({ titulo, icon, children }: { titulo: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <Card className="app-card p-5 sm:p-6 mb-4">
-      <div className="flex items-center gap-2 mb-3">
+    <Card className="app-card p-5 sm:p-6">
+      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border/40">
         <span className="text-augusto-green">{icon}</span>
         <h2 className="text-lg font-serif text-primary">{titulo}</h2>
       </div>
@@ -293,6 +319,7 @@ function Bloco({ titulo, icon, children }: { titulo: string; icon: React.ReactNo
     </Card>
   );
 }
+
 function Loading() {
   return <AppSkeletonLines lines={3} />;
 }
@@ -311,25 +338,26 @@ function AgendaAgrupada({ rows }: { rows: EventoProximo[] }) {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [rows]);
   return (
-    <div className="space-y-3">
-      {grupos.slice(0, 10).map(([dia, itens]) => (
-        <div key={dia}>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{formatDate(dia)}</p>
-          <ul className="space-y-1">
+    <div className="space-y-4">
+      {grupos.slice(0, 8).map(([dia, itens]) => (
+        <div key={dia} className="relative pl-4 border-l border-augusto-gold/20">
+          <div className="absolute -left-1.5 top-1 h-3 w-3 rounded-full bg-augusto-gold/20 border border-augusto-gold/40" />
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">{formatDate(dia)}</p>
+          <ul className="space-y-2">
             {itens.map((it) => (
               <li key={it.id}>
                 <Link
                   to="/app/contratos/$contratoId"
                   params={{ contratoId: it.contrato_id }}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-accent/60"
+                  className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/50 hover:border-augusto-gold/30 hover:shadow-sm transition-all group"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm truncate">{it.titulo}</p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-sm font-medium group-hover:text-augusto-gold transition-colors">{it.titulo}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
                       {it.prestador_nome} · {it.condominio_nome}
                     </p>
                   </div>
-                  <span className="text-[10px] uppercase text-muted-foreground border border-border rounded px-1.5 py-0.5">
+                  <span className="text-[9px] font-bold uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border">
                     {etiquetaTipoEvento(it.tipo as TipoEvento)}
                   </span>
                 </Link>
@@ -345,16 +373,16 @@ function AgendaAgrupada({ rows }: { rows: EventoProximo[] }) {
 function DistribuicaoBarras({ rows }: { rows: Array<{ tipo_id: string | null; nome: string; total: number }> }) {
   const max = Math.max(1, ...rows.map((r) => r.total));
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-3">
       {rows.map((r) => (
         <li key={r.tipo_id ?? r.nome}>
-          <div className="flex items-center justify-between text-sm mb-0.5">
-            <span>{r.nome}</span>
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="font-medium text-primary">{r.nome}</span>
             <span className="text-muted-foreground">{r.total}</span>
           </div>
-          <div className="h-2 rounded bg-muted overflow-hidden">
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div
-              className="h-full bg-augusto-green/70"
+              className="h-full bg-augusto-green transition-all duration-500"
               style={{ width: `${(r.total / max) * 100}%` }}
             />
           </div>
@@ -370,13 +398,4 @@ function formatBRL(v: number): string {
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
-}
-function traduzirTipoChecklist(t: string): string {
-  switch (t) {
-    case "fiscalizacao": return "Fiscalização";
-    case "pagamento": return "Pagamento";
-    case "tributario": return "Tributário";
-    case "trabalhista": return "Trabalhista";
-    default: return t;
-  }
 }
