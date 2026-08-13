@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, FileText, Loader2,
   Plus, ShieldAlert, TrendingUp, Info, ArrowRight, Wallet, Activity,
+  UserX, FileWarning, Search,
 } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
@@ -38,6 +39,8 @@ import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PendenciasDrawer, type PendenciaTipo } from "@/components/contratos-servico/PendenciasDrawer";
 
 const TODOS = "__todos";
 
@@ -65,6 +68,8 @@ function Page() {
   const [eventos, setEventos] = useState<EventoProximo[] | null>(null);
   const [checklists, setChecklists] = useState<ChecklistPendenteMes[] | null>(null);
   const [ncs, setNcs] = useState<NaoConformidadeMes[] | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pendenciaFiltro, setPendenciaFiltro] = useState<PendenciaTipo>();
 
   useEffect(() => {
     condosFn()
@@ -82,6 +87,11 @@ function Page() {
     ncFn(payload).then((r) => setNcs(r.rows)).catch((e: Error) => toast.error(e.message));
   }, [condFiltro, indicadoresFn, reajustesFn, eventosFn, checklistsFn, ncFn]);
 
+  function handleOpenPendencia(tipo: PendenciaTipo) {
+    setPendenciaFiltro(tipo);
+    setDrawerOpen(true);
+  }
+
   function handleCondominio(v: string) {
     setCondominioId(v);
     navigate({
@@ -92,15 +102,23 @@ function Page() {
   }
 
   const pendenciasPrincipais = useMemo(() => {
-    const list = [];
+    const list: Array<{ 
+      tipo: string; 
+      icon: React.ReactNode; 
+      qtd: number; 
+      tone: "ambar" | "vermelho"; 
+      cta: string; 
+      key: PendenciaTipo 
+    }> = [];
+    
     if (ind?.reajustes_pendentes) {
       list.push({
         tipo: "Reajustes pendentes",
         icon: <TrendingUp className="h-4 w-4" />,
         qtd: ind.reajustes_pendentes,
-        tone: "ambar" as const,
+        tone: "ambar",
         cta: "Revisar reajustes",
-        hash: "reajustes",
+        key: "reajuste",
       });
     }
     if (ind?.checklists_pendentes_mes) {
@@ -108,9 +126,9 @@ function Page() {
         tipo: "Checklists pendentes",
         icon: <ClipboardList className="h-4 w-4" />,
         qtd: ind.checklists_pendentes_mes,
-        tone: "ambar" as const,
+        tone: "ambar",
         cta: "Ver checklists",
-        hash: "checklists",
+        key: "checklist",
       });
     }
     if (ind?.nao_conformidades_mes) {
@@ -118,9 +136,49 @@ function Page() {
         tipo: "Não conformidades",
         icon: <ShieldAlert className="h-4 w-4" />,
         qtd: ind.nao_conformidades_mes,
-        tone: "vermelho" as const,
+        tone: "vermelho",
         cta: "Tratar pendências",
-        hash: "checklists",
+        key: "nao_conformidade",
+      });
+    }
+    if (ind?.sem_responsavel) {
+      list.push({
+        tipo: "Contratos sem responsável",
+        icon: <UserX className="h-4 w-4" />,
+        qtd: ind.sem_responsavel,
+        tone: "ambar",
+        cta: "Atribuir gestores",
+        key: "sem_responsavel",
+      });
+    }
+    if (ind?.sem_indice) {
+      list.push({
+        tipo: "Sem índice de reajuste",
+        icon: <FileWarning className="h-4 w-4" />,
+        qtd: ind.sem_indice,
+        tone: "ambar",
+        cta: "Configurar índices",
+        key: "sem_indice",
+      });
+    }
+    if (ind?.mes_base_ausente) {
+      list.push({
+        tipo: "Mês-base ausente",
+        icon: <CalendarClock className="h-4 w-4" />,
+        qtd: ind.mes_base_ausente,
+        tone: "ambar",
+        cta: "Definir datas",
+        key: "mes_base_ausente",
+      });
+    }
+    if (ind?.documentos_ausentes) {
+      list.push({
+        tipo: "Documentos ausentes",
+        icon: <FileText className="h-4 w-4" />,
+        qtd: ind.documentos_ausentes,
+        tone: "ambar",
+        cta: "Fazer upload",
+        key: "documento_ausente",
       });
     }
     return list;
@@ -177,23 +235,44 @@ function Page() {
             icon={<ShieldAlert className="h-5 w-5 text-destructive" />} 
             tone={(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0) > 0 ? "vermelho" : "neutro"}
           />
-          <TooltipProvider>
-            <Card className="app-card p-4 border-augusto-gold/10 bg-gradient-to-br from-card to-augusto-gold/[0.03]">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Valor Anual Estimado</span>
-                <Tooltip>
-                  <TooltipTrigger><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
-                  <TooltipContent>Soma dos contratos mensais (x12) + contratos globais ativos.</TooltipContent>
-                </Tooltip>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Card className="app-card p-4 border-augusto-gold/10 bg-gradient-to-br from-card to-augusto-gold/[0.03] cursor-help hover:border-augusto-gold/30 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Valor Anual Estimado</span>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <p className="text-xl font-serif text-primary">
+                  {ind === null ? "…" : formatBRL(ind.valor_anual_estimado)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Recorrente: {ind ? formatBRL(ind.valor_mensal_total) : "—"}/mês
+                </p>
+              </Card>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4">
+              <div className="space-y-3">
+                <h4 className="font-serif font-medium text-primary">Composição do Valor Anual</h4>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between border-b border-border pb-1">
+                    <span className="text-muted-foreground">Mensais (x12)</span>
+                    <span className="font-medium">{ind ? formatBRL(ind.valor_mensal_total * 12) : "—"}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border pb-1">
+                    <span className="text-muted-foreground">Contratos Globais</span>
+                    <span className="font-medium">{ind ? formatBRL(ind.valor_global_total) : "—"}</span>
+                  </div>
+                  <div className="flex justify-between pt-1 font-semibold text-augusto-green">
+                    <span>Total Estimado</span>
+                    <span>{ind ? formatBRL(ind.valor_anual_estimado) : "—"}</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  * Considera apenas contratos ativos. Contratos sem valor definido são ignorados no cálculo.
+                </p>
               </div>
-              <p className="text-xl font-serif text-primary">
-                {ind === null ? "…" : formatBRL(ind.valor_anual_estimado)}
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Recorrente: {ind ? formatBRL(ind.valor_mensal_total) : "—"}/mês
-              </p>
-            </Card>
-          </TooltipProvider>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="grid lg:grid-cols-[1fr_340px] gap-6">
@@ -234,10 +313,13 @@ function Page() {
                           <p className="text-xs text-muted-foreground">{p.qtd} {p.qtd === 1 ? "item identificado" : "itens identificados"}</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-augusto-gold hover:text-augusto-gold hover:bg-augusto-gold/10" asChild>
-                        <Link to="/app/contratos" hash={p.hash}>
-                          {p.cta} <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                        </Link>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-augusto-gold hover:text-augusto-gold hover:bg-augusto-gold/10" 
+                        onClick={() => handleOpenPendencia(p.key)}
+                      >
+                        {p.cta} <ArrowRight className="h-3.5 w-3.5 ml-1" />
                       </Button>
                     </div>
                   ))
@@ -281,6 +363,12 @@ function Page() {
         </div>
       </div>
       </GestaoContratosGate>
+      <PendenciasDrawer 
+        open={drawerOpen} 
+        onOpenChange={setDrawerOpen} 
+        tipoFiltro={pendenciaFiltro}
+        condominioId={condFiltro}
+      />
     </AppShell>
   );
 }
