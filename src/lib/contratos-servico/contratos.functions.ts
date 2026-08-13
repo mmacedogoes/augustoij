@@ -155,6 +155,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
       data_fim: string | null;
       valor: number | null;
       tipo_valor: string;
+      documento_id: string | null;
       condominios: { nome: string } | null;
       tipos_servico_contrato: { nome: string } | null;
     };
