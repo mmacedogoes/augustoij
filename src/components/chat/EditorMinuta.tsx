@@ -22,10 +22,21 @@ type Formato = "pdf" | "docx";
 
 /** Pré-visualização com a mesma formatação usada na geração do arquivo. */
 function Previa({ conteudo, titulo }: { conteudo: string; titulo: string }) {
-  const { titulo: tit, blocos } = useMemo(
-    () => parseDocumento(conteudo, titulo),
-    [conteudo, titulo],
-  );
+  const { titulo: tit, blocos } = useMemo(() => {
+    const res = parseDocumento(conteudo, titulo);
+    let subtituloIdx = 0;
+    return {
+      ...res,
+      blocos: res.blocos.map(b => {
+        if (b.tipo === 'subtitulo') {
+          subtituloIdx++;
+          return { ...b, texto: `${subtituloIdx}. ${b.texto.toUpperCase()}` };
+        }
+        return b;
+      })
+    };
+  }, [conteudo, titulo]);
+
 
   if (!conteudo.trim()) {
     return (
@@ -42,10 +53,11 @@ function Previa({ conteudo, titulo }: { conteudo: string; titulo: string }) {
         {blocos.map((b, i) => {
           if (b.tipo === "subtitulo")
             return (
-              <p key={i} className="pt-2 text-[14px] font-bold uppercase">
+              <p key={i} className="pt-6 pb-2 text-[14px] font-bold uppercase">
                 {b.texto}
               </p>
             );
+
           if (b.tipo === "item")
             return (
               <p key={i} className="pl-6 text-[14px] leading-[1.6]">
