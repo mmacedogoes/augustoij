@@ -34,6 +34,8 @@ export type IndicadoresPainel = {
   checklists_pendentes_mes: number;
   nao_conformidades_mes: number;
   valor_mensal_total: number;
+  valor_anual_estimado: number;
+  total_com_pendencias: number;
   distribuicao_tipos: Array<{ tipo_id: string | null; nome: string; total: number }>;
 };
 
@@ -73,6 +75,13 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
     const valorMensal = ativos
       .filter((r) => r.tipo_valor === "mensal" && r.valor)
       .reduce((acc, r) => acc + Number(r.valor ?? 0), 0);
+
+    const valorGlobalAtivos = ativos
+      .filter((r) => r.tipo_valor === "global" && r.valor)
+      .reduce((acc, r) => acc + Number(r.valor ?? 0), 0);
+
+    // Valor anualizado estimado: Mensal * 12 + Global
+    const valorAnualEstimado = (valorMensal * 12) + valorGlobalAtivos;
 
     // Distribuição por tipo (apenas ativos).
     const tipoMap = new Map<string, { tipo_id: string | null; nome: string; total: number }>();
@@ -170,6 +179,8 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       checklists_pendentes_mes,
       nao_conformidades_mes,
       valor_mensal_total: valorMensal,
+      valor_anual_estimado: valorAnualEstimado,
+      total_com_pendencias: reajustes_pendentes + checklists_pendentes_mes + nao_conformidades_mes,
       distribuicao_tipos,
     };
     return out;

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileText, Plus, Sparkles } from "lucide-react";
+import { FileText, Plus, Sparkles, Filter, ChevronDown, Search, ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,22 +16,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ContratoStatusBadge } from "@/components/contratos-servico/ContratoStatusBadge";
 import { AppSkeleton } from "@/components/ui/app-skeleton";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
-import { Proximos30DiasPanel } from "@/components/contratos-servico/Proximos30DiasPanel";
 import {
   listCondominiosParaContratos,
   listContratosServico,
   listTiposServicoContrato,
   type ContratoLinha,
 } from "@/lib/contratos-servico/contratos.functions";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/contratos/")({
   component: Page,
 });
 
 const TODOS = "__todos";
+
+type Visao = "todos" | "vencendo" | "vencidos" | "suspensos" | "encerrados";
 
 function Page() {
   const navigate = useNavigate();
@@ -49,6 +59,7 @@ function Page() {
   const [status, setStatus] = useState<string>(TODOS);
   const [tipoId, setTipoId] = useState<string>(TODOS);
   const [busca, setBusca] = useState("");
+  const [visao, setVisao] = useState<Visao>("todos");
 
   useEffect(() => {
     Promise.all([condosFn(), tiposFn()])
@@ -62,13 +73,17 @@ function Page() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setErro(null);
+      
+      let statusFiltro = status === TODOS ? null : status;
+      if (visao === "vencendo") statusFiltro = "vence_em_breve";
+      else if (visao === "vencidos") statusFiltro = "vencido";
+      else if (visao === "suspensos") statusFiltro = "suspenso";
+      else if (visao === "encerrados") statusFiltro = "encerrado";
+
       listFn({
         data: {
           condominioId: condominioId === TODOS ? null : condominioId,
-          statusExibicao:
-            status === TODOS
-              ? null
-              : (status as "vigente" | "vence_em_breve" | "vencido" | "suspenso" | "encerrado"),
+          statusExibicao: statusFiltro as any,
           tipoServicoId: tipoId === TODOS ? null : tipoId,
           busca: busca.trim() === "" ? null : busca.trim(),
         },
@@ -83,202 +98,213 @@ function Page() {
         });
     }, 250);
     return () => clearTimeout(timer);
-  }, [listFn, condominioId, status, tipoId, busca]);
+  }, [listFn, condominioId, status, tipoId, busca, visao]);
 
   const total = useMemo(() => rows?.length ?? 0, [rows]);
+
+  const visaoLabel = {
+    todos: "Todos os contratos",
+    vencendo: "Vencendo em breve",
+    vencidos: "Vencidos",
+    suspensos: "Suspensos",
+    encerrados: "Encerrados",
+  }[visao];
 
   return (
     <AppShell>
       <GestaoContratosGate>
-      <div className="max-w-6xl">
-        <div className="mb-4">
-          <ContratosTabs condominioId={condominioId === TODOS ? null : condominioId} />
-        </div>
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+      <div className="max-w-6xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <header className="app-page-header">
-            <span className="app-eyebrow">Contratos de prestação de serviços</span>
-            <h1 className="app-title">Contratos</h1>
-            <p className="app-subtitle">
-              Gestão dos contratos firmados pelos condomínios (portaria, limpeza, elevadores etc.).
-            </p>
+            <span className="app-eyebrow">Gestão de Contratos</span>
+            <div className="flex items-center gap-3">
+              <h1 className="app-title">Contratos</h1>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1 border-augusto-gold/20 bg-augusto-gold/5 text-augusto-gold">
+                    {visaoLabel} <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuLabel>Visões rápidas</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setVisao("todos"); setStatus(TODOS); }}>Todos os contratos</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setVisao("vencendo")}>Vencendo em 90 dias</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setVisao("vencidos")}>Vencidos</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setVisao("suspensos")}>Suspensos</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setVisao("encerrados")}>Encerrados</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </header>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate({ to: "/app/contratos/importar" })}>
+          <div className="flex items-center gap-2">
+            <ContratosTabs condominioId={condominioId === TODOS ? null : condominioId} />
+            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/contratos/importar" })}>
               <Sparkles className="h-4 w-4 mr-1" /> Importar com IA
             </Button>
-            <Button onClick={() => navigate({ to: "/app/contratos/novo" })}>
+            <Button size="sm" variant="augusto" onClick={() => navigate({ to: "/app/contratos/novo" })}>
               <Plus className="h-4 w-4 mr-1" /> Novo contrato
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3 mb-6">
-          <Counter label="Vigentes" value={counters.vigentes} tone="emerald" />
-          <Counter label="Vencendo em 90 dias" value={counters.vencendo} tone="amber" />
-          <Counter label="Vencidos" value={counters.vencidos} tone="red" />
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          <Counter label="Vigentes" value={counters.vigentes} tone="emerald" onClick={() => { setVisao("todos"); setStatus("vigente"); }} />
+          <Counter label="Vencendo em breve" value={counters.vencendo} tone="amber" onClick={() => setVisao("vencendo")} />
+          <Counter label="Vencidos" value={counters.vencidos} tone="red" onClick={() => setVisao("vencidos")} />
         </div>
 
-        <div className="mb-6">
-          <Proximos30DiasPanel />
-        </div>
-
-        <Card className="app-card p-5 sm:p-6 mb-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Select value={condominioId} onValueChange={setCondominioId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Condomínio" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODOS}>Todos os condomínios</SelectItem>
-                {condos.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODOS}>Todos os status</SelectItem>
-                <SelectItem value="vigente">Vigente</SelectItem>
-                <SelectItem value="vence_em_breve">Vence em breve</SelectItem>
-                <SelectItem value="vencido">Vencido</SelectItem>
-                <SelectItem value="suspenso">Suspenso</SelectItem>
-                <SelectItem value="encerrado">Encerrado</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={tipoId} onValueChange={setTipoId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tipo de serviço" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODOS}>Todos os tipos</SelectItem>
-                {tipos.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Buscar por prestador…"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
-          </div>
-        </Card>
-
-        {erro ? (
-          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
-            {erro}
-          </div>
-        ) : rows === null ? (
-          <Card className="app-card p-5 sm:p-6">
-            <AppSkeleton className="h-4 w-40 mb-4" />
-            <div className="space-y-3">
-              <AppSkeleton className="h-10 w-full" />
-              <AppSkeleton className="h-10 w-full" />
-              <AppSkeleton className="h-10 w-full" />
+        <Card className="app-card border-augusto-gold/10">
+          <div className="p-4 border-b border-border/40 flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por prestador…"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="pl-9 h-9 bg-muted/20 border-border/40 focus:border-augusto-gold/40"
+              />
             </div>
-          </Card>
-        ) : total === 0 ? (
-          <Card className="app-card p-10">
-            <AppEmptyState
-              icon={<FileText strokeWidth={1.2} />}
-              title="Nenhum contrato encontrado"
-              description="Cadastre o primeiro contrato para começar a acompanhar prestadores, vigências e obrigações."
-              action={
-                <Button onClick={() => navigate({ to: "/app/contratos/novo" })}>
-                  <Plus className="h-4 w-4 mr-1" /> Novo contrato
-                </Button>
-              }
-            />
-          </Card>
-        ) : (
-          <Card className="app-card overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="flex items-center gap-2">
+              <Select value={condominioId} onValueChange={setCondominioId}>
+                <SelectTrigger className="h-9 w-[180px] bg-muted/20 border-border/40">
+                  <SelectValue placeholder="Condomínio" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TODOS}>Todos os condomínios</SelectItem>
+                  {condos.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={tipoId} onValueChange={setTipoId}>
+                <SelectTrigger className="h-9 w-[180px] bg-muted/20 border-border/40">
+                  <SelectValue placeholder="Tipo de serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TODOS}>Todos os tipos</SelectItem>
+                  {tipos.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="ghost" size="sm" className="h-9 px-2 text-muted-foreground" onClick={() => { setBusca(""); setCondominioId(TODOS); setTipoId(TODOS); setStatus(TODOS); setVisao("todos"); }}>
+                Limpar filtros
+              </Button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            {erro ? (
+              <div className="p-8 text-center text-destructive">{erro}</div>
+            ) : rows === null ? (
+              <div className="p-8 space-y-4">
+                <AppSkeleton className="h-10 w-full" />
+                <AppSkeleton className="h-10 w-full" />
+                <AppSkeleton className="h-10 w-full" />
+              </div>
+            ) : total === 0 ? (
+              <div className="p-12">
+                <AppEmptyState
+                  icon={<FileText className="opacity-20" size={48} />}
+                  title="Nenhum contrato encontrado"
+                  description="Ajuste os filtros ou cadastre um novo contrato."
+                  action={
+                    <Button variant="outline" size="sm" onClick={() => { setBusca(""); setVisao("todos"); }}>
+                      Ver todos os contratos
+                    </Button>
+                  }
+                />
+              </div>
+            ) : (
               <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <Th>Prestador</Th>
-                    <Th>Tipo de serviço</Th>
+                <thead>
+                  <tr className="bg-muted/30 border-b border-border/40">
+                    <Th className="w-[40%]">Prestador & Tipo</Th>
                     <Th>Condomínio</Th>
-                    <Th>Vigência</Th>
+                    <Th>Próximo Vencimento</Th>
                     <Th>Valor</Th>
-                    <Th>Status</Th>
+                    <Th className="text-right">Saúde</Th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--landing-rule)]">
+                <tbody className="divide-y divide-border/40">
                   {rows.map((r) => (
-                    <tr key={r.id} className="hover:bg-muted/40 transition-colors duration-[var(--dur-fast)] cursor-pointer">
+                    <tr 
+                      key={r.id} 
+                      className="group hover:bg-augusto-gold/[0.02] cursor-pointer transition-colors"
+                      onClick={() => navigate({ to: "/app/contratos/$contratoId", params: { contratoId: r.id } })}
+                    >
                       <Td>
-                        <Link
-                          to="/app/contratos/$contratoId"
-                          params={{ contratoId: r.id }}
-                          className="font-medium text-primary hover:underline"
-                        >
-                          {r.prestador_nome}
-                        </Link>
+                        <div>
+                          <p className="font-semibold text-primary group-hover:text-augusto-gold transition-colors">{r.prestador_nome}</p>
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{r.tipo_servico_nome ?? "Serviço não especificado"}</p>
+                        </div>
                       </Td>
-                      <Td className="text-muted-foreground">{r.tipo_servico_nome ?? "—"}</Td>
                       <Td className="text-muted-foreground">{r.condominio_nome}</Td>
-                      <Td className="text-muted-foreground">{formatVigencia(r)}</Td>
                       <Td className="text-muted-foreground">
-                        {r.valor === null
-                          ? "—"
-                          : `${formatBRL(Number(r.valor))}${r.tipo_valor === "mensal" ? "/mês" : ""}`}
+                        {r.prazo_indeterminado ? (
+                          <span className="text-xs text-augusto-green bg-augusto-green/5 px-2 py-0.5 rounded-full border border-augusto-green/10">Indeterminado</span>
+                        ) : (
+                          formatDate(r.data_fim)
+                        )}
                       </Td>
                       <Td>
-                        <ContratoStatusBadge status={r.status} />
+                        <p className="font-medium text-foreground">{r.valor ? formatBRL(Number(r.valor)) : "—"}</p>
+                        <p className="text-[10px] text-muted-foreground">{r.tipo_valor === "mensal" ? "Mensal" : "Valor Único"}</p>
+                      </Td>
+                      <Td className="text-right">
+                        <div className="inline-flex items-center gap-2">
+                          <ContratoStatusBadge status={r.status} />
+                        </div>
                       </Td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+          {total > 0 && (
+            <div className="p-3 border-t border-border/40 text-[11px] text-muted-foreground text-center">
+              Mostrando {total} {total === 1 ? "contrato" : "contratos"}
             </div>
-          </Card>
-        )}
+          )}
+        </Card>
       </div>
       </GestaoContratosGate>
     </AppShell>
   );
 }
 
-function Counter({ label, value, tone }: { label: string; value: number; tone: "emerald" | "amber" | "red" }) {
-  const tones: Record<typeof tone, string> = {
-    emerald: "text-augusto-green",
-    amber: "text-amber-700 dark:text-amber-400",
-    red: "text-destructive",
+function Counter({ label, value, tone, onClick }: { label: string; value: number; tone: "emerald" | "amber" | "red"; onClick: () => void }) {
+  const tones = {
+    emerald: "border-l-augusto-green text-augusto-green bg-augusto-green/[0.02]",
+    amber: "border-l-augusto-gold text-augusto-gold bg-augusto-gold/[0.02]",
+    red: "border-l-destructive text-destructive bg-destructive/[0.02]",
   };
   return (
-    <Card className="app-card p-5 sm:p-6">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`text-3xl font-semibold ${tones[tone]}`}>{value}</p>
+    <Card 
+      className={cn("app-card p-4 border-l-4 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]", tones[tone])}
+      onClick={onClick}
+    >
+      <p className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">{label}</p>
+      <p className="text-2xl font-serif">{value}</p>
     </Card>
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
-  return <th className="text-left px-4 py-2.5 font-medium">{children}</th>;
+function Th({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <th className={cn("px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground", className)}>{children}</th>;
 }
-function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-4 py-3 align-middle ${className}`}>{children}</td>;
+function Td({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <td className={cn("px-4 py-3 align-middle", className)}>{children}</td>;
 }
 
 function formatBRL(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
-function formatVigencia(r: ContratoLinha): string {
-  if (r.prazo_indeterminado) return "Indeterminado";
-  const ini = r.data_inicio ? formatDate(r.data_inicio) : "—";
-  const fim = r.data_fim ? formatDate(r.data_fim) : "—";
-  return `${ini} até ${fim}`;
-}
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
 }
