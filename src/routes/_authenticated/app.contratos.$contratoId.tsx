@@ -39,6 +39,9 @@ import {
   anexarArquivoContratoServico,
 } from "@/lib/contratos-servico/importar.functions";
 import { statusExibicaoContrato } from "@/lib/contratos-servico/status";
+import { EditContratoModal } from "@/components/contratos-servico/EditContratoModal";
+import { EditObrigacoesModal } from "@/components/contratos-servico/EditObrigacoesModal";
+import { Separator } from "@/components/ui/separator";
 
 // Painéis pesados só carregam quando a aba correspondente é aberta.
 const RetencoesCard = lazy(() =>
