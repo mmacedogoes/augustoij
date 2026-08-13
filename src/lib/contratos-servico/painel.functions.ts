@@ -179,6 +179,8 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       checklists_pendentes_mes,
       nao_conformidades_mes,
       valor_mensal_total: valorMensal,
+      valor_anual_estimado: valorAnualEstimado,
+      total_com_pendencias: reajustes_pendentes + checklists_pendentes_mes + nao_conformidades_mes,
       distribuicao_tipos,
     };
     return out;
