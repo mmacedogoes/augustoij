@@ -133,7 +133,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
     let query = context.supabase
       .from("contratos_servico")
       .select(
-        "id, condominio_id, tipo_servico_id, situacao, prestador_nome, prazo_indeterminado, data_inicio, data_fim, valor, tipo_valor, condominios(nome), tipos_servico_contrato(nome)",
+        "id, condominio_id, tipo_servico_id, situacao, prestador_nome, prazo_indeterminado, data_inicio, data_fim, valor, tipo_valor, documento_id, condominios(nome), tipos_servico_contrato(nome)",
       );
     if (data.condominioId) query = query.eq("condominio_id", data.condominioId);
     if (data.tipoServicoId) query = query.eq("tipo_servico_id", data.tipoServicoId);
