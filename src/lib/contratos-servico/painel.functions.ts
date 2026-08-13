@@ -53,7 +53,7 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
     let q = context.supabase
       .from("contratos_servico")
       .select(
-        "id, condominio_id, tipo_servico_id, situacao, prazo_indeterminado, data_fim, valor, tipo_valor, mes_base_reajuste, indice_reajuste, ultimo_reajuste_em, arquivo_path, responsavel_id, tipos_servico_contrato(nome)",
+        "id, condominio_id, tipo_servico_id, situacao, prazo_indeterminado, data_fim, valor, tipo_valor, mes_base_reajuste, indice_reajuste, ultimo_reajuste_em, arquivo_path, tipos_servico_contrato(nome)",
       );
     if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
     const { data: rows, error } = await q;
@@ -64,7 +64,6 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       valor: number | null; tipo_valor: string;
       mes_base_reajuste: number | null; indice_reajuste: string | null;
       ultimo_reajuste_em: string | null; arquivo_path: string | null;
-      responsavel_id: string | null;
       tipos_servico_contrato: { nome: string } | null;
     };
     const list = (rows ?? []) as Row[];
