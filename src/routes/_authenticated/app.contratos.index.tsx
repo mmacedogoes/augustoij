@@ -2,7 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileText, Plus, Sparkles, Filter, ChevronDown, Search, ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { 
+  FileText, Plus, Sparkles, Filter, ChevronDown, Search, 
+  ArrowUpDown, MoreHorizontal, X 
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
