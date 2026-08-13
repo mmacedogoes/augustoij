@@ -39,6 +39,9 @@ import {
   anexarArquivoContratoServico,
 } from "@/lib/contratos-servico/importar.functions";
 import { statusExibicaoContrato } from "@/lib/contratos-servico/status";
+import { EditContratoModal } from "@/components/contratos-servico/EditContratoModal";
+import { EditObrigacoesModal } from "@/components/contratos-servico/EditObrigacoesModal";
+import { Separator } from "@/components/ui/separator";
 
 // Painéis pesados só carregam quando a aba correspondente é aberta.
 const RetencoesCard = lazy(() =>
@@ -97,6 +100,8 @@ function Page() {
   const [ficha, setFicha] = useState<Ficha | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [confirmar, setConfirmar] = useState(false);
+  const [editContratoOpen, setEditContratoOpen] = useState(false);
+  const [editObrigacoesOpen, setEditObrigacoesOpen] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [countAditivos, setCountAditivos] = useState<number>(0);
   const [aba, setAba] = useState<string>("informacoes");
@@ -264,16 +269,8 @@ function Page() {
               <Sparkles className="mr-1 h-4 w-4" /> Analisar com Augusto
             </Button>
             <EncerrarSuspenderMenu contratoId={contratoId} situacao={c.situacao} onChange={carregar} />
-            <Button
-              variant="outline"
-              onClick={() =>
-                navigate({
-                  to: "/app/contratos/$contratoId/editar",
-                  params: { contratoId },
-                })
-              }
-            >
-              <Pencil className="mr-1 h-4 w-4" /> Editar
+            <Button variant="outline" onClick={() => setEditContratoOpen(true)}>
+              <Pencil className="mr-1 h-4 w-4" /> Editar dados
             </Button>
             <Button variant="ghost" onClick={() => setConfirmar(true)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
               <Trash2 className="mr-1 h-4 w-4" /> Excluir
@@ -281,270 +278,367 @@ function Page() {
           </div>
         </div>
 
-        {countAditivos > 0 && (
-          <div className="mb-4">
-            <Badge variant="secondary">{countAditivos} {countAditivos === 1 ? "aditivo" : "aditivos"}</Badge>
-          </div>
-        )}
+        <EditContratoModal 
+          open={editContratoOpen} 
+          onOpenChange={setEditContratoOpen} 
+          initialValues={{
+            id: c.id,
+            condominio_id: c.condominio_id,
+            tipo_servico_id: c.tipo_servico_id,
+            situacao: c.situacao,
+            prestador_nome: c.prestador_nome,
+            objeto: c.objeto,
+            data_inicio: c.data_inicio,
+            prazo_indeterminado: c.prazo_indeterminado,
+            data_fim: c.data_fim,
+            valor: Number(c.valor),
+            tipo_valor: c.tipo_valor,
+            dia_vencimento: c.dia_vencimento,
+            indice_reajuste: c.indice_reajuste as any,
+            mes_base_reajuste: c.mes_base_reajuste,
+          }}
+          onSaved={carregar}
+        />
+        <EditObrigacoesModal
+          open={editObrigacoesOpen}
+          onOpenChange={setEditObrigacoesOpen}
+          contratoId={contratoId}
+          initialObrigacoes={ficha.obrigacoes}
+          onSaved={carregar}
+        />
 
-        <Tabs value={aba} onValueChange={setAba} className="mb-6">
-          <div className="mb-4 -mx-1 overflow-x-auto pb-1">
-            <TabsList className="inline-flex h-auto min-w-full flex-nowrap gap-1 bg-muted/40 p-1">
-            <TriggerIcon value="informacoes" icon={<FileText className="h-3.5 w-3.5" />} label="Informações" />
-            <TriggerIcon value="checklists" icon={<ListChecks className="h-3.5 w-3.5" />} label="Checklists" />
-            <TriggerIcon value="retencoes" icon={<Shield className="h-3.5 w-3.5" />} label="Retenções" />
-            <TriggerIcon value="agenda" icon={<CalendarClock className="h-3.5 w-3.5" />} label="Agenda" />
-            <TriggerIcon value="reajustes" icon={<ArrowUpRightSquare className="h-3.5 w-3.5" />} label="Reajustes" />
-            <TriggerIcon value="aditivos" icon={<FilePlus2 className="h-3.5 w-3.5" />} label="Aditivos" />
-            <TriggerIcon value="analise" icon={<Sparkles className="h-3.5 w-3.5" />} label="Análise" />
-            <TriggerIcon value="responsaveis" icon={<Users className="h-3.5 w-3.5" />} label="Responsáveis" />
-            <TriggerIcon value="atividades" icon={<Activity className="h-3.5 w-3.5" />} label="Atividades" />
-            </TabsList>
-          </div>
-          <TabsContent value="informacoes" className="mt-4 space-y-4">
-            <Card className="app-card-interactive grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-augusto-gold/20 bg-gradient-to-br from-card to-augusto-gold/[0.04] p-5 transition-all duration-200 hover:border-augusto-gold/40">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--app-radius)] bg-augusto-gold/15 text-augusto-gold ring-1 ring-augusto-gold/20">
-                <FileText className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">Arquivo do contrato</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  {c.arquivo_path
-                    ? "Enviado na importação"
-                    : c.documento_id
-                      ? "Vinculado ao acervo do condomínio"
-                      : "Nenhum arquivo vinculado. Anexe um PDF, DOCX ou TXT (até 10 MB)."}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void handleAnexarArquivo(f);
-                  }}
+        <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-start">
+          <aside className="w-full shrink-0 md:sticky md:top-24 md:w-64">
+            <nav className="flex flex-col gap-1 rounded-xl border border-border bg-card/50 p-3 shadow-sm backdrop-blur-sm">
+              <NavGroup label="Principal">
+                <NavItem 
+                  active={aba === "informacoes"} 
+                  onClick={() => setAba("informacoes")} 
+                  icon={<FileText className="h-4 w-4" />} 
+                  label="Resumo e Dados" 
                 />
-                {c.arquivo_path || c.documento_id ? (
-                  <Button variant="outline" size="sm" onClick={abrirArquivo} disabled={abrindoArquivo}>
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    {abrindoArquivo ? "Abrindo…" : "Abrir arquivo"}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={anexando}
-                  >
-                    <Upload className="h-4 w-4 mr-1" />
-                    {anexando ? "Enviando…" : "Anexar arquivo"}
-                  </Button>
-                )}
-              </div>
-            </Card>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
-              <InfoCard className="xl:col-span-5" icon={<Wallet className="h-3.5 w-3.5" />} titulo="Financeiro">
-                <div className="flex items-baseline gap-2">
-                  <p className="font-serif text-3xl leading-none text-primary">
-                    {c.valor === null ? "—" : formatBRL(Number(c.valor))}
-                  </p>
-                  {c.valor !== null ? (
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      {c.tipo_valor === "mensal" ? "/ mês" : "global"}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {c.dia_vencimento ? (
-                    <StatBadge icon={<CalendarDays className="h-3 w-3" />}>Vence dia {c.dia_vencimento}</StatBadge>
-                  ) : null}
-                  {c.tipo_valor ? (
-                    <StatBadge icon={<Hash className="h-3 w-3" />}>
-                      {c.tipo_valor === "mensal" ? "Recorrente" : "Valor único"}
-                    </StatBadge>
-                  ) : null}
-                </div>
-              </InfoCard>
+                <NavItem 
+                  active={aba === "checklists"} 
+                  onClick={() => setAba("checklists")} 
+                  icon={<ListChecks className="h-4 w-4" />} 
+                  label="Checklists (Rotina)" 
+                />
+                <NavItem 
+                  active={aba === "retencoes"} 
+                  onClick={() => setAba("retencoes")} 
+                  icon={<Shield className="h-4 w-4" />} 
+                  label="Retenções e Impostos" 
+                />
+              </NavGroup>
+              
+              <Separator className="my-2 opacity-50" />
+              
+              <NavGroup label="Gestão">
+                <NavItem 
+                  active={aba === "agenda"} 
+                  onClick={() => setAba("agenda")} 
+                  icon={<CalendarClock className="h-4 w-4" />} 
+                  label="Agenda Financeira" 
+                />
+                <NavItem 
+                  active={aba === "reajustes"} 
+                  onClick={() => setAba("reajustes")} 
+                  icon={<ArrowUpRightSquare className="h-4 w-4" />} 
+                  label="Reajustes" 
+                />
+                <NavItem 
+                  active={aba === "responsaveis"} 
+                  onClick={() => setAba("responsaveis")} 
+                  icon={<Users className="h-4 w-4" />} 
+                  label="Responsáveis" 
+                />
+              </NavGroup>
+              
+              <Separator className="my-2 opacity-50" />
+              
+              <NavGroup label="Histórico e IA">
+                <NavItem 
+                  active={aba === "analise"} 
+                  onClick={() => setAba("analise")} 
+                  icon={<Sparkles className="h-4 w-4" />} 
+                  label="Análise de IA" 
+                />
+                <NavItem 
+                  active={aba === "aditivos"} 
+                  onClick={() => setAba("aditivos")} 
+                  icon={<FilePlus2 className="h-4 w-4" />} 
+                  label="Aditivos" 
+                  badge={countAditivos > 0 ? countAditivos : undefined}
+                />
+                <NavItem 
+                  active={aba === "atividades"} 
+                  onClick={() => setAba("atividades")} 
+                  icon={<Activity className="h-4 w-4" />} 
+                  label="Log de Atividades" 
+                />
+              </NavGroup>
+            </nav>
+          </aside>
 
-              <InfoCard className="xl:col-span-7" icon={<CalendarRange className="h-3.5 w-3.5" />} titulo="Vigência">
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                  <div>
-                    <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Início</p>
-                    <p className="mt-1 font-serif text-xl text-foreground">{formatDate(c.data_inicio)}</p>
-                  </div>
-                  <div className="h-px w-8 bg-gradient-to-r from-augusto-gold/40 via-augusto-gold to-augusto-gold/40 sm:w-16" aria-hidden="true" />
-                  <div className="text-right">
-                    <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Fim</p>
-                    <p className="mt-1 font-serif text-xl text-foreground">
-                      {c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
+          <main className="flex-1 min-w-0">
+            {aba === "informacoes" && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 space-y-6">
+                <Card className="app-card-interactive grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-augusto-gold/20 bg-gradient-to-br from-card to-augusto-gold/[0.04] p-5 transition-all duration-200 hover:border-augusto-gold/40">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--app-radius)] bg-augusto-gold/15 text-augusto-gold ring-1 ring-augusto-gold/20">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Arquivo do contrato</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {c.arquivo_path
+                        ? "Enviado na importação"
+                        : c.documento_id
+                          ? "Vinculado ao acervo do condomínio"
+                          : "Nenhum arquivo vinculado. Anexe um PDF, DOCX ou TXT (até 10 MB)."}
                     </p>
                   </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <StatBadge
-                    tone={c.renovacao_automatica ? "positive" : "muted"}
-                    icon={c.renovacao_automatica ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                  >
-                    Renovação automática
-                  </StatBadge>
-                  {c.renovacao_automatica && c.aviso_previo_dias ? (
-                    <StatBadge icon={<CalendarClock className="h-3 w-3" />}>Aviso prévio {c.aviso_previo_dias}d</StatBadge>
-                  ) : null}
-                </div>
-              </InfoCard>
-
-              <InfoCard className="xl:col-span-7" icon={<Briefcase className="h-3.5 w-3.5" />} titulo="Prestador">
-                <p className="font-serif text-xl leading-tight text-primary">{c.prestador_nome ?? "—"}</p>
-                {c.prestador_documento ? (
-                  <p className="mt-1 text-xs text-muted-foreground">CNPJ/CPF · {c.prestador_documento}</p>
-                ) : null}
-                <div className="mt-4 space-y-1.5">
-                  <ContactLine icon={<Mail className="h-3.5 w-3.5" />} href={c.prestador_email ? `mailto:${c.prestador_email}` : null}>
-                    {c.prestador_email ?? "—"}
-                  </ContactLine>
-                  <ContactLine icon={<Phone className="h-3.5 w-3.5" />} href={c.prestador_telefone ? `tel:${c.prestador_telefone}` : null}>
-                    {c.prestador_telefone ?? "—"}
-                  </ContactLine>
-                </div>
-              </InfoCard>
-
-              <InfoCard className="xl:col-span-5" icon={<TrendingUp className="h-3.5 w-3.5" />} titulo="Reajuste">
-                <div className="flex items-baseline gap-2">
-                  <p className="font-serif text-2xl text-primary">{rotuloIndice(c.indice_reajuste)}</p>
-                  <span className="text-xs uppercase tracking-wider text-muted-foreground">índice</span>
-                </div>
-                <div className="mt-4">
-                  <StatBadge icon={<CalendarDays className="h-3 w-3" />}>
-                    Mês base · {c.mes_base_reajuste ?? "—"}
-                  </StatBadge>
-                </div>
-              </InfoCard>
-
-              <InfoCard className="xl:col-span-7" icon={<ClipboardCheck className="h-3.5 w-3.5" />} titulo="Objeto e tipo">
-                {c.tipos_servico_contrato?.nome ? <StatBadge>{c.tipos_servico_contrato.nome}</StatBadge> : null}
-                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground">{c.objeto || "—"}</p>
-                <div className="mt-4">
-                  <StatBadge
-                    tone={c.terceirizacao_mao_de_obra ? "warning" : "muted"}
-                    icon={c.terceirizacao_mao_de_obra ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                  >
-                    Terceirização de mão de obra
-                  </StatBadge>
-                </div>
-              </InfoCard>
-
-              <InfoCard className="xl:col-span-5" icon={<Scale className="h-3.5 w-3.5" />} titulo="Cláusulas">
-                <div className="space-y-2.5 text-sm">
-                  <ClauseRow icon={<Percent className="h-3.5 w-3.5" />} label="Multa rescisória" value={c.multa_rescisoria} />
-                  <ClauseRow
-                    icon={<Shield className="h-3.5 w-3.5" />}
-                    label="Exige seguro RC"
-                    value={c.exige_seguro_rc ? "Sim" : "Não"}
-                    positive={c.exige_seguro_rc}
-                  />
-                  <ClauseRow icon={<ScrollText className="h-3.5 w-3.5" />} label="Garantias" value={c.garantias} />
-                  <ClauseRow icon={<Landmark className="h-3.5 w-3.5" />} label="Foro" value={c.foro} />
-                </div>
-              </InfoCard>
-
-              <div className="md:col-span-2 xl:col-span-12">
-                <InfoCard
-                  icon={<ClipboardCheck className="h-3.5 w-3.5" />}
-                  titulo="Obrigações do contrato"
-                  descricao="Mapa de deveres do condomínio e do prestador. Edite manualmente ou importe por IA."
-                >
-                  <div className="mb-4 flex flex-wrap gap-2">
-                    <StatBadge>
-                      {ficha.obrigacoes.length} {ficha.obrigacoes.length === 1 ? "obrigação" : "obrigações"}
-                    </StatBadge>
-                    <StatBadge tone="muted">
-                      {ficha.obrigacoes.filter((o) => o.parte === "condominio").length} do condomínio
-                    </StatBadge>
-                    <StatBadge tone="muted">
-                      {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do prestador
-                    </StatBadge>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void handleAnexarArquivo(f);
+                      }}
+                    />
+                    {c.arquivo_path || c.documento_id ? (
+                      <Button variant="outline" size="sm" onClick={abrirArquivo} disabled={abrindoArquivo}>
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        {abrindoArquivo ? "Abrindo…" : "Abrir arquivo"}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={anexando}
+                      >
+                        <Upload className="h-4 w-4 mr-1" />
+                        {anexando ? "Enviando…" : "Anexar arquivo"}
+                      </Button>
+                    )}
                   </div>
-                  <ObrigacoesEditor contratoId={contratoId} itens={ficha.obrigacoes} onChange={carregar} />
-                </InfoCard>
+                </Card>
+
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12">
+                  <InfoCard className="xl:col-span-5" icon={<Wallet className="h-3.5 w-3.5" />} titulo="Financeiro">
+                    <div className="flex items-baseline gap-2">
+                      <p className="font-serif text-3xl leading-none text-primary">
+                        {c.valor === null ? "—" : formatBRL(Number(c.valor))}
+                      </p>
+                      {c.valor !== null ? (
+                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          {c.tipo_valor === "mensal" ? "/ mês" : "global"}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {c.dia_vencimento ? (
+                        <StatBadge icon={<CalendarDays className="h-3 w-3" />}>Vence dia {c.dia_vencimento}</StatBadge>
+                      ) : null}
+                      {c.tipo_valor ? (
+                        <StatBadge icon={<Hash className="h-3 w-3" />}>
+                          {c.tipo_valor === "mensal" ? "Recorrente" : "Valor único"}
+                        </StatBadge>
+                      ) : null}
+                    </div>
+                  </InfoCard>
+
+                  <InfoCard className="xl:col-span-7" icon={<CalendarRange className="h-3.5 w-3.5" />} titulo="Vigência">
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                      <div>
+                        <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Início</p>
+                        <p className="mt-1 font-serif text-xl text-foreground">{formatDate(c.data_inicio)}</p>
+                      </div>
+                      <div className="h-px w-8 bg-gradient-to-r from-augusto-gold/40 via-augusto-gold to-augusto-gold/40 sm:w-16" aria-hidden="true" />
+                      <div className="text-right">
+                        <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Fim</p>
+                        <p className="mt-1 font-serif text-xl text-foreground">
+                          {c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <StatBadge
+                        tone={c.renovacao_automatica ? "positive" : "muted"}
+                        icon={c.renovacao_automatica ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                      >
+                        Renovacao automática
+                      </StatBadge>
+                      {c.renovacao_automatica && c.aviso_previo_dias ? (
+                        <StatBadge icon={<CalendarClock className="h-3 w-3" />}>Aviso prévio {c.aviso_previo_dias}d</StatBadge>
+                      ) : null}
+                    </div>
+                  </InfoCard>
+
+                  <InfoCard className="xl:col-span-7" icon={<Briefcase className="h-3.5 w-3.5" />} titulo="Prestador">
+                    <p className="font-serif text-xl leading-tight text-primary">{c.prestador_nome ?? "—"}</p>
+                    {c.prestador_documento ? (
+                      <p className="mt-1 text-xs text-muted-foreground">CNPJ/CPF · {c.prestador_documento}</p>
+                    ) : null}
+                    <div className="mt-4 space-y-1.5">
+                      <ContactLine icon={<Mail className="h-3.5 w-3.5" />} href={c.prestador_email ? `mailto:${c.prestador_email}` : null}>
+                        {c.prestador_email ?? "—"}
+                      </ContactLine>
+                      <ContactLine icon={<Phone className="h-3.5 w-3.5" />} href={c.prestador_telefone ? `tel:${c.prestador_telefone}` : null}>
+                        {c.prestador_telefone ?? "—"}
+                      </ContactLine>
+                    </div>
+                  </InfoCard>
+
+                  <InfoCard className="xl:col-span-5" icon={<TrendingUp className="h-3.5 w-3.5" />} titulo="Reajuste">
+                    <div className="flex items-baseline gap-2">
+                      <p className="font-serif text-2xl text-primary">{rotuloIndice(c.indice_reajuste)}</p>
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground">índice</span>
+                    </div>
+                    <div className="mt-4">
+                      <StatBadge icon={<CalendarDays className="h-3 w-3" />}>
+                        Mês base · {c.mes_base_reajuste ?? "—"}
+                      </StatBadge>
+                    </div>
+                  </InfoCard>
+
+                  <InfoCard className="xl:col-span-7" icon={<ClipboardCheck className="h-3.5 w-3.5" />} titulo="Objeto e tipo">
+                    {c.tipos_servico_contrato?.nome ? <StatBadge>{c.tipos_servico_contrato.nome}</StatBadge> : null}
+                    <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground">{c.objeto || "—"}</p>
+                    <div className="mt-4">
+                      <StatBadge
+                        tone={c.terceirizacao_mao_de_obra ? "warning" : "muted"}
+                        icon={c.terceirizacao_mao_de_obra ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                      >
+                        Terceirização de mão de obra
+                      </StatBadge>
+                    </div>
+                  </InfoCard>
+
+                  <InfoCard className="xl:col-span-5" icon={<Scale className="h-3.5 w-3.5" />} titulo="Cláusulas">
+                    <div className="space-y-2.5 text-sm">
+                      <ClauseRow icon={<Percent className="h-3.5 w-3.5" />} label="Multa rescisória" value={c.multa_rescisoria} />
+                      <ClauseRow
+                        icon={<Shield className="h-3.5 w-3.5" />}
+                        label="Exige seguro RC"
+                        value={c.exige_seguro_rc ? "Sim" : "Não"}
+                        positive={c.exige_seguro_rc}
+                      />
+                      <ClauseRow icon={<ScrollText className="h-3.5 w-3.5" />} label="Garantias" value={c.garantias} />
+                      <ClauseRow icon={<Landmark className="h-3.5 w-3.5" />} label="Foro" value={c.foro} />
+                    </div>
+                  </InfoCard>
+
+                  <div className="md:col-span-2 xl:col-span-12">
+                    <InfoCard
+                      icon={<ClipboardCheck className="h-3.5 w-3.5" />}
+                      titulo="Obrigações do contrato"
+                      descricao="Mapa de deveres do condomínio e do prestador. Gerencie as responsabilidades vinculadas a este serviço."
+                    >
+                      <div className="mb-4 flex flex-wrap gap-2">
+                        <StatBadge>
+                          {ficha.obrigacoes.length} {ficha.obrigacoes.length === 1 ? "obrigação" : "obrigações"}
+                        </StatBadge>
+                        <StatBadge tone="muted">
+                          {ficha.obrigacoes.filter((o) => o.parte === "condominio").length} do condomínio
+                        </StatBadge>
+                        <StatBadge tone="muted">
+                          {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do prestador
+                        </StatBadge>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setEditObrigacoesOpen(true)}>
+                        <Pencil className="h-3.5 w-3.5 mr-2" /> Editar obrigações
+                      </Button>
+                    </InfoCard>
+                  </div>
+                </div>
               </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="checklists" className="mt-4">
+            )}
+
             {aba === "checklists" && (
-              <Suspense fallback={<PanelSkeleton />}>
-                <ChecklistsPanel contratoId={contratoId} />
-              </Suspense>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <ChecklistsPanel contratoId={contratoId} />
+                </Suspense>
+              </div>
             )}
-          </TabsContent>
-          <TabsContent value="retencoes" className="mt-4">
+            
             {aba === "retencoes" && (
-              <Suspense fallback={<PanelSkeleton />}>
-                <RetencoesCard contratoId={contratoId} />
-              </Suspense>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <RetencoesCard contratoId={contratoId} />
+                </Suspense>
+              </div>
             )}
-          </TabsContent>
-          <TabsContent value="agenda" className="mt-4">
+            
             {aba === "agenda" && (
-              <Suspense fallback={<PanelSkeleton />}>
-                <AgendaPanel contratoId={contratoId} />
-              </Suspense>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <AgendaPanel contratoId={contratoId} />
+                </Suspense>
+              </div>
             )}
-          </TabsContent>
-          <TabsContent value="reajustes" className="mt-4">
+            
             {aba === "reajustes" && (
-              <Suspense fallback={<PanelSkeleton />}>
-                <ReajustesPanel
-                  contrato={{
-                    id: contratoId,
-                    valor: c.valor === null ? null : Number(c.valor),
-                    indice_reajuste: c.indice_reajuste,
-                    mes_base_reajuste: c.mes_base_reajuste,
-                    ultimo_reajuste_em: c.ultimo_reajuste_em,
-                    situacao: c.situacao,
-                  }}
-                  onChange={carregar}
-                />
-              </Suspense>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <ReajustesPanel
+                    contrato={{
+                      id: contratoId,
+                      valor: c.valor === null ? null : Number(c.valor),
+                      indice_reajuste: c.indice_reajuste,
+                      mes_base_reajuste: c.mes_base_reajuste,
+                      ultimo_reajuste_em: c.ultimo_reajuste_em,
+                      situacao: c.situacao,
+                    }}
+                    onChange={carregar}
+                  />
+                </Suspense>
+              </div>
             )}
-          </TabsContent>
-          <TabsContent value="responsaveis" className="mt-4">
+            
             {aba === "responsaveis" && (
-              <Suspense fallback={<PanelSkeleton />}>
-                <ResponsaveisPanel contratoId={contratoId} />
-              </Suspense>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <ResponsaveisPanel contratoId={contratoId} />
+                </Suspense>
+              </div>
             )}
-          </TabsContent>
-          <TabsContent value="aditivos" className="mt-4">
+            
             {aba === "aditivos" && (
-              <Suspense fallback={<PanelSkeleton />}>
-                <AditivosPanel contratoId={contratoId} onCountChange={setCountAditivos} />
-              </Suspense>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <AditivosPanel contratoId={contratoId} onCountChange={setCountAditivos} />
+                </Suspense>
+              </div>
             )}
-          </TabsContent>
-          <TabsContent value="analise" className="mt-4">
+            
             {aba === "analise" && (
-              <Suspense fallback={<PanelSkeleton />}>
-                <AnalisePanel
-                  contratoId={contratoId}
-                  temArquivo={temArquivo}
-                  condominioId={c.condominio_id}
-                  prestadorNome={c.prestador_nome}
-                  objeto={c.objeto ?? null}
-                />
-              </Suspense>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <AnalisePanel
+                    contratoId={contratoId}
+                    temArquivo={temArquivo}
+                    condominioId={c.condominio_id}
+                    prestadorNome={c.prestador_nome}
+                    objeto={c.objeto ?? null}
+                  />
+                </Suspense>
+              </div>
             )}
-          </TabsContent>
-          <TabsContent value="atividades" className="mt-4">
+            
             {aba === "atividades" && (
-              <Suspense fallback={<PanelSkeleton />}>
-                <AtividadesPanel contratoId={contratoId} />
-              </Suspense>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <AtividadesPanel contratoId={contratoId} />
+                </Suspense>
+              </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </main>
+        </div>
       </div>
 
       <Dialog open={confirmar} onOpenChange={setConfirmar}>
@@ -693,17 +787,6 @@ function ClauseRow({
   );
 }
 
-function TriggerIcon({ value, icon, label }: { value: string; icon: React.ReactNode; label: string }) {
-  return (
-    <TabsTrigger
-      value={value}
-      className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-augusto-gold/25 gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:text-foreground"
-    >
-      <span aria-hidden="true">{icon}</span>
-      <span>{label}</span>
-    </TabsTrigger>
-  );
-}
 function formatBRL(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
@@ -728,4 +811,62 @@ function rotuloIndice(i: string | null | undefined): string {
     default:
       return "—";
   }
+}
+
+function NavGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-4 last:mb-0">
+      <h4 className="mb-2 px-3 text-[0.625rem] font-bold uppercase tracking-[0.15em] text-muted-foreground/70">
+        {label}
+      </h4>
+      <div className="space-y-0.5">{children}</div>
+    </div>
+  );
+}
+
+function NavItem({
+  active,
+  onClick,
+  icon,
+  label,
+  badge,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  badge?: number | string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+        active
+          ? "bg-augusto-gold/10 text-primary shadow-sm ring-1 ring-augusto-gold/20"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className={`transition-colors duration-200 ${
+            active ? "text-augusto-gold" : "text-muted-foreground/60 group-hover:text-muted-foreground"
+          }`}
+        >
+          {icon}
+        </span>
+        <span className="truncate">{label}</span>
+      </div>
+      {badge ? (
+        <span
+          className={`grid h-5 min-w-[1.25rem] place-items-center rounded-full px-1 text-[0.625rem] font-bold ring-1 ${
+            active
+              ? "bg-augusto-gold text-white ring-augusto-gold"
+              : "bg-muted text-muted-foreground ring-border"
+          }`}
+        >
+          {badge}
+        </span>
+      ) : null}
+    </button>
+  );
 }

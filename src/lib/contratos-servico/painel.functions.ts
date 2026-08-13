@@ -35,7 +35,12 @@ export type IndicadoresPainel = {
   nao_conformidades_mes: number;
   valor_mensal_total: number;
   valor_anual_estimado: number;
+  valor_global_total: number;
   total_com_pendencias: number;
+  sem_responsavel: number;
+  sem_indice: number;
+  mes_base_ausente: number;
+  documentos_ausentes: number;
   distribuicao_tipos: Array<{ tipo_id: string | null; nome: string; total: number }>;
 };
 
@@ -48,7 +53,7 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
     let q = context.supabase
       .from("contratos_servico")
       .select(
-        "id, condominio_id, tipo_servico_id, situacao, prazo_indeterminado, data_fim, valor, tipo_valor, mes_base_reajuste, indice_reajuste, ultimo_reajuste_em, tipos_servico_contrato(nome)",
+        "id, condominio_id, tipo_servico_id, situacao, prazo_indeterminado, data_fim, valor, tipo_valor, mes_base_reajuste, indice_reajuste, ultimo_reajuste_em, arquivo_path, tipos_servico_contrato(nome)",
       );
     if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
     const { data: rows, error } = await q;
@@ -58,7 +63,7 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       situacao: string; prazo_indeterminado: boolean; data_fim: string | null;
       valor: number | null; tipo_valor: string;
       mes_base_reajuste: number | null; indice_reajuste: string | null;
-      ultimo_reajuste_em: string | null;
+      ultimo_reajuste_em: string | null; arquivo_path: string | null;
       tipos_servico_contrato: { nome: string } | null;
     };
     const list = (rows ?? []) as Row[];
@@ -80,8 +85,23 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       .filter((r) => r.tipo_valor === "global" && r.valor)
       .reduce((acc, r) => acc + Number(r.valor ?? 0), 0);
 
-    // Valor anualizado estimado: Mensal * 12 + Global
     const valorAnualEstimado = (valorMensal * 12) + valorGlobalAtivos;
+
+    // Alertas de dados incompletos
+    const sem_indice = ativos.filter(r => !r.indice_reajuste || r.indice_reajuste === "nenhum").length;
+    const mes_base_ausente = ativos.filter(r => !r.mes_base_reajuste).length;
+    const documentos_ausentes = ativos.filter(r => !r.arquivo_path).length;
+
+    // Responsáveis
+    let sem_responsavel = 0;
+    if (ativos.length > 0) {
+      const { data: respRel } = await context.supabase
+        .from("contrato_responsaveis")
+        .select("contrato_id")
+        .in("contrato_id", ativos.map(a => a.id));
+      const comResp = new Set((respRel ?? []).map(r => r.contrato_id));
+      sem_responsavel = ativos.filter(a => !comResp.has(a.id)).length;
+    }
 
     // Distribuição por tipo (apenas ativos).
     const tipoMap = new Map<string, { tipo_id: string | null; nome: string; total: number }>();
@@ -171,6 +191,14 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       }
     }
 
+    const totalPendencias = reajustes_pendentes + 
+                           checklists_pendentes_mes + 
+                           nao_conformidades_mes + 
+                           sem_responsavel + 
+                           sem_indice + 
+                           mes_base_ausente + 
+                           documentos_ausentes;
+
     const out: IndicadoresPainel = {
       vigentes,
       vencendo_90d: vencendo,
@@ -180,7 +208,12 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       nao_conformidades_mes,
       valor_mensal_total: valorMensal,
       valor_anual_estimado: valorAnualEstimado,
-      total_com_pendencias: reajustes_pendentes + checklists_pendentes_mes + nao_conformidades_mes,
+      valor_global_total: valorGlobalAtivos,
+      total_com_pendencias: totalPendencias,
+      sem_responsavel,
+      sem_indice,
+      mes_base_ausente,
+      documentos_ausentes,
       distribuicao_tipos,
     };
     return out;

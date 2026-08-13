@@ -121,6 +121,7 @@ type ContratoLinha = {
   valor: number | null;
   tipo_valor: string;
   status: StatusExibicaoContrato;
+  documento_id: string | null;
 };
 
 export const listContratosServico = createServerFn({ method: "POST" })
@@ -132,7 +133,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
     let query = context.supabase
       .from("contratos_servico")
       .select(
-        "id, condominio_id, tipo_servico_id, situacao, prestador_nome, prazo_indeterminado, data_inicio, data_fim, valor, tipo_valor, condominios(nome), tipos_servico_contrato(nome)",
+        "id, condominio_id, tipo_servico_id, situacao, prestador_nome, prazo_indeterminado, data_inicio, data_fim, valor, tipo_valor, documento_id, condominios(nome), tipos_servico_contrato(nome)",
       );
     if (data.condominioId) query = query.eq("condominio_id", data.condominioId);
     if (data.tipoServicoId) query = query.eq("tipo_servico_id", data.tipoServicoId);
@@ -154,6 +155,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
       data_fim: string | null;
       valor: number | null;
       tipo_valor: string;
+      documento_id: string | null;
       condominios: { nome: string } | null;
       tipos_servico_contrato: { nome: string } | null;
     };
@@ -172,6 +174,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
       valor: r.valor,
       tipo_valor: r.tipo_valor,
       status: statusExibicaoContrato(r),
+      documento_id: r.documento_id,
     }));
 
     // Contadores globais (não afetados pelo filtro de status, respeitam os demais)

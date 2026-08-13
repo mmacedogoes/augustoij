@@ -2,7 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileText, Plus, Sparkles, Filter, ChevronDown, Search, ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { 
+  FileText, Plus, Sparkles, Filter, ChevronDown, Search, 
+  ArrowUpDown, MoreHorizontal, X 
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +28,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ContratoStatusBadge } from "@/components/contratos-servico/ContratoStatusBadge";
+import { QuickViewDrawer } from "@/components/contratos-servico/QuickViewDrawer";
+import { Badge } from "@/components/ui/badge";
 import { AppSkeleton } from "@/components/ui/app-skeleton";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
 import {
@@ -60,6 +65,8 @@ function Page() {
   const [tipoId, setTipoId] = useState<string>(TODOS);
   const [busca, setBusca] = useState("");
   const [visao, setVisao] = useState<Visao>("todos");
+  const [selectedContrato, setSelectedContrato] = useState<ContratoLinha | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([condosFn(), tiposFn()])
@@ -113,7 +120,7 @@ function Page() {
   return (
     <AppShell>
       <GestaoContratosGate>
-      <div className="max-w-6xl space-y-6">
+      <div className="max-w-6xl space-y-6 animate-augusto-fade-up">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <header className="app-page-header">
             <span className="app-eyebrow">Gestão de Contratos</span>
@@ -166,9 +173,16 @@ function Page() {
                 className="pl-9 h-9 bg-muted/20 border-border/40 focus:border-augusto-gold/40"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Select value={condominioId} onValueChange={setCondominioId}>
-                <SelectTrigger className="h-9 w-[180px] bg-muted/20 border-border/40">
+            
+            <div className="flex flex-wrap items-center gap-2">
+              <Select 
+                value={condominioId} 
+                onValueChange={(v) => {
+                  setCondominioId(v);
+                  // O useEffect já reage a condominioId
+                }}
+              >
+                <SelectTrigger className="h-9 w-[180px] bg-muted/20 border-border/40 focus:ring-augusto-green">
                   <SelectValue placeholder="Condomínio" />
                 </SelectTrigger>
                 <SelectContent>
@@ -178,8 +192,13 @@ function Page() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={tipoId} onValueChange={setTipoId}>
-                <SelectTrigger className="h-9 w-[180px] bg-muted/20 border-border/40">
+              <Select 
+                value={tipoId} 
+                onValueChange={(v) => {
+                  setTipoId(v);
+                }}
+              >
+                <SelectTrigger className="h-9 w-[180px] bg-muted/20 border-border/40 focus:ring-augusto-green">
                   <SelectValue placeholder="Tipo de serviço" />
                 </SelectTrigger>
                 <SelectContent>
@@ -189,11 +208,46 @@ function Page() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="ghost" size="sm" className="h-9 px-2 text-muted-foreground" onClick={() => { setBusca(""); setCondominioId(TODOS); setTipoId(TODOS); setStatus(TODOS); setVisao("todos"); }}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-9 px-2 text-muted-foreground hover:text-primary transition-colors" 
+                onClick={() => { 
+                  setBusca(""); 
+                  setCondominioId(TODOS); 
+                  setTipoId(TODOS); 
+                  setStatus(TODOS); 
+                  setVisao("todos"); 
+                }}
+              >
                 Limpar filtros
               </Button>
             </div>
           </div>
+
+          {/* Chips de Filtros Ativos */}
+          {(condominioId !== TODOS || tipoId !== TODOS || busca || status !== TODOS) && (
+            <div className="px-4 py-2 border-b border-border/40 bg-muted/10 flex flex-wrap gap-2">
+              {condominioId !== TODOS && (
+                <Badge variant="secondary" className="bg-augusto-gold/10 text-augusto-gold hover:bg-augusto-gold/20 gap-1 border-augusto-gold/20">
+                  Condomínio: {condos.find(c => c.id === condominioId)?.nome}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setCondominioId(TODOS)} />
+                </Badge>
+              )}
+              {tipoId !== TODOS && (
+                <Badge variant="secondary" className="bg-augusto-gold/10 text-augusto-gold hover:bg-augusto-gold/20 gap-1 border-augusto-gold/20">
+                  Tipo: {tipos.find(t => t.id === tipoId)?.nome}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setTipoId(TODOS)} />
+                </Badge>
+              )}
+              {busca && (
+                <Badge variant="secondary" className="bg-augusto-gold/10 text-augusto-gold hover:bg-augusto-gold/20 gap-1 border-augusto-gold/20">
+                  Busca: {busca}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setBusca("")} />
+                </Badge>
+              )}
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             {erro ? (
@@ -233,7 +287,10 @@ function Page() {
                     <tr 
                       key={r.id} 
                       className="group hover:bg-augusto-gold/[0.02] cursor-pointer transition-colors"
-                      onClick={() => navigate({ to: "/app/contratos/$contratoId", params: { contratoId: r.id } })}
+                      onClick={() => {
+                        setSelectedContrato(r);
+                        setDrawerOpen(true);
+                      }}
                     >
                       <Td>
                         <div>
@@ -272,6 +329,11 @@ function Page() {
         </Card>
       </div>
       </GestaoContratosGate>
+      <QuickViewDrawer 
+        contrato={selectedContrato}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
     </AppShell>
   );
 }
