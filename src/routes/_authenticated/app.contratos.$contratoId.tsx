@@ -757,3 +757,61 @@ function rotuloIndice(i: string | null | undefined): string {
       return "—";
   }
 }
+
+function NavGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-4 last:mb-0">
+      <h4 className="mb-2 px-3 text-[0.625rem] font-bold uppercase tracking-[0.15em] text-muted-foreground/70">
+        {label}
+      </h4>
+      <div className="space-y-0.5">{children}</div>
+    </div>
+  );
+}
+
+function NavItem({
+  active,
+  onClick,
+  icon,
+  label,
+  badge,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  badge?: number | string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+        active
+          ? "bg-augusto-gold/10 text-primary shadow-sm ring-1 ring-augusto-gold/20"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className={`transition-colors duration-200 ${
+            active ? "text-augusto-gold" : "text-muted-foreground/60 group-hover:text-muted-foreground"
+          }`}
+        >
+          {icon}
+        </span>
+        <span className="truncate">{label}</span>
+      </div>
+      {badge ? (
+        <span
+          className={`grid h-5 min-w-[1.25rem] place-items-center rounded-full px-1 text-[0.625rem] font-bold ring-1 ${
+            active
+              ? "bg-augusto-gold text-white ring-augusto-gold"
+              : "bg-muted text-muted-foreground ring-border"
+          }`}
+        >
+          {badge}
+        </span>
+      ) : null}
+    </button>
+  );
+}
