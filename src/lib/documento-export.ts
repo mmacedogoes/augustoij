@@ -198,6 +198,8 @@ export async function gerarPdfBlob(
   const lh12 = 12 * 1.5;
   const lh14 = 14 * 1.5;
   let y = margem;
+  let subtituloIdx = 0;
+
 
   const novaPaginaSePreciso = (altura: number) => {
     if (y + altura > pageH - margem) {
@@ -273,12 +275,16 @@ export async function gerarPdfBlob(
 
   for (const b of blocos) {
     switch (b.tipo) {
-      case "subtitulo":
-        y += lh12 * 0.4;
-        escrever(b.texto.toUpperCase(), { size: 12, bold: true });
+      case "subtitulo": {
+        subtituloIdx++;
+        y += lh12 * 0.8;
+        const num = `${subtituloIdx}. `;
+        escrever(num + b.texto.toUpperCase(), { size: 12, bold: true });
+        y += lh12 * 0.2;
         break;
+      }
       case "item":
-        escrever(`•  ${b.texto}`, { size: 12, indent: recuo / 2 });
+        escrever(`•  ${b.texto}`, { size: 12, indent: recuo / 2, align: "justify" });
         break;
       case "centro":
         y += lh12;
@@ -286,6 +292,7 @@ export async function gerarPdfBlob(
         break;
       default:
         escrever(b.texto, { size: 12, align: "justify", indent: recuo });
+
     }
   }
 
@@ -309,6 +316,8 @@ export async function gerarDocxBlob(
   const FONT = "Cormorant Garamond";
   const LINE = 360; // 1,5 (240 = simples)
   const INDENT = 1134; // 2 cm em DXA
+  let subtituloIdx = 0;
+
 
   const paragrafos = [
     new Paragraph({
@@ -318,17 +327,23 @@ export async function gerarDocxBlob(
     }),
     ...blocos.map((b) => {
       if (b.tipo === "subtitulo") {
+        subtituloIdx++;
         return new Paragraph({
-          spacing: { line: LINE, before: 200, after: 120 },
+          spacing: { line: LINE, before: 400, after: 200 },
           children: [
-            new TextRun({ text: b.texto.toUpperCase(), font: FONT, size: 24, bold: true }),
+            new TextRun({ 
+              text: `${subtituloIdx}. ${b.texto.toUpperCase()}`, 
+              font: FONT, 
+              size: 24, 
+              bold: true 
+            }),
           ],
         });
       }
       if (b.tipo === "item") {
         return new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
-          spacing: { line: LINE, after: 60 },
+          spacing: { line: LINE, after: 120 },
           indent: { left: INDENT / 2, hanging: 227 },
           children: [new TextRun({ text: `•  ${b.texto}`, font: FONT, size: 24 })],
         });
@@ -336,7 +351,7 @@ export async function gerarDocxBlob(
       if (b.tipo === "centro") {
         return new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { line: LINE, before: 360 },
+          spacing: { line: LINE, before: 360, after: 360 },
           children: [new TextRun({ text: b.texto, font: FONT, size: 24 })],
         });
       }
@@ -347,6 +362,7 @@ export async function gerarDocxBlob(
         children: [new TextRun({ text: b.texto, font: FONT, size: 24 })],
       });
     }),
+
   ];
 
   const doc = new Document({
