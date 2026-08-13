@@ -85,8 +85,23 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       .filter((r) => r.tipo_valor === "global" && r.valor)
       .reduce((acc, r) => acc + Number(r.valor ?? 0), 0);
 
-    // Valor anualizado estimado: Mensal * 12 + Global
     const valorAnualEstimado = (valorMensal * 12) + valorGlobalAtivos;
+
+    // Alertas de dados incompletos
+    const sem_indice = ativos.filter(r => !r.indice_reajuste || r.indice_reajuste === "nenhum").length;
+    const mes_base_ausente = ativos.filter(r => !r.mes_base_reajuste).length;
+    const documentos_ausentes = ativos.filter(r => !r.arquivo_path).length;
+
+    // Responsáveis
+    let sem_responsavel = 0;
+    if (ativos.length > 0) {
+      const { data: respRel } = await context.supabase
+        .from("contrato_responsaveis")
+        .select("contrato_id")
+        .in("contrato_id", ativos.map(a => a.id));
+      const comResp = new Set((respRel ?? []).map(r => r.contrato_id));
+      sem_responsavel = ativos.filter(a => !comResp.has(a.id)).length;
+    }
 
     // Distribuição por tipo (apenas ativos).
     const tipoMap = new Map<string, { tipo_id: string | null; nome: string; total: number }>();
