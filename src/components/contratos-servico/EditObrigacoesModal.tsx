@@ -30,8 +30,8 @@ export function EditObrigacoesModal({ open, onOpenChange, contratoId, initialObr
         <ScrollArea className="p-6 pt-4 max-h-[calc(90vh-80px)]">
           <ObrigacoesEditor 
             contratoId={contratoId} 
-            initialObrigacoes={initialObrigacoes}
-            onSaved={onSaved}
+            itens={initialObrigacoes}
+            onChange={onSaved}
           />
         </ScrollArea>
       </DialogContent>
