@@ -121,6 +121,7 @@ type ContratoLinha = {
   valor: number | null;
   tipo_valor: string;
   status: StatusExibicaoContrato;
+  documento_id: string | null;
 };
 
 export const listContratosServico = createServerFn({ method: "POST" })
