@@ -68,7 +68,7 @@ function TabSkeleton() {
 
 export const Route = createFileRoute("/_authenticated/app/condominios/$id")({
   component: CondominioDetail,
-  validateSearch: (s) =>
+  validateSearch: (s): { admin_view?: boolean } =>
     z
       .object({
         admin_view: z
