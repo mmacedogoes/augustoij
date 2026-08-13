@@ -91,7 +91,7 @@ function Page() {
 
   return (
     <AppShell>
-      <GestaoContratosGate>
+      <GestaoContratosGate requerePainelConsolidado>
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <header className="app-page-header min-w-0">
