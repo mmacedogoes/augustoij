@@ -63,7 +63,8 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       situacao: string; prazo_indeterminado: boolean; data_fim: string | null;
       valor: number | null; tipo_valor: string;
       mes_base_reajuste: number | null; indice_reajuste: string | null;
-      ultimo_reajuste_em: string | null;
+      ultimo_reajuste_em: string | null; arquivo_path: string | null;
+      responsavel_id: string | null;
       tipos_servico_contrato: { nome: string } | null;
     };
     const list = (rows ?? []) as Row[];
