@@ -35,7 +35,12 @@ export type IndicadoresPainel = {
   nao_conformidades_mes: number;
   valor_mensal_total: number;
   valor_anual_estimado: number;
+  valor_global_total: number;
   total_com_pendencias: number;
+  sem_responsavel: number;
+  sem_indice: number;
+  mes_base_ausente: number;
+  documentos_ausentes: number;
   distribuicao_tipos: Array<{ tipo_id: string | null; nome: string; total: number }>;
 };
 
