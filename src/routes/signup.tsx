@@ -16,7 +16,9 @@ import { GoogleAuthButton, OrDivider } from "@/components/auth/GoogleAuthButton"
 
 export const Route = createFileRoute("/signup")({
   ssr: false,
-  validateSearch: (s: Record<string, unknown>) => {
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { plano?: "essencial" | "profissional" | "gestao" | "administradora"; ciclo?: "mensal" | "anual" } => {
     const planoRaw = typeof s.plano === "string" ? s.plano : "";
     const cicloRaw = typeof s.ciclo === "string" ? s.ciclo : "";
     const planosPagos = ["essencial", "profissional", "gestao", "administradora"] as const;

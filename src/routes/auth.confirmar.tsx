@@ -10,7 +10,9 @@ import { TERMOS_VERSAO } from "@/config/legal";
 
 export const Route = createFileRoute("/auth/confirmar")({
   ssr: false,
-  validateSearch: (s: Record<string, unknown>) => {
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { plano?: "essencial" | "profissional" | "gestao" | "administradora"; ciclo?: "mensal" | "anual" } => {
     const planoRaw = typeof s.plano === "string" ? s.plano : "";
     const cicloRaw = typeof s.ciclo === "string" ? s.ciclo : "";
     const planosPagos = ["essencial", "profissional", "gestao", "administradora"] as const;

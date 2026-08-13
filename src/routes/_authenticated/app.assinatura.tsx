@@ -36,7 +36,12 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/app/assinatura")({
-  validateSearch: (s) => searchSchema.parse(s),
+  validateSearch: (
+    s,
+  ): {
+    plano?: "essencial" | "profissional" | "gestao" | "administradora";
+    ciclo?: "mensal" | "anual";
+  } => searchSchema.parse(s),
   component: AssinaturaPage,
 });
 
