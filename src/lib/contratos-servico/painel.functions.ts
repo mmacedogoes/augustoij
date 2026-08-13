@@ -34,6 +34,8 @@ export type IndicadoresPainel = {
   checklists_pendentes_mes: number;
   nao_conformidades_mes: number;
   valor_mensal_total: number;
+  valor_anual_estimado: number;
+  total_com_pendencias: number;
   distribuicao_tipos: Array<{ tipo_id: string | null; nome: string; total: number }>;
 };
 
