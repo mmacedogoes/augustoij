@@ -191,6 +191,14 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       }
     }
 
+    const totalPendencias = reajustes_pendentes + 
+                           checklists_pendentes_mes + 
+                           nao_conformidades_mes + 
+                           sem_responsavel + 
+                           sem_indice + 
+                           mes_base_ausente + 
+                           documentos_ausentes;
+
     const out: IndicadoresPainel = {
       vigentes,
       vencendo_90d: vencendo,
@@ -200,7 +208,12 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       nao_conformidades_mes,
       valor_mensal_total: valorMensal,
       valor_anual_estimado: valorAnualEstimado,
-      total_com_pendencias: reajustes_pendentes + checklists_pendentes_mes + nao_conformidades_mes,
+      valor_global_total: valorGlobalAtivos,
+      total_com_pendencias: totalPendencias,
+      sem_responsavel,
+      sem_indice,
+      mes_base_ausente,
+      documentos_ausentes,
       distribuicao_tipos,
     };
     return out;
