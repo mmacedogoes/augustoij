@@ -76,6 +76,13 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       .filter((r) => r.tipo_valor === "mensal" && r.valor)
       .reduce((acc, r) => acc + Number(r.valor ?? 0), 0);
 
+    const valorGlobalAtivos = ativos
+      .filter((r) => r.tipo_valor === "global" && r.valor)
+      .reduce((acc, r) => acc + Number(r.valor ?? 0), 0);
+
+    // Valor anualizado estimado: Mensal * 12 + Global
+    const valorAnualEstimado = (valorMensal * 12) + valorGlobalAtivos;
+
     // Distribuição por tipo (apenas ativos).
     const tipoMap = new Map<string, { tipo_id: string | null; nome: string; total: number }>();
     for (const r of ativos) {
