@@ -6,7 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureAcessoContratos, ensurePainelConsolidado } from "./guard";
+import { ensurePainelConsolidado } from "./guard";
 import { statusExibicaoContrato } from "./status";
 
 const filtroSchema = z.object({
