@@ -34,7 +34,7 @@ import { AppEmptyState } from "@/components/ui/app-empty-state";
 
 export const Route = createFileRoute("/_authenticated/app/admin/blog")({
   component: AdminBlogPage,
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { edit?: string; novo?: boolean } => ({
     edit: typeof s.edit === "string" ? s.edit : undefined,
     novo: s.novo === true || s.novo === "1" ? true : undefined,
   }),

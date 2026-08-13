@@ -21,3 +21,28 @@ export async function isSuperAdmin(context: { supabase: any; userId: string }): 
   if (error) return false;
   return data?.papel_sistema === "super_admin";
 }
+
+/**
+ * Painel consolidado da carteira: disponível a partir do plano Gestão
+ * (ou para contas em cortesia / admin interno).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function ensurePainelConsolidado(context: { supabase: any; userId: string }): Promise<void> {
+  await ensureAcessoContratos(context);
+  const { PLANOS } = await import("@/config/planos");
+  const { isAdminInternoServer } = await import("@/lib/admin-bypass");
+  const [{ data }, admin] = await Promise.all([
+    context.supabase
+      .from("subscriptions")
+      .select("plano_config_id, cortesia")
+      .eq("user_id", context.userId)
+      .maybeSingle(),
+    isAdminInternoServer(context.supabase, context.userId),
+  ]);
+  if (admin || data?.cortesia === true) return;
+  const planoId = (data?.plano_config_id ?? "gratuito") as keyof typeof PLANOS;
+  const plano = PLANOS[planoId] ?? PLANOS.gratuito;
+  if (plano.recursos.painelConsolidado !== true) {
+    throw new Error("O painel consolidado da carteira está disponível a partir do plano Gestão.");
+  }
+}

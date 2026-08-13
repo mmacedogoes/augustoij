@@ -37,7 +37,7 @@ export const Route = createFileRoute("/blog/")({
     ],
   }),
   component: BlogIndex,
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { q?: string; categoria?: string } => ({
     q: typeof s.q === "string" ? s.q : undefined,
     categoria: typeof s.categoria === "string" ? s.categoria : undefined,
   }),

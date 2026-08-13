@@ -159,7 +159,7 @@ export function Situacoes() {
           </ul>
           <div className="mt-6 flex justify-end">
             <Link
-              to="/cadastro"
+              to="/signup"
               className="group inline-flex items-center gap-2 font-body text-[11px] font-medium uppercase text-verde transition-colors duration-200 hover:text-verde-profundo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dourado focus-visible:ring-offset-2 focus-visible:ring-offset-off"
               style={{ letterSpacing: "0.2em" }}
             >

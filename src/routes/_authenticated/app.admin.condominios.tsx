@@ -79,7 +79,7 @@ function Page() {
                 <Link
                   to="/app/condominios/$id"
                   params={{ id: c.id }}
-                  search={{ admin_view: 1 }}
+                  search={{ admin_view: true }}
                 >
                   <Button size="sm" variant="outline">
                     <Eye className="h-4 w-4 mr-1" /> Visualizar
