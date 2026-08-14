@@ -144,7 +144,7 @@ export const Route = createFileRoute("/api/chat")({
           const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
           if (!token) return new Response("Não autenticado", { status: 401 });
 
-          const { messages, condominioId, conversaId, attachmentContext, attachmentNome } =
+          const { messages, condominioId, conversaId, contratoId, attachmentContext, attachmentNome } =
             (await request.json()) as ChatBody;
           if (!messages?.length || !condominioId || !conversaId) {
             return new Response("Parâmetros inválidos", { status: 400 });
