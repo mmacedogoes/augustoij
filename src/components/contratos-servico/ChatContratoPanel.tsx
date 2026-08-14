@@ -32,8 +32,9 @@ export function ChatContratoPanel({
         .from("conversas")
         .select("id")
         .eq("condominio_id", condominioId)
-        .eq("metadata", { contrato_id: contratoId, tipo: "contrato" } as any)
+        .contains("metadata", { contrato_id: contratoId, tipo: "contrato" })
         .maybeSingle();
+
 
       if (data) return data;
 
