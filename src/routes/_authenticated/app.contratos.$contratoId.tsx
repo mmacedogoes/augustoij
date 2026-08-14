@@ -324,7 +324,7 @@ function Page() {
 
         {/* Menu Superior Cascata em substituição à navegação lateral */}
         <div className="mb-8 w-full border-b border-border/60 bg-card/30 backdrop-blur-sm sticky top-0 z-30">
-          <nav className="flex items-center space-x-1 overflow-x-auto pb-px">
+          <nav className="flex items-center space-x-1 pb-px">
             {/* NavGroup Principal */}
             <DropdownNav 
               label="Principal"
@@ -775,7 +775,7 @@ function DropdownNav({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-[100] mt-0 w-56 rounded-b-xl border border-border bg-card p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200">
+        <div className="absolute left-0 top-[calc(100%-2px)] z-[100] mt-0 w-56 rounded-b-xl border border-border bg-card p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex flex-col gap-1">
             {items.map((it) => (
               <button
