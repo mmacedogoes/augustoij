@@ -30,7 +30,7 @@ import {
   listContratosSemResponsavel,
   listContratosSemMesBase,
   listContratosSemIndice,
-  listContratosSemIndice as listContratosSemDocumento // Reusing indices logic if similar or wait for real doc function
+  listContratosSemDocumento
 } from "@/lib/contratos-servico/painel.functions";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
