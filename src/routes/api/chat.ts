@@ -315,11 +315,14 @@ export const Route = createFileRoute("/api/chat")({
           if (userText) {
             try {
               const queryEmbedding = await embedText(apiKey, userText);
+              // Se contratoId presente, tentamos buscar primeiro apenas chunks desse contrato
               const { data: matches } = await supabase.rpc("match_document_chunks", {
                 _condominio_id: condominioId,
                 _query_embedding: `[${queryEmbedding.join(",")}]` as unknown as string,
-                _match_count: 6,
-                _min_similarity: 0.3,
+                _match_count: 8,
+                _min_similarity: 0.25,
+                // Passamos o filtro de metadados se existir contratoId
+                ...(contratoId ? { _metadata_filter: { contrato_id: contratoId } } : {})
               });
               if (matches && Array.isArray(matches) && matches.length > 0) {
                 temMatchDocumento = true;
