@@ -7,9 +7,10 @@ import {
   Building2, Briefcase, CalendarRange, Wallet, TrendingUp, Scale,
   ClipboardCheck, ListChecks, Shield, CalendarClock, ArrowUpRightSquare,
   FilePlus2, Users, Activity, Check, X, Mail, Phone, Hash, CalendarDays,
-  Landmark, Percent, ScrollText, MessageSquare
+  Landmark, Percent, ScrollText, MessageSquare, ChevronDown, ChevronUp
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ExpandableText } from "@/components/contratos-servico/ExpandableText";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
