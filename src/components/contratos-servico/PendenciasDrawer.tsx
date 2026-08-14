@@ -60,8 +60,7 @@ export function PendenciasDrawer({ open, onOpenChange, tipoFiltro, condominioId 
       case "sem_responsavel": return listContratosSemResponsavel;
       case "mes_base_ausente": return listContratosSemMesBase;
       case "sem_indice": return listContratosSemIndice;
-      // Note: Reusing indices function for now if not implemented, but the backend now has them.
-      // Re-fetching updated functions
+      case "documento_ausente": return listContratosSemDocumento;
       default: return null;
     }
   };
