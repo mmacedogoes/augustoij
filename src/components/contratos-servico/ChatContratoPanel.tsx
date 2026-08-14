@@ -1,15 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, Sparkles, AlertCircle } from "lucide-react";
-import { useChat, type Message } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
 
 interface ChatContratoPanelProps {
   contratoId: string;
@@ -24,12 +24,18 @@ export function ChatContratoPanel({
 }: ChatContratoPanelProps) {
   const [conversaId, setConversaId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const tokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      tokenRef.current = data.session?.access_token ?? null;
+    });
+  }, []);
 
   // 1. Garantir que existe uma conversa para este contrato
   const { data: conversa, isLoading: loadingConversa } = useQuery({
     queryKey: ["chat-contrato", contratoId],
     queryFn: async () => {
-      // Busca conversa existente do tipo 'contrato' para este contrato_id
       const { data, error } = await supabase
         .from("conversas")
         .select("id")
@@ -37,10 +43,8 @@ export function ChatContratoPanel({
         .contains("metadata", { contrato_id: contratoId, tipo: "contrato" })
         .maybeSingle();
 
-
       if (data) return data;
 
-      // Se não existir, cria uma nova
       const { data: newConv, error: createError } = await supabase
         .from("conversas")
         .insert({
@@ -60,25 +64,32 @@ export function ChatContratoPanel({
     if (conversa?.id) setConversaId(conversa.id);
   }, [conversa]);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
-    api: "/api/chat",
-    body: {
-      condominioId,
-      conversaId,
-    },
-    initialMessages: [],
-    onResponse: (response: Response) => {
-      if (!response.ok) {
-        toast.error("Erro ao processar sua pergunta. Tente novamente.");
-      }
-    },
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        headers: (): Record<string, string> =>
+          tokenRef.current ? { Authorization: `Bearer ${tokenRef.current}` } : {},
+        body: () => ({
+          condominioId,
+          conversaId,
+        }),
+      }),
+    [condominioId, conversaId],
+  );
+
+  const { messages, sendMessage, status, stop, input, handleInputChange } = useChat({
+    id: conversaId ?? undefined,
+    transport,
     onError: (err: Error) => {
       console.error("Chat error:", err);
       toast.error("Ocorreu um erro na comunicação com a IA.");
     }
   });
 
-  // Autoscroll - Usando querySelector no root do ScrollArea já que viewportRef não existe
+  const isLoading = status === "submitted" || status === "streaming";
+
+  // Autoscroll
   useEffect(() => {
     const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (viewport) {
@@ -97,7 +108,6 @@ export function ChatContratoPanel({
 
   return (
     <div className="flex flex-col h-[600px] bg-card rounded-xl border border-border overflow-hidden shadow-sm">
-      {/* Header */}
       <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-augusto-gold/10 rounded-lg">
@@ -112,7 +122,6 @@ export function ChatContratoPanel({
         </div>
       </div>
 
-      {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-6 max-w-3xl mx-auto">
           {messages.length === 0 && (
@@ -148,7 +157,7 @@ export function ChatContratoPanel({
             </div>
           )}
 
-          {messages.map((m: Message) => (
+          {messages.map((m: UIMessage) => (
             <div
               key={m.id}
               className={cn(
@@ -165,9 +174,10 @@ export function ChatContratoPanel({
                 )}
               >
                 <ReactMarkdown 
-                  className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-950 prose-pre:border prose-pre:border-white/10"
+                  remarkPlugins={[remarkGfm]}
+                  className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed"
                 >
-                  {m.content}
+                  {m.parts.map(p => p.type === 'text' ? p.text : '').join('')}
                 </ReactMarkdown>
               </div>
               <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-tighter font-medium">
@@ -188,7 +198,7 @@ export function ChatContratoPanel({
             </div>
           )}
 
-          {error && (
+          {status === 'error' && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs">
               <AlertCircle className="w-4 h-4" />
               <span>Falha na conexão. Verifique sua internet.</span>
@@ -197,13 +207,13 @@ export function ChatContratoPanel({
         </div>
       </ScrollArea>
 
-      {/* Input */}
       <div className="p-4 bg-muted/30 border-t border-border">
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!conversaId) return;
-            handleSubmit(e);
+            if (!conversaId || !input.trim()) return;
+            sendMessage(input);
+            handleInputChange({ target: { value: '' } } as any);
           }}
           className="relative max-w-3xl mx-auto"
         >
@@ -231,10 +241,9 @@ export function ChatContratoPanel({
           </Button>
         </form>
         <p className="text-[10px] text-center text-muted-foreground mt-2">
-          Pressione Enter para enviar. Augusto.IJ pode cometer erros, verifique informações importantes.
+          Pressione Enter para enviar. Augusto.IJ pode cometer erros.
         </p>
       </div>
     </div>
   );
 }
-
