@@ -80,7 +80,7 @@ function HomePage() {
   }, []);
 
   return (
-    <>
+    <AppShell>
       <div className="max-w-6xl mx-auto flex flex-col -mt-2 md:-mt-6 lg:-mt-8 h-[calc(100dvh-7rem)] md:h-[calc(100dvh-8.5rem)]">
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 pb-3 mb-3 border-b border-[var(--landing-rule)] sm:flex sm:flex-wrap sm:items-end sm:justify-between">
           <div className="min-w-0">
@@ -149,6 +149,4 @@ function HomePage() {
           </div>
         )}
       </div>
-    </>
-  );
-}
+    </AppShell>
