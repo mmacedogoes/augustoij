@@ -133,7 +133,12 @@ function Page() {
 
   useEffect(() => {
     carregar();
+    const search = Route.useSearch() as any;
+    if (search.edit === 'true') {
+      setEditContratoOpen(true);
+    }
   }, [carregar]);
+
 
   async function handleExcluir() {
     setExcluindo(true);
