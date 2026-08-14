@@ -46,7 +46,7 @@ export const Route = createFileRoute("/_authenticated/app/contratos/")({
 
 const TODOS = "__todos";
 
-type Visao = "todos" | "vencendo" | "vencidos" | "suspensos" | "encerrados";
+type Visao = "todos" | "vencendo" | "vencidos" | "suspensos" | "encerrados" | "checklist" | "sem-responsavel" | "sem-mes-base" | "sem-documento" | "sem-indice";
 
 function Page() {
   const navigate = useNavigate();
@@ -68,6 +68,17 @@ function Page() {
   const [selectedContrato, setSelectedContrato] = useState<ContratoLinha | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const search = Route.useSearch() as any;
+
+  useEffect(() => {
+    if (search.view) {
+      setVisao(search.view as Visao);
+    }
+    if (search.cid) {
+      setCondominioId(search.cid);
+    }
+  }, [search.view, search.cid]);
+
   useEffect(() => {
     Promise.all([condosFn(), tiposFn()])
       .then(([c, t]) => {
@@ -76,6 +87,7 @@ function Page() {
       })
       .catch((e: Error) => toast.error(e.message));
   }, [condosFn, tiposFn]);
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -86,6 +98,10 @@ function Page() {
       else if (visao === "vencidos") statusFiltro = "vencido";
       else if (visao === "suspensos") statusFiltro = "suspenso";
       else if (visao === "encerrados") statusFiltro = "encerrado";
+      else if (visao === "checklist" || visao === "sem-responsavel" || visao === "sem-mes-base" || visao === "sem-documento" || visao === "sem-indice") {
+        statusFiltro = "ativo";
+      }
+
 
       listFn({
         data: {
@@ -115,7 +131,13 @@ function Page() {
     vencidos: "Vencidos",
     suspensos: "Suspensos",
     encerrados: "Encerrados",
+    checklist: "Checklists pendentes",
+    "sem-responsavel": "Sem responsável",
+    "sem-mes-base": "Sem mês-base",
+    "sem-documento": "Sem documento",
+    "sem-indice": "Sem índice",
   }[visao];
+
 
   return (
     <AppShell>

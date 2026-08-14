@@ -62,8 +62,9 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
                 className="justify-start gap-2 h-9 text-xs"
                 onClick={() => {
                   onOpenChange(false);
-                  navigate({ to: `/app/contratos/${contrato.id}`, search: { tab: 'ia' } });
+                  navigate({ to: `/app/contratos/${contrato.id}`, search: (prev: any) => ({ ...prev, tab: 'ia' }) });
                 }}
+
               >
                 <MessageSquare className="h-3.5 w-3.5 text-augusto-gold" />
                 Perguntar à IJ
@@ -74,8 +75,9 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
                 className="justify-start gap-2 h-9 text-xs"
                 onClick={() => {
                   onOpenChange(false);
-                  navigate({ to: `/app/contratos/${contrato.id}`, search: { edit: 'true' } });
+                  navigate({ to: `/app/contratos/${contrato.id}`, search: (prev: any) => ({ ...prev, edit: 'true' }) });
                 }}
+
               >
                 <Edit2 className="h-3.5 w-3.5 text-augusto-gold" />
                 Editar Dados
@@ -154,8 +156,9 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
               className="bg-augusto-gold/5 border border-augusto-gold/20 rounded-lg p-4 cursor-pointer hover:bg-augusto-gold/10 transition-colors"
               onClick={() => {
                 onOpenChange(false);
-                navigate({ to: `/app/contratos/${contrato.id}`, search: { tab: 'gestao' } });
+                navigate({ to: `/app/contratos/${contrato.id}`, search: (prev: any) => ({ ...prev, tab: 'gestao' }) });
               }}
+
             >
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="h-4 w-4 text-augusto-gold" />
@@ -227,9 +230,6 @@ function HealthItem({ label, status, desc }: { label: string, status: "ok" | "wa
   );
 }
 
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
-}
 
 function formatBRL(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
