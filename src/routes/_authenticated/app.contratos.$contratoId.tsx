@@ -10,6 +10,7 @@ import {
   Landmark, Percent, ScrollText, MessageSquare, ChevronDown, ChevronUp
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ExpandableText } from "@/components/contratos-servico/ExpandableText";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { Card } from "@/components/ui/card";
@@ -447,148 +448,209 @@ function Page() {
                   </div>
                 </Card>
 
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12">
-                  {/* Prestador e Objeto - Foco Operacional */}
-                  <InfoCard className="xl:col-span-7" icon={<Briefcase className="h-3.5 w-3.5" />} titulo="Prestador">
-                    <p className="font-serif text-xl leading-tight text-primary">{c.prestador_nome ?? "—"}</p>
-                    {c.prestador_documento ? (
-                      <p className="mt-1 text-xs text-muted-foreground">CNPJ/CPF · {c.prestador_documento}</p>
-                    ) : null}
-                    <div className="mt-4 space-y-2">
-                      <ContactLine icon={<Mail className="h-3.5 w-3.5" />} href={c.prestador_email ? `mailto:${c.prestador_email}` : null}>
-                        {c.prestador_email ?? "—"}
-                      </ContactLine>
-                      <ContactLine icon={<Phone className="h-3.5 w-3.5" />} href={c.prestador_telefone ? `tel:${c.prestador_telefone}` : null}>
-                        {c.prestador_telefone ?? "—"}
-                      </ContactLine>
+                <div className="flex flex-col gap-4">
+                  {/* Prestador */}
+                  <ExpandableSection
+                    titulo="Prestador"
+                    icon={<Briefcase className="h-4 w-4" />}
+                    resumo={c.prestador_nome}
+                  >
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <div>
+                        <p className="font-serif text-2xl leading-tight text-primary">{c.prestador_nome ?? "—"}</p>
+                        {c.prestador_documento && (
+                          <p className="mt-1 text-sm text-muted-foreground">CNPJ/CPF · {c.prestador_documento}</p>
+                        )}
+                      </div>
+                      <div className="space-y-3 rounded-lg bg-muted/30 p-4">
+                        <ContactLine icon={<Mail className="h-4 w-4" />} href={c.prestador_email ? `mailto:${c.prestador_email}` : null}>
+                          {c.prestador_email ?? "Não informado"}
+                        </ContactLine>
+                        <ContactLine icon={<Phone className="h-4 w-4" />} href={c.prestador_telefone ? `tel:${c.prestador_telefone}` : null}>
+                          {c.prestador_telefone ?? "Não informado"}
+                        </ContactLine>
+                      </div>
                     </div>
-                  </InfoCard>
+                  </ExpandableSection>
 
-                  <InfoCard className="xl:col-span-5" icon={<ClipboardCheck className="h-3.5 w-3.5" />} titulo="Objeto do Contrato">
-                    <div className="space-y-3">
-                      {c.tipos_servico_contrato?.nome ? (
+                  {/* Objeto */}
+                  <ExpandableSection
+                    titulo="Objeto do Contrato"
+                    icon={<ClipboardCheck className="h-4 w-4" />}
+                    resumo={c.tipos_servico_contrato?.nome || "Detalhes do serviço"}
+                  >
+                    <div className="space-y-4">
+                      {c.tipos_servico_contrato?.nome && (
                         <div className="flex flex-wrap gap-2">
                           <StatBadge>{c.tipos_servico_contrato.nome}</StatBadge>
                           {c.terceirizacao_mao_de_obra && (
-                            <StatBadge tone="warning" icon={<Check className="h-3 w-3" />}>Mão de obra</StatBadge>
+                            <StatBadge tone="warning" icon={<Check className="h-3 w-3" />}>Mão de obra terceirizada</StatBadge>
                           )}
                         </div>
-                      ) : null}
-                      <ExpandableText text={c.objeto || "Não informado"} />
-                    </div>
-                  </InfoCard>
-
-                  {/* Financeiro e Vigência */}
-                  <InfoCard className="xl:col-span-5" icon={<Wallet className="h-3.5 w-3.5" />} titulo="Financeiro">
-                    <div className="flex items-baseline gap-2">
-                      <p className="font-serif text-3xl leading-none text-primary">
-                        {c.valor === null ? "—" : formatBRL(Number(c.valor))}
-                      </p>
-                      {c.valor !== null ? (
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                          {c.tipo_valor === "mensal" ? "/ mês" : "global"}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {c.dia_vencimento ? (
-                        <StatBadge icon={<CalendarDays className="h-3 w-3" />}>Vence dia {c.dia_vencimento}</StatBadge>
-                      ) : null}
-                      {c.tipo_valor ? (
-                        <StatBadge icon={<Hash className="h-3 w-3" />}>
-                          {c.tipo_valor === "mensal" ? "Recorrente" : "Valor único"}
-                        </StatBadge>
-                      ) : null}
-                    </div>
-                  </InfoCard>
-
-                  <InfoCard className="xl:col-span-7" icon={<CalendarRange className="h-3.5 w-3.5" />} titulo="Vigência e Prazo">
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-                      <div>
-                        <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Início</p>
-                        <p className="mt-1 font-serif text-xl text-foreground">{formatDate(c.data_inicio)}</p>
-                      </div>
-                      <div className="h-px flex-1 bg-gradient-to-r from-augusto-gold/40 via-augusto-gold to-augusto-gold/40" aria-hidden="true" />
-                      <div className="text-right">
-                        <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Fim</p>
-                        <p className="mt-1 font-serif text-xl text-foreground">
-                          {c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
-                        </p>
+                      )}
+                      <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
+                        <ExpandableText text={c.objeto || "Objeto não detalhado no cadastro."} limit={300} />
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <StatBadge
-                        tone={c.renovacao_automatica ? "positive" : "muted"}
-                        icon={c.renovacao_automatica ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                      >
-                        Renovação automática
-                      </StatBadge>
-                      {c.renovacao_automatica && c.aviso_previo_dias ? (
-                        <StatBadge icon={<CalendarClock className="h-3 w-3" />}>Aviso prévio {c.aviso_previo_dias}d</StatBadge>
-                      ) : null}
-                    </div>
-                  </InfoCard>
+                  </ExpandableSection>
 
-                  {/* Reajuste e Cláusulas */}
-                  <InfoCard className="xl:col-span-4" icon={<TrendingUp className="h-3.5 w-3.5" />} titulo="Reajuste">
-                    <div className="flex items-baseline gap-2">
-                      <p className="font-serif text-2xl text-primary">{rotuloIndice(c.indice_reajuste)}</p>
-                      <span className="text-xs uppercase tracking-wider text-muted-foreground">índice</span>
-                    </div>
-                    <div className="mt-4">
-                      <StatBadge icon={<CalendarDays className="h-3 w-3" />}>
-                        Mês base · {c.mes_base_reajuste ?? "—"}
-                      </StatBadge>
-                    </div>
-                  </InfoCard>
-
-                  <InfoCard className="xl:col-span-8" icon={<Scale className="h-3.5 w-3.5" />} titulo="Cláusulas e Garantias">
-                    <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
-                      <ClauseRow icon={<Percent className="h-3.5 w-3.5" />} label="Multa rescisória" value={c.multa_rescisoria} />
-                      <ClauseRow
-                        icon={<Shield className="h-3.5 w-3.5" />}
-                        label="Seguro RC"
-                        value={c.exige_seguro_rc ? "Exigido" : "Não exige"}
-                        positive={c.exige_seguro_rc}
-                      />
-                      <div className="sm:col-span-2">
-                        <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
-                          <ScrollText className="h-3.5 w-3.5 text-augusto-gold/80" />
-                          Garantias
+                  {/* Financeiro */}
+                  <ExpandableSection
+                    titulo="Financeiro"
+                    icon={<Wallet className="h-4 w-4" />}
+                    resumo={c.valor === null ? "—" : `${formatBRL(Number(c.valor))} ${c.tipo_valor === "mensal" ? "/ mês" : ""}`}
+                  >
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <div className="flex flex-col justify-center">
+                        <p className="text-sm font-medium text-muted-foreground">Valor do Contrato</p>
+                        <div className="mt-1 flex items-baseline gap-2">
+                          <p className="font-serif text-4xl text-primary">
+                            {c.valor === null ? "—" : formatBRL(Number(c.valor))}
+                          </p>
+                          {c.valor !== null && (
+                            <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                              {c.tipo_valor === "mensal" ? "por mês" : "valor global"}
+                            </span>
+                          )}
                         </div>
-                        <ExpandableText text={c.garantias || "Nenhuma garantia informada"} limit={100} />
                       </div>
-                      <div className="sm:col-span-2">
-                        <ClauseRow icon={<Landmark className="h-3.5 w-3.5" />} label="Foro Eleito" value={c.foro} />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg border border-border/50 p-3">
+                          <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">Vencimento</p>
+                          <p className="mt-1 flex items-center gap-1.5 text-sm font-medium">
+                            <CalendarDays className="h-3.5 w-3.5 text-augusto-gold" />
+                            {c.dia_vencimento ? `Todo dia ${c.dia_vencimento}` : "Não informado"}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-border/50 p-3">
+                          <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">Recorrência</p>
+                          <p className="mt-1 flex items-center gap-1.5 text-sm font-medium">
+                            <Hash className="h-3.5 w-3.5 text-augusto-gold" />
+                            {c.tipo_valor === "mensal" ? "Mensal" : "Único / Global"}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </InfoCard>
+                  </ExpandableSection>
+
+                  {/* Vigência */}
+                  <ExpandableSection
+                    titulo="Vigência e Prazo"
+                    icon={<CalendarRange className="h-4 w-4" />}
+                    resumo={`${formatDate(c.data_inicio)} até ${c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}`}
+                  >
+                    <div className="space-y-6">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex-1 rounded-xl bg-muted/30 p-4 text-center">
+                          <p className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Início da Vigência</p>
+                          <p className="mt-2 font-serif text-2xl text-foreground">{formatDate(c.data_inicio)}</p>
+                        </div>
+                        <div className="hidden h-px flex-1 bg-border sm:block" />
+                        <div className="flex-1 rounded-xl bg-muted/30 p-4 text-center">
+                          <p className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Término Previsto</p>
+                          <p className="mt-2 font-serif text-2xl text-foreground">
+                            {c.prazo_indeterminado ? "Prazo Indeterminado" : formatDate(c.data_fim)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        <StatBadge
+                          tone={c.renovacao_automatica ? "positive" : "muted"}
+                          icon={c.renovacao_automatica ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                        >
+                          Renovação Automática
+                        </StatBadge>
+                        {c.renovacao_automatica && c.aviso_previo_dias && (
+                          <StatBadge icon={<CalendarClock className="h-3.5 w-3.5" />}>
+                            Aviso Prévio: {c.aviso_previo_dias} dias
+                          </StatBadge>
+                        )}
+                      </div>
+                    </div>
+                  </ExpandableSection>
+
+                  {/* Cláusulas e Garantias - Layout Grid Moderno */}
+                  <ExpandableSection
+                    titulo="Cláusulas e Garantias"
+                    icon={<Scale className="h-4 w-4" />}
+                    resumo="Multas, seguros e foro eleito"
+                  >
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <ClauseCard icon={<Percent className="h-4 w-4" />} label="Multa Rescisória" value={c.multa_rescisoria} />
+                      <ClauseCard
+                        icon={<Shield className="h-4 w-4" />}
+                        label="Seguro RC"
+                        value={c.exige_seguro_rc ? "Exigido pelo Contrato" : "Não Exigido"}
+                        tone={c.exige_seguro_rc ? "positive" : "default"}
+                      />
+                      <ClauseCard icon={<Landmark className="h-4 w-4" />} label="Foro Eleito" value={c.foro} />
+                      <div className="sm:col-span-2 lg:col-span-3 mt-2 rounded-xl border border-border/50 bg-card p-5">
+                        <div className="mb-3 flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">
+                          <ScrollText className="h-4 w-4 text-augusto-gold" />
+                          Garantias Contratuais
+                        </div>
+                        <ExpandableText text={c.garantias || "Nenhuma garantia específica informada."} limit={200} />
+                      </div>
+                    </div>
+                  </ExpandableSection>
 
                   {/* Obrigações */}
-                  <div className="md:col-span-2 lg:col-span-3 xl:col-span-12">
-                    <InfoCard
-                      icon={<ClipboardCheck className="h-3.5 w-3.5" />}
-                      titulo="Obrigações do Contrato"
-                      descricao="Responsabilidades específicas do condomínio e do prestador."
-                    >
+                  <ExpandableSection
+                    titulo="Obrigações do Contrato"
+                    icon={<ClipboardCheck className="h-4 w-4" />}
+                    resumo={`${ficha.obrigacoes.length} obrigações listadas`}
+                  >
+                    <div className="space-y-6">
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex flex-wrap gap-2">
-                          <StatBadge>
-                            {ficha.obrigacoes.length} {ficha.obrigacoes.length === 1 ? "obrigação" : "obrigações"}
+                          <StatBadge tone="muted">
+                            {ficha.obrigacoes.filter((o) => o.parte === "condominio").length} do Condomínio
                           </StatBadge>
                           <StatBadge tone="muted">
-                            {ficha.obrigacoes.filter((o) => o.parte === "condominio").length} do condomínio
-                          </StatBadge>
-                          <StatBadge tone="muted">
-                            {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do prestador
+                            {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do Prestador
                           </StatBadge>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => setEditObrigacoesOpen(true)} className="w-full sm:w-auto">
-                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar obrigações
+                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setEditObrigacoesOpen(true); }} className="w-full sm:w-auto">
+                          <Pencil className="mr-2 h-3.5 w-3.5" /> Editar Obrigações
                         </Button>
                       </div>
-                    </InfoCard>
-                  </div>
+                      
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="space-y-3">
+                          <p className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                            <Building2 className="h-3.5 w-3.5" /> Condomínio
+                          </p>
+                          <div className="space-y-2">
+                            {ficha.obrigacoes.filter(o => o.parte === 'condominio').length > 0 ? (
+                              ficha.obrigacoes.filter(o => o.parte === 'condominio').map((o, idx) => (
+                                <div key={idx} className="rounded-lg border border-border/40 bg-muted/10 p-3 text-sm text-foreground text-justify hyphens-auto">
+                                  {o.descricao}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs italic text-muted-foreground">Nenhuma obrigação registrada.</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <p className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                            <Briefcase className="h-3.5 w-3.5" /> Prestador
+                          </p>
+                          <div className="space-y-2">
+                            {ficha.obrigacoes.filter(o => o.parte === 'prestador').length > 0 ? (
+                              ficha.obrigacoes.filter(o => o.parte === 'prestador').map((o, idx) => (
+                                <div key={idx} className="rounded-lg border border-border/40 bg-muted/10 p-3 text-sm text-foreground text-justify hyphens-auto">
+                                  {o.descricao}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs italic text-muted-foreground">Nenhuma obrigação registrada.</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </ExpandableSection>
                 </div>
               </div>
             )}
@@ -711,38 +773,83 @@ function Page() {
   );
 }
 
-function InfoCard({
+
+function ExpandableSection({
   titulo,
   icon,
-  descricao,
-  className,
+  resumo,
   children,
 }: {
   titulo: string;
-  icon?: React.ReactNode;
-  descricao?: string;
-  className?: string;
+  icon: React.ReactNode;
+  resumo?: string | null;
   children: React.ReactNode;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <Card
-      className={`group flex h-full flex-col p-5 transition-all duration-200 ease-out hover:border-augusto-gold/40 hover:shadow-sm ${className ?? ""}`}
-    >
-      <div className="mb-3">
-        <p className="flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          {icon ? (
-            <span className="grid h-5 w-5 place-items-center rounded-md bg-augusto-gold/10 text-augusto-gold transition-colors duration-200 group-hover:bg-augusto-gold/20">
+    <Card className="overflow-hidden border-border/40 transition-all hover:border-augusto-gold/30">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="flex items-center justify-between p-4 sm:p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-augusto-gold/10 text-augusto-gold">
               {icon}
             </span>
-          ) : null}
-          {titulo}
-        </p>
-        {descricao ? (
-          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{descricao}</p>
-        ) : null}
-      </div>
-      <div className="flex-1">{children}</div>
+            <div className="min-w-0">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                {titulo}
+              </h3>
+              {resumo && !isOpen && (
+                <p className="mt-0.5 truncate text-sm font-medium text-foreground transition-all animate-in fade-in slide-in-from-left-1">
+                  {resumo}
+                </p>
+              )}
+            </div>
+          </div>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-muted-foreground hover:bg-augusto-gold/10 hover:text-augusto-gold">
+              {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              <span className="sr-only">Expandir seção {titulo}</span>
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent>
+          <div className="border-t border-border/40 bg-muted/5 p-4 sm:p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+            {children}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
+  );
+}
+
+function ClauseCard({
+  icon,
+  label,
+  value,
+  tone = "default",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  tone?: "default" | "positive";
+}) {
+  const empty = value === null || value === undefined || value === "";
+  const toneClasses = {
+    default: "bg-card border-border/50",
+    positive: "bg-augusto-green/5 border-augusto-green/20",
+  };
+
+  return (
+    <div className={`rounded-xl border p-4 transition-all hover:shadow-sm ${toneClasses[tone]}`}>
+      <div className="flex items-center gap-2 mb-2 text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">
+        <span className="text-augusto-gold">{icon}</span>
+        {label}
+      </div>
+      <p className={`text-sm font-semibold ${empty ? "text-muted-foreground italic" : tone === 'positive' ? 'text-augusto-green' : 'text-foreground'}`}>
+        {empty ? "Não informado" : value}
+      </p>
+    </div>
   );
 }
 

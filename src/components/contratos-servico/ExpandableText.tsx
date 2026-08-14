@@ -6,12 +6,12 @@ export function ExpandableText({ text, limit = 200 }: { text: string; limit?: nu
   const [expanded, setExpanded] = useState(false);
   
   if (text.length <= limit) {
-    return <p className="text-sm leading-relaxed text-foreground text-justify">{text}</p>;
+    return <p className="text-sm leading-relaxed text-foreground text-justify hyphens-auto">{text}</p>;
   }
 
   return (
     <div className="space-y-1">
-      <p className={`text-sm leading-relaxed text-foreground text-justify ${expanded ? "" : "line-clamp-3"}`}>
+      <p className={`text-sm leading-relaxed text-foreground text-justify hyphens-auto ${expanded ? "" : "line-clamp-3"}`}>
         {text}
       </p>
       <Button
