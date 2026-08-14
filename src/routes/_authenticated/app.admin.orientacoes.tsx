@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, Pencil, FileText } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
+
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,7 @@ function Page() {
   };
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-4xl">
         <header className="app-page-header">
           <span className="app-eyebrow">Administração</span>
@@ -197,7 +197,7 @@ function Page() {
           </DialogContent>
         </Dialog>
       </div>
-    </AppShell>
+    </>
   );
 }
 

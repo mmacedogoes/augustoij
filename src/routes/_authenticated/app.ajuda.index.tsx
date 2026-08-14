@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AjudaShell } from "@/components/ajuda/AjudaShell";
+import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/_authenticated/app/ajuda/")({
   component: AjudaHome,
@@ -7,7 +8,8 @@ export const Route = createFileRoute("/_authenticated/app/ajuda/")({
 
 function AjudaHome() {
   return (
-    <AjudaShell>
+    <AppShell>
+      <AjudaShell>
       <h1 className="text-2xl font-semibold mb-3">Bem-vindo ao Manual do Augusto.IJ</h1>
       <p>
         O Augusto.IJ é um assistente jurídico condominial com Inteligência Artificial. Ele
@@ -47,6 +49,7 @@ function AjudaHome() {
         As respostas da IA são informativas e não substituem parecer de profissional
         habilitado. Sempre revise antes de enviar, assinar ou publicar.
       </p>
-    </AjudaShell>
+      </AjudaShell>
+    </AppShell>
   );
 }

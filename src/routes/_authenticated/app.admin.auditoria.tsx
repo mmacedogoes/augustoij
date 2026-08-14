@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { AppShell } from "@/components/AppShell";
+
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -104,7 +104,7 @@ function Page() {
   };
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-6xl">
         <header className="app-page-header">
           <span className="app-eyebrow">Administração</span>
@@ -223,6 +223,6 @@ function Page() {
           )}
         </Card>
       </div>
-    </AppShell>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AjudaShell } from "@/components/ajuda/AjudaShell";
+import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/_authenticated/app/ajuda/$secao")({
   component: SecaoGenerica,
@@ -250,7 +251,8 @@ function SecaoGenerica() {
   const data = CONTEUDO[secao];
   if (!data) {
     return (
-      <AjudaShell>
+      <AppShell>
+        <AjudaShell>
         <h1 className="text-2xl font-semibold mb-3">Seção não encontrada</h1>
         <p>
           Volte para o{" "}
@@ -259,11 +261,13 @@ function SecaoGenerica() {
           </Link>
           .
         </p>
-      </AjudaShell>
+        </AjudaShell>
+      </AppShell>
     );
   }
   return (
-    <AjudaShell>
+    <AppShell>
+      <AjudaShell>
       <h1 className="text-2xl font-semibold mb-3">{data.titulo}</h1>
       <p className="text-muted-foreground">{data.descricao}</p>
       <h2 className="text-lg font-semibold mt-6 mb-2">Passo a passo</h2>
@@ -275,6 +279,7 @@ function SecaoGenerica() {
       <div className="mt-8 p-4 bg-muted/40 border border-dashed border-border rounded text-sm text-muted-foreground">
         Vídeo demonstrativo em produção. Em breve aqui.
       </div>
-    </AjudaShell>
+      </AjudaShell>
+    </AppShell>
   );
 }

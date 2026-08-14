@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit, Upload, Loader2, Newspaper } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
+
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,7 +85,7 @@ function AdminBlogPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-6xl">
         <header className="app-page-header">
           <span className="app-eyebrow">Administração</span>
@@ -124,7 +124,7 @@ function AdminBlogPage() {
           }}
         />
       </div>
-    </AppShell>
+    </>
   );
 }
 

@@ -214,7 +214,7 @@ function Page() {
 
   if (erro) {
     return (
-      <AppShell>
+      <>
         <div className="max-w-4xl">
           <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
             {erro}
@@ -223,17 +223,17 @@ function Page() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
           </Button>
         </div>
-      </AppShell>
+      </>
     );
   }
   if (!ficha) {
     return (
-      <AppShell>
+      <>
         <div className="max-w-4xl space-y-4">
           <AppSkeletonLines lines={2} className="w-72" />
           <AppSkeleton className="h-32 w-full" />
         </div>
-      </AppShell>
+      </>
     );
   }
 
@@ -242,7 +242,7 @@ function Page() {
   const temArquivo = !!(c.arquivo_path || c.documento_id);
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-4xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Link to="/app/contratos" className="inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-primary">
@@ -693,7 +693,7 @@ function Page() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppShell>
+    </>
   );
 }
 

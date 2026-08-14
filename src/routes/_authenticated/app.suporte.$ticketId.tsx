@@ -9,10 +9,8 @@ export const Route = createFileRoute("/_authenticated/app/suporte/$ticketId")({
 function SuporteTicketPage() {
   const { ticketId } = Route.useParams();
   return (
-    <AppShell>
       <div className="max-w-3xl">
         <HelpdeskConversa ticketId={ticketId} voltarHref="/app/conta#suporte" />
       </div>
-    </AppShell>
   );
 }

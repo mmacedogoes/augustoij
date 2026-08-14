@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AjudaShell } from "@/components/ajuda/AjudaShell";
+import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/_authenticated/app/ajuda/faq")({
   component: FAQ,
@@ -54,7 +55,8 @@ const PERGUNTAS = [
 
 function FAQ() {
   return (
-    <AjudaShell>
+    <AppShell>
+      <AjudaShell>
       <h1 className="text-2xl font-semibold mb-3">Perguntas frequentes</h1>
       <div className="space-y-5 mt-4">
         {PERGUNTAS.map((p) => (
@@ -64,6 +66,7 @@ function FAQ() {
           </div>
         ))}
       </div>
-    </AjudaShell>
+      </AjudaShell>
+    </AppShell>
   );
 }

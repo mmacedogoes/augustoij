@@ -99,7 +99,7 @@ function CondominiosPage() {
   const podeCriar = !!plano && !noLimite && !bloqueadoTrial;
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-5xl">
         <div className="flex flex-col gap-4 pb-5 mb-6 border-b border-[var(--landing-rule)] sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
@@ -241,6 +241,6 @@ function CondominiosPage() {
           ))}
         </div>
       </div>
-    </AppShell>
+    </>
   );
 }

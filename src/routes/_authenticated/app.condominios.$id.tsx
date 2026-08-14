@@ -5,6 +5,7 @@ import { ArrowLeft, Building, Eye, MessageSquare } from "lucide-react";
 import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { useServerFn } from "@tanstack/react-start";
+import { AppShell } from "@/components/AppShell";
 
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -192,7 +193,7 @@ function CondominioDetail() {
   }, [id, adminView]);
 
   return (
-    <>
+    <AppShell>
       <div className="max-w-5xl">
         <Link to="/app/condominios" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
@@ -654,6 +655,6 @@ function CondominioDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </AppShell>
   );
 }
