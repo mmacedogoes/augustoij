@@ -324,7 +324,7 @@ function Page() {
 
         {/* Menu Superior Cascata em substituição à navegação lateral */}
         <div className="mb-8 w-full border-b border-border/60 bg-card/30 backdrop-blur-sm sticky top-0 z-30">
-          <nav className="flex items-center space-x-1 overflow-x-auto pb-px">
+          <nav className="flex items-center space-x-1 pb-px">
             {/* NavGroup Principal */}
             <DropdownNav 
               label="Principal"
