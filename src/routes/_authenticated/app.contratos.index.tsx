@@ -99,7 +99,7 @@ function Page() {
       else if (visao === "suspensos") statusFiltro = "suspenso";
       else if (visao === "encerrados") statusFiltro = "encerrado";
       else if (visao === "checklist" || visao === "sem-responsavel" || visao === "sem-mes-base" || visao === "sem-documento" || visao === "sem-indice") {
-        statusFiltro = "ativo";
+        statusFiltro = "vigente";
       }
 
 
