@@ -36,7 +36,7 @@ export function ChatContratoPanel({
   const { data: conversa, isLoading: loadingConversa } = useQuery({
     queryKey: ["chat-contrato", contratoId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("conversas")
         .select("id")
         .eq("condominio_id", condominioId)
@@ -79,7 +79,7 @@ export function ChatContratoPanel({
     [condominioId, conversaId, contratoId],
   );
 
-  const { messages, append, status, input, handleInputChange, handleSubmit } = useChat({
+  const { messages, sendMessage, status } = useChat({
     id: conversaId ?? undefined,
     transport: transport as any,
     onError: (err: Error) => {
@@ -88,6 +88,7 @@ export function ChatContratoPanel({
     }
   });
 
+  const [input, setInput] = useState("");
   const isLoading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
@@ -163,7 +164,7 @@ export function ChatContratoPanel({
                     size="sm" 
                     className="text-[11px] h-8 justify-start font-normal"
                     onClick={() => {
-                      (append as any)({ role: 'user', content: sug });
+                      (sendMessage as any)(sug);
                     }}
                   >
                     {sug}
@@ -173,10 +174,11 @@ export function ChatContratoPanel({
             </div>
           )}
 
-          {messages.map((m) => {
-            const content = m.content || "";
+          {messages.map((m: any) => {
+            // No V4 do AI SDK, as partes estão em m.parts.
+            // Tentamos extrair o texto de forma segura.
+            const content = m.content || (m.parts ? m.parts.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') : "");
             const hasDocMarker = DOC_MARKER_RE.test(content);
-            // Reset regex state
             DOC_MARKER_RE.lastIndex = 0;
 
             return (
@@ -260,28 +262,27 @@ export function ChatContratoPanel({
       <div className="p-4 bg-muted/30 border-t border-border">
         <form
           onSubmit={(e) => {
-            if (!conversaId) {
-              e.preventDefault();
-              return;
-            }
-            (handleSubmit as any)(e);
+            e.preventDefault();
+            if (!conversaId || !input.trim()) return;
+            (sendMessage as any)(input);
+            setInput('');
           }}
           className="relative max-w-3xl mx-auto"
         >
           <input
             className="w-full bg-background border border-border rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-augusto-gold/20 transition-all placeholder:text-muted-foreground/60"
             placeholder="Digite sua dúvida sobre este contrato..."
-            value={input as any}
-            onChange={handleInputChange as any}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
             disabled={isLoading || !conversaId}
           />
           <Button
             size="icon"
             type="submit"
-            disabled={!((input as any) || "").trim() || isLoading || !conversaId}
+            disabled={!input.trim() || isLoading || !conversaId}
             className={cn(
               "absolute right-1.5 top-1.5 h-8 w-8 rounded-lg transition-all",
-              ((input as any) || "").trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
+              input.trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
             )}
           >
             {isLoading ? (
