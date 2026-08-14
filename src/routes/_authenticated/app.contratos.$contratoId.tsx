@@ -735,17 +735,36 @@ function DropdownNav({
   items: Array<{ label: string; active: boolean; onClick: () => void; icon: React.ReactNode }>;
 }) {
   const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const anyActive = items.some((it) => it.active);
+
+  // Fecha o menu ao clicar fora (especialmente importante para mobile)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
 
   return (
     <div 
+      ref={dropdownRef}
       className="relative" 
       onMouseEnter={() => setOpen(true)} 
       onMouseLeave={() => setOpen(false)}
     >
       <button
+        type="button"
+        onClick={() => setOpen(!open)}
         className={cn(
-          "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-200 border-b-2",
+          "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-200 border-b-2 outline-none",
           anyActive 
             ? "border-augusto-gold text-primary bg-augusto-gold/5" 
             : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -756,11 +775,12 @@ function DropdownNav({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-0 w-56 rounded-b-xl border border-border bg-card p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200">
+        <div className="absolute left-0 top-full z-[100] mt-0 w-56 rounded-b-xl border border-border bg-card p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex flex-col gap-1">
             {items.map((it) => (
               <button
                 key={it.label}
+                type="button"
                 onClick={() => {
                   it.onClick();
                   setOpen(false);
@@ -772,7 +792,7 @@ function DropdownNav({
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <span className={cn(it.active ? "text-augusto-gold" : "text-muted-foreground/60")}>
+                <span className={cn("transition-colors", it.active ? "text-augusto-gold" : "text-muted-foreground/60")}>
                   {it.icon}
                 </span>
                 {it.label}
