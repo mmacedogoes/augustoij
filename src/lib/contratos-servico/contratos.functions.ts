@@ -122,6 +122,8 @@ type ContratoLinha = {
   tipo_valor: string;
   status: StatusExibicaoContrato;
   documento_id: string | null;
+  mes_base_reajuste?: number | null;
+  indice_reajuste?: string | null;
 };
 
 export const listContratosServico = createServerFn({ method: "POST" })
