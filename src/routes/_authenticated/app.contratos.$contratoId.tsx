@@ -775,7 +775,7 @@ function DropdownNav({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-[100] mt-0 w-56 rounded-b-xl border border-border bg-card p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200">
+        <div className="absolute left-0 top-[calc(100%-2px)] z-[100] mt-0 w-56 rounded-b-xl border border-border bg-card p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex flex-col gap-1">
             {items.map((it) => (
               <button
