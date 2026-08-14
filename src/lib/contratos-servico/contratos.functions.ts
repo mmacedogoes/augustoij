@@ -158,6 +158,8 @@ export const listContratosServico = createServerFn({ method: "POST" })
       valor: number | null;
       tipo_valor: string;
       documento_id: string | null;
+      mes_base_reajuste: number | null;
+      indice_reajuste: string | null;
       condominios: { nome: string } | null;
       tipos_servico_contrato: { nome: string } | null;
     };
