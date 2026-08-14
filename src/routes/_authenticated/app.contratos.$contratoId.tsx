@@ -321,85 +321,37 @@ function Page() {
           onSaved={carregar}
         />
 
-        <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-start">
-          <aside className="w-full shrink-0 md:sticky md:top-24 md:w-64">
-            <nav className="flex flex-col gap-1 rounded-xl border border-border bg-card/50 p-3 shadow-sm backdrop-blur-sm">
-              <NavGroup label="Principal">
-                <NavItem 
-                  active={aba === "informacoes"} 
-                  onClick={() => setAba("informacoes")} 
-                  icon={<FileText className="h-4 w-4" />} 
-                  label="Resumo e Dados" 
-                />
-                <NavItem 
-                  active={aba === "checklists"} 
-                  onClick={() => setAba("checklists")} 
-                  icon={<ListChecks className="h-4 w-4" />} 
-                  label="Checklists (Rotina)" 
-                />
-                <NavItem 
-                  active={aba === "retencoes"} 
-                  onClick={() => setAba("retencoes")} 
-                  icon={<Shield className="h-4 w-4" />} 
-                  label="Retenções e Impostos" 
-                />
-              </NavGroup>
-              
-              <Separator className="my-2 opacity-50" />
-              
-              <NavGroup label="Gestão">
-                <NavItem 
-                  active={aba === "agenda"} 
-                  onClick={() => setAba("agenda")} 
-                  icon={<CalendarClock className="h-4 w-4" />} 
-                  label="Agenda Financeira" 
-                />
-                <NavItem 
-                  active={aba === "reajustes"} 
-                  onClick={() => setAba("reajustes")} 
-                  icon={<ArrowUpRightSquare className="h-4 w-4" />} 
-                  label="Reajustes" 
-                />
-                <NavItem 
-                  active={aba === "responsaveis"} 
-                  onClick={() => setAba("responsaveis")} 
-                  icon={<Users className="h-4 w-4" />} 
-                  label="Responsáveis" 
-                />
-              </NavGroup>
-              
-              <Separator className="my-2 opacity-50" />
-              
-              <NavGroup label="Histórico e IA">
-                <NavItem 
-                  active={aba === "analise"} 
-                  onClick={() => setAba("analise")} 
-                  icon={<Sparkles className="h-4 w-4" />} 
-                  label="Análise de IA" 
-                />
-                <NavItem 
-                  active={aba === "aditivos"} 
-                  onClick={() => setAba("aditivos")} 
-                  icon={<FilePlus2 className="h-4 w-4" />} 
-                  label="Aditivos" 
-                  badge={countAditivos > 0 ? countAditivos : undefined}
-                />
-                <NavItem 
-                  active={aba === "atividades"} 
-                  onClick={() => setAba("atividades")} 
-                  icon={<Activity className="h-4 w-4" />} 
-                  label="Log de Atividades" 
-                />
-                <NavItem 
-                  active={aba === "ia"} 
-                  onClick={() => setAba("ia")} 
-                  icon={<MessageSquare className="h-4 w-4" />} 
-                  label="Perguntar à IJ" 
-                />
-
-              </NavGroup>
-            </nav>
-          </aside>
+        {/* Menu Superior Cascata em substituição à navegação lateral */}
+        <div className="mb-8 w-full border-b border-border/60 bg-card/30 backdrop-blur-sm sticky top-0 z-30">
+          <nav className="flex items-center space-x-1 overflow-x-auto pb-px">
+            {/* NavGroup Principal */}
+            <DropdownNav 
+              label="Principal"
+              items={[
+                { label: "Resumo e Dados", active: aba === "informacoes", onClick: () => setAba("informacoes"), icon: <FileText /> },
+                { label: "Checklists", active: aba === "checklists", onClick: () => setAba("checklists"), icon: <ListChecks /> },
+                { label: "Retenções", active: aba === "retencoes", onClick: () => setAba("retencoes"), icon: <Shield /> },
+              ]}
+            />
+            <DropdownNav 
+              label="Gestão"
+              items={[
+                { label: "Agenda Financeira", active: aba === "agenda", onClick: () => setAba("agenda"), icon: <CalendarClock /> },
+                { label: "Reajustes", active: aba === "reajustes", onClick: () => setAba("reajustes"), icon: <ArrowUpRightSquare /> },
+                { label: "Responsáveis", active: aba === "responsaveis", onClick: () => setAba("responsaveis"), icon: <Users /> },
+              ]}
+            />
+            <DropdownNav 
+              label="Histórico e IA"
+              items={[
+                { label: "Análise de IA", active: aba === "analise", onClick: () => setAba("analise"), icon: <Sparkles /> },
+                { label: "Aditivos", active: aba === "aditivos", onClick: () => setAba("aditivos"), icon: <FilePlus2 /> },
+                { label: "Logs", active: aba === "atividades", onClick: () => setAba("atividades"), icon: <Activity /> },
+                { label: "Perguntar à IJ", active: aba === "ia", onClick: () => setAba("ia"), icon: <MessageSquare /> },
+              ]}
+            />
+          </nav>
+        </div>
 
           <main className="flex-1 min-w-0">
             {aba === "informacoes" && (
