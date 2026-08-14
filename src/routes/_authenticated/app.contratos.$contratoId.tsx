@@ -109,21 +109,20 @@ function Page() {
   const [excluindo, setExcluindo] = useState(false);
   const [countAditivos, setCountAditivos] = useState<number>(0);
   const [aba, setAba] = useState<string>("informacoes");
-  const hash = useLocation({ select: (l) => l.hash });
+  const location = useLocation();
+  const search = Route.useSearch() as any;
 
   useEffect(() => {
     const abasValidas = [
       "informacoes", "checklists", "retencoes", "agenda", "reajustes",
       "aditivos", "analise", "responsaveis", "atividades", "ia",
     ];
-    const search = Route.useSearch() as any;
     const tabAlvo = search.tab;
-    const hashAlvo = (hash ?? "").replace(/^#/, "");
+    const hashAlvo = (location.hash ?? "").replace(/^#/, "");
     
     if (tabAlvo && abasValidas.includes(tabAlvo)) setAba(tabAlvo);
     else if (hashAlvo && abasValidas.includes(hashAlvo)) setAba(hashAlvo);
-
-  }, [hash]);
+  }, [location.hash, search.tab]);
 
   const carregar = useCallback(() => {
     setErro(null);
@@ -137,7 +136,6 @@ function Page() {
 
   useEffect(() => {
     carregar();
-    const search = Route.useSearch() as any;
     if (search.edit === 'true') {
       setEditContratoOpen(true);
     }
