@@ -113,7 +113,7 @@ function AdminUsuariosPage() {
   };
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-6xl">
         <div className="flex items-start justify-between gap-3">
           <header className="app-page-header">
@@ -429,6 +429,6 @@ function AdminUsuariosPage() {
           )}
         </Card>
       </div>
-    </AppShell>
+    </>
   );
 }

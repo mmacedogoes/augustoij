@@ -58,14 +58,12 @@ function AdminUsuarioDetalhePage() {
 
   if (isLoading || !data) {
     return (
-      <AppShell>
-        <DetalheSkeleton />
-      </AppShell>
+      <DetalheSkeleton />
     );
   }
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-5xl space-y-6">
         <div>
           <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground hover:text-foreground">
@@ -201,7 +199,7 @@ function AdminUsuarioDetalhePage() {
         {/* Usuários vinculados a este titular */}
         <MembrosVinculadosCard membros={data.membrosVinculados} />
       </div>
-    </AppShell>
+    </>
   );
 }
 
