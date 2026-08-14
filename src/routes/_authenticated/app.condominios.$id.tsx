@@ -5,6 +5,7 @@ import { ArrowLeft, Building, Eye, MessageSquare } from "lucide-react";
 import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { useServerFn } from "@tanstack/react-start";
+import { AppShell } from "@/components/AppShell";
 
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";

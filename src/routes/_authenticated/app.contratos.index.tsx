@@ -140,7 +140,7 @@ function Page() {
 
 
   return (
-    <AppShell>
+    <>
       <GestaoContratosGate>
       <div className="max-w-6xl space-y-6 animate-augusto-fade-up">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -356,7 +356,7 @@ function Page() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
       />
-    </AppShell>
+    </>
   );
 }
 

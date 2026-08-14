@@ -50,7 +50,7 @@ function AdminDashboardPage() {
   });
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-6xl space-y-6">
         <header className="app-page-header">
           <span className="app-eyebrow">Administração</span>
@@ -142,7 +142,7 @@ function AdminDashboardPage() {
           <span className="font-medium"> Admin → Financeiro</span>.
         </p>
       </div>
-    </AppShell>
+    </>
   );
 }
 

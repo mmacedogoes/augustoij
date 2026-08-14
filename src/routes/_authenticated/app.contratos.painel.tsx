@@ -185,7 +185,7 @@ function Page() {
   }, [ind]);
 
   return (
-    <AppShell>
+    <>
       <GestaoContratosGate requerePainelConsolidado>
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -369,7 +369,7 @@ function Page() {
         tipoFiltro={pendenciaFiltro}
         condominioId={condFiltro}
       />
-    </AppShell>
+    </>
   );
 }
 

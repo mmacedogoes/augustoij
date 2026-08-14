@@ -159,7 +159,7 @@ function ContaPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-3xl space-y-6">
         <header className="app-page-header">
           <span className="app-eyebrow">Perfil</span>
@@ -358,7 +358,7 @@ function ContaPage() {
 
         <ListaMeusChamados />
       </div>
-    </AppShell>
+    </>
   );
 }
 

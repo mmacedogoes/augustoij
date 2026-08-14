@@ -143,7 +143,7 @@ function Page() {
   }
 
   return (
-    <AppShell>
+    <>
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <header className="app-page-header min-w-0">
@@ -320,7 +320,7 @@ function Page() {
           </Card>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }
 
