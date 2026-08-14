@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.51",
-    "@ai-sdk/react": "^3.0.211",
+    "@ai-sdk/react": "^4.0.67",
     "@hookform/resolvers": "^5.2.2",
     "@iconify-json/ph": "^1.2.2",
     "@iconify/react": "^6.0.2",
