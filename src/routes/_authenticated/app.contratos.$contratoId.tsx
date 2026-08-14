@@ -654,6 +654,18 @@ function Page() {
                 </Suspense>
               </div>
             )}
+            {aba === "ia" && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 min-h-[500px]">
+                <Suspense fallback={<PanelSkeleton />}>
+                   <ChatContratoPanel 
+                     contratoId={contratoId}
+                     condominioId={c.condominio_id}
+                     prestadorNome={c.prestador_nome}
+                   />
+                </Suspense>
+              </div>
+            )}
+
           </main>
         </div>
       </div>
