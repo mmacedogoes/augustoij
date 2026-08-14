@@ -808,6 +808,85 @@ function InfoCard({
   );
 }
 
+function ExpandableSection({
+  titulo,
+  icon,
+  resumo,
+  children,
+}: {
+  titulo: string;
+  icon: React.ReactNode;
+  resumo?: string | null;
+  children: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Card className="overflow-hidden border-border/40 transition-all hover:border-augusto-gold/30">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="flex items-center justify-between p-4 sm:p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-augusto-gold/10 text-augusto-gold">
+              {icon}
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                {titulo}
+              </h3>
+              {resumo && !isOpen && (
+                <p className="mt-0.5 truncate text-sm font-medium text-foreground transition-all animate-in fade-in slide-in-from-left-1">
+                  {resumo}
+                </p>
+              )}
+            </div>
+          </div>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-muted-foreground hover:bg-augusto-gold/10 hover:text-augusto-gold">
+              {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              <span className="sr-only">Expandir seção {titulo}</span>
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent>
+          <div className="border-t border-border/40 bg-muted/5 p-4 sm:p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+            {children}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+}
+
+function ClauseCard({
+  icon,
+  label,
+  value,
+  tone = "default",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  tone?: "default" | "positive";
+}) {
+  const empty = value === null || value === undefined || value === "";
+  const toneClasses = {
+    default: "bg-card border-border/50",
+    positive: "bg-augusto-green/5 border-augusto-green/20",
+  };
+
+  return (
+    <div className={`rounded-xl border p-4 transition-all hover:shadow-sm ${toneClasses[tone]}`}>
+      <div className="flex items-center gap-2 mb-2 text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">
+        <span className="text-augusto-gold">{icon}</span>
+        {label}
+      </div>
+      <p className={`text-sm font-semibold ${empty ? "text-muted-foreground italic" : tone === 'positive' ? 'text-augusto-green' : 'text-foreground'}`}>
+        {empty ? "Não informado" : value}
+      </p>
+    </div>
+  );
+}
+
 function StatBadge({
   children,
   icon,
