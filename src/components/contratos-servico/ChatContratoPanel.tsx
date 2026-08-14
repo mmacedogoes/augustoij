@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { Send, Loader2, Sparkles, AlertCircle, Download, FileText } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { DOC_MARKER_RE, gerarPdf, gerarDocx, validarConteudo } from "@/lib/documento-export";
 
 interface ChatContratoPanelProps {
   contratoId: string;
@@ -96,6 +97,22 @@ export function ChatContratoPanel({
     }
   }, [messages]);
 
+  const handleExport = async (content: string, type: 'pdf' | 'docx') => {
+    const error = validarConteudo(content);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    try {
+      if (type === 'pdf') await gerarPdf(content, "DOCUMENTO");
+      else await gerarDocx(content, "DOCUMENTO");
+      toast.success("Documento gerado com sucesso.");
+    } catch (e) {
+      console.error("Export error:", e);
+      toast.error("Falha ao gerar o arquivo.");
+    }
+  };
+
   if (loadingConversa) {
     return (
       <div className="flex flex-col items-center justify-center h-[500px] space-y-4">
@@ -146,7 +163,7 @@ export function ChatContratoPanel({
                     size="sm" 
                     className="text-[11px] h-8 justify-start font-normal"
                     onClick={() => {
-                      append({ role: 'user', content: sug });
+                      (append as any)({ role: 'user', content: sug });
                     }}
                   >
                     {sug}
@@ -156,38 +173,68 @@ export function ChatContratoPanel({
             </div>
           )}
 
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={cn(
-                "flex flex-col gap-2 animate-in fade-in duration-300",
-                m.role === "user" ? "items-end" : "items-start"
-              )}
-            >
+          {messages.map((m) => {
+            const content = m.content || "";
+            const hasDocMarker = DOC_MARKER_RE.test(content);
+            // Reset regex state
+            DOC_MARKER_RE.lastIndex = 0;
+
+            return (
               <div
+                key={m.id}
                 className={cn(
-                  "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
-                  m.role === "user"
-                    ? "bg-augusto-gold text-white rounded-tr-none"
-                    : "bg-muted text-foreground rounded-tl-none border border-border"
+                  "flex flex-col gap-2 animate-in fade-in duration-300",
+                  m.role === "user" ? "items-end" : "items-start"
                 )}
               >
-                <div 
+                <div
                   className={cn(
-                    "prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed",
-                    "prose-headings:text-foreground prose-a:text-augusto-gold hover:prose-a:underline"
+                    "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
+                    m.role === "user"
+                      ? "bg-augusto-gold text-white rounded-tr-none"
+                      : "bg-muted text-foreground rounded-tl-none border border-border"
                   )}
                 >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {(m as any).content}
-                  </ReactMarkdown>
+                  <div 
+                    className={cn(
+                      "prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed",
+                      "prose-headings:text-foreground prose-a:text-augusto-gold hover:prose-a:underline"
+                    )}
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {content}
+                    </ReactMarkdown>
+                  </div>
+
+                  {m.role === "assistant" && hasDocMarker && !isLoading && (
+                    <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-[11px] gap-2 bg-background"
+                        onClick={() => handleExport(content, 'pdf')}
+                      >
+                        <Download className="w-3 h-3" />
+                        Baixar PDF
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-[11px] gap-2 bg-background"
+                        onClick={() => handleExport(content, 'docx')}
+                      >
+                        <FileText className="w-3 h-3" />
+                        Baixar Word
+                      </Button>
+                    </div>
+                  )}
                 </div>
+                <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-tighter font-medium">
+                  {m.role === "user" ? "Você" : "Augusto.IJ"}
+                </span>
               </div>
-              <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-tighter font-medium">
-                {m.role === "user" ? "Você" : "Augusto.IJ"}
-              </span>
-            </div>
-          ))}
+            );
+          })}
 
           {isLoading && (
             <div className="flex items-start gap-2 animate-pulse">
@@ -224,17 +271,17 @@ export function ChatContratoPanel({
           <input
             className="w-full bg-background border border-border rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-augusto-gold/20 transition-all placeholder:text-muted-foreground/60"
             placeholder="Digite sua dúvida sobre este contrato..."
-            value={input as string}
+            value={input as any}
             onChange={handleInputChange as any}
             disabled={isLoading || !conversaId}
           />
           <Button
             size="icon"
             type="submit"
-            disabled={!(input as string)?.trim() || isLoading || !conversaId}
+            disabled={!((input as any) || "").trim() || isLoading || !conversaId}
             className={cn(
               "absolute right-1.5 top-1.5 h-8 w-8 rounded-lg transition-all",
-              (input as string)?.trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
+              ((input as any) || "").trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
             )}
           >
             {isLoading ? (
