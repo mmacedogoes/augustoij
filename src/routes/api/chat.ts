@@ -324,6 +324,7 @@ export const Route = createFileRoute("/api/chat")({
                 // Passamos o filtro de metadados se existir contratoId
                 ...(contratoId ? { _metadata_filter: { contrato_id: contratoId } } : {})
               });
+              
               if (matches && Array.isArray(matches) && matches.length > 0) {
                 temMatchDocumento = true;
                 contexto = matches
