@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -72,12 +72,13 @@ export function ChatContratoPanel({
         body: () => ({
           condominioId,
           conversaId,
+          contratoId, // Pass for contract-specific logic
         }),
       }),
-    [condominioId, conversaId],
+    [condominioId, conversaId, contratoId],
   );
 
-  const { messages, sendMessage, status, stop } = useChat({
+  const { messages, append, status, input, handleInputChange, handleSubmit } = useChat({
     id: conversaId ?? undefined,
     transport: transport as any,
     onError: (err: Error) => {
@@ -86,7 +87,6 @@ export function ChatContratoPanel({
     }
   });
 
-  const [inputValue, setInputValue] = useState("");
   const isLoading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
@@ -146,7 +146,7 @@ export function ChatContratoPanel({
                     size="sm" 
                     className="text-[11px] h-8 justify-start font-normal"
                     onClick={() => {
-                      sendMessage(sug);
+                      append({ role: 'user', content: sug });
                     }}
                   >
                     {sug}
@@ -156,7 +156,7 @@ export function ChatContratoPanel({
             </div>
           )}
 
-          {messages.map((m: any) => (
+          {messages.map((m) => (
             <div
               key={m.id}
               className={cn(
@@ -172,15 +172,16 @@ export function ChatContratoPanel({
                     : "bg-muted text-foreground rounded-tl-none border border-border"
                 )}
               >
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm]}
+                <div 
                   className={cn(
                     "prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed",
                     "prose-headings:text-foreground prose-a:text-augusto-gold hover:prose-a:underline"
                   )}
                 >
-                  {m.parts ? m.parts.map((p: any) => p.type === 'text' ? p.text : '').join('') : m.content}
-                </ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {m.content}
+                  </ReactMarkdown>
+                </div>
               </div>
               <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-tighter font-medium">
                 {m.role === "user" ? "Você" : "Augusto.IJ"}
@@ -212,27 +213,28 @@ export function ChatContratoPanel({
       <div className="p-4 bg-muted/30 border-t border-border">
         <form
           onSubmit={(e) => {
-            e.preventDefault();
-            if (!conversaId || !inputValue.trim()) return;
-            sendMessage(inputValue);
-            setInputValue('');
+            if (!conversaId) {
+              e.preventDefault();
+              return;
+            }
+            handleSubmit(e);
           }}
           className="relative max-w-3xl mx-auto"
         >
           <input
             className="w-full bg-background border border-border rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-augusto-gold/20 transition-all placeholder:text-muted-foreground/60"
             placeholder="Digite sua dúvida sobre este contrato..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            value={input}
+            onChange={handleInputChange}
             disabled={isLoading || !conversaId}
           />
           <Button
             size="icon"
             type="submit"
-            disabled={!inputValue.trim() || isLoading || !conversaId}
+            disabled={!input.trim() || isLoading || !conversaId}
             className={cn(
               "absolute right-1.5 top-1.5 h-8 w-8 rounded-lg transition-all",
-              inputValue.trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
+              input.trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
             )}
           >
             {isLoading ? (
