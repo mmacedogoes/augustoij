@@ -21,6 +21,8 @@ export const JANELA_VENCIMENTO_DIAS = 90;
 export function statusExibicaoContrato(c: ContratoStatusInput): StatusExibicaoContrato {
   if (c.situacao === "encerrado") return "encerrado";
   if (c.situacao === "suspenso") return "suspenso";
+  // O banco pode retornar 'ativo' para contratos vigentes em alguns contextos legados ou via API externa.
+  if (c.situacao === "ativo") return "vigente";
   if (c.prazo_indeterminado) return "vigente";
   if (!c.data_fim) return "vigente";
   const fim = c.data_fim instanceof Date ? c.data_fim : new Date(String(c.data_fim));
