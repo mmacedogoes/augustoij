@@ -77,7 +77,7 @@ export function ChatContratoPanel({
     [condominioId, conversaId],
   );
 
-  const { messages, append, status, input, setInput } = useChat({
+  const { messages, sendMessage, status, stop } = useChat({
     id: conversaId ?? undefined,
     transport: transport as any,
     onError: (err: Error) => {
@@ -86,6 +86,7 @@ export function ChatContratoPanel({
     }
   });
 
+  const [inputValue, setInputValue] = useState("");
   const isLoading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
@@ -145,7 +146,7 @@ export function ChatContratoPanel({
                     size="sm" 
                     className="text-[11px] h-8 justify-start font-normal"
                     onClick={() => {
-                      append({ role: 'user', content: sug });
+                      sendMessage(sug);
                     }}
                   >
                     {sug}
@@ -212,26 +213,26 @@ export function ChatContratoPanel({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!conversaId || !input.trim()) return;
-            append({ role: 'user', content: input });
-            setInput('');
+            if (!conversaId || !inputValue.trim()) return;
+            sendMessage(inputValue);
+            setInputValue('');
           }}
           className="relative max-w-3xl mx-auto"
         >
           <input
             className="w-full bg-background border border-border rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-augusto-gold/20 transition-all placeholder:text-muted-foreground/60"
             placeholder="Digite sua dúvida sobre este contrato..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             disabled={isLoading || !conversaId}
           />
           <Button
             size="icon"
             type="submit"
-            disabled={!input.trim() || isLoading || !conversaId}
+            disabled={!inputValue.trim() || isLoading || !conversaId}
             className={cn(
               "absolute right-1.5 top-1.5 h-8 w-8 rounded-lg transition-all",
-              input.trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
+              inputValue.trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
             )}
           >
             {isLoading ? (
