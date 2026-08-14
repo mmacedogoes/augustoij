@@ -34,11 +34,12 @@ interface QuickViewDrawerProps {
 }
 
 export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawerProps) {
+  const navigate = useNavigate();
   if (!contrato) return null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md w-full p-0">
+      <SheetContent className="sm:max-w-md w-full p-0 flex flex-col">
         <SheetHeader className="p-6 border-b border-border bg-muted/20">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
@@ -51,10 +52,55 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
           </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-180px)]">
+        <ScrollArea className="flex-1">
           <div className="p-6 space-y-6">
+            {/* Ações Rápidas */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-start gap-2 h-9 text-xs"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate({ to: `/app/contratos/${contrato.id}`, search: { tab: 'ia' } });
+                }}
+              >
+                <MessageSquare className="h-3.5 w-3.5 text-augusto-gold" />
+                Perguntar à IJ
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-start gap-2 h-9 text-xs"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate({ to: `/app/contratos/${contrato.id}`, search: { edit: 'true' } });
+                }}
+              >
+                <Edit2 className="h-3.5 w-3.5 text-augusto-gold" />
+                Editar Dados
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-start gap-2 h-9 text-xs"
+                disabled={!contrato.documento_id}
+              >
+                <FileText className="h-3.5 w-3.5 text-augusto-gold" />
+                Ver Documento
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-start gap-2 h-9 text-xs"
+              >
+                <UserPlus className="h-3.5 w-3.5 text-augusto-gold" />
+                Responsável
+              </Button>
+            </div>
+
             {/* Resumo Rápido */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
               <InfoBlock 
                 icon={<Building2 className="h-4 w-4" />} 
                 label="Condomínio" 
@@ -74,7 +120,7 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
               <InfoBlock 
                 icon={<User className="h-4 w-4" />} 
                 label="Responsável" 
-                value="Não atribuído" // TODO: Fetch real responsible
+                value="Não atribuído" 
                 isWarning={true}
               />
             </div>
@@ -97,20 +143,26 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
                 />
                 <HealthItem 
                   label="Mês-base Reajuste" 
-                  status="warning" 
-                  desc="Não configurado"
+                  status={contrato.mes_base_reajuste ? "ok" : "warning"} 
+                  desc={contrato.mes_base_reajuste ? `Mês ${contrato.mes_base_reajuste}` : "Não configurado"}
                 />
               </div>
             </div>
 
-            {/* Próximo Evento */}
-            <div className="bg-augusto-gold/5 border border-augusto-gold/20 rounded-lg p-4">
+            {/* Próximo Evento / CTA Dinâmico */}
+            <div 
+              className="bg-augusto-gold/5 border border-augusto-gold/20 rounded-lg p-4 cursor-pointer hover:bg-augusto-gold/10 transition-colors"
+              onClick={() => {
+                onOpenChange(false);
+                navigate({ to: `/app/contratos/${contrato.id}`, search: { tab: 'gestao' } });
+              }}
+            >
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="h-4 w-4 text-augusto-gold" />
                 <span className="text-xs font-bold text-augusto-gold uppercase">Próxima Ação</span>
               </div>
-              <p className="text-sm font-medium text-primary">Revisar reajuste anual</p>
-              <p className="text-xs text-muted-foreground mt-1">Vence em 15 dias (01/09/2026)</p>
+              <p className="text-sm font-medium text-primary">Revisar obrigações e pendências</p>
+              <p className="text-xs text-muted-foreground mt-1">Ver todos os checklists e prazos em aberto</p>
             </div>
           </div>
         </ScrollArea>
