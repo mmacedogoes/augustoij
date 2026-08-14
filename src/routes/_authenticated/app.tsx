@@ -4,11 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/app")({
-  component: () => (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  ),
+  component: () => <Outlet />,
   // Skeleton dentro da área de conteúdo (o menu continua visível).
   pendingMs: 150,
   pendingMinMs: 0,
