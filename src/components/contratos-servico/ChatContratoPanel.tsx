@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -78,7 +78,7 @@ export function ChatContratoPanel({
     [condominioId, conversaId, contratoId],
   );
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, append, status, input, handleInputChange, handleSubmit } = useChat({
     id: conversaId ?? undefined,
     transport: transport as any,
     onError: (err: Error) => {
@@ -87,7 +87,6 @@ export function ChatContratoPanel({
     }
   });
 
-  const [input, setInput] = useState("");
   const isLoading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
@@ -147,7 +146,7 @@ export function ChatContratoPanel({
                     size="sm" 
                     className="text-[11px] h-8 justify-start font-normal"
                     onClick={() => {
-                      sendMessage(sug);
+                      append({ role: 'user', content: sug });
                     }}
                   >
                     {sug}
@@ -157,7 +156,7 @@ export function ChatContratoPanel({
             </div>
           )}
 
-          {messages.map((m: any) => (
+          {messages.map((m) => (
             <div
               key={m.id}
               className={cn(
@@ -180,7 +179,7 @@ export function ChatContratoPanel({
                   )}
                 >
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {m.content || (m.parts ? m.parts.map((p: any) => p.type === 'text' ? p.text : '').join('') : '')}
+                    {(m as any).content}
                   </ReactMarkdown>
                 </div>
               </div>
@@ -214,27 +213,28 @@ export function ChatContratoPanel({
       <div className="p-4 bg-muted/30 border-t border-border">
         <form
           onSubmit={(e) => {
-            e.preventDefault();
-            if (!conversaId || !input.trim()) return;
-            sendMessage(input);
-            setInput('');
+            if (!conversaId) {
+              e.preventDefault();
+              return;
+            }
+            (handleSubmit as any)(e);
           }}
           className="relative max-w-3xl mx-auto"
         >
           <input
             className="w-full bg-background border border-border rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-augusto-gold/20 transition-all placeholder:text-muted-foreground/60"
             placeholder="Digite sua dúvida sobre este contrato..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
+            value={input as string}
+            onChange={handleInputChange as any}
             disabled={isLoading || !conversaId}
           />
           <Button
             size="icon"
             type="submit"
-            disabled={!input.trim() || isLoading || !conversaId}
+            disabled={!(input as string)?.trim() || isLoading || !conversaId}
             className={cn(
               "absolute right-1.5 top-1.5 h-8 w-8 rounded-lg transition-all",
-              input.trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
+              (input as string)?.trim() ? "bg-augusto-gold hover:bg-augusto-gold/90 text-white" : "bg-muted text-muted-foreground"
             )}
           >
             {isLoading ? (
