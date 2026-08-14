@@ -71,7 +71,10 @@ export function PendenciasDrawer({ open, onOpenChange, tipoFiltro, condominioId 
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pendencias-contratos", tipoFiltro, condominioId],
-    queryFn: () => fetchFn({ data: { condominioId } }),
+    queryFn: async () => {
+      const res = await fetchFn({ data: { condominioId } });
+      return res as { rows: any[] };
+    },
     enabled: open && !!tipoFiltro && !!fn,
   });
 
