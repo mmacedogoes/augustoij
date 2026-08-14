@@ -9,6 +9,7 @@ import {
   FilePlus2, Users, Activity, Check, X, Mail, Phone, Hash, CalendarDays,
   Landmark, Percent, ScrollText, MessageSquare, ChevronDown, ChevronUp
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ExpandableText } from "@/components/contratos-servico/ExpandableText";
