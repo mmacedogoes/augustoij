@@ -68,6 +68,10 @@ const AnalisePanel = lazy(() =>
 const AtividadesPanel = lazy(() =>
   import("@/components/contratos-servico/AtividadesPanel").then((m) => ({ default: m.AtividadesPanel })),
 );
+const ChatContratoPanel = lazy(() =>
+  import("@/components/contratos-servico/ChatContratoPanel").then((m) => ({ default: m.ChatContratoPanel })),
+);
+
 
 function PanelSkeleton() {
   return (
