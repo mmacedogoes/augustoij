@@ -7,7 +7,7 @@ import {
   Building2, Briefcase, CalendarRange, Wallet, TrendingUp, Scale,
   ClipboardCheck, ListChecks, Shield, CalendarClock, ArrowUpRightSquare,
   FilePlus2, Users, Activity, Check, X, Mail, Phone, Hash, CalendarDays,
-  Landmark, Percent, ScrollText,
+  Landmark, Percent, ScrollText, MessageSquare
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
@@ -68,6 +68,10 @@ const AnalisePanel = lazy(() =>
 const AtividadesPanel = lazy(() =>
   import("@/components/contratos-servico/AtividadesPanel").then((m) => ({ default: m.AtividadesPanel })),
 );
+const ChatContratoPanel = lazy(() =>
+  import("@/components/contratos-servico/ChatContratoPanel").then((m) => ({ default: m.ChatContratoPanel })),
+);
+
 
 function PanelSkeleton() {
   return (
@@ -110,10 +114,15 @@ function Page() {
   useEffect(() => {
     const abasValidas = [
       "informacoes", "checklists", "retencoes", "agenda", "reajustes",
-      "aditivos", "analise", "responsaveis", "atividades",
+      "aditivos", "analise", "responsaveis", "atividades", "ia",
     ];
-    const alvo = (hash ?? "").replace(/^#/, "");
-    if (alvo && abasValidas.includes(alvo)) setAba(alvo);
+    const search = Route.useSearch() as any;
+    const tabAlvo = search.tab;
+    const hashAlvo = (hash ?? "").replace(/^#/, "");
+    
+    if (tabAlvo && abasValidas.includes(tabAlvo)) setAba(tabAlvo);
+    else if (hashAlvo && abasValidas.includes(hashAlvo)) setAba(hashAlvo);
+
   }, [hash]);
 
   const carregar = useCallback(() => {
@@ -128,7 +137,12 @@ function Page() {
 
   useEffect(() => {
     carregar();
+    const search = Route.useSearch() as any;
+    if (search.edit === 'true') {
+      setEditContratoOpen(true);
+    }
   }, [carregar]);
+
 
   async function handleExcluir() {
     setExcluindo(true);
@@ -376,6 +390,13 @@ function Page() {
                   icon={<Activity className="h-4 w-4" />} 
                   label="Log de Atividades" 
                 />
+                <NavItem 
+                  active={aba === "ia"} 
+                  onClick={() => setAba("ia")} 
+                  icon={<MessageSquare className="h-4 w-4" />} 
+                  label="Perguntar à IJ" 
+                />
+
               </NavGroup>
             </nav>
           </aside>
@@ -637,6 +658,18 @@ function Page() {
                 </Suspense>
               </div>
             )}
+            {aba === "ia" && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 min-h-[500px]">
+                <Suspense fallback={<PanelSkeleton />}>
+                   <ChatContratoPanel 
+                     contratoId={contratoId}
+                     condominioId={c.condominio_id}
+                     prestadorNome={c.prestador_nome}
+                   />
+                </Suspense>
+              </div>
+            )}
+
           </main>
         </div>
       </div>

@@ -25,6 +25,7 @@ type ChatBody = {
   messages?: UIMessage[];
   condominioId?: string;
   conversaId?: string;
+  contratoId?: string; // Isolated contract context
   attachmentContext?: string;
   attachmentNome?: string;
 };
@@ -143,7 +144,7 @@ export const Route = createFileRoute("/api/chat")({
           const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
           if (!token) return new Response("Não autenticado", { status: 401 });
 
-          const { messages, condominioId, conversaId, attachmentContext, attachmentNome } =
+          const { messages, condominioId, conversaId, contratoId, attachmentContext, attachmentNome } =
             (await request.json()) as ChatBody;
           if (!messages?.length || !condominioId || !conversaId) {
             return new Response("Parâmetros inválidos", { status: 400 });
@@ -314,12 +315,16 @@ export const Route = createFileRoute("/api/chat")({
           if (userText) {
             try {
               const queryEmbedding = await embedText(apiKey, userText);
+              // Se contratoId presente, tentamos buscar primeiro apenas chunks desse contrato
               const { data: matches } = await supabase.rpc("match_document_chunks", {
                 _condominio_id: condominioId,
                 _query_embedding: `[${queryEmbedding.join(",")}]` as unknown as string,
-                _match_count: 6,
-                _min_similarity: 0.3,
+                _match_count: 8,
+                _min_similarity: 0.25,
+                // Passamos o filtro de metadados se existir contratoId
+                ...(contratoId ? { _metadata_filter: { contrato_id: contratoId } } : {})
               });
+              
               if (matches && Array.isArray(matches) && matches.length > 0) {
                 temMatchDocumento = true;
                 contexto = matches
@@ -432,10 +437,13 @@ export const Route = createFileRoute("/api/chat")({
 
           const systemPrompt = `Você é o assistente jurídico do Augusto.IJ, especialista em gestão de condomínios brasileiros (Código Civil, Lei 4.591/64, jurisprudência do STJ).
 
+${contratoId ? `ATENÇÃO: Você está em uma análise ISOLADA de um contrato específico de prestação de serviços. Foco total nas cláusulas e obrigações deste contrato.` : ""}
+
 HIERARQUIA DE FONTES — OBRIGATÓRIA e nesta ordem:
-1. DOCUMENTOS DO CONDOMÍNIO (convenção, regimento interno, atas e demais arquivos anexados pelo síndico/gestor).
-2. BASE DE CONHECIMENTO JURÍDICO curada (leis, súmulas e precedentes já treinados).
-3. Conhecimento geral seu (legislação nacional pública).
+1. O CONTRATO em análise (prioridade máxima se contratoId estiver presente).
+2. DOCUMENTOS DO CONDOMÍNIO (convenção, regimento interno, atas e demais arquivos anexados pelo síndico/gestor).
+3. BASE DE CONHECIMENTO JURÍDICO curada (leis, súmulas e precedentes já treinados).
+4. Conhecimento geral seu (legislação nacional pública).
 
 REGRAS INEGOCIÁVEIS SOBRE OS DOCUMENTOS DO CONDOMÍNIO:
 - Se abaixo houver "CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO", você DEVE analisá-lo antes de qualquer outra fonte e ancorar a resposta nele.

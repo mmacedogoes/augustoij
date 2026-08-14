@@ -225,6 +225,8 @@ export type ChecklistPendenteMes = {
   contrato_id: string;
   prestador_nome: string;
   condominio_nome: string;
+  tipo_servico_nome?: string;
+  status: string;
   tipos: string[]; // fiscalizacao | pagamento | tributario | trabalhista
 };
 
@@ -235,12 +237,18 @@ export const listChecklistsPendentesMes = createServerFn({ method: "POST" })
     await ensurePainelConsolidado(context);
     let q = context.supabase
       .from("contratos_servico")
-      .select("id, prestador_nome, condominios(nome)")
+      .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
       .eq("situacao", "ativo");
     if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
     const { data: contratos, error } = await q;
     if (error) throw new Error(error.message);
-    type C = { id: string; prestador_nome: string; condominios: { nome: string } | null };
+    type C = { 
+      id: string; 
+      prestador_nome: string; 
+      situacao: string;
+      condominios: { nome: string } | null; 
+      tipos_servico_contrato: { nome: string } | null;
+    };
     const list = (contratos ?? []) as C[];
     if (list.length === 0) return { rows: [] as ChecklistPendenteMes[] };
 
@@ -260,9 +268,11 @@ export const listChecklistsPendentesMes = createServerFn({ method: "POST" })
       .in("checklist_id", chs.map((c) => c.id))
       .eq("competencia", competencia)
       .eq("status", "aberto");
+    
     const abertosPorCh = new Set(
       ((periodos ?? []) as Array<{ checklist_id: string }>).map((p) => p.checklist_id),
     );
+    
     const porContrato = new Map<string, string[]>();
     for (const ch of chs) {
       if (!abertosPorCh.has(ch.id)) continue;
@@ -270,14 +280,157 @@ export const listChecklistsPendentesMes = createServerFn({ method: "POST" })
       arr.push(ch.tipo);
       porContrato.set(ch.contrato_id, arr);
     }
+    
     const rows: ChecklistPendenteMes[] = list
       .filter((c) => porContrato.has(c.id))
       .map((c) => ({
         contrato_id: c.id,
         prestador_nome: c.prestador_nome,
         condominio_nome: c.condominios?.nome ?? "—",
+        tipo_servico_nome: c.tipos_servico_contrato?.nome ?? undefined,
+        status: c.situacao,
         tipos: porContrato.get(c.id)!,
       }));
+    return { rows };
+  });
+
+// -------------------------------------------------- listContratosSemResponsavel
+
+export type ContratoPendenciaGenerica = {
+  contrato_id: string;
+  prestador_nome: string;
+  condominio_nome: string;
+  tipo_servico_nome?: string;
+  status: string;
+  motivo?: string;
+};
+
+export const listContratosSemResponsavel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => filtroSchema.parse(v ?? {}))
+  .handler(async ({ data, context }) => {
+    await ensurePainelConsolidado(context);
+    let q = context.supabase
+      .from("contratos_servico")
+      .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
+      .eq("situacao", "ativo");
+    
+    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    
+    const { data: contratos, error } = await q;
+    if (error) throw new Error(error.message);
+    
+    const list = (contratos ?? []) as any[];
+    if (list.length === 0) return { rows: [] };
+
+    const { data: respRel } = await context.supabase
+      .from("contrato_responsaveis")
+      .select("contrato_id")
+      .in("contrato_id", list.map(a => a.id));
+    
+    const comResp = new Set((respRel ?? []).map(r => r.contrato_id));
+    const semResp = list.filter(a => !comResp.has(a.id));
+
+    const rows: ContratoPendenciaGenerica[] = semResp.map(c => ({
+      contrato_id: c.id,
+      prestador_nome: c.prestador_nome,
+      condominio_nome: c.condominios?.nome ?? "—",
+      tipo_servico_nome: c.tipos_servico_contrato?.nome,
+      status: c.situacao,
+      motivo: "Nenhum gestor atribuído"
+    }));
+
+    return { rows };
+  });
+
+// ---------------------------------------------------- listContratosSemMesBase
+
+export const listContratosSemMesBase = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => filtroSchema.parse(v ?? {}))
+  .handler(async ({ data, context }) => {
+    await ensurePainelConsolidado(context);
+    let q = context.supabase
+      .from("contratos_servico")
+      .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
+      .eq("situacao", "ativo")
+      .is("mes_base_reajuste", null);
+    
+    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    
+    const { data: contratos, error } = await q;
+    if (error) throw new Error(error.message);
+    
+    const rows: ContratoPendenciaGenerica[] = (contratos ?? []).map((c: any) => ({
+      contrato_id: c.id,
+      prestador_nome: c.prestador_nome,
+      condominio_nome: c.condominios?.nome ?? "—",
+      tipo_servico_nome: c.tipos_servico_contrato?.nome,
+      status: c.situacao,
+      motivo: "Mês-base não definido"
+    }));
+
+    return { rows };
+  });
+
+// ---------------------------------------------------- listContratosSemDocumento
+
+export const listContratosSemDocumento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => filtroSchema.parse(v ?? {}))
+  .handler(async ({ data, context }) => {
+    await ensurePainelConsolidado(context);
+    let q = context.supabase
+      .from("contratos_servico")
+      .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
+      .eq("situacao", "ativo")
+      .is("arquivo_path", null)
+      .is("documento_id", null);
+    
+    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    
+    const { data: contratos, error } = await q;
+    if (error) throw new Error(error.message);
+    
+    const rows: ContratoPendenciaGenerica[] = (contratos ?? []).map((c: any) => ({
+      contrato_id: c.id,
+      prestador_nome: c.prestador_nome,
+      condominio_nome: c.condominios?.nome ?? "—",
+      tipo_servico_nome: c.tipos_servico_contrato?.nome,
+      status: c.situacao,
+      motivo: "Documento original ausente"
+    }));
+
+    return { rows };
+  });
+
+// -------------------------------------------------- listContratosSemIndice
+
+export const listContratosSemIndice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => filtroSchema.parse(v ?? {}))
+  .handler(async ({ data, context }) => {
+    await ensurePainelConsolidado(context);
+    let q = context.supabase
+      .from("contratos_servico")
+      .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
+      .eq("situacao", "ativo")
+      .or("indice_reajuste.is.null,indice_reajuste.eq.nenhum");
+    
+    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    
+    const { data: contratos, error } = await q;
+    if (error) throw new Error(error.message);
+    
+    const rows: ContratoPendenciaGenerica[] = (contratos ?? []).map((c: any) => ({
+      contrato_id: c.id,
+      prestador_nome: c.prestador_nome,
+      condominio_nome: c.condominios?.nome ?? "—",
+      tipo_servico_nome: c.tipos_servico_contrato?.nome,
+      status: c.situacao,
+      motivo: "Índice de reajuste não definido"
+    }));
+
     return { rows };
   });
 
