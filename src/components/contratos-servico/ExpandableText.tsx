@@ -11,7 +11,7 @@ export function ExpandableText({ text, limit = 200 }: { text: string; limit?: nu
 
   return (
     <div className="space-y-1">
-      <p className={`text-sm leading-relaxed text-foreground text-justify ${expanded ? "" : "line-clamp-3"}`}>
+      <p className={`text-sm leading-relaxed text-foreground text-justify hyphens-auto ${expanded ? "" : "line-clamp-3"}`}>
         {text}
       </p>
       <Button
