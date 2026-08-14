@@ -386,6 +386,13 @@ function Page() {
                   icon={<Activity className="h-4 w-4" />} 
                   label="Log de Atividades" 
                 />
+                <NavItem 
+                  active={aba === "ia"} 
+                  onClick={() => setAba("ia")} 
+                  icon={<MessageSquare className="h-4 w-4" />} 
+                  label="Perguntar à IJ" 
+                />
+
               </NavGroup>
             </nav>
           </aside>
