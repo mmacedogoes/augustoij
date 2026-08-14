@@ -110,10 +110,15 @@ function Page() {
   useEffect(() => {
     const abasValidas = [
       "informacoes", "checklists", "retencoes", "agenda", "reajustes",
-      "aditivos", "analise", "responsaveis", "atividades",
+      "aditivos", "analise", "responsaveis", "atividades", "ia",
     ];
-    const alvo = (hash ?? "").replace(/^#/, "");
-    if (alvo && abasValidas.includes(alvo)) setAba(alvo);
+    const search = Route.useSearch() as any;
+    const tabAlvo = search.tab;
+    const hashAlvo = (hash ?? "").replace(/^#/, "");
+    
+    if (tabAlvo && abasValidas.includes(tabAlvo)) setAba(tabAlvo);
+    else if (hashAlvo && abasValidas.includes(hashAlvo)) setAba(hashAlvo);
+
   }, [hash]);
 
   const carregar = useCallback(() => {
