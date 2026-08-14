@@ -773,40 +773,6 @@ function Page() {
   );
 }
 
-function InfoCard({
-  titulo,
-  icon,
-  descricao,
-  className,
-  children,
-}: {
-  titulo: string;
-  icon?: React.ReactNode;
-  descricao?: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card
-      className={`group flex h-full flex-col p-5 transition-all duration-200 ease-out hover:border-augusto-gold/40 hover:shadow-sm ${className ?? ""}`}
-    >
-      <div className="mb-3">
-        <p className="flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          {icon ? (
-            <span className="grid h-5 w-5 place-items-center rounded-md bg-augusto-gold/10 text-augusto-gold transition-colors duration-200 group-hover:bg-augusto-gold/20">
-              {icon}
-            </span>
-          ) : null}
-          {titulo}
-        </p>
-        {descricao ? (
-          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{descricao}</p>
-        ) : null}
-      </div>
-      <div className="flex-1">{children}</div>
-    </Card>
-  );
-}
 
 function ExpandableSection({
   titulo,
