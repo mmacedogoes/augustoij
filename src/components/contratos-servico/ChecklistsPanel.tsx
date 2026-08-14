@@ -228,7 +228,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
           </Button>
         </Card>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           <Coluna
             titulo="A fazer"
             icon={<ListTodo className="h-4 w-4" />}

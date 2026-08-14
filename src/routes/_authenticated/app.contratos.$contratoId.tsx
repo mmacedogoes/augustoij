@@ -9,6 +9,7 @@ import {
   FilePlus2, Users, Activity, Check, X, Mail, Phone, Hash, CalendarDays,
   Landmark, Percent, ScrollText, MessageSquare, ChevronDown, ChevronUp
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ExpandableText } from "@/components/contratos-servico/ExpandableText";
@@ -321,87 +322,40 @@ function Page() {
           onSaved={carregar}
         />
 
-        <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-start">
-          <aside className="w-full shrink-0 md:sticky md:top-24 md:w-64">
-            <nav className="flex flex-col gap-1 rounded-xl border border-border bg-card/50 p-3 shadow-sm backdrop-blur-sm">
-              <NavGroup label="Principal">
-                <NavItem 
-                  active={aba === "informacoes"} 
-                  onClick={() => setAba("informacoes")} 
-                  icon={<FileText className="h-4 w-4" />} 
-                  label="Resumo e Dados" 
-                />
-                <NavItem 
-                  active={aba === "checklists"} 
-                  onClick={() => setAba("checklists")} 
-                  icon={<ListChecks className="h-4 w-4" />} 
-                  label="Checklists (Rotina)" 
-                />
-                <NavItem 
-                  active={aba === "retencoes"} 
-                  onClick={() => setAba("retencoes")} 
-                  icon={<Shield className="h-4 w-4" />} 
-                  label="Retenções e Impostos" 
-                />
-              </NavGroup>
-              
-              <Separator className="my-2 opacity-50" />
-              
-              <NavGroup label="Gestão">
-                <NavItem 
-                  active={aba === "agenda"} 
-                  onClick={() => setAba("agenda")} 
-                  icon={<CalendarClock className="h-4 w-4" />} 
-                  label="Agenda Financeira" 
-                />
-                <NavItem 
-                  active={aba === "reajustes"} 
-                  onClick={() => setAba("reajustes")} 
-                  icon={<ArrowUpRightSquare className="h-4 w-4" />} 
-                  label="Reajustes" 
-                />
-                <NavItem 
-                  active={aba === "responsaveis"} 
-                  onClick={() => setAba("responsaveis")} 
-                  icon={<Users className="h-4 w-4" />} 
-                  label="Responsáveis" 
-                />
-              </NavGroup>
-              
-              <Separator className="my-2 opacity-50" />
-              
-              <NavGroup label="Histórico e IA">
-                <NavItem 
-                  active={aba === "analise"} 
-                  onClick={() => setAba("analise")} 
-                  icon={<Sparkles className="h-4 w-4" />} 
-                  label="Análise de IA" 
-                />
-                <NavItem 
-                  active={aba === "aditivos"} 
-                  onClick={() => setAba("aditivos")} 
-                  icon={<FilePlus2 className="h-4 w-4" />} 
-                  label="Aditivos" 
-                  badge={countAditivos > 0 ? countAditivos : undefined}
-                />
-                <NavItem 
-                  active={aba === "atividades"} 
-                  onClick={() => setAba("atividades")} 
-                  icon={<Activity className="h-4 w-4" />} 
-                  label="Log de Atividades" 
-                />
-                <NavItem 
-                  active={aba === "ia"} 
-                  onClick={() => setAba("ia")} 
-                  icon={<MessageSquare className="h-4 w-4" />} 
-                  label="Perguntar à IJ" 
-                />
+        {/* Menu Superior Cascata em substituição à navegação lateral */}
+        <div className="mb-8 w-full border-b border-border/60 bg-card/30 backdrop-blur-sm sticky top-0 z-30">
+          <nav className="flex items-center space-x-1 overflow-x-auto pb-px">
+            {/* NavGroup Principal */}
+            <DropdownNav 
+              label="Principal"
+              items={[
+                { label: "Resumo e Dados", active: aba === "informacoes", onClick: () => setAba("informacoes"), icon: <FileText className="h-4 w-4" /> },
+                { label: "Checklists", active: aba === "checklists", onClick: () => setAba("checklists"), icon: <ListChecks className="h-4 w-4" /> },
+                { label: "Retenções", active: aba === "retencoes", onClick: () => setAba("retencoes"), icon: <Shield className="h-4 w-4" /> },
+              ]}
+            />
+            <DropdownNav 
+              label="Gestão"
+              items={[
+                { label: "Agenda Financeira", active: aba === "agenda", onClick: () => setAba("agenda"), icon: <CalendarClock className="h-4 w-4" /> },
+                { label: "Reajustes", active: aba === "reajustes", onClick: () => setAba("reajustes"), icon: <ArrowUpRightSquare className="h-4 w-4" /> },
+                { label: "Responsáveis", active: aba === "responsaveis", onClick: () => setAba("responsaveis"), icon: <Users className="h-4 w-4" /> },
+              ]}
+            />
+            <DropdownNav 
+              label="Histórico e IA"
+              items={[
+                { label: "Análise de IA", active: aba === "analise", onClick: () => setAba("analise"), icon: <Sparkles className="h-4 w-4" /> },
+                { label: "Aditivos", active: aba === "aditivos", onClick: () => setAba("aditivos"), icon: <FilePlus2 className="h-4 w-4" /> },
+                { label: "Logs", active: aba === "atividades", onClick: () => setAba("atividades"), icon: <Activity className="h-4 w-4" /> },
+                { label: "Perguntar à IJ", active: aba === "ia", onClick: () => setAba("ia"), icon: <MessageSquare className="h-4 w-4" /> },
+              ]}
+            />
+          </nav>
+        </div>
 
-              </NavGroup>
-            </nav>
-          </aside>
-
-          <main className="flex-1 min-w-0">
+        <div className="flex flex-col gap-8 md:items-start">
+          <main className="flex-1 min-w-0 w-full">
             {aba === "informacoes" && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 space-y-6">
                 <Card className="app-card-interactive grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-augusto-gold/20 bg-gradient-to-br from-card to-augusto-gold/[0.04] p-5 transition-all duration-200 hover:border-augusto-gold/40">
@@ -770,6 +724,64 @@ function Page() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function DropdownNav({
+  label,
+  items,
+}: {
+  label: string;
+  items: Array<{ label: string; active: boolean; onClick: () => void; icon: React.ReactNode }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const anyActive = items.some((it) => it.active);
+
+  return (
+    <div 
+      className="relative" 
+      onMouseEnter={() => setOpen(true)} 
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        className={cn(
+          "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-200 border-b-2",
+          anyActive 
+            ? "border-augusto-gold text-primary bg-augusto-gold/5" 
+            : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        )}
+      >
+        {label}
+        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-0 w-56 rounded-b-xl border border-border bg-card p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="flex flex-col gap-1">
+            {items.map((it) => (
+              <button
+                key={it.label}
+                onClick={() => {
+                  it.onClick();
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                  it.active
+                    ? "bg-augusto-gold/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <span className={cn(it.active ? "text-augusto-gold" : "text-muted-foreground/60")}>
+                  {it.icon}
+                </span>
+                {it.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
