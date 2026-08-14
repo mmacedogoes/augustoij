@@ -10,6 +10,7 @@ import {
   Landmark, Percent, ScrollText, MessageSquare, ChevronDown, ChevronUp
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ExpandableText } from "@/components/contratos-servico/ExpandableText";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { Card } from "@/components/ui/card";
