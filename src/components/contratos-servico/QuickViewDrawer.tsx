@@ -17,11 +17,15 @@ import {
   ArrowUpRight,
   TrendingUp,
   ClipboardList,
+  MessageSquare,
+  Edit2,
+  UserPlus
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { ContratoStatusBadge } from "./ContratoStatusBadge";
 import { type ContratoLinha } from "@/lib/contratos-servico/contratos.functions";
+import { cn } from "@/lib/utils";
 
 interface QuickViewDrawerProps {
   contrato: ContratoLinha | null;
