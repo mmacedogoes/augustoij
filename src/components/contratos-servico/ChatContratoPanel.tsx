@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, Sparkles, AlertCircle } from "lucide-react";
-import { useChat } from "ai/react";
+import { useChat, type Message } from "ai/react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -32,7 +32,7 @@ export function ChatContratoPanel({
         .from("conversas")
         .select("id")
         .eq("condominio_id", condominioId)
-        .eq("metadata->contrato_id", contratoId)
+        .eq("metadata", { contrato_id: contratoId, tipo: "contrato" } as any)
         .maybeSingle();
 
       if (data) return data;
@@ -43,8 +43,8 @@ export function ChatContratoPanel({
         .insert({
           condominio_id: condominioId,
           titulo: `Análise: ${prestadorNome}`,
-          metadata: { contrato_id: contratoId, tipo: "contrato" }
-        })
+          metadata: { contrato_id: contratoId, tipo: "contrato" } as any
+        } as any)
         .select("id")
         .single();
 
@@ -63,22 +63,23 @@ export function ChatContratoPanel({
       condominioId,
       conversaId,
     },
-    initialMessages: [], // Poderíamos carregar o histórico aqui se necessário
-    onResponse: (response) => {
+    initialMessages: [],
+    onResponse: (response: Response) => {
       if (!response.ok) {
         toast.error("Erro ao processar sua pergunta. Tente novamente.");
       }
     },
-    onError: (err) => {
+    onError: (err: Error) => {
       console.error("Chat error:", err);
       toast.error("Ocorreu um erro na comunicação com a IA.");
     }
   });
 
-  // Autoscroll
+  // Autoscroll - Usando querySelector no root do ScrollArea já que viewportRef não existe
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
     }
   }, [messages]);
 
@@ -109,7 +110,7 @@ export function ChatContratoPanel({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4" viewportRef={scrollRef}>
+      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-6 max-w-3xl mx-auto">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
@@ -134,10 +135,6 @@ export function ChatContratoPanel({
                     size="sm" 
                     className="text-[11px] h-8 justify-start font-normal"
                     onClick={() => {
-                      const fakeEvent = { 
-                        preventDefault: () => {}, 
-                        target: { value: sug } 
-                      } as any;
                       handleInputChange({ target: { value: sug } } as any);
                     }}
                   >
@@ -148,7 +145,7 @@ export function ChatContratoPanel({
             </div>
           )}
 
-          {messages.map((m) => (
+          {messages.map((m: Message) => (
             <div
               key={m.id}
               className={cn(
@@ -164,7 +161,9 @@ export function ChatContratoPanel({
                     : "bg-muted text-foreground rounded-tl-none border border-border"
                 )}
               >
-                <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-950 prose-pre:border prose-pre:border-white/10">
+                <ReactMarkdown 
+                  className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-950 prose-pre:border prose-pre:border-white/10"
+                >
                   {m.content}
                 </ReactMarkdown>
               </div>
@@ -235,3 +234,4 @@ export function ChatContratoPanel({
     </div>
   );
 }
+
