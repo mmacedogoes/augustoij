@@ -25,6 +25,7 @@ type ChatBody = {
   messages?: UIMessage[];
   condominioId?: string;
   conversaId?: string;
+  contratoId?: string; // Isolated contract context
   attachmentContext?: string;
   attachmentNome?: string;
 };
