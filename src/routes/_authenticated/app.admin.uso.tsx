@@ -23,7 +23,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { AppShell } from "@/components/AppShell";
+
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,7 @@ const fmtDia = (d: string) => {
 
 function UsoPage() {
   return (
-    <AppShell>
+    <>
       <div className="max-w-6xl">
         <header className="app-page-header">
           <span className="app-eyebrow">Administração</span>
@@ -85,7 +85,7 @@ function UsoPage() {
           <TabsContent value="alertas" className="mt-4"><AlertasTab /></TabsContent>
         </Tabs>
       </div>
-    </AppShell>
+    </>
   );
 }
 

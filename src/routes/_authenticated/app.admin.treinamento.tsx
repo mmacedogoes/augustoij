@@ -13,7 +13,7 @@ import {
   Plus,
   X as XIcon,
 } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
+
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -153,7 +153,7 @@ function Page() {
   };
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-6xl">
         <header className="app-page-header">
           <span className="app-eyebrow">Administração</span>
@@ -264,7 +264,7 @@ function Page() {
           </Card>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }
 

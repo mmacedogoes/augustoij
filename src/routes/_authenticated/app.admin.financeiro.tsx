@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Plus, Trash2, Wallet } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
+
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ type Resumo = Awaited<ReturnType<typeof getFinanceiroResumo>>;
 
 function FinanceiroPage() {
   return (
-    <AppShell>
+    <>
       <div className="max-w-6xl">
         <header className="app-page-header">
           <span className="app-eyebrow">Administração</span>
@@ -69,7 +69,7 @@ function FinanceiroPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </AppShell>
+    </>
   );
 }
 

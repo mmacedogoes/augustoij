@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/app")({
   component: () => (
-    <Outlet />
+    <AppShell>
+      <Outlet />
+    </AppShell>
   ),
   // Skeleton dentro da área de conteúdo (o menu continua visível).
   pendingMs: 150,
@@ -27,12 +29,12 @@ export const Route = createFileRoute("/_authenticated/app")({
 function ErroArea({ error }: { error: Error }) {
   const router = useRouter();
   return (
-    <div className="mx-auto max-w-md text-center space-y-4 py-16">
-      <h1 className="text-xl font-medium">Não foi possível carregar esta tela</h1>
-      <p className="text-sm text-muted-foreground">
-        {error?.message || "Verifique sua conexão e tente novamente."}
-      </p>
-      <Button onClick={() => router.invalidate()}>Tentar de novo</Button>
-    </div>
+      <div className="mx-auto max-w-md text-center space-y-4 py-16">
+        <h1 className="text-xl font-medium">Não foi possível carregar esta tela</h1>
+        <p className="text-sm text-muted-foreground">
+          {error?.message || "Verifique sua conexão e tente novamente."}
+        </p>
+        <Button onClick={() => router.invalidate()}>Tentar de novo</Button>
+      </div>
   );
 }

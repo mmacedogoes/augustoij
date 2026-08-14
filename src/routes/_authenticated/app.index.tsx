@@ -150,3 +150,5 @@ function HomePage() {
         )}
       </div>
     </AppShell>
+  );
+}
