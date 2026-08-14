@@ -192,7 +192,7 @@ function CondominioDetail() {
   }, [id, adminView]);
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-5xl">
         <Link to="/app/condominios" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
@@ -654,6 +654,6 @@ function CondominioDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AppShell>
+    </>
   );
 }
