@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AjudaShell } from "@/components/ajuda/AjudaShell";
+import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/_authenticated/app/ajuda/dicas-ia")({
   component: DicasIA,
@@ -7,7 +8,8 @@ export const Route = createFileRoute("/_authenticated/app/ajuda/dicas-ia")({
 
 function DicasIA() {
   return (
-    <AjudaShell>
+    <AppShell>
+      <AjudaShell>
       <h1 className="text-2xl font-semibold mb-3">Dicas de interação com a IA</h1>
       <p>
         A qualidade das respostas depende de quanto contexto você fornece. Use as orientações
@@ -71,6 +73,7 @@ function DicasIA() {
         <li>Cidades fora da whitelist de legislação municipal ainda estão em incorporação (até 3 dias úteis) — nesse período, respostas usam legislação federal, estadual e jurisprudência.</li>
         <li>Documentos com status diferente de <em>Pronto</em> não entram no contexto.</li>
       </ul>
-    </AjudaShell>
+      </AjudaShell>
+    </AppShell>
   );
 }
