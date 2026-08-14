@@ -32,7 +32,6 @@ export function ChatContratoPanel({
     });
   }, []);
 
-  // 1. Garantir que existe uma conversa para este contrato
   const { data: conversa, isLoading: loadingConversa } = useQuery({
     queryKey: ["chat-contrato", contratoId],
     queryFn: async () => {
@@ -78,9 +77,9 @@ export function ChatContratoPanel({
     [condominioId, conversaId],
   );
 
-  const { messages, sendMessage, status, stop, input, handleInputChange } = useChat({
+  const { messages, append, status, input, setInput } = useChat({
     id: conversaId ?? undefined,
-    transport,
+    transport: transport as any,
     onError: (err: Error) => {
       console.error("Chat error:", err);
       toast.error("Ocorreu um erro na comunicação com a IA.");
@@ -89,7 +88,6 @@ export function ChatContratoPanel({
 
   const isLoading = status === "submitted" || status === "streaming";
 
-  // Autoscroll
   useEffect(() => {
     const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (viewport) {
@@ -147,7 +145,7 @@ export function ChatContratoPanel({
                     size="sm" 
                     className="text-[11px] h-8 justify-start font-normal"
                     onClick={() => {
-                      handleInputChange({ target: { value: sug } } as any);
+                      append({ role: 'user', content: sug });
                     }}
                   >
                     {sug}
@@ -157,7 +155,7 @@ export function ChatContratoPanel({
             </div>
           )}
 
-          {messages.map((m: UIMessage) => (
+          {messages.map((m: any) => (
             <div
               key={m.id}
               className={cn(
@@ -175,9 +173,12 @@ export function ChatContratoPanel({
               >
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
-                  className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed"
+                  className={cn(
+                    "prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed",
+                    "prose-headings:text-foreground prose-a:text-augusto-gold hover:prose-a:underline"
+                  )}
                 >
-                  {m.parts.map(p => p.type === 'text' ? p.text : '').join('')}
+                  {m.parts ? m.parts.map((p: any) => p.type === 'text' ? p.text : '').join('') : m.content}
                 </ReactMarkdown>
               </div>
               <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-tighter font-medium">
@@ -212,8 +213,8 @@ export function ChatContratoPanel({
           onSubmit={(e) => {
             e.preventDefault();
             if (!conversaId || !input.trim()) return;
-            sendMessage(input);
-            handleInputChange({ target: { value: '' } } as any);
+            append({ role: 'user', content: input });
+            setInput('');
           }}
           className="relative max-w-3xl mx-auto"
         >
@@ -221,7 +222,7 @@ export function ChatContratoPanel({
             className="w-full bg-background border border-border rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-augusto-gold/20 transition-all placeholder:text-muted-foreground/60"
             placeholder="Digite sua dúvida sobre este contrato..."
             value={input}
-            onChange={handleInputChange}
+            onChange={(e) => setInput(e.target.value)}
             disabled={isLoading || !conversaId}
           />
           <Button
