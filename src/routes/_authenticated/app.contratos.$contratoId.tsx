@@ -447,7 +447,38 @@ function Page() {
                   </div>
                 </Card>
 
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12">
+                  {/* Prestador e Objeto - Foco Operacional */}
+                  <InfoCard className="xl:col-span-7" icon={<Briefcase className="h-3.5 w-3.5" />} titulo="Prestador">
+                    <p className="font-serif text-xl leading-tight text-primary">{c.prestador_nome ?? "—"}</p>
+                    {c.prestador_documento ? (
+                      <p className="mt-1 text-xs text-muted-foreground">CNPJ/CPF · {c.prestador_documento}</p>
+                    ) : null}
+                    <div className="mt-4 space-y-2">
+                      <ContactLine icon={<Mail className="h-3.5 w-3.5" />} href={c.prestador_email ? `mailto:${c.prestador_email}` : null}>
+                        {c.prestador_email ?? "—"}
+                      </ContactLine>
+                      <ContactLine icon={<Phone className="h-3.5 w-3.5" />} href={c.prestador_telefone ? `tel:${c.prestador_telefone}` : null}>
+                        {c.prestador_telefone ?? "—"}
+                      </ContactLine>
+                    </div>
+                  </InfoCard>
+
+                  <InfoCard className="xl:col-span-5" icon={<ClipboardCheck className="h-3.5 w-3.5" />} titulo="Objeto do Contrato">
+                    <div className="space-y-3">
+                      {c.tipos_servico_contrato?.nome ? (
+                        <div className="flex flex-wrap gap-2">
+                          <StatBadge>{c.tipos_servico_contrato.nome}</StatBadge>
+                          {c.terceirizacao_mao_de_obra && (
+                            <StatBadge tone="warning" icon={<Check className="h-3 w-3" />}>Mão de obra</StatBadge>
+                          )}
+                        </div>
+                      ) : null}
+                      <ExpandableText text={c.objeto || "Não informado"} />
+                    </div>
+                  </InfoCard>
+
+                  {/* Financeiro e Vigência */}
                   <InfoCard className="xl:col-span-5" icon={<Wallet className="h-3.5 w-3.5" />} titulo="Financeiro">
                     <div className="flex items-baseline gap-2">
                       <p className="font-serif text-3xl leading-none text-primary">
@@ -471,13 +502,13 @@ function Page() {
                     </div>
                   </InfoCard>
 
-                  <InfoCard className="xl:col-span-7" icon={<CalendarRange className="h-3.5 w-3.5" />} titulo="Vigência">
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                  <InfoCard className="xl:col-span-7" icon={<CalendarRange className="h-3.5 w-3.5" />} titulo="Vigência e Prazo">
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
                       <div>
                         <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Início</p>
                         <p className="mt-1 font-serif text-xl text-foreground">{formatDate(c.data_inicio)}</p>
                       </div>
-                      <div className="h-px w-8 bg-gradient-to-r from-augusto-gold/40 via-augusto-gold to-augusto-gold/40 sm:w-16" aria-hidden="true" />
+                      <div className="h-px flex-1 bg-gradient-to-r from-augusto-gold/40 via-augusto-gold to-augusto-gold/40" aria-hidden="true" />
                       <div className="text-right">
                         <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Fim</p>
                         <p className="mt-1 font-serif text-xl text-foreground">
@@ -490,7 +521,7 @@ function Page() {
                         tone={c.renovacao_automatica ? "positive" : "muted"}
                         icon={c.renovacao_automatica ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                       >
-                        Renovacao automática
+                        Renovação automática
                       </StatBadge>
                       {c.renovacao_automatica && c.aviso_previo_dias ? (
                         <StatBadge icon={<CalendarClock className="h-3 w-3" />}>Aviso prévio {c.aviso_previo_dias}d</StatBadge>
@@ -498,22 +529,8 @@ function Page() {
                     </div>
                   </InfoCard>
 
-                  <InfoCard className="xl:col-span-7" icon={<Briefcase className="h-3.5 w-3.5" />} titulo="Prestador">
-                    <p className="font-serif text-xl leading-tight text-primary">{c.prestador_nome ?? "—"}</p>
-                    {c.prestador_documento ? (
-                      <p className="mt-1 text-xs text-muted-foreground">CNPJ/CPF · {c.prestador_documento}</p>
-                    ) : null}
-                    <div className="mt-4 space-y-1.5">
-                      <ContactLine icon={<Mail className="h-3.5 w-3.5" />} href={c.prestador_email ? `mailto:${c.prestador_email}` : null}>
-                        {c.prestador_email ?? "—"}
-                      </ContactLine>
-                      <ContactLine icon={<Phone className="h-3.5 w-3.5" />} href={c.prestador_telefone ? `tel:${c.prestador_telefone}` : null}>
-                        {c.prestador_telefone ?? "—"}
-                      </ContactLine>
-                    </div>
-                  </InfoCard>
-
-                  <InfoCard className="xl:col-span-5" icon={<TrendingUp className="h-3.5 w-3.5" />} titulo="Reajuste">
+                  {/* Reajuste e Cláusulas */}
+                  <InfoCard className="xl:col-span-4" icon={<TrendingUp className="h-3.5 w-3.5" />} titulo="Reajuste">
                     <div className="flex items-baseline gap-2">
                       <p className="font-serif text-2xl text-primary">{rotuloIndice(c.indice_reajuste)}</p>
                       <span className="text-xs uppercase tracking-wider text-muted-foreground">índice</span>
@@ -525,53 +542,51 @@ function Page() {
                     </div>
                   </InfoCard>
 
-                  <InfoCard className="xl:col-span-7" icon={<ClipboardCheck className="h-3.5 w-3.5" />} titulo="Objeto e tipo">
-                    {c.tipos_servico_contrato?.nome ? <StatBadge>{c.tipos_servico_contrato.nome}</StatBadge> : null}
-                    <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground">{c.objeto || "—"}</p>
-                    <div className="mt-4">
-                      <StatBadge
-                        tone={c.terceirizacao_mao_de_obra ? "warning" : "muted"}
-                        icon={c.terceirizacao_mao_de_obra ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                      >
-                        Terceirização de mão de obra
-                      </StatBadge>
-                    </div>
-                  </InfoCard>
-
-                  <InfoCard className="xl:col-span-5" icon={<Scale className="h-3.5 w-3.5" />} titulo="Cláusulas">
-                    <div className="space-y-2.5 text-sm">
+                  <InfoCard className="xl:col-span-8" icon={<Scale className="h-3.5 w-3.5" />} titulo="Cláusulas e Garantias">
+                    <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
                       <ClauseRow icon={<Percent className="h-3.5 w-3.5" />} label="Multa rescisória" value={c.multa_rescisoria} />
                       <ClauseRow
                         icon={<Shield className="h-3.5 w-3.5" />}
-                        label="Exige seguro RC"
-                        value={c.exige_seguro_rc ? "Sim" : "Não"}
+                        label="Seguro RC"
+                        value={c.exige_seguro_rc ? "Exigido" : "Não exige"}
                         positive={c.exige_seguro_rc}
                       />
-                      <ClauseRow icon={<ScrollText className="h-3.5 w-3.5" />} label="Garantias" value={c.garantias} />
-                      <ClauseRow icon={<Landmark className="h-3.5 w-3.5" />} label="Foro" value={c.foro} />
+                      <div className="sm:col-span-2">
+                        <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                          <ScrollText className="h-3.5 w-3.5 text-augusto-gold/80" />
+                          Garantias
+                        </div>
+                        <ExpandableText text={c.garantias || "Nenhuma garantia informada"} limit={100} />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <ClauseRow icon={<Landmark className="h-3.5 w-3.5" />} label="Foro Eleito" value={c.foro} />
+                      </div>
                     </div>
                   </InfoCard>
 
-                  <div className="md:col-span-2 xl:col-span-12">
+                  {/* Obrigações */}
+                  <div className="md:col-span-2 lg:col-span-3 xl:col-span-12">
                     <InfoCard
                       icon={<ClipboardCheck className="h-3.5 w-3.5" />}
-                      titulo="Obrigações do contrato"
-                      descricao="Mapa de deveres do condomínio e do prestador. Gerencie as responsabilidades vinculadas a este serviço."
+                      titulo="Obrigações do Contrato"
+                      descricao="Responsabilidades específicas do condomínio e do prestador."
                     >
-                      <div className="mb-4 flex flex-wrap gap-2">
-                        <StatBadge>
-                          {ficha.obrigacoes.length} {ficha.obrigacoes.length === 1 ? "obrigação" : "obrigações"}
-                        </StatBadge>
-                        <StatBadge tone="muted">
-                          {ficha.obrigacoes.filter((o) => o.parte === "condominio").length} do condomínio
-                        </StatBadge>
-                        <StatBadge tone="muted">
-                          {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do prestador
-                        </StatBadge>
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex flex-wrap gap-2">
+                          <StatBadge>
+                            {ficha.obrigacoes.length} {ficha.obrigacoes.length === 1 ? "obrigação" : "obrigações"}
+                          </StatBadge>
+                          <StatBadge tone="muted">
+                            {ficha.obrigacoes.filter((o) => o.parte === "condominio").length} do condomínio
+                          </StatBadge>
+                          <StatBadge tone="muted">
+                            {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do prestador
+                          </StatBadge>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => setEditObrigacoesOpen(true)} className="w-full sm:w-auto">
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar obrigações
+                        </Button>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => setEditObrigacoesOpen(true)}>
-                        <Pencil className="h-3.5 w-3.5 mr-2" /> Editar obrigações
-                      </Button>
                     </InfoCard>
                   </div>
                 </div>
