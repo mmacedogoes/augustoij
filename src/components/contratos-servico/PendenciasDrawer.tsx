@@ -187,9 +187,9 @@ export function PendenciasDrawer({ open, onOpenChange, tipoFiltro, condominioId 
                 </div>
               </div>
             ) : (
-              data.rows.map((row: any) => (
+              data.rows.map((row: any, idx: number) => (
                 <div 
-                  key={row.contrato_id}
+                  key={`${row.contrato_id}-${idx}`}
                   className="group relative bg-white border border-augusto-gold/10 rounded-xl p-4 transition-all hover:shadow-md hover:border-augusto-gold/30 cursor-pointer"
                   onClick={() => {
                     navigate({ to: `/app/contratos/${row.contrato_id}` });
@@ -240,15 +240,17 @@ export function PendenciasDrawer({ open, onOpenChange, tipoFiltro, condominioId 
           </div>
         </ScrollArea>
 
-        <div className="p-6 border-t border-augusto-gold/10 bg-slate-50/50">
-          <Button 
-            className="w-full bg-augusto-green hover:bg-augusto-green/90 text-white gap-2 h-11"
-            onClick={handleVerListagem}
-          >
-            Ir para listagem avançada
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
+        {temListagem && (
+          <div className="p-6 border-t border-augusto-gold/10 bg-slate-50/50">
+            <Button 
+              className="w-full bg-augusto-green hover:bg-augusto-green/90 text-white gap-2 h-11"
+              onClick={handleVerListagem}
+            >
+              Ir para listagem avançada
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
