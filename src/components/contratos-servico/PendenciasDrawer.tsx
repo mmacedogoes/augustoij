@@ -30,8 +30,10 @@ import {
   listContratosSemResponsavel,
   listContratosSemMesBase,
   listContratosSemIndice,
-  listContratosSemDocumento
+  listContratosSemDocumento,
+  listNaoConformidadesTrabalhistasMes
 } from "@/lib/contratos-servico/painel.functions";
+import { listPendenciasReajuste } from "@/lib/contratos-servico/reajustes.functions";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -61,18 +63,34 @@ export function PendenciasDrawer({ open, onOpenChange, tipoFiltro, condominioId 
       case "mes_base_ausente": return listContratosSemMesBase;
       case "sem_indice": return listContratosSemIndice;
       case "documento_ausente": return listContratosSemDocumento;
+      case "reajuste": return listPendenciasReajuste;
+      case "nao_conformidade": return listNaoConformidadesTrabalhistasMes;
       default: return null;
     }
   };
 
   const fn = getFn();
-  const fetchFn = useServerFn(fn!);
+  const fetchFn = useServerFn((fn ?? listChecklistsPendentesMes) as typeof listChecklistsPendentesMes);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pendencias-contratos", tipoFiltro, condominioId],
     queryFn: async () => {
-      const res = await fetchFn({ data: { condominioId } });
-      return res as { rows: any[] };
+      const res = (await fetchFn({ data: { condominioId } } as never)) as { rows: any[] };
+      const rows = (res?.rows ?? []).map((r: any) => {
+        if (tipoFiltro === "reajuste") {
+          const [ano, mes] = String(r.competencia ?? "").split("-");
+          return {
+            ...r,
+            status: r.dias_ate_data_base < 0 ? "vencido" : "a vencer",
+            motivo: `Reajuste ${r.indice_reajuste?.toUpperCase?.() ?? ""} — competência ${mes}/${ano}`,
+          };
+        }
+        if (tipoFiltro === "nao_conformidade") {
+          return { ...r, status: "não conforme", motivo: r.descricao };
+        }
+        return r;
+      });
+      return { rows };
     },
     enabled: open && !!tipoFiltro && !!fn,
   });
@@ -97,9 +115,13 @@ export function PendenciasDrawer({ open, onOpenChange, tipoFiltro, condominioId 
       case "mes_base_ausente": return <CalendarClock className="w-5 h-5 text-amber-500" />;
       case "documento_ausente": return <FileWarning className="w-5 h-5 text-amber-500" />;
       case "sem_indice": return <TrendingUp className="w-5 h-5 text-amber-500" />;
+      case "reajuste": return <TrendingUp className="w-5 h-5 text-amber-500" />;
+      case "nao_conformidade": return <AlertCircle className="w-5 h-5 text-destructive" />;
       default: return <AlertTriangle className="w-5 h-5 text-amber-500" />;
     }
   };
+
+  const temListagem = !!tipoFiltro && tipoFiltro !== "reajuste" && tipoFiltro !== "nao_conformidade";
 
   const handleVerListagem = () => {
     const viewMap: Record<string, string> = {
@@ -165,9 +187,9 @@ export function PendenciasDrawer({ open, onOpenChange, tipoFiltro, condominioId 
                 </div>
               </div>
             ) : (
-              data.rows.map((row: any) => (
+              data.rows.map((row: any, idx: number) => (
                 <div 
-                  key={row.contrato_id}
+                  key={`${row.contrato_id}-${idx}`}
                   className="group relative bg-white border border-augusto-gold/10 rounded-xl p-4 transition-all hover:shadow-md hover:border-augusto-gold/30 cursor-pointer"
                   onClick={() => {
                     navigate({ to: `/app/contratos/${row.contrato_id}` });
@@ -218,15 +240,17 @@ export function PendenciasDrawer({ open, onOpenChange, tipoFiltro, condominioId 
           </div>
         </ScrollArea>
 
-        <div className="p-6 border-t border-augusto-gold/10 bg-slate-50/50">
-          <Button 
-            className="w-full bg-augusto-green hover:bg-augusto-green/90 text-white gap-2 h-11"
-            onClick={handleVerListagem}
-          >
-            Ir para listagem avançada
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
+        {temListagem && (
+          <div className="p-6 border-t border-augusto-gold/10 bg-slate-50/50">
+            <Button 
+              className="w-full bg-augusto-green hover:bg-augusto-green/90 text-white gap-2 h-11"
+              onClick={handleVerListagem}
+            >
+              Ir para listagem avançada
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

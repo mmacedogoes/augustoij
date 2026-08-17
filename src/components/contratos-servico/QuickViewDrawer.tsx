@@ -22,9 +22,12 @@ import {
   UserPlus
 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { ContratoStatusBadge } from "./ContratoStatusBadge";
 import { type ContratoLinha } from "@/lib/contratos-servico/contratos.functions";
+import { getResumoRapidoContrato } from "@/lib/contratos-servico/quickview.functions";
 import { cn } from "@/lib/utils";
 
 interface QuickViewDrawerProps {
@@ -35,7 +38,16 @@ interface QuickViewDrawerProps {
 
 export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawerProps) {
   const navigate = useNavigate();
+  const resumoFn = useServerFn(getResumoRapidoContrato);
+  const { data: resumo, isLoading: resumoLoading } = useQuery({
+    queryKey: ["contrato-resumo-rapido", contrato?.id],
+    queryFn: async () => await resumoFn({ data: { contratoId: contrato!.id } }),
+    enabled: open && !!contrato?.id,
+  });
   if (!contrato) return null;
+
+  const responsaveis = resumo?.responsaveis ?? [];
+  const checklistsPendentes = resumo?.checklists_pendentes ?? 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -122,8 +134,15 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
               <InfoBlock 
                 icon={<User className="h-4 w-4" />} 
                 label="Responsável" 
-                value="Não atribuído" 
-                isWarning={true}
+                value={
+                  resumoLoading
+                    ? "Carregando…"
+                    : responsaveis.length === 0
+                      ? "Não atribuído"
+                      : responsaveis[0]
+                }
+                subValue={responsaveis.length > 1 ? `+${responsaveis.length - 1} responsáveis` : undefined}
+                isWarning={!resumoLoading && responsaveis.length === 0}
               />
             </div>
 
@@ -140,8 +159,14 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
                 />
                 <HealthItem 
                   label="Checklists Mensais" 
-                  status="ok" 
-                  desc="Em dia"
+                  status={resumoLoading ? "ok" : checklistsPendentes > 0 ? "warning" : "ok"} 
+                  desc={
+                    resumoLoading
+                      ? "Verificando…"
+                      : checklistsPendentes > 0
+                        ? `${checklistsPendentes} pendente${checklistsPendentes > 1 ? "s" : ""} neste mês`
+                        : "Em dia"
+                  }
                 />
                 <HealthItem 
                   label="Mês-base Reajuste" 
