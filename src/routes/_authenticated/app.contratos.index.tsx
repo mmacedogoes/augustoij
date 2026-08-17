@@ -38,6 +38,7 @@ import {
   listTiposServicoContrato,
   type ContratoLinha,
 } from "@/lib/contratos-servico/contratos.functions";
+import { listContratoIdsComPendencia } from "@/lib/contratos-servico/quickview.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/contratos/")({
@@ -48,11 +49,19 @@ const TODOS = "__todos";
 
 type Visao = "todos" | "vencendo" | "vencidos" | "suspensos" | "encerrados" | "checklist" | "sem-responsavel" | "sem-mes-base" | "sem-documento" | "sem-indice";
 
+const VISOES_PENDENCIA = ["checklist", "sem-responsavel", "sem-mes-base", "sem-documento", "sem-indice"] as const;
+type VisaoPendencia = (typeof VISOES_PENDENCIA)[number];
+
+function isVisaoPendencia(v: Visao): v is VisaoPendencia {
+  return (VISOES_PENDENCIA as readonly string[]).includes(v);
+}
+
 function Page() {
   const navigate = useNavigate();
   const listFn = useServerFn(listContratosServico);
   const condosFn = useServerFn(listCondominiosParaContratos);
   const tiposFn = useServerFn(listTiposServicoContrato);
+  const pendenciaIdsFn = useServerFn(listContratoIdsComPendencia);
 
   const [rows, setRows] = useState<ContratoLinha[] | null>(null);
   const [counters, setCounters] = useState({ vigentes: 0, vencendo: 0, vencidos: 0 });
@@ -98,21 +107,28 @@ function Page() {
       else if (visao === "vencidos") statusFiltro = "vencido";
       else if (visao === "suspensos") statusFiltro = "suspenso";
       else if (visao === "encerrados") statusFiltro = "encerrado";
-      else if (visao === "checklist" || visao === "sem-responsavel" || visao === "sem-mes-base" || visao === "sem-documento" || visao === "sem-indice") {
+      else if (isVisaoPendencia(visao)) {
         statusFiltro = "vigente";
       }
 
+      const cid = condominioId === TODOS ? null : condominioId;
 
-      listFn({
-        data: {
-          condominioId: condominioId === TODOS ? null : condominioId,
-          statusExibicao: statusFiltro as any,
-          tipoServicoId: tipoId === TODOS ? null : tipoId,
-          busca: busca.trim() === "" ? null : busca.trim(),
-        },
-      })
-        .then((r) => {
-          setRows(r.rows);
+      Promise.all([
+        listFn({
+          data: {
+            condominioId: cid,
+            statusExibicao: statusFiltro as any,
+            tipoServicoId: tipoId === TODOS ? null : tipoId,
+            busca: busca.trim() === "" ? null : busca.trim(),
+          },
+        }),
+        isVisaoPendencia(visao)
+          ? pendenciaIdsFn({ data: { tipo: visao, condominioId: cid } })
+          : Promise.resolve(null),
+      ])
+        .then(([r, pend]) => {
+          const ids = pend ? new Set(pend.ids) : null;
+          setRows(ids ? r.rows.filter((x) => ids.has(x.id)) : r.rows);
           setCounters(r.counters);
         })
         .catch((e: Error) => {
@@ -121,7 +137,7 @@ function Page() {
         });
     }, 250);
     return () => clearTimeout(timer);
-  }, [listFn, condominioId, status, tipoId, busca, visao]);
+  }, [listFn, pendenciaIdsFn, condominioId, status, tipoId, busca, visao]);
 
   const total = useMemo(() => rows?.length ?? 0, [rows]);
 
