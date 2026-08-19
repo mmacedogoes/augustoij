@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { 
   FileText, Plus, Sparkles, Filter, ChevronDown, Search, 
-  ArrowUpDown, MoreHorizontal, X 
+  ArrowUpDown, MoreHorizontal, X, Shield 
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
