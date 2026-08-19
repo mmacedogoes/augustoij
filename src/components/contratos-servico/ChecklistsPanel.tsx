@@ -132,6 +132,7 @@ export function ChecklistsPanel({ contratoId, readOnly = false }: { contratoId: 
   }
 
   async function handleGerar() {
+    if (readOnly) return;
     setGerando(true);
     try {
       await gerarFn({ data: { contratoId } });
