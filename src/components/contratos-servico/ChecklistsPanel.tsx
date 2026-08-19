@@ -60,7 +60,7 @@ type ItemFlat = {
   readOnly: boolean;
 };
 
-export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
+export function ChecklistsPanel({ contratoId, readOnly = false }: { contratoId: string; readOnly?: boolean }) {
   const getFn = useServerFn(getChecklistsDoContrato);
   const marcarFn = useServerFn(marcarItemChecklist);
   const gerarFn = useServerFn(gerarChecklistsDoContrato);
