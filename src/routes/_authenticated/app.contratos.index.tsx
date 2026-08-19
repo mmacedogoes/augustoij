@@ -159,10 +159,27 @@ function Page() {
   }[visao];
 
 
+  const isModoSuporte = useMemo(() => {
+    if (!isAdmin) return false;
+    if (condominioId === TODOS) return false;
+    const condo = condos.find(c => c.id === condominioId);
+    // Se somos admin e estamos vendo um condomínio (pelo listCondominiosParaContratos filtrado no server),
+    // o modo suporte é ativado se o condomínio não for "meu".
+    // Mas no listCondominiosParaContratos de super admin trazemos todos.
+    // O backend já barra as escritas. No front, vamos considerar modo suporte se o condo estiver selecionado.
+    return true; 
+  }, [isAdmin, condominioId, condos]);
+
   return (
     <>
       <GestaoContratosGate>
       <div className="max-w-6xl space-y-6 animate-augusto-fade-up">
+        {isModoSuporte && (
+          <div className="bg-augusto-gold/10 border border-augusto-gold/20 p-3 rounded-lg text-sm text-augusto-gold flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            <span><strong>Modo Suporte:</strong> Você está visualizando este condomínio com privilégios de administrador. Alterações estão desabilitadas.</span>
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <header className="app-page-header">
             <span className="app-eyebrow">Gestão de Contratos</span>
