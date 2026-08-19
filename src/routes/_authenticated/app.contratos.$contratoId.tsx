@@ -119,14 +119,11 @@ function Page() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    checkAdmin().then(adm => setIsAdmin(!!adm?.admin)).catch(() => {});
+    checkAdmin().then((adm: any) => setIsAdmin(!!adm?.admin)).catch(() => {});
   }, [checkAdmin]);
 
   const isModoSuporte = useMemo(() => {
     if (!isAdmin || !ficha?.contrato) return false;
-    // Se o search vindo do admin passou o cid, ou se o owner_id não bate
-    // (mas o userId não está fácil aqui sem o context do cliente).
-    // Usamos o search param 'support' ou 'cid' como dica se presente na URL.
     return !!search.cid || !!search.support;
   }, [isAdmin, ficha?.contrato, search.cid, search.support]);
 
