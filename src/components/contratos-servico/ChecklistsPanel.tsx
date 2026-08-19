@@ -107,6 +107,10 @@ export function ChecklistsPanel({ contratoId, readOnly = false }: { contratoId: 
     proxima: Situacao,
     observacao: string | null,
   ) {
+    if (readOnly) {
+      toast.error("Modo suporte: não é possível alterar checklists.");
+      return;
+    }
     if (!periodoId) {
       toast.error("Período não disponível para esta competência.");
       return;
