@@ -114,6 +114,20 @@ function Page() {
   const [aba, setAba] = useState<string>("informacoes");
   const location = useLocation();
   const search = Route.useSearch() as any;
+  const checkAdmin = useServerFn(isCurrentUserAdmin);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAdmin().then(adm => setIsAdmin(!!adm?.admin)).catch(() => {});
+  }, [checkAdmin]);
+
+  const isModoSuporte = useMemo(() => {
+    if (!isAdmin || !ficha?.contrato) return false;
+    // Se o search vindo do admin passou o cid, ou se o owner_id não bate
+    // (mas o userId não está fácil aqui sem o context do cliente).
+    // Usamos o search param 'support' ou 'cid' como dica se presente na URL.
+    return !!search.cid || !!search.support;
+  }, [isAdmin, ficha?.contrato, search.cid, search.support]);
 
   useEffect(() => {
     const abasValidas = [
