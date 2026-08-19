@@ -130,7 +130,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => listFiltersSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
-    await ensureAcessoContratos(context, data.condominioId);
+    await ensureAcessoContratos(context, (data.condominioId as string) ?? null);
 
     let query = context.supabase
       .from("contratos_servico")
