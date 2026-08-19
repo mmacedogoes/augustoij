@@ -130,7 +130,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => listFiltersSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
-    await ensureAcessoContratos(context);
+    await ensureAcessoContratos(context, data.condominioId);
 
     let query = context.supabase
       .from("contratos_servico")
@@ -209,7 +209,8 @@ export const getContratoServico = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureAcessoContratos(context);
+    const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", data.id).maybeSingle();
+    await ensureAcessoContratos(context, cData?.condominio_id);
     const { data: contrato, error } = await context.supabase
       .from("contratos_servico")
       .select(
@@ -238,7 +239,13 @@ export const upsertContratoServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => contratoServicoSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureAcessoContratos(context);
+    const isOwner = await isCondominioOwner(context, data.condominio_id);
+    if (!isOwner) {
+      const isSuper = await isSuperAdmin(context);
+      if (!isSuper) throw new Error("Acesso negado.");
+      throw new Error("Modo suporte: Super Admin não pode alterar dados de terceiros.");
+    }
+    await ensureAcessoContratos(context, data.condominio_id);
 
     const payload = {
       condominio_id: data.condominio_id,
@@ -328,7 +335,14 @@ export const removeContratoServico = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureAcessoContratos(context);
+    const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", data.id).maybeSingle();
+    const isOwner = await isCondominioOwner(context, (cData?.condominio_id as string) ?? null);
+    if (!isOwner) {
+      const isSuper = await isSuperAdmin(context);
+      if (!isSuper) throw new Error("Acesso negado.");
+      throw new Error("Modo suporte: Super Admin não pode excluir dados de terceiros.");
+    }
+    await ensureAcessoContratos(context, (cData?.condominio_id as string) ?? null);
     const { data: prev } = await context.supabase
       .from("contratos_servico")
       .select("prestador_nome, condominio_id")
@@ -355,7 +369,14 @@ export const upsertObrigacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => obrigacaoSchema.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureAcessoContratos(context);
+    const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", data.contrato_id).maybeSingle();
+    const isOwner = await isCondominioOwner(context, (cData?.condominio_id as string) ?? null);
+    if (!isOwner) {
+      const isSuper = await isSuperAdmin(context);
+      if (!isSuper) throw new Error("Acesso negado.");
+      throw new Error("Modo suporte: Super Admin não pode alterar obrigações de terceiros.");
+    }
+    await ensureAcessoContratos(context, (cData?.condominio_id as string) ?? null);
     const payload = {
       contrato_id: data.contrato_id,
       parte: data.parte,
@@ -386,7 +407,15 @@ export const removeObrigacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
-    await ensureAcessoContratos(context);
+    const { data: oData } = await context.supabase.from("contrato_obrigacoes").select("contrato_id").eq("id", data.id).maybeSingle();
+    const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", oData?.contrato_id).maybeSingle();
+    const isOwner = await isCondominioOwner(context, (cData?.condominio_id as string) ?? null);
+    if (!isOwner) {
+      const isSuper = await isSuperAdmin(context);
+      if (!isSuper) throw new Error("Acesso negado.");
+      throw new Error("Modo suporte: Super Admin não pode remover obrigações de terceiros.");
+    }
+    await ensureAcessoContratos(context, (cData?.condominio_id as string) ?? null);
     const { error } = await context.supabase
       .from("contrato_obrigacoes")
       .delete()
@@ -401,13 +430,30 @@ export const listCondominiosParaContratos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureAcessoContratos(context);
-    const { data, error } = await context.supabase
+    const isSuper = await isSuperAdmin(context);
+
+    let query = context.supabase
       .from("condominios")
-      .select("id, nome, cidade, uf")
-      .order("nome", { ascending: true });
+      .select("id, nome, cidade, uf");
+
+    if (!isSuper) {
+      query = query.eq("owner_id", context.userId);
+    }
+
+    const { data, error } = await query.order("nome", { ascending: true });
     if (error) throw new Error(error.message);
     return { rows: data ?? [] };
   });
+
+async function isCondominioOwner(context: { supabase: any; userId: string }, condominioId: string | null): Promise<boolean> {
+  if (!condominioId) return false;
+  const { data } = await context.supabase
+    .from("condominios")
+    .select("owner_id")
+    .eq("id", condominioId)
+    .maybeSingle();
+  return data?.owner_id === context.userId;
+}
 
 // re-export para consumo tipado no cliente
 export type { ContratoLinha };
