@@ -336,13 +336,14 @@ export const removeContratoServico = createServerFn({ method: "POST" })
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
     const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", data.id).maybeSingle();
-    const isOwner = await isCondominioOwner(context, (cData?.condominio_id as string) ?? null);
+    const condId = (cData?.condominio_id as string) ?? null;
+    const isOwner = await isCondominioOwner(context, condId);
     if (!isOwner) {
       const isSuper = await isSuperAdmin(context);
       if (!isSuper) throw new Error("Acesso negado.");
       throw new Error("Modo suporte: Super Admin não pode excluir dados de terceiros.");
     }
-    await ensureAcessoContratos(context, (cData?.condominio_id as string) ?? null);
+    await ensureAcessoContratos(context, condId);
     const { data: prev } = await context.supabase
       .from("contratos_servico")
       .select("prestador_nome, condominio_id")
