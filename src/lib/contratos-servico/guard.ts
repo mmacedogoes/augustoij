@@ -7,8 +7,20 @@
  * usado para modo somente-leitura na UI.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function ensureAcessoContratos(context: { supabase: any; userId: string }): Promise<void> {
+export async function ensureAcessoContratos(context: { supabase: any; userId: string }, condominioId?: string | null): Promise<void> {
   if (!context?.userId) throw new Error("Não autenticado");
+  if (!condominioId) return;
+
+  const { data: condo } = await context.supabase
+    .from("condominios")
+    .select("owner_id")
+    .eq("id", condominioId)
+    .maybeSingle();
+
+  if (condo && condo.owner_id !== context.userId) {
+    const isSuper = await isSuperAdmin(context);
+    if (!isSuper) throw new Error("Acesso negado: condomínio não pertence ao usuário.");
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

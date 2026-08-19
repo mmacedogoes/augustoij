@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { 
   FileText, Plus, Sparkles, Filter, ChevronDown, Search, 
-  ArrowUpDown, MoreHorizontal, X 
+  ArrowUpDown, MoreHorizontal, X, Shield 
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -38,6 +38,7 @@ import {
   listTiposServicoContrato,
   type ContratoLinha,
 } from "@/lib/contratos-servico/contratos.functions";
+import { isCurrentUserAdmin } from "@/lib/admin.functions";
 import { listContratoIdsComPendencia } from "@/lib/contratos-servico/quickview.functions";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +63,9 @@ function Page() {
   const condosFn = useServerFn(listCondominiosParaContratos);
   const tiposFn = useServerFn(listTiposServicoContrato);
   const pendenciaIdsFn = useServerFn(listContratoIdsComPendencia);
+  const checkAdmin = useServerFn(isCurrentUserAdmin);
 
+  const [isAdmin, setIsAdmin] = useState(false);
   const [rows, setRows] = useState<ContratoLinha[] | null>(null);
   const [counters, setCounters] = useState({ vigentes: 0, vencendo: 0, vencidos: 0 });
   const [erro, setErro] = useState<string | null>(null);
@@ -89,13 +92,14 @@ function Page() {
   }, [search.view, search.cid]);
 
   useEffect(() => {
-    Promise.all([condosFn(), tiposFn()])
-      .then(([c, t]) => {
+    Promise.all([condosFn(), tiposFn(), checkAdmin()])
+      .then(([c, t, adm]) => {
         setCondos(c.rows as Array<{ id: string; nome: string }>);
         setTipos(t.rows as Array<{ id: string; nome: string }>);
+        setIsAdmin(!!adm?.admin);
       })
       .catch((e: Error) => toast.error(e.message));
-  }, [condosFn, tiposFn]);
+  }, [condosFn, tiposFn, checkAdmin]);
 
 
   useEffect(() => {
@@ -155,10 +159,25 @@ function Page() {
   }[visao];
 
 
+  const isModoSuporte = useMemo(() => {
+    if (!isAdmin) return false;
+    if (condominioId === TODOS) return false;
+    // Se há um 'cid' no search param vindo do admin, é modo suporte.
+    // Ou se somos admin mas o owner_id não é nosso (não temos essa info aqui sem carregar).
+    // Usaremos o search.cid como gatilho principal.
+    return !!search.cid;
+  }, [isAdmin, condominioId, search.cid]);
+
   return (
     <>
       <GestaoContratosGate>
       <div className="max-w-6xl space-y-6 animate-augusto-fade-up">
+        {isModoSuporte && (
+          <div className="bg-augusto-gold/10 border border-augusto-gold/20 p-3 rounded-lg text-sm text-augusto-gold flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            <span><strong>Modo Suporte:</strong> Você está visualizando este condomínio com privilégios de administrador. Alterações estão desabilitadas.</span>
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <header className="app-page-header">
             <span className="app-eyebrow">Gestão de Contratos</span>
@@ -185,12 +204,16 @@ function Page() {
           </header>
           <div className="flex items-center gap-2">
             <ContratosTabs condominioId={condominioId === TODOS ? null : condominioId} />
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/contratos/importar" })}>
-              <Sparkles className="h-4 w-4 mr-1" /> Importar com IA
-            </Button>
-            <Button size="sm" variant="augusto" onClick={() => navigate({ to: "/app/contratos/novo" })}>
-              <Plus className="h-4 w-4 mr-1" /> Novo contrato
-            </Button>
+            {!isModoSuporte && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/contratos/importar" })}>
+                  <Sparkles className="h-4 w-4 mr-1" /> Importar com IA
+                </Button>
+                <Button size="sm" variant="augusto" onClick={() => navigate({ to: "/app/contratos/novo" })}>
+                  <Plus className="h-4 w-4 mr-1" /> Novo contrato
+                </Button>
+              </>
+            )}
           </div>
         </div>
 

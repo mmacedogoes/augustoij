@@ -60,7 +60,7 @@ type ItemFlat = {
   readOnly: boolean;
 };
 
-export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
+export function ChecklistsPanel({ contratoId, readOnly = false }: { contratoId: string; readOnly?: boolean }) {
   const getFn = useServerFn(getChecklistsDoContrato);
   const marcarFn = useServerFn(marcarItemChecklist);
   const gerarFn = useServerFn(gerarChecklistsDoContrato);
@@ -107,6 +107,10 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
     proxima: Situacao,
     observacao: string | null,
   ) {
+    if (readOnly) {
+      toast.error("Modo suporte: não é possível alterar checklists.");
+      return;
+    }
     if (!periodoId) {
       toast.error("Período não disponível para esta competência.");
       return;
@@ -128,6 +132,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
   }
 
   async function handleGerar() {
+    if (readOnly) return;
     setGerando(true);
     try {
       await gerarFn({ data: { contratoId } });
@@ -223,9 +228,11 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
           <p className="mb-3 text-sm text-muted-foreground">
             Este contrato ainda não tem checklists gerados.
           </p>
-          <Button onClick={handleGerar} disabled={gerando} variant="augusto">
-            {gerando ? "Gerando…" : "Gerar checklists deste contrato"}
-          </Button>
+          {!readOnly && (
+            <Button onClick={handleGerar} disabled={gerando} variant="augusto">
+              {gerando ? "Gerando…" : "Gerar checklists deste contrato"}
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -236,6 +243,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
             itens={grupos.a_fazer}
             onMarcar={handleMarcar}
             pendente={pendente}
+            readOnly={readOnly}
             vazioTexto="Nenhum item aguardando."
           />
           <Coluna
@@ -245,6 +253,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
             itens={grupos.em_dia}
             onMarcar={handleMarcar}
             pendente={pendente}
+            readOnly={readOnly}
             vazioTexto="Marque os itens conformes para preencher esta lista."
           />
           <Coluna
@@ -254,6 +263,7 @@ export function ChecklistsPanel({ contratoId }: { contratoId: string }) {
             itens={grupos.atencao}
             onMarcar={handleMarcar}
             pendente={pendente}
+            readOnly={readOnly}
             vazioTexto="Sem não conformidades — ótimo!"
           />
         </div>
@@ -279,7 +289,7 @@ function ContadorInline({ cor, total, label }: { cor: string; total: number; lab
 }
 
 function Coluna({
-  titulo, icon, cor, itens, onMarcar, pendente, vazioTexto,
+  titulo, icon, cor, itens, onMarcar, pendente, readOnly, vazioTexto,
 }: {
   titulo: string;
   icon: React.ReactNode;
@@ -287,6 +297,7 @@ function Coluna({
   itens: ItemFlat[];
   onMarcar: (periodoId: string | null, itemId: string, proxima: Situacao, obs: string | null) => void;
   pendente: string | null;
+  readOnly?: boolean;
   vazioTexto: string;
 }) {
   const acento =
@@ -322,6 +333,7 @@ function Coluna({
               flat={f}
               onMarcar={onMarcar}
               carregando={pendente === f.item.id}
+              readOnly={readOnly}
             />
           ))}
         </ul>
@@ -331,19 +343,21 @@ function Coluna({
 }
 
 function ChecklistItemRow({
-  flat, onMarcar, carregando,
+  flat, onMarcar, carregando, readOnly,
 }: {
   flat: ItemFlat;
   onMarcar: (periodoId: string | null, itemId: string, proxima: Situacao, obs: string | null) => void;
   carregando: boolean;
+  readOnly?: boolean;
 }) {
-  const { item, periodoId, readOnly, cardTipo, cardTitulo } = flat;
+  const { item, periodoId, cardTipo, cardTitulo, readOnly: itemReadOnly } = flat;
+  const isReadOnly = readOnly || itemReadOnly;
   const [obsAberto, setObsAberto] = useState(false);
   const [obs, setObs] = useState<string>(item.marcacao?.observacao ?? "");
   const situacao = (item.marcacao?.situacao ?? "pendente") as Situacao;
 
   const clique = (alvo: Situacao) => {
-    if (readOnly) return;
+    if (isReadOnly) return;
     const proxima: Situacao = situacao === alvo ? "pendente" : alvo;
     onMarcar(periodoId, item.id, proxima, obs.trim().length > 0 ? obs.trim() : null);
   };
@@ -395,7 +409,7 @@ function ChecklistItemRow({
           ativo={situacao === "conforme"}
           variante="ok"
           label="Conforme"
-          disabled={readOnly}
+          disabled={isReadOnly}
           onClick={() => clique("conforme")}
           icon={<Check className="h-3.5 w-3.5" />}
         />
@@ -403,7 +417,7 @@ function ChecklistItemRow({
           ativo={situacao === "nao_conforme"}
           variante="erro"
           label="Não conforme"
-          disabled={readOnly}
+          disabled={isReadOnly}
           onClick={() => clique("nao_conforme")}
           icon={<X className="h-3.5 w-3.5" />}
         />
@@ -411,7 +425,7 @@ function ChecklistItemRow({
           ativo={situacao === "nao_se_aplica"}
           variante="neutro"
           label="Não se aplica"
-          disabled={readOnly}
+          disabled={isReadOnly}
           onClick={() => clique("nao_se_aplica")}
           icon={<Minus className="h-3.5 w-3.5" />}
         />
@@ -431,7 +445,7 @@ function ChecklistItemRow({
           onChange={(e) => setObs(e.target.value)}
           placeholder="Observação sobre este item (opcional)"
           className="mt-2 text-xs"
-          disabled={readOnly}
+          disabled={isReadOnly}
           maxLength={1000}
           rows={2}
           onBlur={() => {

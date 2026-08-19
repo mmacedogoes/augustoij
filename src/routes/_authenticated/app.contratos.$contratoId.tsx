@@ -7,7 +7,8 @@ import {
   Building2, Briefcase, CalendarRange, Wallet, TrendingUp, Scale,
   ClipboardCheck, ListChecks, Shield, CalendarClock, ArrowUpRightSquare,
   FilePlus2, Users, Activity, Check, X, Mail, Phone, Hash, CalendarDays,
-  Landmark, Percent, ScrollText, MessageSquare, ChevronDown, ChevronUp
+  Landmark, Percent, ScrollText, MessageSquare, ChevronDown, ChevronUp,
+  ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
@@ -37,6 +38,7 @@ import {
   getContratoServico,
   removeContratoServico,
 } from "@/lib/contratos-servico/contratos.functions";
+import { isCurrentUserAdmin } from "@/lib/admin.functions";
 import {
   getContratoArquivoUrl,
   anexarArquivoContratoServico,
@@ -114,6 +116,17 @@ function Page() {
   const [aba, setAba] = useState<string>("informacoes");
   const location = useLocation();
   const search = Route.useSearch() as any;
+  const checkAdmin = useServerFn(isCurrentUserAdmin);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAdmin().then((adm: any) => setIsAdmin(!!adm?.admin)).catch(() => {});
+  }, [checkAdmin]);
+
+  const isModoSuporte = useMemo(() => {
+    if (!isAdmin || !ficha?.contrato) return false;
+    return !!search.cid || !!search.support;
+  }, [isAdmin, ficha?.contrato, search.cid, search.support]);
 
   useEffect(() => {
     const abasValidas = [
@@ -245,6 +258,12 @@ function Page() {
   return (
     <>
       <div className="max-w-4xl">
+        {isModoSuporte && (
+          <div className="mb-6 bg-augusto-gold/10 border border-augusto-gold/20 p-3 rounded-lg text-sm text-augusto-gold flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            <span><strong>Modo Suporte:</strong> Visualização apenas. Alterações desabilitadas.</span>
+          </div>
+        )}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Link to="/app/contratos" className="inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-primary">
             <ArrowLeft className="mr-1 h-4 w-4" /> Contratos
@@ -265,31 +284,35 @@ function Page() {
             </p>
           </header>
           <div className="flex flex-wrap gap-2">
-            <AvisosSwitch
-              contratoId={contratoId}
-              ativo={!!c.notificacoes_ativas}
-              onChange={(v) => setFicha((prev) => (prev ? { ...prev, contrato: { ...prev.contrato, notificacoes_ativas: v } } : prev))}
-            />
-            <Button
-              variant="augusto"
-              onClick={() => {
-                setAba("analise");
-                if (!temArquivo) {
-                  toast.info("Anexe o arquivo do contrato para gerar a análise.");
-                }
-              }}
-              disabled={!temArquivo}
-              title={temArquivo ? "Analisar com Augusto" : "Anexe o arquivo do contrato para gerar a análise"}
-            >
-              <Sparkles className="mr-1 h-4 w-4" /> Analisar com Augusto
-            </Button>
-            <EncerrarSuspenderMenu contratoId={contratoId} situacao={c.situacao} onChange={carregar} />
-            <Button variant="outline" onClick={() => setEditContratoOpen(true)}>
-              <Pencil className="mr-1 h-4 w-4" /> Editar dados
-            </Button>
-            <Button variant="ghost" onClick={() => setConfirmar(true)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-              <Trash2 className="mr-1 h-4 w-4" /> Excluir
-            </Button>
+            {!isModoSuporte && (
+              <>
+                <AvisosSwitch
+                  contratoId={contratoId}
+                  ativo={!!c.notificacoes_ativas}
+                  onChange={(v) => setFicha((prev) => (prev ? { ...prev, contrato: { ...prev.contrato, notificacoes_ativas: v } } : prev))}
+                />
+                <Button
+                  variant="augusto"
+                  onClick={() => {
+                    setAba("analise");
+                    if (!temArquivo) {
+                      toast.info("Anexe o arquivo do contrato para gerar a análise.");
+                    }
+                  }}
+                  disabled={!temArquivo}
+                  title={temArquivo ? "Analisar com Augusto" : "Anexe o arquivo do contrato para gerar a análise"}
+                >
+                  <Sparkles className="mr-1 h-4 w-4" /> Analisar com Augusto
+                </Button>
+                <EncerrarSuspenderMenu contratoId={contratoId} situacao={c.situacao} onChange={carregar} />
+                <Button variant="outline" onClick={() => setEditContratoOpen(true)}>
+                  <Pencil className="mr-1 h-4 w-4" /> Editar dados
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirmar(true)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2 className="mr-1 h-4 w-4" /> Excluir
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -564,9 +587,11 @@ function Page() {
                             {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do Prestador
                           </StatBadge>
                         </div>
-                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setEditObrigacoesOpen(true); }} className="w-full sm:w-auto">
-                          <Pencil className="mr-2 h-3.5 w-3.5" /> Editar Obrigações
-                        </Button>
+                        {!isModoSuporte && (
+                          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setEditObrigacoesOpen(true); }} className="w-full sm:w-auto">
+                            <Pencil className="mr-2 h-3.5 w-3.5" /> Editar Obrigações
+                          </Button>
+                        )}
                       </div>
                       
                       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -612,7 +637,7 @@ function Page() {
             {aba === "checklists" && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <Suspense fallback={<PanelSkeleton />}>
-                  <ChecklistsPanel contratoId={contratoId} />
+                  <ChecklistsPanel contratoId={contratoId} readOnly={isModoSuporte} />
                 </Suspense>
               </div>
             )}
