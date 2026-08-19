@@ -283,31 +283,35 @@ function Page() {
             </p>
           </header>
           <div className="flex flex-wrap gap-2">
-            <AvisosSwitch
-              contratoId={contratoId}
-              ativo={!!c.notificacoes_ativas}
-              onChange={(v) => setFicha((prev) => (prev ? { ...prev, contrato: { ...prev.contrato, notificacoes_ativas: v } } : prev))}
-            />
-            <Button
-              variant="augusto"
-              onClick={() => {
-                setAba("analise");
-                if (!temArquivo) {
-                  toast.info("Anexe o arquivo do contrato para gerar a análise.");
-                }
-              }}
-              disabled={!temArquivo}
-              title={temArquivo ? "Analisar com Augusto" : "Anexe o arquivo do contrato para gerar a análise"}
-            >
-              <Sparkles className="mr-1 h-4 w-4" /> Analisar com Augusto
-            </Button>
-            <EncerrarSuspenderMenu contratoId={contratoId} situacao={c.situacao} onChange={carregar} />
-            <Button variant="outline" onClick={() => setEditContratoOpen(true)}>
-              <Pencil className="mr-1 h-4 w-4" /> Editar dados
-            </Button>
-            <Button variant="ghost" onClick={() => setConfirmar(true)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-              <Trash2 className="mr-1 h-4 w-4" /> Excluir
-            </Button>
+            {!isModoSuporte && (
+              <>
+                <AvisosSwitch
+                  contratoId={contratoId}
+                  ativo={!!c.notificacoes_ativas}
+                  onChange={(v) => setFicha((prev) => (prev ? { ...prev, contrato: { ...prev.contrato, notificacoes_ativas: v } } : prev))}
+                />
+                <Button
+                  variant="augusto"
+                  onClick={() => {
+                    setAba("analise");
+                    if (!temArquivo) {
+                      toast.info("Anexe o arquivo do contrato para gerar a análise.");
+                    }
+                  }}
+                  disabled={!temArquivo}
+                  title={temArquivo ? "Analisar com Augusto" : "Anexe o arquivo do contrato para gerar a análise"}
+                >
+                  <Sparkles className="mr-1 h-4 w-4" /> Analisar com Augusto
+                </Button>
+                <EncerrarSuspenderMenu contratoId={contratoId} situacao={c.situacao} onChange={carregar} />
+                <Button variant="outline" onClick={() => setEditContratoOpen(true)}>
+                  <Pencil className="mr-1 h-4 w-4" /> Editar dados
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirmar(true)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2 className="mr-1 h-4 w-4" /> Excluir
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
