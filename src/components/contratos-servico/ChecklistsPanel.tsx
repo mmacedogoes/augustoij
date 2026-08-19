@@ -228,9 +228,11 @@ export function ChecklistsPanel({ contratoId, readOnly = false }: { contratoId: 
           <p className="mb-3 text-sm text-muted-foreground">
             Este contrato ainda não tem checklists gerados.
           </p>
-          <Button onClick={handleGerar} disabled={gerando} variant="augusto">
-            {gerando ? "Gerando…" : "Gerar checklists deste contrato"}
-          </Button>
+          {!readOnly && (
+            <Button onClick={handleGerar} disabled={gerando} variant="augusto">
+              {gerando ? "Gerando…" : "Gerar checklists deste contrato"}
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
