@@ -357,7 +357,7 @@ function ChecklistItemRow({
   const situacao = (item.marcacao?.situacao ?? "pendente") as Situacao;
 
   const clique = (alvo: Situacao) => {
-    if (readOnly) return;
+    if (isReadOnly) return;
     const proxima: Situacao = situacao === alvo ? "pendente" : alvo;
     onMarcar(periodoId, item.id, proxima, obs.trim().length > 0 ? obs.trim() : null);
   };
