@@ -409,7 +409,7 @@ function ChecklistItemRow({
           ativo={situacao === "conforme"}
           variante="ok"
           label="Conforme"
-          disabled={readOnly}
+          disabled={isReadOnly}
           onClick={() => clique("conforme")}
           icon={<Check className="h-3.5 w-3.5" />}
         />
@@ -417,7 +417,7 @@ function ChecklistItemRow({
           ativo={situacao === "nao_conforme"}
           variante="erro"
           label="Não conforme"
-          disabled={readOnly}
+          disabled={isReadOnly}
           onClick={() => clique("nao_conforme")}
           icon={<X className="h-3.5 w-3.5" />}
         />
@@ -425,7 +425,7 @@ function ChecklistItemRow({
           ativo={situacao === "nao_se_aplica"}
           variante="neutro"
           label="Não se aplica"
-          disabled={readOnly}
+          disabled={isReadOnly}
           onClick={() => clique("nao_se_aplica")}
           icon={<Minus className="h-3.5 w-3.5" />}
         />
@@ -445,7 +445,7 @@ function ChecklistItemRow({
           onChange={(e) => setObs(e.target.value)}
           placeholder="Observação sobre este item (opcional)"
           className="mt-2 text-xs"
-          disabled={readOnly}
+          disabled={isReadOnly}
           maxLength={1000}
           rows={2}
           onBlur={() => {
