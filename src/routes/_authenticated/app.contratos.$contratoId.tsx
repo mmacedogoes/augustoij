@@ -257,6 +257,12 @@ function Page() {
   return (
     <>
       <div className="max-w-4xl">
+        {isModoSuporte && (
+          <div className="mb-6 bg-augusto-gold/10 border border-augusto-gold/20 p-3 rounded-lg text-sm text-augusto-gold flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            <span><strong>Modo Suporte:</strong> Visualização apenas. Alterações desabilitadas.</span>
+          </div>
+        )}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Link to="/app/contratos" className="inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-primary">
             <ArrowLeft className="mr-1 h-4 w-4" /> Contratos
