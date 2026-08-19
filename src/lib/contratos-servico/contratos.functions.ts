@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureAcessoContratos } from "./guard";
+import { ensureAcessoContratos, isSuperAdmin } from "./guard";
 import { gerarChecklistsInterno } from "./checklists.functions";
 import { gerarEventosInterno } from "./eventos.functions";
 import { registrarAuditoriaContrato } from "./auditoria.server";
@@ -409,13 +409,14 @@ export const removeObrigacao = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: oData } = await context.supabase.from("contrato_obrigacoes").select("contrato_id").eq("id", data.id).maybeSingle();
     const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", oData?.contrato_id).maybeSingle();
-    const isOwner = await isCondominioOwner(context, (cData?.condominio_id as string) ?? null);
+    const condId = (cData?.condominio_id as string) ?? null;
+    const isOwner = await isCondominioOwner(context, condId);
     if (!isOwner) {
       const isSuper = await isSuperAdmin(context);
       if (!isSuper) throw new Error("Acesso negado.");
       throw new Error("Modo suporte: Super Admin não pode remover obrigações de terceiros.");
     }
-    await ensureAcessoContratos(context, (cData?.condominio_id as string) ?? null);
+    await ensureAcessoContratos(context, condId);
     const { error } = await context.supabase
       .from("contrato_obrigacoes")
       .delete()
