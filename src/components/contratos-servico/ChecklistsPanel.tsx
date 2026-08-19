@@ -243,6 +243,7 @@ export function ChecklistsPanel({ contratoId, readOnly = false }: { contratoId: 
             itens={grupos.a_fazer}
             onMarcar={handleMarcar}
             pendente={pendente}
+            readOnly={readOnly}
             vazioTexto="Nenhum item aguardando."
           />
           <Coluna
@@ -252,6 +253,7 @@ export function ChecklistsPanel({ contratoId, readOnly = false }: { contratoId: 
             itens={grupos.em_dia}
             onMarcar={handleMarcar}
             pendente={pendente}
+            readOnly={readOnly}
             vazioTexto="Marque os itens conformes para preencher esta lista."
           />
           <Coluna
@@ -261,6 +263,7 @@ export function ChecklistsPanel({ contratoId, readOnly = false }: { contratoId: 
             itens={grupos.atencao}
             onMarcar={handleMarcar}
             pendente={pendente}
+            readOnly={readOnly}
             vazioTexto="Sem não conformidades — ótimo!"
           />
         </div>
