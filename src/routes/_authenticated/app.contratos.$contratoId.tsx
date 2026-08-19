@@ -587,9 +587,11 @@ function Page() {
                             {ficha.obrigacoes.filter((o) => o.parte === "prestador").length} do Prestador
                           </StatBadge>
                         </div>
-                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setEditObrigacoesOpen(true); }} className="w-full sm:w-auto">
-                          <Pencil className="mr-2 h-3.5 w-3.5" /> Editar Obrigações
-                        </Button>
+                        {!isModoSuporte && (
+                          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setEditObrigacoesOpen(true); }} className="w-full sm:w-auto">
+                            <Pencil className="mr-2 h-3.5 w-3.5" /> Editar Obrigações
+                          </Button>
+                        )}
                       </div>
                       
                       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
