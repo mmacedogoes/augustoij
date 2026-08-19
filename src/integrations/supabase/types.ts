@@ -238,6 +238,1433 @@ export type Database = {
         }
         Relationships: []
       }
+      assembleia_cabine_tokens: {
+        Row: {
+          created_at: string | null
+          criado_por: string
+          expira_em: string
+          id: string
+          item_id: string
+          token_hash: string
+          unidade_id: string
+          usado_em: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          criado_por?: string
+          expira_em: string
+          id?: string
+          item_id: string
+          token_hash: string
+          unidade_id: string
+          usado_em?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          criado_por?: string
+          expira_em?: string
+          id?: string
+          item_id?: string
+          token_hash?: string
+          unidade_id?: string
+          usado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_cabine_tokens_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_convocacao_destinatarios: {
+        Row: {
+          canal: string
+          condomino_id: string | null
+          convocacao_id: string
+          created_at: string | null
+          email: string | null
+          email_aberto_em: string | null
+          email_entregue_em: string | null
+          email_enviado_em: string | null
+          email_erro: string | null
+          entrega_fisica_em: string | null
+          entrega_fisica_protocolo: string | null
+          id: string
+          nome: string
+          observacao: string | null
+          resend_message_id: string | null
+          status_email: string
+          status_whatsapp: string
+          telefone_bruto: string | null
+          telefone_wa: string | null
+          unidade_id: string
+          whatsapp_confirmado_em: string | null
+          whatsapp_confirmado_por: string | null
+          whatsapp_link_aberto_em: string | null
+          whatsapp_link_aberto_por: string | null
+        }
+        Insert: {
+          canal?: string
+          condomino_id?: string | null
+          convocacao_id: string
+          created_at?: string | null
+          email?: string | null
+          email_aberto_em?: string | null
+          email_entregue_em?: string | null
+          email_enviado_em?: string | null
+          email_erro?: string | null
+          entrega_fisica_em?: string | null
+          entrega_fisica_protocolo?: string | null
+          id?: string
+          nome: string
+          observacao?: string | null
+          resend_message_id?: string | null
+          status_email?: string
+          status_whatsapp?: string
+          telefone_bruto?: string | null
+          telefone_wa?: string | null
+          unidade_id: string
+          whatsapp_confirmado_em?: string | null
+          whatsapp_confirmado_por?: string | null
+          whatsapp_link_aberto_em?: string | null
+          whatsapp_link_aberto_por?: string | null
+        }
+        Update: {
+          canal?: string
+          condomino_id?: string | null
+          convocacao_id?: string
+          created_at?: string | null
+          email?: string | null
+          email_aberto_em?: string | null
+          email_entregue_em?: string | null
+          email_enviado_em?: string | null
+          email_erro?: string | null
+          entrega_fisica_em?: string | null
+          entrega_fisica_protocolo?: string | null
+          id?: string
+          nome?: string
+          observacao?: string | null
+          resend_message_id?: string | null
+          status_email?: string
+          status_whatsapp?: string
+          telefone_bruto?: string | null
+          telefone_wa?: string | null
+          unidade_id?: string
+          whatsapp_confirmado_em?: string | null
+          whatsapp_confirmado_por?: string | null
+          whatsapp_link_aberto_em?: string | null
+          whatsapp_link_aberto_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_convocacao_destinatarios_condomino_id_fkey"
+            columns: ["condomino_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_convocacao_destinatarios_convocacao_id_fkey"
+            columns: ["convocacao_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_convocacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_convocacao_destinatarios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_convocacao_eventos: {
+        Row: {
+          canal: string
+          destinatario_id: string
+          id: string
+          ocorrido_em: string
+          payload: Json | null
+          registrado_por: string | null
+          tipo: string
+        }
+        Insert: {
+          canal: string
+          destinatario_id: string
+          id?: string
+          ocorrido_em?: string
+          payload?: Json | null
+          registrado_por?: string | null
+          tipo: string
+        }
+        Update: {
+          canal?: string
+          destinatario_id?: string
+          id?: string
+          ocorrido_em?: string
+          payload?: Json | null
+          registrado_por?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_convocacao_eventos_destinatario_id_fkey"
+            columns: ["destinatario_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_convocacao_destinatarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_convocacoes: {
+        Row: {
+          agendada_para: string | null
+          assembleia_id: string
+          assunto_email: string | null
+          corpo_email: string | null
+          corpo_whatsapp: string | null
+          created_at: string | null
+          criada_por: string
+          enviada_em: string | null
+          id: string
+          incluir_link_edital: boolean
+          incluir_link_videoconferencia: boolean
+          incluir_link_votacao: boolean
+          situacao: string
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          agendada_para?: string | null
+          assembleia_id: string
+          assunto_email?: string | null
+          corpo_email?: string | null
+          corpo_whatsapp?: string | null
+          created_at?: string | null
+          criada_por?: string
+          enviada_em?: string | null
+          id?: string
+          incluir_link_edital?: boolean
+          incluir_link_videoconferencia?: boolean
+          incluir_link_votacao?: boolean
+          situacao?: string
+          tipo?: string
+          updated_at?: string | null
+        }
+        Update: {
+          agendada_para?: string | null
+          assembleia_id?: string
+          assunto_email?: string | null
+          corpo_email?: string | null
+          corpo_whatsapp?: string | null
+          created_at?: string | null
+          criada_por?: string
+          enviada_em?: string | null
+          id?: string
+          incluir_link_edital?: boolean
+          incluir_link_videoconferencia?: boolean
+          incluir_link_votacao?: boolean
+          situacao?: string
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_convocacoes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_falantes: {
+        Row: {
+          assembleia_id: string
+          id: string
+          nome: string | null
+          papel: string
+          rotulo_ia: string
+          unidade_id: string | null
+        }
+        Insert: {
+          assembleia_id: string
+          id?: string
+          nome?: string | null
+          papel?: string
+          rotulo_ia: string
+          unidade_id?: string | null
+        }
+        Update: {
+          assembleia_id?: string
+          id?: string
+          nome?: string | null
+          papel?: string
+          rotulo_ia?: string
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_falantes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_gravacoes: {
+        Row: {
+          arquivo_path: string
+          assembleia_id: string
+          bloco_ordem: number
+          created_at: string | null
+          duracao_seg: number | null
+          erro: string | null
+          id: string
+          offset_inicio_seg: number
+          sessao_id: string
+          status: string
+        }
+        Insert: {
+          arquivo_path: string
+          assembleia_id: string
+          bloco_ordem: number
+          created_at?: string | null
+          duracao_seg?: number | null
+          erro?: string | null
+          id?: string
+          offset_inicio_seg?: number
+          sessao_id: string
+          status?: string
+        }
+        Update: {
+          arquivo_path?: string
+          assembleia_id?: string
+          bloco_ordem?: number
+          created_at?: string | null
+          duracao_seg?: number | null
+          erro?: string | null
+          id?: string
+          offset_inicio_seg?: number
+          sessao_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_gravacoes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_gravacoes_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_sessoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_habilitacoes: {
+        Row: {
+          apta: boolean
+          assembleia_id: string
+          congelado_em: string
+          congelado_por: string | null
+          id: string
+          justificativa: string | null
+          motivo_bloqueio: string | null
+          origem_dado: string
+          peso_fracao: number | null
+          peso_unidade: number
+          unidade_id: string
+        }
+        Insert: {
+          apta: boolean
+          assembleia_id: string
+          congelado_em?: string
+          congelado_por?: string | null
+          id?: string
+          justificativa?: string | null
+          motivo_bloqueio?: string | null
+          origem_dado: string
+          peso_fracao?: number | null
+          peso_unidade?: number
+          unidade_id: string
+        }
+        Update: {
+          apta?: boolean
+          assembleia_id?: string
+          congelado_em?: string
+          congelado_por?: string | null
+          id?: string
+          justificativa?: string | null
+          motivo_bloqueio?: string | null
+          origem_dado?: string
+          peso_fracao?: number | null
+          peso_unidade?: number
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_habilitacoes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_habilitacoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_inadimplencia_importacoes: {
+        Row: {
+          arquivo_path: string
+          assembleia_id: string
+          confirmada_em: string | null
+          created_at: string | null
+          criado_por: string
+          erro: string | null
+          id: string
+          nome_arquivo: string
+          resultado_ia: Json | null
+          status: string
+          tipo_lista: string
+          total_casadas: number | null
+          total_linhas: number | null
+          total_nao_casadas: number | null
+        }
+        Insert: {
+          arquivo_path: string
+          assembleia_id: string
+          confirmada_em?: string | null
+          created_at?: string | null
+          criado_por?: string
+          erro?: string | null
+          id?: string
+          nome_arquivo: string
+          resultado_ia?: Json | null
+          status?: string
+          tipo_lista?: string
+          total_casadas?: number | null
+          total_linhas?: number | null
+          total_nao_casadas?: number | null
+        }
+        Update: {
+          arquivo_path?: string
+          assembleia_id?: string
+          confirmada_em?: string | null
+          created_at?: string | null
+          criado_por?: string
+          erro?: string | null
+          id?: string
+          nome_arquivo?: string
+          resultado_ia?: Json | null
+          status?: string
+          tipo_lista?: string
+          total_casadas?: number | null
+          total_linhas?: number | null
+          total_nao_casadas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_inadimplencia_importacoes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_inadimplencia_itens: {
+        Row: {
+          ajustado_em: string | null
+          ajustado_manualmente: boolean
+          ajustado_por: string | null
+          confianca: number | null
+          id: string
+          identificador_bruto: string | null
+          ignorado: boolean
+          importacao_id: string
+          inadimplente: boolean
+          nome_bruto: string | null
+          observacao: string | null
+          unidade_id: string | null
+          valor_debito: number | null
+        }
+        Insert: {
+          ajustado_em?: string | null
+          ajustado_manualmente?: boolean
+          ajustado_por?: string | null
+          confianca?: number | null
+          id?: string
+          identificador_bruto?: string | null
+          ignorado?: boolean
+          importacao_id: string
+          inadimplente?: boolean
+          nome_bruto?: string | null
+          observacao?: string | null
+          unidade_id?: string | null
+          valor_debito?: number | null
+        }
+        Update: {
+          ajustado_em?: string | null
+          ajustado_manualmente?: boolean
+          ajustado_por?: string | null
+          confianca?: number | null
+          id?: string
+          identificador_bruto?: string | null
+          ignorado?: boolean
+          importacao_id?: string
+          inadimplente?: boolean
+          nome_bruto?: string | null
+          observacao?: string | null
+          unidade_id?: string | null
+          valor_debito?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_inadimplencia_itens_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_inadimplencia_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_inadimplencia_itens_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_itens: {
+        Row: {
+          aberto_em: string | null
+          alerta_ia: Json | null
+          assembleia_id: string
+          base_calculo: string | null
+          created_at: string | null
+          descricao: string | null
+          encerrado_em: string | null
+          fecha_em: string | null
+          fundamento_legal: string | null
+          id: string
+          ordem: number
+          quorum_valor: number | null
+          regra_quorum: string
+          secreto: boolean
+          sessao_id: string | null
+          situacao: string
+          tipo_votacao: string
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          aberto_em?: string | null
+          alerta_ia?: Json | null
+          assembleia_id: string
+          base_calculo?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          encerrado_em?: string | null
+          fecha_em?: string | null
+          fundamento_legal?: string | null
+          id?: string
+          ordem: number
+          quorum_valor?: number | null
+          regra_quorum?: string
+          secreto?: boolean
+          sessao_id?: string | null
+          situacao?: string
+          tipo_votacao?: string
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          aberto_em?: string | null
+          alerta_ia?: Json | null
+          assembleia_id?: string
+          base_calculo?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          encerrado_em?: string | null
+          fecha_em?: string | null
+          fundamento_legal?: string | null
+          id?: string
+          ordem?: number
+          quorum_valor?: number | null
+          regra_quorum?: string
+          secreto?: boolean
+          sessao_id?: string | null
+          situacao?: string
+          tipo_votacao?: string
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_itens_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_itens_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_sessoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_opcoes: {
+        Row: {
+          descricao: string | null
+          id: string
+          item_id: string
+          natureza: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          descricao?: string | null
+          id?: string
+          item_id: string
+          natureza: string
+          ordem: number
+          rotulo: string
+        }
+        Update: {
+          descricao?: string | null
+          id?: string
+          item_id?: string
+          natureza?: string
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_opcoes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_presencas: {
+        Row: {
+          assembleia_id: string
+          checkin_em: string
+          checkout_em: string | null
+          condomino_id: string | null
+          id: string
+          ip: unknown
+          origem: string
+          representante_nome: string | null
+          sessao_id: string
+          tipo: string
+          unidade_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          assembleia_id: string
+          checkin_em?: string
+          checkout_em?: string | null
+          condomino_id?: string | null
+          id?: string
+          ip?: unknown
+          origem: string
+          representante_nome?: string | null
+          sessao_id: string
+          tipo: string
+          unidade_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          assembleia_id?: string
+          checkin_em?: string
+          checkout_em?: string | null
+          condomino_id?: string | null
+          id?: string
+          ip?: unknown
+          origem?: string
+          representante_nome?: string | null
+          sessao_id?: string
+          tipo?: string
+          unidade_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_presencas_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_presencas_condomino_id_fkey"
+            columns: ["condomino_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_presencas_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_sessoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_presencas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_procuracoes: {
+        Row: {
+          arquivo_path: string | null
+          assembleia_id: string
+          created_at: string | null
+          id: string
+          motivo_recusa: string | null
+          outorgado_condomino_id: string | null
+          outorgado_documento: string | null
+          outorgado_nome: string
+          outorgado_tipo: string
+          situacao: string
+          unidade_outorgante_id: string
+          validada_em: string | null
+          validada_por: string | null
+        }
+        Insert: {
+          arquivo_path?: string | null
+          assembleia_id: string
+          created_at?: string | null
+          id?: string
+          motivo_recusa?: string | null
+          outorgado_condomino_id?: string | null
+          outorgado_documento?: string | null
+          outorgado_nome: string
+          outorgado_tipo: string
+          situacao?: string
+          unidade_outorgante_id: string
+          validada_em?: string | null
+          validada_por?: string | null
+        }
+        Update: {
+          arquivo_path?: string | null
+          assembleia_id?: string
+          created_at?: string | null
+          id?: string
+          motivo_recusa?: string | null
+          outorgado_condomino_id?: string | null
+          outorgado_documento?: string | null
+          outorgado_nome?: string
+          outorgado_tipo?: string
+          situacao?: string
+          unidade_outorgante_id?: string
+          validada_em?: string | null
+          validada_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_procuracoes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_procuracoes_outorgado_condomino_id_fkey"
+            columns: ["outorgado_condomino_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_procuracoes_unidade_outorgante_id_fkey"
+            columns: ["unidade_outorgante_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_resultados: {
+        Row: {
+          aprovado: boolean | null
+          apurado_em: string
+          apurado_por: string | null
+          base_calculo: string
+          empate: boolean
+          hash_resultado: string
+          id: string
+          item_id: string
+          quorum_atingido: number
+          quorum_exigido: number
+          total_aptos: number
+          total_votantes: number
+          vencedora_opcao_id: string | null
+          votos: Json
+        }
+        Insert: {
+          aprovado?: boolean | null
+          apurado_em?: string
+          apurado_por?: string | null
+          base_calculo: string
+          empate?: boolean
+          hash_resultado: string
+          id?: string
+          item_id: string
+          quorum_atingido: number
+          quorum_exigido: number
+          total_aptos: number
+          total_votantes: number
+          vencedora_opcao_id?: string | null
+          votos: Json
+        }
+        Update: {
+          aprovado?: boolean | null
+          apurado_em?: string
+          apurado_por?: string | null
+          base_calculo?: string
+          empate?: boolean
+          hash_resultado?: string
+          id?: string
+          item_id?: string
+          quorum_atingido?: number
+          quorum_exigido?: number
+          total_aptos?: number
+          total_votantes?: number
+          vencedora_opcao_id?: string | null
+          votos?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_resultados_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "assembleia_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_sessoes: {
+        Row: {
+          assembleia_id: string
+          created_at: string | null
+          data_hora_fim: string | null
+          data_hora_inicio: string
+          id: string
+          local: string | null
+          observacao: string | null
+          ordem: number
+          situacao: string
+        }
+        Insert: {
+          assembleia_id: string
+          created_at?: string | null
+          data_hora_fim?: string | null
+          data_hora_inicio: string
+          id?: string
+          local?: string | null
+          observacao?: string | null
+          ordem: number
+          situacao?: string
+        }
+        Update: {
+          assembleia_id?: string
+          created_at?: string | null
+          data_hora_fim?: string | null
+          data_hora_inicio?: string
+          id?: string
+          local?: string | null
+          observacao?: string | null
+          ordem?: number
+          situacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_sessoes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_sessoes_votante: {
+        Row: {
+          assembleia_id: string
+          condomino_id: string | null
+          confirmado_em: string | null
+          created_at: string | null
+          device_hash: string | null
+          email: string
+          id: string
+          ip: unknown
+          otp_expira_em: string | null
+          otp_hash: string | null
+          revogado: boolean
+          tentativas_otp: number
+          token_expira_em: string | null
+          token_hash: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          assembleia_id: string
+          condomino_id?: string | null
+          confirmado_em?: string | null
+          created_at?: string | null
+          device_hash?: string | null
+          email: string
+          id?: string
+          ip?: unknown
+          otp_expira_em?: string | null
+          otp_hash?: string | null
+          revogado?: boolean
+          tentativas_otp?: number
+          token_expira_em?: string | null
+          token_hash?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          assembleia_id?: string
+          condomino_id?: string | null
+          confirmado_em?: string | null
+          created_at?: string | null
+          device_hash?: string | null
+          email?: string
+          id?: string
+          ip?: unknown
+          otp_expira_em?: string | null
+          otp_hash?: string | null
+          revogado?: boolean
+          tentativas_otp?: number
+          token_expira_em?: string | null
+          token_hash?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_sessoes_votante_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_sessoes_votante_condomino_id_fkey"
+            columns: ["condomino_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_tentativas: {
+        Row: {
+          assembleia_id: string
+          criado_em: string
+          detalhe: string | null
+          email_tentativa: string | null
+          id: string
+          ip: unknown
+          item_id: string | null
+          motivo: string
+          unidade_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          assembleia_id: string
+          criado_em?: string
+          detalhe?: string | null
+          email_tentativa?: string | null
+          id?: string
+          ip?: unknown
+          item_id?: string | null
+          motivo: string
+          unidade_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          assembleia_id?: string
+          criado_em?: string
+          detalhe?: string | null
+          email_tentativa?: string | null
+          id?: string
+          ip?: unknown
+          item_id?: string | null
+          motivo?: string
+          unidade_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_tentativas_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_transcricoes: {
+        Row: {
+          created_at: string | null
+          erro: string | null
+          gravacao_id: string
+          id: string
+          modelo: string | null
+          segmentos: Json | null
+          status: string
+          texto: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          erro?: string | null
+          gravacao_id: string
+          id?: string
+          modelo?: string | null
+          segmentos?: Json | null
+          status?: string
+          texto?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          erro?: string | null
+          gravacao_id?: string
+          id?: string
+          modelo?: string | null
+          segmentos?: Json | null
+          status?: string
+          texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_transcricoes_gravacao_id_fkey"
+            columns: ["gravacao_id"]
+            isOneToOne: true
+            referencedRelation: "assembleia_gravacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_votos: {
+        Row: {
+          assembleia_id: string
+          base_calculo: string
+          criado_em: string
+          device_hash: string | null
+          hash_anterior: string | null
+          hash_voto: string | null
+          id: string
+          invalidado_em: string | null
+          invalidado_motivo: string | null
+          invalidado_por: string | null
+          ip: unknown
+          item_id: string
+          justificativa_manual: string | null
+          lancado_por: string | null
+          opcao_id: string
+          origem: string
+          peso: number
+          recibo: string
+          sequencia: number
+          unidade_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          assembleia_id: string
+          base_calculo: string
+          criado_em?: string
+          device_hash?: string | null
+          hash_anterior?: string | null
+          hash_voto?: string | null
+          id?: string
+          invalidado_em?: string | null
+          invalidado_motivo?: string | null
+          invalidado_por?: string | null
+          ip?: unknown
+          item_id: string
+          justificativa_manual?: string | null
+          lancado_por?: string | null
+          opcao_id: string
+          origem: string
+          peso: number
+          recibo: string
+          sequencia?: number
+          unidade_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          assembleia_id?: string
+          base_calculo?: string
+          criado_em?: string
+          device_hash?: string | null
+          hash_anterior?: string | null
+          hash_voto?: string | null
+          id?: string
+          invalidado_em?: string | null
+          invalidado_motivo?: string | null
+          invalidado_por?: string | null
+          ip?: unknown
+          item_id?: string
+          justificativa_manual?: string | null
+          lancado_por?: string | null
+          opcao_id?: string
+          origem?: string
+          peso?: number
+          recibo?: string
+          sequencia?: number
+          unidade_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_votos_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_votos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_votos_opcao_id_fkey"
+            columns: ["opcao_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_opcoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_votos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_votos_controle: {
+        Row: {
+          criado_minuto: string
+          id: string
+          item_id: string
+          unidade_id: string
+        }
+        Insert: {
+          criado_minuto: string
+          id?: string
+          item_id: string
+          unidade_id: string
+        }
+        Update: {
+          criado_minuto?: string
+          id?: string
+          item_id?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_votos_controle_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_votos_controle_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleias: {
+        Row: {
+          base_calculo_padrao: string
+          bloqueia_inadimplente: boolean
+          codigo_publico: string
+          condominio_id: string
+          convocacao_numero: number
+          created_at: string | null
+          criado_por: string
+          data_hora: string
+          edital_publicado_em: string | null
+          edital_texto: string | null
+          encerrada_em: string | null
+          habilitacao_confirmada_em: string | null
+          id: string
+          instalada_em: string | null
+          limite_procuracoes_por_outorgado: number
+          link_videoconferencia: string | null
+          local: string | null
+          modalidade: string
+          permite_voto_manual_mesa: boolean
+          presidente_nome: string | null
+          quorum_instalacao_1a: number
+          quorum_instalacao_2a: number | null
+          secretario_nome: string | null
+          situacao: string
+          tipo: string
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_calculo_padrao?: string
+          bloqueia_inadimplente?: boolean
+          codigo_publico: string
+          condominio_id: string
+          convocacao_numero?: number
+          created_at?: string | null
+          criado_por?: string
+          data_hora: string
+          edital_publicado_em?: string | null
+          edital_texto?: string | null
+          encerrada_em?: string | null
+          habilitacao_confirmada_em?: string | null
+          id?: string
+          instalada_em?: string | null
+          limite_procuracoes_por_outorgado?: number
+          link_videoconferencia?: string | null
+          local?: string | null
+          modalidade?: string
+          permite_voto_manual_mesa?: boolean
+          presidente_nome?: string | null
+          quorum_instalacao_1a?: number
+          quorum_instalacao_2a?: number | null
+          secretario_nome?: string | null
+          situacao?: string
+          tipo: string
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_calculo_padrao?: string
+          bloqueia_inadimplente?: boolean
+          codigo_publico?: string
+          condominio_id?: string
+          convocacao_numero?: number
+          created_at?: string | null
+          criado_por?: string
+          data_hora?: string
+          edital_publicado_em?: string | null
+          edital_texto?: string | null
+          encerrada_em?: string | null
+          habilitacao_confirmada_em?: string | null
+          id?: string
+          instalada_em?: string | null
+          limite_procuracoes_por_outorgado?: number
+          link_videoconferencia?: string | null
+          local?: string | null
+          modalidade?: string
+          permite_voto_manual_mesa?: boolean
+          presidente_nome?: string | null
+          quorum_instalacao_1a?: number
+          quorum_instalacao_2a?: number | null
+          secretario_nome?: string | null
+          situacao?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleias_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ata_blocos: {
+        Row: {
+          confianca: number | null
+          id: string
+          item_id: string | null
+          ordem: number
+          origem_audio_fim: number | null
+          origem_audio_inicio: number | null
+          texto: string
+          tipo: string
+          versao_id: string
+        }
+        Insert: {
+          confianca?: number | null
+          id?: string
+          item_id?: string | null
+          ordem: number
+          origem_audio_fim?: number | null
+          origem_audio_inicio?: number | null
+          texto: string
+          tipo: string
+          versao_id: string
+        }
+        Update: {
+          confianca?: number | null
+          id?: string
+          item_id?: string | null
+          ordem?: number
+          origem_audio_fim?: number | null
+          origem_audio_inicio?: number | null
+          texto?: string
+          tipo?: string
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ata_blocos_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "ata_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ata_lacunas: {
+        Row: {
+          ancora_texto: string
+          bloco_id: string | null
+          descricao: string
+          id: string
+          preenchida_em: string | null
+          preenchida_por: string | null
+          referencia_audio_seg: number | null
+          situacao: string
+          sugestao: string | null
+          tipo: string
+          valor_preenchido: string | null
+          versao_id: string
+        }
+        Insert: {
+          ancora_texto: string
+          bloco_id?: string | null
+          descricao: string
+          id?: string
+          preenchida_em?: string | null
+          preenchida_por?: string | null
+          referencia_audio_seg?: number | null
+          situacao?: string
+          sugestao?: string | null
+          tipo: string
+          valor_preenchido?: string | null
+          versao_id: string
+        }
+        Update: {
+          ancora_texto?: string
+          bloco_id?: string | null
+          descricao?: string
+          id?: string
+          preenchida_em?: string | null
+          preenchida_por?: string | null
+          referencia_audio_seg?: number | null
+          situacao?: string
+          sugestao?: string | null
+          tipo?: string
+          valor_preenchido?: string | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ata_lacunas_bloco_id_fkey"
+            columns: ["bloco_id"]
+            isOneToOne: false
+            referencedRelation: "ata_blocos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ata_lacunas_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "ata_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ata_versoes: {
+        Row: {
+          assembleia_id: string
+          created_at: string | null
+          criada_por: string | null
+          gerada_por: string
+          hash_publicacao: string | null
+          id: string
+          modelo: string | null
+          numero: number
+          pdf_path: string | null
+          publicada_em: string | null
+          publicada_por: string | null
+          situacao: string
+          texto_completo: string | null
+        }
+        Insert: {
+          assembleia_id: string
+          created_at?: string | null
+          criada_por?: string | null
+          gerada_por?: string
+          hash_publicacao?: string | null
+          id?: string
+          modelo?: string | null
+          numero: number
+          pdf_path?: string | null
+          publicada_em?: string | null
+          publicada_por?: string | null
+          situacao?: string
+          texto_completo?: string | null
+        }
+        Update: {
+          assembleia_id?: string
+          created_at?: string | null
+          criada_por?: string | null
+          gerada_por?: string
+          hash_publicacao?: string | null
+          id?: string
+          modelo?: string | null
+          numero?: number
+          pdf_path?: string | null
+          publicada_em?: string | null
+          publicada_por?: string | null
+          situacao?: string
+          texto_completo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ata_versoes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auth_rate_limits: {
         Row: {
           bloqueado_ate: string | null
@@ -3304,6 +4731,16 @@ export type Database = {
           mensagens: number
         }[]
       }
+      assembleia_gerar_recibo: { Args: never; Returns: string }
+      assembleia_verificar_integridade: {
+        Args: { p_assembleia_id: string }
+        Returns: {
+          integra: boolean
+          sequencia_quebrada: number
+          total_votos: number
+          voto_id: string
+        }[]
+      }
       calcular_custo_mensal: {
         Args: { _mes_ano: string; _user_id: string }
         Returns: Json
@@ -3383,6 +4820,7 @@ export type Database = {
         }
         Returns: number
       }
+      normalizar_telefone_br: { Args: { p_telefone: string }; Returns: string }
       normalize_cpf: { Args: { _v: string }; Returns: string }
       normalize_edificio: { Args: { _v: string }; Returns: string }
       normalize_unidade: { Args: { _v: string }; Returns: string }
