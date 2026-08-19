@@ -38,6 +38,7 @@ import {
   listTiposServicoContrato,
   type ContratoLinha,
 } from "@/lib/contratos-servico/contratos.functions";
+import { isCurrentUserAdmin } from "@/lib/admin.functions";
 import { listContratoIdsComPendencia } from "@/lib/contratos-servico/quickview.functions";
 import { cn } from "@/lib/utils";
 
