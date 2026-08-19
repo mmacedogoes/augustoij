@@ -289,7 +289,7 @@ function ContadorInline({ cor, total, label }: { cor: string; total: number; lab
 }
 
 function Coluna({
-  titulo, icon, cor, itens, onMarcar, pendente, vazioTexto,
+  titulo, icon, cor, itens, onMarcar, pendente, readOnly, vazioTexto,
 }: {
   titulo: string;
   icon: React.ReactNode;
@@ -297,6 +297,7 @@ function Coluna({
   itens: ItemFlat[];
   onMarcar: (periodoId: string | null, itemId: string, proxima: Situacao, obs: string | null) => void;
   pendente: string | null;
+  readOnly?: boolean;
   vazioTexto: string;
 }) {
   const acento =
