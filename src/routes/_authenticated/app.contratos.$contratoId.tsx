@@ -637,7 +637,7 @@ function Page() {
             {aba === "checklists" && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <Suspense fallback={<PanelSkeleton />}>
-                  <ChecklistsPanel contratoId={contratoId} />
+                  <ChecklistsPanel contratoId={contratoId} readOnly={isModoSuporte} />
                 </Suspense>
               </div>
             )}
