@@ -62,7 +62,9 @@ function Page() {
   const condosFn = useServerFn(listCondominiosParaContratos);
   const tiposFn = useServerFn(listTiposServicoContrato);
   const pendenciaIdsFn = useServerFn(listContratoIdsComPendencia);
+  const checkAdmin = useServerFn(isCurrentUserAdmin);
 
+  const [isAdmin, setIsAdmin] = useState(false);
   const [rows, setRows] = useState<ContratoLinha[] | null>(null);
   const [counters, setCounters] = useState({ vigentes: 0, vencendo: 0, vencidos: 0 });
   const [erro, setErro] = useState<string | null>(null);
