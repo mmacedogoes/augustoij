@@ -409,7 +409,7 @@ export const removeObrigacao = createServerFn({ method: "POST" })
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
     const { data: oData } = await context.supabase.from("contrato_obrigacoes").select("contrato_id").eq("id", data.id).maybeSingle();
-    const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", oData?.contrato_id).maybeSingle();
+    const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", (oData?.contrato_id as string) ?? null).maybeSingle();
     const condId = (cData?.condominio_id as string) ?? null;
     const isOwner = await isCondominioOwner(context, condId);
     if (!isOwner) {
