@@ -371,13 +371,14 @@ export const upsertObrigacao = createServerFn({ method: "POST" })
   .inputValidator((v) => obrigacaoSchema.parse(v))
   .handler(async ({ data, context }) => {
     const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", data.contrato_id).maybeSingle();
-    const isOwner = await isCondominioOwner(context, (cData?.condominio_id as string) ?? null);
+    const condId = (cData?.condominio_id as string) ?? null;
+    const isOwner = await isCondominioOwner(context, condId);
     if (!isOwner) {
       const isSuper = await isSuperAdmin(context);
       if (!isSuper) throw new Error("Acesso negado.");
       throw new Error("Modo suporte: Super Admin não pode alterar obrigações de terceiros.");
     }
-    await ensureAcessoContratos(context, (cData?.condominio_id as string) ?? null);
+    await ensureAcessoContratos(context, condId);
     const payload = {
       contrato_id: data.contrato_id,
       parte: data.parte,
