@@ -350,7 +350,8 @@ function ChecklistItemRow({
   carregando: boolean;
   readOnly?: boolean;
 }) {
-  const { item, periodoId, readOnly, cardTipo, cardTitulo } = flat;
+  const { item, periodoId, cardTipo, cardTitulo, readOnly: itemReadOnly } = flat;
+  const isReadOnly = readOnly || itemReadOnly;
   const [obsAberto, setObsAberto] = useState(false);
   const [obs, setObs] = useState<string>(item.marcacao?.observacao ?? "");
   const situacao = (item.marcacao?.situacao ?? "pendente") as Situacao;
