@@ -92,13 +92,14 @@ function Page() {
   }, [search.view, search.cid]);
 
   useEffect(() => {
-    Promise.all([condosFn(), tiposFn()])
-      .then(([c, t]) => {
+    Promise.all([condosFn(), tiposFn(), checkAdmin()])
+      .then(([c, t, adm]) => {
         setCondos(c.rows as Array<{ id: string; nome: string }>);
         setTipos(t.rows as Array<{ id: string; nome: string }>);
+        setIsAdmin(!!adm?.admin);
       })
       .catch((e: Error) => toast.error(e.message));
-  }, [condosFn, tiposFn]);
+  }, [condosFn, tiposFn, checkAdmin]);
 
 
   useEffect(() => {
