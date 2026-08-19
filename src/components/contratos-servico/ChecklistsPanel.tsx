@@ -333,6 +333,7 @@ function Coluna({
               flat={f}
               onMarcar={onMarcar}
               carregando={pendente === f.item.id}
+              readOnly={readOnly}
             />
           ))}
         </ul>
