@@ -7,7 +7,8 @@ import {
   Building2, Briefcase, CalendarRange, Wallet, TrendingUp, Scale,
   ClipboardCheck, ListChecks, Shield, CalendarClock, ArrowUpRightSquare,
   FilePlus2, Users, Activity, Check, X, Mail, Phone, Hash, CalendarDays,
-  Landmark, Percent, ScrollText, MessageSquare, ChevronDown, ChevronUp
+  Landmark, Percent, ScrollText, MessageSquare, ChevronDown, ChevronUp,
+  ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
