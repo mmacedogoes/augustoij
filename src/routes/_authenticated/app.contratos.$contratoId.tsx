@@ -37,6 +37,7 @@ import {
   getContratoServico,
   removeContratoServico,
 } from "@/lib/contratos-servico/contratos.functions";
+import { isCurrentUserAdmin } from "@/lib/admin.functions";
 import {
   getContratoArquivoUrl,
   anexarArquivoContratoServico,
