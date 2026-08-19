@@ -210,7 +210,7 @@ export const getContratoServico = createServerFn({ method: "GET" })
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
     const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", data.id).maybeSingle();
-    await ensureAcessoContratos(context, cData?.condominio_id);
+    await ensureAcessoContratos(context, (cData?.condominio_id as string) ?? null);
     const { data: contrato, error } = await context.supabase
       .from("contratos_servico")
       .select(
