@@ -482,6 +482,95 @@ export type Database = {
           },
         ]
       }
+      assembleia_falantes: {
+        Row: {
+          assembleia_id: string
+          id: string
+          nome: string | null
+          papel: string
+          rotulo_ia: string
+          unidade_id: string | null
+        }
+        Insert: {
+          assembleia_id: string
+          id?: string
+          nome?: string | null
+          papel?: string
+          rotulo_ia: string
+          unidade_id?: string | null
+        }
+        Update: {
+          assembleia_id?: string
+          id?: string
+          nome?: string | null
+          papel?: string
+          rotulo_ia?: string
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_falantes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembleia_gravacoes: {
+        Row: {
+          arquivo_path: string
+          assembleia_id: string
+          bloco_ordem: number
+          created_at: string | null
+          duracao_seg: number | null
+          erro: string | null
+          id: string
+          offset_inicio_seg: number
+          sessao_id: string
+          status: string
+        }
+        Insert: {
+          arquivo_path: string
+          assembleia_id: string
+          bloco_ordem: number
+          created_at?: string | null
+          duracao_seg?: number | null
+          erro?: string | null
+          id?: string
+          offset_inicio_seg?: number
+          sessao_id: string
+          status?: string
+        }
+        Update: {
+          arquivo_path?: string
+          assembleia_id?: string
+          bloco_ordem?: number
+          created_at?: string | null
+          duracao_seg?: number | null
+          erro?: string | null
+          id?: string
+          offset_inicio_seg?: number
+          sessao_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_gravacoes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_gravacoes_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_sessoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assembleia_habilitacoes: {
         Row: {
           apta: boolean
@@ -1140,6 +1229,47 @@ export type Database = {
           },
         ]
       }
+      assembleia_transcricoes: {
+        Row: {
+          created_at: string | null
+          erro: string | null
+          gravacao_id: string
+          id: string
+          modelo: string | null
+          segmentos: Json | null
+          status: string
+          texto: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          erro?: string | null
+          gravacao_id: string
+          id?: string
+          modelo?: string | null
+          segmentos?: Json | null
+          status?: string
+          texto?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          erro?: string | null
+          gravacao_id?: string
+          id?: string
+          modelo?: string | null
+          segmentos?: Json | null
+          status?: string
+          texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_transcricoes_gravacao_id_fkey"
+            columns: ["gravacao_id"]
+            isOneToOne: true
+            referencedRelation: "assembleia_gravacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assembleia_votos: {
         Row: {
           assembleia_id: string
@@ -1371,6 +1501,166 @@ export type Database = {
             columns: ["condominio_id"]
             isOneToOne: false
             referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ata_blocos: {
+        Row: {
+          confianca: number | null
+          id: string
+          item_id: string | null
+          ordem: number
+          origem_audio_fim: number | null
+          origem_audio_inicio: number | null
+          texto: string
+          tipo: string
+          versao_id: string
+        }
+        Insert: {
+          confianca?: number | null
+          id?: string
+          item_id?: string | null
+          ordem: number
+          origem_audio_fim?: number | null
+          origem_audio_inicio?: number | null
+          texto: string
+          tipo: string
+          versao_id: string
+        }
+        Update: {
+          confianca?: number | null
+          id?: string
+          item_id?: string | null
+          ordem?: number
+          origem_audio_fim?: number | null
+          origem_audio_inicio?: number | null
+          texto?: string
+          tipo?: string
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ata_blocos_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "ata_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ata_lacunas: {
+        Row: {
+          ancora_texto: string
+          bloco_id: string | null
+          descricao: string
+          id: string
+          preenchida_em: string | null
+          preenchida_por: string | null
+          referencia_audio_seg: number | null
+          situacao: string
+          sugestao: string | null
+          tipo: string
+          valor_preenchido: string | null
+          versao_id: string
+        }
+        Insert: {
+          ancora_texto: string
+          bloco_id?: string | null
+          descricao: string
+          id?: string
+          preenchida_em?: string | null
+          preenchida_por?: string | null
+          referencia_audio_seg?: number | null
+          situacao?: string
+          sugestao?: string | null
+          tipo: string
+          valor_preenchido?: string | null
+          versao_id: string
+        }
+        Update: {
+          ancora_texto?: string
+          bloco_id?: string | null
+          descricao?: string
+          id?: string
+          preenchida_em?: string | null
+          preenchida_por?: string | null
+          referencia_audio_seg?: number | null
+          situacao?: string
+          sugestao?: string | null
+          tipo?: string
+          valor_preenchido?: string | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ata_lacunas_bloco_id_fkey"
+            columns: ["bloco_id"]
+            isOneToOne: false
+            referencedRelation: "ata_blocos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ata_lacunas_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "ata_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ata_versoes: {
+        Row: {
+          assembleia_id: string
+          created_at: string | null
+          criada_por: string | null
+          gerada_por: string
+          hash_publicacao: string | null
+          id: string
+          modelo: string | null
+          numero: number
+          pdf_path: string | null
+          publicada_em: string | null
+          publicada_por: string | null
+          situacao: string
+          texto_completo: string | null
+        }
+        Insert: {
+          assembleia_id: string
+          created_at?: string | null
+          criada_por?: string | null
+          gerada_por?: string
+          hash_publicacao?: string | null
+          id?: string
+          modelo?: string | null
+          numero: number
+          pdf_path?: string | null
+          publicada_em?: string | null
+          publicada_por?: string | null
+          situacao?: string
+          texto_completo?: string | null
+        }
+        Update: {
+          assembleia_id?: string
+          created_at?: string | null
+          criada_por?: string | null
+          gerada_por?: string
+          hash_publicacao?: string | null
+          id?: string
+          modelo?: string | null
+          numero?: number
+          pdf_path?: string | null
+          publicada_em?: string | null
+          publicada_por?: string | null
+          situacao?: string
+          texto_completo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ata_versoes_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
             referencedColumns: ["id"]
           },
         ]
