@@ -162,13 +162,11 @@ function Page() {
   const isModoSuporte = useMemo(() => {
     if (!isAdmin) return false;
     if (condominioId === TODOS) return false;
-    const condo = condos.find(c => c.id === condominioId);
-    // Se somos admin e estamos vendo um condomínio (pelo listCondominiosParaContratos filtrado no server),
-    // o modo suporte é ativado se o condomínio não for "meu".
-    // Mas no listCondominiosParaContratos de super admin trazemos todos.
-    // O backend já barra as escritas. No front, vamos considerar modo suporte se o condo estiver selecionado.
-    return true; 
-  }, [isAdmin, condominioId, condos]);
+    // Se há um 'cid' no search param vindo do admin, é modo suporte.
+    // Ou se somos admin mas o owner_id não é nosso (não temos essa info aqui sem carregar).
+    // Usaremos o search.cid como gatilho principal.
+    return !!search.cid;
+  }, [isAdmin, condominioId, search.cid]);
 
   return (
     <>
