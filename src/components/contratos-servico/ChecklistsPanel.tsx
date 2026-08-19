@@ -343,11 +343,12 @@ function Coluna({
 }
 
 function ChecklistItemRow({
-  flat, onMarcar, carregando,
+  flat, onMarcar, carregando, readOnly,
 }: {
   flat: ItemFlat;
   onMarcar: (periodoId: string | null, itemId: string, proxima: Situacao, obs: string | null) => void;
   carregando: boolean;
+  readOnly?: boolean;
 }) {
   const { item, periodoId, readOnly, cardTipo, cardTitulo } = flat;
   const [obsAberto, setObsAberto] = useState(false);
