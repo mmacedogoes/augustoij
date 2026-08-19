@@ -206,12 +206,16 @@ function Page() {
           </header>
           <div className="flex items-center gap-2">
             <ContratosTabs condominioId={condominioId === TODOS ? null : condominioId} />
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/contratos/importar" })}>
-              <Sparkles className="h-4 w-4 mr-1" /> Importar com IA
-            </Button>
-            <Button size="sm" variant="augusto" onClick={() => navigate({ to: "/app/contratos/novo" })}>
-              <Plus className="h-4 w-4 mr-1" /> Novo contrato
-            </Button>
+            {!isModoSuporte && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/contratos/importar" })}>
+                  <Sparkles className="h-4 w-4 mr-1" /> Importar com IA
+                </Button>
+                <Button size="sm" variant="augusto" onClick={() => navigate({ to: "/app/contratos/novo" })}>
+                  <Plus className="h-4 w-4 mr-1" /> Novo contrato
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
