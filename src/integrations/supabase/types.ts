@@ -4732,6 +4732,15 @@ export type Database = {
         }[]
       }
       assembleia_gerar_recibo: { Args: never; Returns: string }
+      assembleia_verificar_integridade: {
+        Args: { p_assembleia_id: string }
+        Returns: {
+          integra: boolean
+          sequencia_quebrada: number
+          total_votos: number
+          voto_id: string
+        }[]
+      }
       calcular_custo_mensal: {
         Args: { _mes_ano: string; _user_id: string }
         Returns: Json
