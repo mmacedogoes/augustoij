@@ -71,21 +71,17 @@ ITENS DA PAUTA:
 ${JSON.stringify(itemsContext, null, 2)}`;
 
     try {
-      const { generateText } = await import("ai");
-      const { createOpenAI } = await import("@ai-sdk/openai"); // Ou o provedor nativo Lovable
-      
-      // Nota: Em ambiente Lovable usamos o gateway configurado.
-      // Vou simular a chamada ao provedor via gateway ou import correto conforme stack.
-      // Como o prompt pede para usar a IA nativa do Lovable, usaremos o padrão do sistema.
-      
-      // Mocking AI call for structural flow before deciding on the exact API tool
-      // O prompt diz "usando a IA nativa do Lovable". No TanStack Start, chamamos o gateway.
-      
-      const response = await fetch("https://api.openai.com/v1/chat/completions", { // Placeholder for actual gateway call
+      const apiKey = process.env.LOVABLE_API_KEY;
+      if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
          method: "POST",
-         headers: { "Content-Type": "application/json" },
+         headers: { 
+           "Content-Type": "application/json",
+           "Lovable-API-Key": apiKey
+         },
          body: JSON.stringify({
-           model: "gpt-4o",
+           model: "google/gemini-2.0-flash-exp",
            messages: [
              { role: "system", content: systemPrompt },
              { role: "user", content: userPrompt }
@@ -94,8 +90,16 @@ ${JSON.stringify(itemsContext, null, 2)}`;
          })
       });
 
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Erro na IA (${response.status}): ${errText}`);
+      }
+
       const aiData = await response.json();
-      const result = JSON.parse(aiData.choices[0].message.content);
+      const content = aiData.choices?.[0]?.message?.content;
+      if (!content) throw new Error("IA retornou resposta vazia.");
+      
+      const result = JSON.parse(content);
 
       // 3. Salvar resultados no banco
       for (const resItem of result.itens) {
