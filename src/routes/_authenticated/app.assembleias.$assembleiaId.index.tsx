@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Edit2, Calendar, MapPin, Video, FileText, Send } from "lucide-react";
 import { getAssembleia } from "@/lib/assembleias/assembleias.functions";
@@ -185,6 +185,69 @@ function Page() {
                 ))}
               </div>
             </section>
+            {/* Painel de Controle de Votação (Provisório Fase 6) */}
+            <Card className="mt-8 border-augusto-gold/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="font-serif text-[#00512B] text-lg">Controle de Votação</CardTitle>
+                <CardDescription className="text-xs">Gerenciamento imediato da pauta para testes do portal.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {assembleia.itens?.sort((a: any, b: any) => a.ordem - b.ordem).map((item: any) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-augusto-gold/5">
+                      <div className="flex-1 min-w-0 mr-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-augusto-gold font-bold uppercase">Item {item.ordem}</span>
+                          <AssembleiaSituacaoBadge situacao={item.situacao} className="text-[9px] h-4" />
+                        </div>
+                        <h4 className="font-medium text-sm truncate">{item.titulo}</h4>
+                      </div>
+                      <div className="flex gap-2">
+                        {item.situacao === 'pendente' && (
+                          <Button 
+                            size="sm" 
+                            className="bg-[#00512B] h-8 text-xs"
+                            onClick={async () => {
+                              const { abrirVotacaoItem } = await import('@/lib/assembleias/votacao.functions');
+                              toast.promise(abrirVotacaoItem({ data: { itemId: item.id } }), {
+                                loading: 'Abrindo...',
+                                success: () => {
+                                  window.location.reload();
+                                  return 'Votação aberta!';
+                                },
+                                error: 'Falha ao abrir.'
+                              });
+                            }}
+                          >
+                            Abrir
+                          </Button>
+                        )}
+                        {item.situacao === 'aberto' && (
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            className="h-8 text-xs"
+                            onClick={async () => {
+                              const { encerrarVotacaoItem } = await import('@/lib/assembleias/votacao.functions');
+                              toast.promise(encerrarVotacaoItem({ data: { itemId: item.id } }), {
+                                loading: 'Encerrando...',
+                                success: () => {
+                                  window.location.reload();
+                                  return 'Votação encerrada!';
+                                },
+                                error: 'Falha ao encerrar.'
+                              });
+                            }}
+                          >
+                            Encerrar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </main>
 
           <aside className="space-y-6">

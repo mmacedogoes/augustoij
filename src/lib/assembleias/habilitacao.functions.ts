@@ -7,7 +7,7 @@ import { extractText } from "@/lib/documentos.server";
 import { registrarEventoIa } from "@/lib/uso-ia.server";
 
 // Importação dinâmica para evitar inclusão no bundle do cliente
-const getSupabaseAdmin = async () => {
+export const getSupabaseAdmin = async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin;
 };

@@ -84,3 +84,39 @@ export async function compilarEmailConvocacao(params: CompilarParams): Promise<s
     return `<h1>Convocação: ${params.nomeCondominio}</h1><p>Olá ${params.nomeDestinatario}, você está convocado...</p>`;
   }
 }
+
+interface CompilarVotacaoParams {
+  PREVIEW_TEXTO: string;
+  NOME_CONDOMINIO: string;
+  NOME_DESTINATARIO: string;
+  TIPO_ASSEMBLEIA: string;
+  DATA_HORA: string;
+  CODIGO_ACESSO: string;
+}
+
+export async function compilarEmailVotacao(params: CompilarVotacaoParams): Promise<string> {
+  try {
+    const { readFileSync } = await import("fs");
+    const { join } = await import("path");
+    const templatePath = join(process.cwd(), "src/lib/assembleias/email-codigo-votacao-template.html");
+    let html = readFileSync(templatePath, "utf-8");
+
+    const placeholders: Record<string, string> = {
+      "{{PREVIEW_TEXTO}}": params.PREVIEW_TEXTO,
+      "{{NOME_CONDOMINIO}}": params.NOME_CONDOMINIO,
+      "{{NOME_DESTINATARIO}}": params.NOME_DESTINATARIO,
+      "{{TIPO_ASSEMBLEIA}}": params.TIPO_ASSEMBLEIA,
+      "{{DATA_HORA}}": params.DATA_HORA,
+      "{{CODIGO_ACESSO}}": params.CODIGO_ACESSO
+    };
+
+    Object.entries(placeholders).forEach(([key, value]) => {
+      html = html.split(key).join(value);
+    });
+
+    return html;
+  } catch (error) {
+    console.error("Erro ao compilar email de votação:", error);
+    return `Seu código de acesso à votação é: ${params.CODIGO_ACESSO}`;
+  }
+}

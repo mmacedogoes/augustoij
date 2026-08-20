@@ -43,7 +43,10 @@ export type AuditAction =
   | "assembleia.habilitacao.confirmar"
   | "assembleia.habilitacao.refazer"
   | "assembleia.habilitacao.ajuste_mesa"
-  | "assembleia.planilha.excluir";
+  | "assembleia.planilha.excluir"
+  | "assembleia.item.abrir"
+  | "assembleia.item.encerrar"
+  | "assembleia.item.apurar";
 
 
 export type AuditEntry = {

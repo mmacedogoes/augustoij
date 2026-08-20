@@ -4732,6 +4732,22 @@ export type Database = {
         }[]
       }
       assembleia_gerar_recibo: { Args: never; Returns: string }
+      assembleia_registrar_voto: {
+        Args: {
+          p_base_calculo: string
+          p_device_hash: string
+          p_ip: unknown
+          p_item_id: string
+          p_justificativa?: string
+          p_lancado_por?: string
+          p_opcao_id: string
+          p_origem: string
+          p_peso: number
+          p_unidade_id: string
+          p_user_agent: string
+        }
+        Returns: string
+      }
       assembleia_verificar_integridade: {
         Args: { p_assembleia_id: string }
         Returns: {
