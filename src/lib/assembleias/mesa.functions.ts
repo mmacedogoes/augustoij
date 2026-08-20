@@ -104,7 +104,7 @@ export const anularEReabrirItem = createServerFn({ method: "POST" })
       .eq("item_id", input.itemId);
 
     // 2. Limpar controle se for secreto
-    if (item.voto_secreto) {
+    if (item.secreto) {
       await supabaseAdmin
         .from("assembleia_votos_controle")
         .delete()
@@ -156,27 +156,28 @@ export const registrarVotoMesa = createServerFn({ method: "POST" })
     await ensureAcessoAssembleias(context);
     const supabaseAdmin = await getSupabaseAdmin();
 
-    const { data: assembleia } = await supabaseAdmin
-      .from("assembleias")
-      .select("voto_pela_mesa")
-      .eq("itens.id", input.itemId)
-      .single();
-
-    if (!assembleia?.voto_pela_mesa) throw new Error("Voto manual pela mesa não permitido nesta assembleia.");
-
     const { data: item } = await supabaseAdmin
       .from("assembleia_itens")
-      .select("voto_secreto")
+      .select("*, assembleias!inner(*)")
       .eq("id", input.itemId)
       .single();
 
-    if (item?.voto_secreto) throw new Error("Não é permitido lançar voto manual em item secreto. Use o modo Cabine.");
+    if (!item) throw new Error("Item não encontrado.");
+    const assembleia = item.assembleias as any;
+
+    if (!assembleia?.permite_voto_manual_mesa) {
+      throw new Error("Voto manual pela mesa não permitido nesta assembleia.");
+    }
+
+    if (item.secreto) {
+      throw new Error("Não é permitido lançar voto manual em item secreto. Use o modo Cabine.");
+    }
 
     const { data: hab } = await supabaseAdmin
       .from("assembleia_habilitacoes")
       .select("*")
       .eq("unidade_id", input.unidadeId)
-      .eq("assembleia_id", (assembleia as any).id)
+      .eq("assembleia_id", assembleia.id)
       .single();
     
     if (!hab || !hab.apta) throw new Error("Unidade não habilitada.");
@@ -186,7 +187,7 @@ export const registrarVotoMesa = createServerFn({ method: "POST" })
       p_unidade_id: input.unidadeId,
       p_opcao_id: input.opcaoId,
       p_peso: hab.peso_unidade,
-      p_base_calculo: 'unidades',
+      p_base_calculo: (item.base_calculo as any) || 'unidades',
       p_origem: 'manual_mesa',
       p_ip: '127.0.0.1',
       p_user_agent: 'Mesa Administrativa',
@@ -204,4 +205,88 @@ export const registrarVotoMesa = createServerFn({ method: "POST" })
     });
 
     return { recibo };
+  });
+
+export const exibirResultadoParcial = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ itemId: z.string().uuid() }).parse(d))
+  .handler(async ({ data: input, context }) => {
+    await ensureAcessoAssembleias(context);
+    const supabaseAdmin = await getSupabaseAdmin();
+
+    const { data: votos } = await supabaseAdmin
+      .from("assembleia_votos")
+      .select("opcao_id, peso")
+      .eq("item_id", input.itemId)
+      .is("invalidado_em", null);
+
+    const mapaVotos: Record<string, number> = {};
+    votos?.forEach(v => {
+      mapaVotos[v.opcao_id] = (mapaVotos[v.opcao_id] || 0) + Number(v.peso);
+    });
+
+    await logAdminAction({
+      actorUserId: context.userId,
+      action: "assembleia.item.exibir_parcial",
+      metadata: { item_id: input.itemId }
+    });
+
+    return { mapaVotos };
+  });
+
+export const abrirCabine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    itemId: z.string().uuid(),
+    unidadeId: z.string().uuid()
+  }).parse(d))
+  .handler(async ({ data: input, context }) => {
+    await ensureAcessoAssembleias(context);
+    const supabaseAdmin = await getSupabaseAdmin();
+
+    // Validações
+    const { data: item } = await supabaseAdmin
+      .from("assembleia_itens")
+      .select("situacao, assembleia_id")
+      .eq("id", input.itemId)
+      .single();
+
+    if (item?.situacao !== 'aberto') throw new Error("Item não está aberto.");
+
+    const { data: hab } = await supabaseAdmin
+      .from("assembleia_habilitacoes")
+      .select("apta")
+      .eq("unidade_id", input.unidadeId)
+      .eq("assembleia_id", item.assembleia_id)
+      .single();
+
+    if (!hab?.apta) throw new Error("Unidade não habilitada.");
+
+    const { count: jaVotou } = await supabaseAdmin
+      .from("assembleia_votos")
+      .select("*", { count: 'exact', head: true })
+      .eq("item_id", input.itemId)
+      .eq("unidade_id", input.unidadeId)
+      .is("invalidado_em", null);
+
+    if (jaVotou && jaVotou > 0) throw new Error("Unidade já votou neste item.");
+
+    const token = crypto.randomUUID();
+    const hash = token; // Simplificado para a fase, ideal seria SHA-256
+    
+    await supabaseAdmin.from("assembleia_cabine_tokens").insert({
+      item_id: input.itemId,
+      unidade_id: input.unidadeId,
+      token_hash: hash,
+      expira_em: new Date(Date.now() + 120 * 1000).toISOString(),
+      criado_por: context.userId
+    });
+
+    await logAdminAction({
+      actorUserId: context.userId,
+      action: "assembleia.cabine.abrir",
+      metadata: { item_id: input.itemId, unidade_id: input.unidadeId }
+    });
+
+    return { url: `/cabine/${token}` };
   });
