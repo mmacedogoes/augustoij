@@ -128,7 +128,7 @@ export function AssembleiasLista({ assembleias }: { assembleias: Assembleia[] })
                 <div>
                   <Link 
                     to={"/app/assembleias/$assembleiaId" as any}
-                    params={{ assembleiaId: a.id }}
+                    params={{ assembleiaId: a.id } as any}
                     className="font-bold text-primary hover:text-augusto-gold transition-colors"
                   >
                     {a.titulo}
