@@ -54,6 +54,7 @@ import { Route as AuthenticatedAppAjudaIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppAjudaSecaoRouteImport } from './routes/_authenticated/app.ajuda.$secao'
 import { Route as AuthenticatedAppAjudaDicasIaRouteImport } from './routes/_authenticated/app.ajuda.dicas-ia'
 import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
+import { Route as AuthenticatedAppAssembleiasIndexRouteImport } from './routes/_authenticated/app.assembleias.index'
 import { Route as AuthenticatedAppAssinaturaRetornoRouteImport } from './routes/_authenticated/app.assinatura.retorno'
 import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
@@ -328,6 +329,12 @@ const AuthenticatedAppAjudaFaqRoute =
     path: '/faq',
     getParentRoute: () => AuthenticatedAppAjudaRoute,
   } as any)
+const AuthenticatedAppAssembleiasIndexRoute =
+  AuthenticatedAppAssembleiasIndexRouteImport.update({
+    id: '/assembleias/',
+    path: '/assembleias/',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppAssinaturaRetornoRoute =
   AuthenticatedAppAssinaturaRetornoRouteImport.update({
     id: '/retorno',
@@ -582,6 +589,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
+  '/app/assembleias/': typeof AuthenticatedAppAssembleiasIndexRoute
   '/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
   '/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
   '/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
@@ -656,6 +664,7 @@ export interface FileRoutesByTo {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/admin': typeof AuthenticatedAppAdminIndexRoute
   '/app/ajuda': typeof AuthenticatedAppAjudaIndexRoute
+  '/app/assembleias': typeof AuthenticatedAppAssembleiasIndexRoute
   '/app/condominios': typeof AuthenticatedAppCondominiosIndexRoute
   '/app/contratos': typeof AuthenticatedAppContratosIndexRoute
   '/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
@@ -737,6 +746,7 @@ export interface FileRoutesById {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/_authenticated/app/admin/': typeof AuthenticatedAppAdminIndexRoute
   '/_authenticated/app/ajuda/': typeof AuthenticatedAppAjudaIndexRoute
+  '/_authenticated/app/assembleias/': typeof AuthenticatedAppAssembleiasIndexRoute
   '/_authenticated/app/condominios/': typeof AuthenticatedAppCondominiosIndexRoute
   '/_authenticated/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
   '/_authenticated/app/admin/helpdesk/$ticketId': typeof AuthenticatedAppAdminHelpdeskTicketIdRoute
@@ -818,6 +828,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/app/admin/'
     | '/app/ajuda/'
+    | '/app/assembleias/'
     | '/app/condominios/'
     | '/app/contratos/'
     | '/app/admin/helpdesk/$ticketId'
@@ -892,6 +903,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/app/admin'
     | '/app/ajuda'
+    | '/app/assembleias'
     | '/app/condominios'
     | '/app/contratos'
     | '/app/admin/helpdesk/$ticketId'
@@ -972,6 +984,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/_authenticated/app/admin/'
     | '/_authenticated/app/ajuda/'
+    | '/_authenticated/app/assembleias/'
     | '/_authenticated/app/condominios/'
     | '/_authenticated/app/contratos/'
     | '/_authenticated/app/admin/helpdesk/$ticketId'
@@ -1342,6 +1355,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/ajuda/faq'
       preLoaderRoute: typeof AuthenticatedAppAjudaFaqRouteImport
       parentRoute: typeof AuthenticatedAppAjudaRoute
+    }
+    '/_authenticated/app/assembleias/': {
+      id: '/_authenticated/app/assembleias/'
+      path: '/assembleias'
+      fullPath: '/app/assembleias/'
+      preLoaderRoute: typeof AuthenticatedAppAssembleiasIndexRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/assinatura/retorno': {
       id: '/_authenticated/app/assinatura/retorno'
@@ -1758,6 +1778,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
   AuthenticatedAppSuporteTicketIdRoute: typeof AuthenticatedAppSuporteTicketIdRoute
+  AuthenticatedAppAssembleiasIndexRoute: typeof AuthenticatedAppAssembleiasIndexRoute
   AuthenticatedAppCondominiosIndexRoute: typeof AuthenticatedAppCondominiosIndexRoute
 }
 
@@ -1770,6 +1791,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
   AuthenticatedAppSuporteTicketIdRoute: AuthenticatedAppSuporteTicketIdRoute,
+  AuthenticatedAppAssembleiasIndexRoute: AuthenticatedAppAssembleiasIndexRoute,
   AuthenticatedAppCondominiosIndexRoute: AuthenticatedAppCondominiosIndexRoute,
 }
 

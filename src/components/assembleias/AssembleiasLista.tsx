@@ -44,7 +44,7 @@ export function AssembleiasLista({ assembleias }: { assembleias: Assembleia[] })
           variant="ghost" 
           size="sm" 
           className="h-8 gap-2 text-augusto-gold hover:text-augusto-gold hover:bg-augusto-gold/10"
-          onClick={() => navigate({ to: `/app/assembleias/nova`, search: { id: a.id, step: 2 } as any })}
+          onClick={() => navigate({ to: "/app/assembleias/nova" as any, search: { id: a.id, step: 2 } as any })}
         >
           <Edit2 className="h-3.5 w-3.5" /> Editar pauta
         </Button>
@@ -127,7 +127,8 @@ export function AssembleiasLista({ assembleias }: { assembleias: Assembleia[] })
               <TableCell>
                 <div>
                   <Link 
-                    to={`/app/assembleias/${a.id}`} 
+                    to={"/app/assembleias/$assembleiaId" as any}
+                    params={{ assembleiaId: a.id }}
                     className="font-bold text-primary hover:text-augusto-gold transition-colors"
                   >
                     {a.titulo}

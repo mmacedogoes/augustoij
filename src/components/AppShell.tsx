@@ -44,6 +44,7 @@ const baseNav = [
 ] as const;
 
 const contratosNav = { to: "/app/contratos/painel", label: "Gestão de Contratos", icon: FileText, tour: "nav-contratos" } as const;
+const assembleiasNav = { to: "/app/assembleias", label: "Assembleias", icon: Users, tour: "nav-assembleias" } as const;
 const adminNav = { to: "/app/admin", label: "Admin", icon: Shield, tour: "nav-admin" } as const;
 
 type NavItem = { to: string; label: string; icon: typeof Building; tour: string };
@@ -138,28 +139,9 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
   // (RLS filtra por dono do condomínio). Admin ganha acesso extra ao painel /admin.
   const nav = useMemo<ReadonlyArray<NavItem>>(
     () => {
-      const items = isAdmin ? [...baseNav, contratosNav, adminNav] : [...baseNav, contratosNav];
-      // Insere Assembleias antes de Documentos (ou no final se Documentos não estiver no baseNav base)
-      // Nota: baseNav não tem documentos. Documentos costuma estar em contratos ou solto.
-      // Vamos adicionar Assembleias como um item fixo para Super Admin
-      const finalNav = [...items];
-      const indexDocs = finalNav.findIndex(i => i.label === "Documentos");
-      const assembleiasItem = { to: "/app/assembleias", label: "Assembleias", icon: Users, tour: "nav-assembleias" };
-      
-      if (isAdmin) {
-        if (indexDocs !== -1) {
-          finalNav.splice(indexDocs, 0, assembleiasItem);
-        } else {
-          // Insere antes de Documentos se fosse existir, ou apenas antes de Admin
-          const indexAdmin = finalNav.findIndex(i => i.to === "/app/admin");
-          if (indexAdmin !== -1) {
-            finalNav.splice(indexAdmin, 0, assembleiasItem);
-          } else {
-            finalNav.push(assembleiasItem);
-          }
-        }
-      }
-      return finalNav as NavItem[];
+      if (!isAdmin) return [...baseNav, contratosNav] as NavItem[];
+      // Para super admin, insere assembleias antes de documentos/admin
+      return [...baseNav, contratosNav, assembleiasNav, adminNav] as NavItem[];
     },
     [isAdmin],
   );
