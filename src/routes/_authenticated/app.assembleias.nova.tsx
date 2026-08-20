@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Save, Sparkles, Check } from "lucide-react";
 import { PassoDados } from "@/components/assembleias/PassoDados";
 import { PassoPauta, ItemPauta } from "@/components/assembleias/PassoPauta";
@@ -201,7 +202,7 @@ function Page() {
         <div className="grid lg:grid-cols-[1fr,300px] gap-8 items-start">
           <main className="space-y-8">
             {step === 1 && <PassoDados data={dados} onChange={setDados} />}
-            {step === 2 && <PassoPauta itens={itens} onChange={setItens} regrasPadrao={regras} />}
+            {step === 2 && <PassoPauta itens={itens} onChange={setItens} regrasPadrao={{ base_calculo: regras.base_calculo_padrao }} />}
             {step === 3 && <PassoRegras data={regras} onChange={setRegras} unidadesSemFracao={unidadesSemFracao} />}
             
             <div className="flex items-center justify-between border-t pt-8">

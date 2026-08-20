@@ -55,6 +55,7 @@ import { Route as AuthenticatedAppAjudaSecaoRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppAjudaDicasIaRouteImport } from './routes/_authenticated/app.ajuda.dicas-ia'
 import { Route as AuthenticatedAppAjudaFaqRouteImport } from './routes/_authenticated/app.ajuda.faq'
 import { Route as AuthenticatedAppAssembleiasIndexRouteImport } from './routes/_authenticated/app.assembleias.index'
+import { Route as AuthenticatedAppAssembleiasNovaRouteImport } from './routes/_authenticated/app.assembleias.nova'
 import { Route as AuthenticatedAppAssinaturaRetornoRouteImport } from './routes/_authenticated/app.assinatura.retorno'
 import { Route as AuthenticatedAppCondominiosIndexRouteImport } from './routes/_authenticated/app.condominios.index'
 import { Route as AuthenticatedAppCondominiosIdRouteImport } from './routes/_authenticated/app.condominios.$id'
@@ -335,6 +336,12 @@ const AuthenticatedAppAssembleiasIndexRoute =
     path: '/assembleias/',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppAssembleiasNovaRoute =
+  AuthenticatedAppAssembleiasNovaRouteImport.update({
+    id: '/assembleias/nova',
+    path: '/assembleias/nova',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppAssinaturaRetornoRoute =
   AuthenticatedAppAssinaturaRetornoRouteImport.update({
     id: '/retorno',
@@ -575,6 +582,7 @@ export interface FileRoutesByFullPath {
   '/app/ajuda/$secao': typeof AuthenticatedAppAjudaSecaoRoute
   '/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
+  '/app/assembleias/nova': typeof AuthenticatedAppAssembleiasNovaRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRouteWithChildren
@@ -650,6 +658,7 @@ export interface FileRoutesByTo {
   '/app/ajuda/$secao': typeof AuthenticatedAppAjudaSecaoRoute
   '/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
   '/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
+  '/app/assembleias/nova': typeof AuthenticatedAppAssembleiasNovaRoute
   '/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRouteWithChildren
@@ -732,6 +741,7 @@ export interface FileRoutesById {
   '/_authenticated/app/ajuda/$secao': typeof AuthenticatedAppAjudaSecaoRoute
   '/_authenticated/app/ajuda/dicas-ia': typeof AuthenticatedAppAjudaDicasIaRoute
   '/_authenticated/app/ajuda/faq': typeof AuthenticatedAppAjudaFaqRoute
+  '/_authenticated/app/assembleias/nova': typeof AuthenticatedAppAssembleiasNovaRoute
   '/_authenticated/app/assinatura/retorno': typeof AuthenticatedAppAssinaturaRetornoRoute
   '/_authenticated/app/condominios/$id': typeof AuthenticatedAppCondominiosIdRoute
   '/_authenticated/app/contratos/$contratoId': typeof AuthenticatedAppContratosContratoIdRouteWithChildren
@@ -814,6 +824,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/$secao'
     | '/app/ajuda/dicas-ia'
     | '/app/ajuda/faq'
+    | '/app/assembleias/nova'
     | '/app/assinatura/retorno'
     | '/app/condominios/$id'
     | '/app/contratos/$contratoId'
@@ -889,6 +900,7 @@ export interface FileRouteTypes {
     | '/app/ajuda/$secao'
     | '/app/ajuda/dicas-ia'
     | '/app/ajuda/faq'
+    | '/app/assembleias/nova'
     | '/app/assinatura/retorno'
     | '/app/condominios/$id'
     | '/app/contratos/$contratoId'
@@ -970,6 +982,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/ajuda/$secao'
     | '/_authenticated/app/ajuda/dicas-ia'
     | '/_authenticated/app/ajuda/faq'
+    | '/_authenticated/app/assembleias/nova'
     | '/_authenticated/app/assinatura/retorno'
     | '/_authenticated/app/condominios/$id'
     | '/_authenticated/app/contratos/$contratoId'
@@ -1361,6 +1374,13 @@ declare module '@tanstack/react-router' {
       path: '/assembleias'
       fullPath: '/app/assembleias/'
       preLoaderRoute: typeof AuthenticatedAppAssembleiasIndexRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/assembleias/nova': {
+      id: '/_authenticated/app/assembleias/nova'
+      path: '/assembleias/nova'
+      fullPath: '/app/assembleias/nova'
+      preLoaderRoute: typeof AuthenticatedAppAssembleiasNovaRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/assinatura/retorno': {
@@ -1776,6 +1796,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppContaRoute: typeof AuthenticatedAppContaRoute
   AuthenticatedAppContratosRoute: typeof AuthenticatedAppContratosRouteWithChildren
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppAssembleiasNovaRoute: typeof AuthenticatedAppAssembleiasNovaRoute
   AuthenticatedAppCondominiosIdRoute: typeof AuthenticatedAppCondominiosIdRoute
   AuthenticatedAppSuporteTicketIdRoute: typeof AuthenticatedAppSuporteTicketIdRoute
   AuthenticatedAppAssembleiasIndexRoute: typeof AuthenticatedAppAssembleiasIndexRoute
@@ -1789,6 +1810,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppContaRoute: AuthenticatedAppContaRoute,
   AuthenticatedAppContratosRoute: AuthenticatedAppContratosRouteWithChildren,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppAssembleiasNovaRoute: AuthenticatedAppAssembleiasNovaRoute,
   AuthenticatedAppCondominiosIdRoute: AuthenticatedAppCondominiosIdRoute,
   AuthenticatedAppSuporteTicketIdRoute: AuthenticatedAppSuporteTicketIdRoute,
   AuthenticatedAppAssembleiasIndexRoute: AuthenticatedAppAssembleiasIndexRoute,
