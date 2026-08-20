@@ -182,7 +182,7 @@ async function assertOwnerCondominio(
   }
 }
 
-async function callGeminiJson(
+export async function callGeminiJson(
   apiKey: string,
   systemPrompt: string,
   userPrompt: string,
