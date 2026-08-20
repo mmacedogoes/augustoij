@@ -47,12 +47,13 @@ export const registrarVoto = createServerFn({ method: "POST" })
     if (error) {
       // Registrar tentativa
       await supabaseAdmin.from("assembleia_tentativas").insert({
+        assembleia_id: hab.assembleia_id,
         item_id: input.itemId,
         unidade_id: input.unidadeId,
         motivo: error.message,
         ip: ip,
         user_agent: agent
-      });
+      } as any);
       throw new Error(error.message);
     }
 

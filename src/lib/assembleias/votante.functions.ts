@@ -49,12 +49,13 @@ export const solicitarAcessoVotacao = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!condomino) {
-      await supabaseAdmin.from("assembleia_tentativas").insert({
+      const { error: errTent } = await supabaseAdmin.from("assembleia_tentativas").insert({
         assembleia_id: assembleia.id,
-        email: emailNormalizado,
+        email_tentativa: emailNormalizado,
         motivo: "email_nao_encontrado",
         ip: ip
-      });
+      } as any);
+      if (errTent) console.error("Erro ao registrar tentativa:", errTent.message);
       return { success: true };
     }
 
