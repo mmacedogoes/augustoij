@@ -25,8 +25,9 @@ const getEditalPublico = createServerFn({ method: 'GET' })
       .single()
 
     if (error || !assembleia) return null
-    return assembleia
+    return assembleia as any
   })
+
 
 export const Route = createFileRoute('/e/$codigo')({
   loader: async ({ params }) => {
