@@ -80,6 +80,7 @@ import { Route as AuthenticatedAppAdminUsuariosIndexRouteImport } from './routes
 import { Route as AuthenticatedAppAdminUsuariosUserIdRouteImport } from './routes/_authenticated/app.admin.usuarios.$userId'
 import { Route as AuthenticatedAppAjudaPerfilPerfilRouteImport } from './routes/_authenticated/app.ajuda.perfil.$perfil'
 import { Route as AuthenticatedAppAssembleiasAssembleiaIdIndexRouteImport } from './routes/_authenticated/app.assembleias.$assembleiaId.index'
+import { Route as AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRouteImport } from './routes/_authenticated/app.assembleias.$assembleiaId.convocacao'
 import { Route as AuthenticatedAppAssembleiasAssembleiaIdEditalRouteImport } from './routes/_authenticated/app.assembleias.$assembleiaId.edital'
 import { Route as AuthenticatedAppContratosContratoIdEditarRouteImport } from './routes/_authenticated/app.contratos.$contratoId.editar'
 import { Route as AuthenticatedAppAdminImoveisAdministracaoIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.administracao.index'
@@ -486,6 +487,12 @@ const AuthenticatedAppAssembleiasAssembleiaIdIndexRoute =
     path: '/assembleias/$assembleiaId/',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute =
+  AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRouteImport.update({
+    id: '/assembleias/$assembleiaId/convocacao',
+    path: '/assembleias/$assembleiaId/convocacao',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppAssembleiasAssembleiaIdEditalRoute =
   AuthenticatedAppAssembleiasAssembleiaIdEditalRouteImport.update({
     id: '/assembleias/$assembleiaId/edital',
@@ -632,6 +639,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
+  '/app/assembleias/$assembleiaId/convocacao': typeof AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute
   '/app/assembleias/$assembleiaId/edital': typeof AuthenticatedAppAssembleiasAssembleiaIdEditalRoute
   '/app/contratos/$contratoId/editar': typeof AuthenticatedAppContratosContratoIdEditarRoute
   '/app/admin/helpdesk/': typeof AuthenticatedAppAdminHelpdeskIndexRoute
@@ -712,6 +720,7 @@ export interface FileRoutesByTo {
   '/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
+  '/app/assembleias/$assembleiaId/convocacao': typeof AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute
   '/app/assembleias/$assembleiaId/edital': typeof AuthenticatedAppAssembleiasAssembleiaIdEditalRoute
   '/app/contratos/$contratoId/editar': typeof AuthenticatedAppContratosContratoIdEditarRoute
   '/app/admin/helpdesk': typeof AuthenticatedAppAdminHelpdeskIndexRoute
@@ -799,6 +808,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/imoveis/importar': typeof AuthenticatedAppAdminImoveisImportarRoute
   '/_authenticated/app/admin/usuarios/$userId': typeof AuthenticatedAppAdminUsuariosUserIdRoute
   '/_authenticated/app/ajuda/perfil/$perfil': typeof AuthenticatedAppAjudaPerfilPerfilRoute
+  '/_authenticated/app/assembleias/$assembleiaId/convocacao': typeof AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute
   '/_authenticated/app/assembleias/$assembleiaId/edital': typeof AuthenticatedAppAssembleiasAssembleiaIdEditalRoute
   '/_authenticated/app/contratos/$contratoId/editar': typeof AuthenticatedAppContratosContratoIdEditarRoute
   '/_authenticated/app/admin/helpdesk/': typeof AuthenticatedAppAdminHelpdeskIndexRoute
@@ -886,6 +896,7 @@ export interface FileRouteTypes {
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
+    | '/app/assembleias/$assembleiaId/convocacao'
     | '/app/assembleias/$assembleiaId/edital'
     | '/app/contratos/$contratoId/editar'
     | '/app/admin/helpdesk/'
@@ -966,6 +977,7 @@ export interface FileRouteTypes {
     | '/app/admin/imoveis/importar'
     | '/app/admin/usuarios/$userId'
     | '/app/ajuda/perfil/$perfil'
+    | '/app/assembleias/$assembleiaId/convocacao'
     | '/app/assembleias/$assembleiaId/edital'
     | '/app/contratos/$contratoId/editar'
     | '/app/admin/helpdesk'
@@ -1052,6 +1064,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/imoveis/importar'
     | '/_authenticated/app/admin/usuarios/$userId'
     | '/_authenticated/app/ajuda/perfil/$perfil'
+    | '/_authenticated/app/assembleias/$assembleiaId/convocacao'
     | '/_authenticated/app/assembleias/$assembleiaId/edital'
     | '/_authenticated/app/contratos/$contratoId/editar'
     | '/_authenticated/app/admin/helpdesk/'
@@ -1603,6 +1616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdIndexRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/assembleias/$assembleiaId/convocacao': {
+      id: '/_authenticated/app/assembleias/$assembleiaId/convocacao'
+      path: '/assembleias/$assembleiaId/convocacao'
+      fullPath: '/app/assembleias/$assembleiaId/convocacao'
+      preLoaderRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/assembleias/$assembleiaId/edital': {
       id: '/_authenticated/app/assembleias/$assembleiaId/edital'
       path: '/assembleias/$assembleiaId/edital'
@@ -1881,6 +1901,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppSuporteTicketIdRoute: typeof AuthenticatedAppSuporteTicketIdRoute
   AuthenticatedAppAssembleiasIndexRoute: typeof AuthenticatedAppAssembleiasIndexRoute
   AuthenticatedAppCondominiosIndexRoute: typeof AuthenticatedAppCondominiosIndexRoute
+  AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute
   AuthenticatedAppAssembleiasAssembleiaIdEditalRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdEditalRoute
   AuthenticatedAppAssembleiasAssembleiaIdIndexRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdIndexRoute
 }
@@ -1897,6 +1918,8 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppSuporteTicketIdRoute: AuthenticatedAppSuporteTicketIdRoute,
   AuthenticatedAppAssembleiasIndexRoute: AuthenticatedAppAssembleiasIndexRoute,
   AuthenticatedAppCondominiosIndexRoute: AuthenticatedAppCondominiosIndexRoute,
+  AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute:
+    AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute,
   AuthenticatedAppAssembleiasAssembleiaIdEditalRoute:
     AuthenticatedAppAssembleiasAssembleiaIdEditalRoute,
   AuthenticatedAppAssembleiasAssembleiaIdIndexRoute:

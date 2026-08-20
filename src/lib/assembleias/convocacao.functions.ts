@@ -9,7 +9,6 @@ export const montarConvocacao = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     await ensureAcessoAssembleias({ supabase, userId });
 
-    // 1. Criar registro da convocação
     const { data: conv, error: convErr } = await supabase
       .from("assembleia_convocacoes")
       .insert({
@@ -23,17 +22,22 @@ export const montarConvocacao = createServerFn({ method: "POST" })
 
     if (convErr) throw new Error(convErr.message);
 
-    // 2. Montar destinatários (unidade por unidade)
     const { data: unidades, error: uniErr } = await supabase
       .from("unidades")
-      .select("id, bloco, numero, condominios(id), condominios_condominos(*)");
+      .select(`
+        id, 
+        bloco, 
+        numero, 
+        condominio:condominios(id),
+        condominos:condominios_condominos(*)
+      `)
+      .eq("condominio_id", (await supabase.from("assembleias").select("condominio_id").eq("id", data.assembleiaId).single()).data.condominio_id);
 
     if (uniErr) throw new Error(uniErr.message);
 
     const destinatarios = [];
     for (const uni of unidades) {
-      const conds = uni.condominios_condominos || [];
-      // Lógica de prioridade
+      const conds = uni.condominos || [];
       const principal = conds.find((c: any) => c.eh_principal) || 
                        conds.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
 
@@ -59,3 +63,36 @@ export const montarConvocacao = createServerFn({ method: "POST" })
 
     return conv;
   });
+
+export const getDadosConvocacao = createServerFn({ method: "GET" })
+  .inputValidator(z.object({ convocacaoId: z.string() }))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await ensureAcessoAssembleias({ supabase, userId });
+
+    const { data: conv, error } = await supabase
+      .from("assembleia_convocacoes")
+      .select(`
+        *,
+        destinatarios:assembleia_convocacao_destinatarios(
+          *,
+          unidade:unidades(bloco, numero)
+        )
+      `)
+      .eq("id", data.convocacaoId)
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    // Mapear identificação da unidade para a UI
+    const mapped = {
+      ...conv,
+      destinatarios: conv.destinatarios.map((d: any) => ({
+        ...d,
+        unidade_identificacao: `${d.unidade.bloco || ""} ${d.unidade.numero}`.trim()
+      }))
+    };
+
+    return mapped;
+  });
+
