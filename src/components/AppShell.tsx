@@ -141,8 +141,9 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
     () => {
       if (!isAdmin) return [...baseNav, contratosNav] as NavItem[];
       // Para super admin, insere assembleias antes de documentos/admin
-      return [...baseNav, contratosNav, assembleiasNav, adminNav] as NavItem[];
+      return [...baseNav, contratosNav, assembleiasNav, adminNav] as unknown as NavItem[];
     },
+
     [isAdmin],
   );
 

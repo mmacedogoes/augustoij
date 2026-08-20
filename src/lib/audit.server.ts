@@ -31,7 +31,14 @@ export type AuditAction =
   | "assembleia.create"
   | "assembleia.update"
   | "assembleia.cancel"
-  | "assembleia.pauta.update";
+  | "assembleia.pauta.update"
+  | "assembleia.edital.publicar"
+  | "assembleia.convocacao.montar"
+  | "assembleia.convocacao.enviar_email"
+  | "assembleia.convocacao.whatsapp_link"
+  | "assembleia.convocacao.whatsapp_confirmar"
+  | "assembleia.convocacao.entrega_fisica";
+
 
 export type AuditEntry = {
   actorUserId: string;
