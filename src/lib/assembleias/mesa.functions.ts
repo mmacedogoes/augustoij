@@ -8,7 +8,8 @@ import { logAdminAction } from "../audit.server";
 export const getProgressoItem = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({ itemId: z.string().uuid() }).parse(d))
   .handler(async ({ data: input, context }) => {
-    await ensureAcessoAssembleias(context);
+    if (!context?.userId || !context?.supabase) throw new Error("Não autorizado");
+    await ensureAcessoAssembleias(context as any);
     const supabaseAdmin = await getSupabaseAdmin();
 
     // 1. Total de unidades aptas na assembleia
@@ -43,7 +44,8 @@ export const getProgressoItem = createServerFn({ method: "GET" })
 export const prorrogarVotacao = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ itemId: z.string().uuid(), segundos: z.number() }).parse(d))
   .handler(async ({ data: input, context }) => {
-    await ensureAcessoAssembleias(context);
+    if (!context?.userId || !context?.supabase) throw new Error("Não autorizado");
+    await ensureAcessoAssembleias(context as any);
     const supabaseAdmin = await getSupabaseAdmin();
 
     const { data: item } = await supabaseAdmin
