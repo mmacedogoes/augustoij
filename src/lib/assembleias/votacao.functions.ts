@@ -154,7 +154,7 @@ async function apurarItemInterno(itemId: string) {
     .from("assembleia_votos")
     .select("*")
     .eq("item_id", itemId)
-    .eq("invalido", false);
+    .is("invalidado_em", null);
 
   // 4. Carregar total de aptos (snapshot da habilitação)
   const { count: totalAptos } = await supabaseAdmin
@@ -192,7 +192,7 @@ async function apurarItemInterno(itemId: string) {
   const votosFavoraveis = simOpcao ? (mapaVotos[simOpcao.id] || 0) : maxVotos;
   
   const resQuorum = calcularQuorum(votosFavoraveis, totalAptos || 0, {
-    tipo: (item.tipo_quorum as any) || 'maioria_simples',
+    tipo: (item.regra_quorum as any) || 'maioria_simples',
     base_calculo: (item.base_calculo as any) || 'unidades'
   });
 
@@ -200,13 +200,14 @@ async function apurarItemInterno(itemId: string) {
     item_id: itemId,
     total_aptos: totalAptos || 0,
     total_votantes: votos?.length || 0,
-    mapa_votos: mapaVotos,
+    votos: mapaVotos as any,
     vencedora_opcao_id: vencedoraOpcaoId,
     aprovado: resQuorum.aprovado,
     quorum_exigido: resQuorum.quorum_exigido,
     quorum_atingido: resQuorum.quorum_atingido,
     empate: empate,
-    hash_resultado: `RES-${Date.now()}` // Trigger deve gerar o real, aqui é fallback
+    base_calculo: item.base_calculo || 'unidades',
+    hash_resultado: `RES-${Date.now()}`
   };
 
   const { data: novoResultado, error: errIns } = await supabaseAdmin

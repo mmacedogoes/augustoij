@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { logAdminAction } from "@/lib/audit.server";
-import { generateOTP, hashValue } from "@/lib/utils"; // Assumindo helpers existentes ou criar abaixo
-import { cookies } from "next/headers"; // Simulado para TanStack Start
+import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 
 // Importação dinâmica para service_role
 const getSupabaseAdmin = async () => {
@@ -28,7 +27,7 @@ export const solicitarAcessoVotacao = createServerFn({ method: "POST" })
     const emailNormalizado = input.email.trim().toLowerCase();
     
     // 1. Rate Limit (Simulado via tabela de tentativas)
-    const ip = context.request.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getRequestIP({ xForwardedFor: true }) || "127.0.0.1";
     
     // 2. Buscar Assembleia
     const { data: assembleia } = await supabaseAdmin
@@ -70,8 +69,9 @@ export const solicitarAcessoVotacao = createServerFn({ method: "POST" })
         assembleia_id: assembleia.id,
         condomino_id: condomino.id,
         otp_hash: otpHash,
-        expira_em: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-        tentativas: 0
+        otp_expira_em: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        tentativas_otp: 0,
+        email: emailNormalizado
       })
       .select()
       .single();
@@ -79,22 +79,33 @@ export const solicitarAcessoVotacao = createServerFn({ method: "POST" })
     if (errSessao) throw new Error("Falha ao criar sessão.");
 
     // 5. Enviar E-mail (Resend)
-    const { sendEmail } = await import("@/lib/resend");
-    const { compileEmail } = await import("./email-compiler.server");
+    const { compilarEmailVotacao } = await import("./email-compiler.server");
     
-    const html = await compileEmail("src/lib/assembleias/email-codigo-votacao-template.html", {
-      NOME_CONDOMINIO: "Condomínio", // Buscar real
+    const html = await compilarEmailVotacao({
+      PREVIEW_TEXTO: `Código de Acesso - Votação`,
+      NOME_CONDOMINIO: "Condomínio", 
       NOME_DESTINATARIO: condomino.nome,
       TIPO_ASSEMBLEIA: "Assembleia",
       DATA_HORA: new Date().toLocaleString('pt-BR'),
       CODIGO_ACESSO: otp
     });
 
-    await sendEmail({
-      to: emailNormalizado,
-      subject: "Seu código de acesso à votação",
-      html: html
+    // Envio manual via fetch para contornar ausência de resend.ts
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env['RESEND_API_KEY']}`
+      },
+      body: JSON.stringify({
+        from: "Augusto.IJ <nao-responder@augustoij.com.br>",
+        to: emailNormalizado,
+        subject: "Seu código de acesso à votação",
+        html: html
+      })
     });
+
+    if (!res.ok) console.error("Falha ao enviar e-mail via Resend API");
 
     return { success: true };
   });
@@ -129,8 +140,8 @@ export const confirmarAcessoVotacao = createServerFn({ method: "POST" })
     const tokenHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token))
       .then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join(''));
 
-    const ip = context.request.headers.get("x-forwarded-for") || "127.0.0.1";
-    const agent = context.request.headers.get("user-agent") || "";
+    const ip = getRequestIP({ xForwardedFor: true }) || "127.0.0.1";
+    const agent = getRequestHeader("user-agent") || "";
     
     await supabaseAdmin
       .from("assembleia_sessoes_votante")
