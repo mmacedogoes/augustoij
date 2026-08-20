@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAssembleia } from '@/lib/assembleias/assembleias.functions';
 import { montarConvocacao, getDadosConvocacao } from '@/lib/assembleias/convocacao.functions';
 import { enviarConvocacaoEmail, registrarEntregaFisica } from '@/lib/assembleias/envio.functions';
-import { registrarLinkWhatsapp, confirmarEnvioWhatsapp } from '@/lib/assembleias/whatsapp.functions';
+import { registrarLinkWhatsApp, confirmarEnvioWhatsApp } from '@/lib/assembleias/whatsapp.functions';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -243,7 +243,7 @@ function WhatsAppAction({ destinatarioId, status, telefone }: any) {
     window.open(url, '_blank', 'noopener,noreferrer');
     
     // Registrar em background
-    registrarLinkWhatsapp({ data: { destinatarioId } });
+    registrarLinkWhatsApp({ data: { destinatarioId } });
   };
 
   return (
