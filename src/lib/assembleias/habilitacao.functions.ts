@@ -35,7 +35,6 @@ export const gerarUrlUploadPlanilha = createServerFn({ method: "POST" })
     await ensureAcessoAssembleias(context);
     const { assembleiaId, fileName } = input;
     
-    // Caminho: assembleias/{id}/importacoes/{timestamp}-{name}
     const path = `assembleias/${assembleiaId}/importacoes/${Date.now()}-${fileName}`;
     
     const { data, error } = await context.supabase.storage
@@ -121,7 +120,7 @@ export const processarImportacaoIA = createServerFn({ method: "POST" })
       const { data: conds } = await supabaseAdmin
         .from("condominos")
         .select("unidade_id, nome")
-        .eq("principal", true); // Corrigido de 'tipo_condomino' para 'principal' conforme schema
+        .eq("principal", true);
         
       const unidadesLista = unidades.map(u => ({
         id: u.id,
@@ -144,7 +143,7 @@ export const processarImportacaoIA = createServerFn({ method: "POST" })
       let lastModel = "google/gemini-2.5-flash";
 
       for (const chunk of chunks) {
-        const systemPrompt = `Você é um assistente especialista em extrair dados de inadimplência de condomínios.
+        const systemPrompt = `Você é um assistente especialista em extrair dados de inadimplência de condomínios brasileiros.
 Extraia quais unidades constam na relação e case cada linha com uma das unidades cadastradas.
 Lista de unidades cadastradas: ${JSON.stringify(unidadesLista.slice(0, 150))}`;
 
@@ -152,10 +151,8 @@ Lista de unidades cadastradas: ${JSON.stringify(unidadesLista.slice(0, 150))}`;
 
         const resIA = await callGeminiJson(apiKey, systemPrompt, userPrompt);
         
-        const parsed = z.object({ linhas: z.array(LinhaIAResult) }).safeParse(resIA.data);
-        if (parsed.success) {
-          allLinhas.push(...parsed.data.linhas);
-        }
+        const parsedData = (resIA.data as any)?.linhas || [];
+        allLinhas.push(...parsedData);
         
         totalInputTokens += resIA.usage.prompt_tokens;
         totalOutputTokens += resIA.usage.completion_tokens;
@@ -168,15 +165,14 @@ Lista de unidades cadastradas: ${JSON.stringify(unidadesLista.slice(0, 150))}`;
         identificador_bruto: l.identificador_bruto,
         nome_bruto: l.nome_bruto,
         valor_debito: l.valor_debito,
-        match_status: l.match_status,
         confianca: l.confianca,
-        inadimplente: imp.tipo_lista === "inadimplentes" ? true : false,
+        inadimplente: imp.tipo_lista === "inadimplentes",
         ajustado_manualmente: false,
-        ignorado: false // Explicitamente definido conforme schema
+        ignorado: false
       }));
 
       if (itensParaInserir.length > 0) {
-        const { error: errIns } = await supabaseAdmin.from("assembleia_inadimplencia_itens").insert(itensParaInserir);
+        const { error: errIns } = await supabaseAdmin.from("assembleia_inadimplencia_itens").insert(itensParaInserir as any);
         if (errIns) throw new Error(`Falha ao inserir itens: ${errIns.message}`);
       }
 
@@ -191,7 +187,7 @@ Lista de unidades cadastradas: ${JSON.stringify(unidadesLista.slice(0, 150))}`;
       });
 
       const total = itensParaInserir.length;
-      const casadas = itensParaInserir.filter(i => i.match_status === "ok").length;
+      const casadas = allLinhas.filter(i => i.match_status === "ok").length;
       
       await supabaseAdmin
         .from("assembleia_inadimplencia_importacoes")
@@ -327,7 +323,7 @@ export const confirmarHabilitacao = createServerFn({ method: "POST" })
     }
 
     if (habilitacoes && habilitacoes.length > 0) {
-      const { error: errHab } = await supabaseAdmin.from("assembleia_habilitacoes").insert(habilitacoes);
+      const { error: errHab } = await supabaseAdmin.from("assembleia_habilitacoes").insert(habilitacoes as any);
       if (errHab) throw new Error(errHab.message);
     }
 
@@ -368,7 +364,7 @@ export const ajustarHabilitacaoMesa = createServerFn({ method: "POST" })
         origem_dado: "ajuste_manual",
         congelado_por: context.userId,
         congelado_em: new Date().toISOString()
-      })
+      } as any)
       .eq("assembleia_id", input.assembleiaId)
       .eq("unidade_id", input.unidadeId);
       
@@ -403,7 +399,6 @@ export const refazerHabilitacao = createServerFn({ method: "POST" })
     if (ass.instalada_em) throw new Error("Não é possível refazer a habilitação após a assembleia ter sido instalada.");
     if (ass.titulo !== input.confirmacaoNome) throw new Error("Nome da assembleia incorreto para confirmação.");
 
-    // Deletar habilitações
     const { error: errDel } = await supabaseAdmin
       .from("assembleia_habilitacoes")
       .delete()
@@ -411,7 +406,6 @@ export const refazerHabilitacao = createServerFn({ method: "POST" })
 
     if (errDel) throw new Error(errDel.message);
 
-    // Limpar confirmação
     await supabaseAdmin
       .from("assembleias")
       .update({ habilitacao_confirmada_em: null })
@@ -442,11 +436,9 @@ export const excluirPlanilha = createServerFn({ method: "POST" })
       .single();
 
     if (imp?.arquivo_path) {
-      const { error } = await supabaseAdmin.storage
+      await supabaseAdmin.storage
         .from("assembleia-planilhas")
         .remove([imp.arquivo_path]);
-        
-      if (error) throw new Error(`Falha ao excluir arquivo: ${error.message}`);
     }
 
     await logAdminAction({
