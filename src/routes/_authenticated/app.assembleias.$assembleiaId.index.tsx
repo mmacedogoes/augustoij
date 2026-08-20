@@ -95,16 +95,35 @@ function Page() {
             </div>
           </div>
           
-          {editavel && (
+          <div className="flex items-center gap-2">
             <Button 
-              variant="augusto" 
-              className="gap-2"
-              onClick={() => navigate({ to: "/app/assembleias/nova" as any, search: { id: assembleia.id, step: 2 } as any })}
+              variant="outline"
+              className="gap-2 border-augusto-gold/20 hover:bg-augusto-gold/5 text-augusto-gold"
+              onClick={() => navigate({ to: `/app/assembleias/${assembleiaId}/edital` as any })}
             >
-              <Edit2 className="h-4 w-4" /> Editar pauta
+              <FileText className="h-4 w-4" /> Edital
             </Button>
-          )}
+            
+            <Button 
+              variant="outline"
+              className="gap-2 border-augusto-gold/20 hover:bg-augusto-gold/5 text-augusto-gold"
+              onClick={() => navigate({ to: `/app/assembleias/${assembleiaId}/convocacao` as any })}
+            >
+              <Send className="h-4 w-4" /> Convocação
+            </Button>
+
+            {editavel && (
+              <Button 
+                variant="augusto" 
+                className="gap-2"
+                onClick={() => navigate({ to: "/app/assembleias/nova" as any, search: { id: assembleia.id, step: 2 } as any })}
+              >
+                <Edit2 className="h-4 w-4" /> Editar pauta
+              </Button>
+            )}
+          </div>
         </header>
+
 
         <div className="grid lg:grid-cols-[1fr,300px] gap-8 items-start">
           <main className="space-y-8">
