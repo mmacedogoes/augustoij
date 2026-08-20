@@ -108,11 +108,79 @@ export const createAssembleia = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     // Auditoria
-    const { logAdminAction } = await import("@/lib/contratos-servico/auditoria.server");
-    await logAdminAction(supabase, userId, "assembleia.create", { 
-      assembleia_id: row.id,
-      condominio_id: data.condominio_id 
-    }, data.condominio_id);
+    const { logAdminAction } = await import("@/lib/audit.server");
+    await logAdminAction({
+      actorUserId: userId,
+      action: "assembleia.create",
+      targetCondominioId: data.condominio_id,
+      metadata: { assembleia_id: row.id }
+    });
+
+    return row;
+  });
+
+export const updateAssembleia = createServerFn({ method: "POST" })
+  .inputValidator(z.object({
+    id: z.string(),
+    titulo: z.string().min(5).optional(),
+    tipo: z.string().optional(),
+    data_inicio: z.string().optional(),
+    local: z.string().optional(),
+    modalidade: z.enum(["presencial", "virtual", "hibrida"]).optional(),
+    link_videoconferencia: z.string().url().optional().or(z.literal("")),
+    convocacao_numero: z.number().optional(),
+    situacao: z.string().optional()
+  }))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await ensureAcessoAssembleias({ supabase, userId });
+
+    const { id, ...updateData } = data;
+    const { data: row, error } = await supabase
+      .from("assembleias")
+      .update(updateData)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    const { logAdminAction } = await import("@/lib/audit.server");
+    await logAdminAction({
+      actorUserId: userId,
+      action: "assembleia.update",
+      targetCondominioId: row.condominio_id,
+      metadata: { assembleia_id: id }
+    });
+
+    return row;
+  });
+
+export const cancelarAssembleia = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ 
+    id: z.string(),
+    motivo: z.string().optional()
+  }))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await ensureAcessoAssembleias({ supabase, userId });
+
+    const { data: row, error } = await supabase
+      .from("assembleias")
+      .update({ situacao: "cancelada" })
+      .eq("id", data.id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    const { logAdminAction } = await import("@/lib/audit.server");
+    await logAdminAction({
+      actorUserId: userId,
+      action: "assembleia.cancel",
+      targetCondominioId: row.condominio_id,
+      metadata: { assembleia_id: data.id, motivo: data.motivo }
+    });
 
     return row;
   });

@@ -55,6 +55,16 @@ export const upsertItemPauta = createServerFn({ method: "POST" })
       );
     }
 
+    // Auditoria
+    const { logAdminAction } = await import("@/lib/audit.server");
+    const { data: ass } = await supabase.from("assembleias").select("condominio_id").eq("id", row.assembleia_id).single();
+    await logAdminAction({
+      actorUserId: userId,
+      action: "assembleia.pauta.update",
+      targetCondominioId: ass?.condominio_id,
+      metadata: { assembleia_id: row.assembleia_id, item_id: row.id }
+    });
+
     return row;
   });
 
