@@ -517,6 +517,83 @@ export type Database = {
           },
         ]
       }
+      assembleia_fila_fala: {
+        Row: {
+          assembleia_id: string
+          condomino_id: string | null
+          encerrou_em: string | null
+          id: string
+          iniciou_em: string | null
+          inscrito_em: string
+          item_id: string | null
+          observacao: string | null
+          ordem: number
+          representante_nome: string | null
+          sessao_id: string
+          situacao: string
+          unidade_id: string
+        }
+        Insert: {
+          assembleia_id: string
+          condomino_id?: string | null
+          encerrou_em?: string | null
+          id?: string
+          iniciou_em?: string | null
+          inscrito_em?: string
+          item_id?: string | null
+          observacao?: string | null
+          ordem: number
+          representante_nome?: string | null
+          sessao_id: string
+          situacao?: string
+          unidade_id: string
+        }
+        Update: {
+          assembleia_id?: string
+          condomino_id?: string | null
+          encerrou_em?: string | null
+          id?: string
+          iniciou_em?: string | null
+          inscrito_em?: string
+          item_id?: string | null
+          observacao?: string | null
+          ordem?: number
+          representante_nome?: string | null
+          sessao_id?: string
+          situacao?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembleia_fila_fala_assembleia_id_fkey"
+            columns: ["assembleia_id"]
+            isOneToOne: false
+            referencedRelation: "assembleias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_fila_fala_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_fila_fala_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "assembleia_sessoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembleia_fila_fala_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assembleia_gravacoes: {
         Row: {
           arquivo_path: string
