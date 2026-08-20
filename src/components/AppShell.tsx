@@ -10,6 +10,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   MoreHorizontal,
+  Users,
 } from "lucide-react";
 import { useMemo, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -136,8 +137,30 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
   // "Gestão de Contratos" liberado a qualquer usuário autenticado
   // (RLS filtra por dono do condomínio). Admin ganha acesso extra ao painel /admin.
   const nav = useMemo<ReadonlyArray<NavItem>>(
-    () =>
-      (isAdmin ? [...baseNav, contratosNav, adminNav] : [...baseNav, contratosNav]) as NavItem[],
+    () => {
+      const items = isAdmin ? [...baseNav, contratosNav, adminNav] : [...baseNav, contratosNav];
+      // Insere Assembleias antes de Documentos (ou no final se Documentos não estiver no baseNav base)
+      // Nota: baseNav não tem documentos. Documentos costuma estar em contratos ou solto.
+      // Vamos adicionar Assembleias como um item fixo para Super Admin
+      const finalNav = [...items];
+      const indexDocs = finalNav.findIndex(i => i.label === "Documentos");
+      const assembleiasItem = { to: "/app/assembleias", label: "Assembleias", icon: Users, tour: "nav-assembleias" };
+      
+      if (isAdmin) {
+        if (indexDocs !== -1) {
+          finalNav.splice(indexDocs, 0, assembleiasItem);
+        } else {
+          // Insere antes de Documentos se fosse existir, ou apenas antes de Admin
+          const indexAdmin = finalNav.findIndex(i => i.to === "/app/admin");
+          if (indexAdmin !== -1) {
+            finalNav.splice(indexAdmin, 0, assembleiasItem);
+          } else {
+            finalNav.push(assembleiasItem);
+          }
+        }
+      }
+      return finalNav as NavItem[];
+    },
     [isAdmin],
   );
 
