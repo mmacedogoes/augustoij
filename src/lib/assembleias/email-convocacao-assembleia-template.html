@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Convocação de assembleia</title>
+</head>
+<body style="margin:0; padding:0; background-color:#F4F3F2;" bgcolor="#F4F3F2">
+
+<div style="display:none; max-height:0px; overflow:hidden; mso-hide:all;">{{PREVIEW_TEXTO}}</div>
+
+<table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#F4F3F2" style="background-color:#F4F3F2; margin:0; padding:0;">
+<tr>
+<td align="center" style="padding:24px 12px 32px 12px;">
+
+<table width="600" border="0" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+
+<!-- CABECALHO -->
+<!-- Logotipo com largura definida e altura automatica. Nunca defina altura fixa aqui: os arquivos de marca nao sao quadrados e altura fixa deforma o desenho. -->
+<tr>
+<td align="center" bgcolor="#00512B" style="background-color:#00512B; padding:30px 24px 24px 24px; border-radius:6px 6px 0 0;">
+<img src="https://augustoij.com.br/__l5e/assets-v1/598c4b3d-6b9f-4b5a-a484-6e195d698b48/augusto-ij-logo-full-dark-FINAL.png" width="240" alt="Augusto.IJ" border="0" style="display:block; margin:0 auto; width:240px; max-width:240px; height:auto; border:0; outline:none; text-decoration:none;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center" style="padding:20px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:11px; line-height:16px; color:#B8935A; letter-spacing:1.5px; text-transform:uppercase;">
+{{TIPO_ETIQUETA}}
+</td>
+</tr>
+<tr>
+<td align="center" style="padding:8px 0 0 0; font-family:Georgia, 'Times New Roman', serif; font-size:23px; line-height:30px; color:#FFFFFF; font-weight:normal;">
+{{TITULO_CABECALHO}}
+</td>
+</tr>
+<tr>
+<td align="center" style="padding:6px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:13px; line-height:18px; color:#B8935A;">
+{{NOME_CONDOMINIO}}
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- SAUDACAO -->
+<tr>
+<td bgcolor="#FFFFFF" style="background-color:#FFFFFF; padding:32px 32px 0 32px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td style="font-family:Arial, Helvetica, sans-serif; font-size:16px; line-height:24px; color:#1F2937;">
+Prezado(a) {{NOME_DESTINATARIO}},
+</td>
+</tr>
+<tr>
+<td style="padding:4px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:13px; line-height:20px; color:#B8935A;">
+{{UNIDADE}}
+</td>
+</tr>
+<tr>
+<td style="padding:14px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:24px; color:#475569;">
+{{MENSAGEM_ABERTURA}}
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- DADOS DA ASSEMBLEIA -->
+<tr>
+<td bgcolor="#FFFFFF" style="background-color:#FFFFFF; padding:24px 32px 8px 32px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td bgcolor="#F4F3F2" style="background-color:#F4F3F2; padding:20px 22px 20px 22px; border-left:4px solid #00512B; border-radius:0 4px 4px 0;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td style="font-family:Arial, Helvetica, sans-serif; font-size:12px; line-height:16px; color:#B8935A; letter-spacing:0.5px; text-transform:uppercase;">
+Quando e onde
+</td>
+</tr>
+<tr>
+<td style="padding:10px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:24px; color:#475569;">
+<strong style="color:#1F2937;">Data:</strong> {{DATA_EXTENSO}}<br>
+<strong style="color:#1F2937;">Horário:</strong> {{HORARIO}}, em {{CONVOCACAO_NUMERO}} convocação<br>
+<strong style="color:#1F2937;">Local:</strong> {{LOCAL}}<br>
+<strong style="color:#1F2937;">Modalidade:</strong> {{MODALIDADE}}
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- ORDEM DO DIA -->
+<tr>
+<td bgcolor="#FFFFFF" style="background-color:#FFFFFF; padding:20px 32px 0 32px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td style="font-family:Georgia, 'Times New Roman', serif; font-size:19px; line-height:26px; color:#00512B;">
+Ordem do dia
+</td>
+</tr>
+<tr>
+<td height="12" style="height:12px; line-height:12px; font-size:0;">&nbsp;</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td bgcolor="#FFFFFF" style="background-color:#FFFFFF; padding:0 32px 8px 32px;">
+
+<!--ITEM_INICIO-->
+<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
+<tr>
+<td width="42" valign="top" align="center" style="width:42px; padding:2px 10px 0 0; font-family:Georgia, 'Times New Roman', serif; font-size:20px; line-height:24px; color:#B8935A;">
+{{ITEM_ROMANO}}
+</td>
+<td valign="top">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td style="font-family:Georgia, 'Times New Roman', serif; font-size:16px; line-height:23px; color:#1F2937;">
+{{ITEM_TITULO}}
+</td>
+</tr>
+<tr>
+<td style="padding:6px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#475569;">
+{{ITEM_DESCRICAO}}
+</td>
+</tr>
+<tr>
+<td style="padding:8px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:12px; line-height:18px; color:#B8935A; letter-spacing:0.3px;">
+{{ITEM_QUORUM}}
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+<!--ITEM_FIM-->
+
+</td>
+</tr>
+
+<!-- BOTAO EDITAL -->
+<tr>
+<td bgcolor="#FFFFFF" align="center" style="background-color:#FFFFFF; padding:18px 32px 8px 32px;">
+<table border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center" bgcolor="#00512B" style="background-color:#00512B; border-radius:4px;">
+<a href="{{URL_EDITAL}}" style="display:inline-block; padding:14px 32px; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:20px; color:#FFFFFF; text-decoration:none; font-weight:bold; border-radius:4px;">Ler o edital completo</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!--BLOCO_SALA_INICIO-->
+<tr>
+<td bgcolor="#FFFFFF" align="center" style="background-color:#FFFFFF; padding:8px 32px 0 32px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td bgcolor="#F4F3F2" align="center" style="background-color:#F4F3F2; padding:18px 20px; border-radius:4px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center" style="font-family:Arial, Helvetica, sans-serif; font-size:12px; line-height:16px; color:#B8935A; letter-spacing:0.5px; text-transform:uppercase;">
+Participação on-line
+</td>
+</tr>
+<tr>
+<td align="center" style="padding:8px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#475569;">
+A assembleia também acontece por videoconferência. Entre pelo endereço abaixo no horário marcado.
+</td>
+</tr>
+<tr>
+<td align="center" style="padding:12px 0 0 0;">
+<a href="{{URL_SALA}}" style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:20px; color:#00512B; text-decoration:underline; font-weight:bold; word-break:break-all;">{{URL_SALA_TEXTO}}</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<!--BLOCO_SALA_FIM-->
+
+<!--BLOCO_VOTACAO_INICIO-->
+<tr>
+<td bgcolor="#FFFFFF" align="center" style="background-color:#FFFFFF; padding:12px 32px 0 32px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td bgcolor="#F4F3F2" style="background-color:#F4F3F2; padding:18px 20px; border-left:4px solid #B8935A; border-radius:0 4px 4px 0;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td style="font-family:Arial, Helvetica, sans-serif; font-size:12px; line-height:16px; color:#B8935A; letter-spacing:0.5px; text-transform:uppercase;">
+Votação pelo celular
+</td>
+</tr>
+<tr>
+<td style="padding:8px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#475569;">
+No dia da assembleia, o endereço abaixo abre o espaço de votação da sua unidade. O acesso é feito com este mesmo e-mail.
+</td>
+</tr>
+<tr>
+<td style="padding:12px 0 0 0;">
+<a href="{{URL_VOTACAO}}" style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:20px; color:#00512B; text-decoration:underline; font-weight:bold; word-break:break-all;">{{URL_VOTACAO_TEXTO}}</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<!--BLOCO_VOTACAO_FIM-->
+
+<!--BLOCO_AVISO_INICIO-->
+<tr>
+<td bgcolor="#FFFFFF" style="background-color:#FFFFFF; padding:20px 32px 0 32px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td style="font-family:Arial, Helvetica, sans-serif; font-size:13px; line-height:20px; color:#475569;">
+{{AVISO_LEGAL}}
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<!--BLOCO_AVISO_FIM-->
+
+<!-- ASSINATURA -->
+<tr>
+<td bgcolor="#FFFFFF" style="background-color:#FFFFFF; padding:24px 32px 32px 32px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td height="1" bgcolor="#E5E3E0" style="background-color:#E5E3E0; height:1px; line-height:1px; font-size:0;">&nbsp;</td>
+</tr>
+<tr>
+<td style="padding:20px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:22px; color:#1F2937;">
+{{ASSINATURA_NOME}}<br>
+<span style="color:#475569; font-size:13px;">{{ASSINATURA_CARGO}}</span>
+</td>
+</tr>
+<tr>
+<td align="center" style="padding:22px 0 0 0; font-family:Georgia, 'Times New Roman', serif; font-size:14px; line-height:20px; color:#B8935A; font-style:italic;">
+Dura lex, sed Augusto.
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- RODAPE -->
+<tr>
+<td bgcolor="#F4F3F2" align="center" style="background-color:#F4F3F2; padding:24px 24px 0 24px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center" style="font-family:Arial, Helvetica, sans-serif; font-size:12px; line-height:18px; color:#475569;">
+Você recebeu esta comunicação porque consta como condômino da unidade {{UNIDADE}} no cadastro do {{NOME_CONDOMINIO}}.
+</td>
+</tr>
+<tr>
+<td align="center" style="padding:8px 0 0 0; font-family:Arial, Helvetica, sans-serif; font-size:12px; line-height:18px; color:#475569;">
+Este é um e-mail automático. Para falar com a administração, procure o síndico do seu condomínio.
+</td>
+</tr>
+<tr>
+<td align="center" style="padding:12px 0 24px 0; font-family:Arial, Helvetica, sans-serif; font-size:11px; line-height:16px; color:#475569;">
+Augusto.IJ Tecnologia LTDA &bull; {{ANO}}
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
