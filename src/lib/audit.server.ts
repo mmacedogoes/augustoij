@@ -27,7 +27,11 @@ export type AuditAction =
   | "despesa.delete"
   | "config_alertas.update"
   | "privacidade.exclusao_solicitada"
-  | "privacidade.exclusao_confirmada";
+  | "privacidade.exclusao_confirmada"
+  | "assembleia.create"
+  | "assembleia.update"
+  | "assembleia.cancel"
+  | "assembleia.pauta.update";
 
 export type AuditEntry = {
   actorUserId: string;

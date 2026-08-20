@@ -10,6 +10,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   MoreHorizontal,
+  Users,
 } from "lucide-react";
 import { useMemo, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -43,6 +44,7 @@ const baseNav = [
 ] as const;
 
 const contratosNav = { to: "/app/contratos/painel", label: "Gestão de Contratos", icon: FileText, tour: "nav-contratos" } as const;
+const assembleiasNav = { to: "/app/assembleias", label: "Assembleias", icon: Users, tour: "nav-assembleias" } as const;
 const adminNav = { to: "/app/admin", label: "Admin", icon: Shield, tour: "nav-admin" } as const;
 
 type NavItem = { to: string; label: string; icon: typeof Building; tour: string };
@@ -136,8 +138,11 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
   // "Gestão de Contratos" liberado a qualquer usuário autenticado
   // (RLS filtra por dono do condomínio). Admin ganha acesso extra ao painel /admin.
   const nav = useMemo<ReadonlyArray<NavItem>>(
-    () =>
-      (isAdmin ? [...baseNav, contratosNav, adminNav] : [...baseNav, contratosNav]) as NavItem[],
+    () => {
+      if (!isAdmin) return [...baseNav, contratosNav] as NavItem[];
+      // Para super admin, insere assembleias antes de documentos/admin
+      return [...baseNav, contratosNav, assembleiasNav, adminNav] as NavItem[];
+    },
     [isAdmin],
   );
 
