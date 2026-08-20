@@ -30,6 +30,7 @@ import { Route as AuthConfirmarRouteImport } from './routes/auth.confirmar'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as ECodigoRouteImport } from './routes/e.$codigo'
+import { Route as VCodigoRouteImport } from './routes/v.$codigo'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppAjudaRouteImport } from './routes/_authenticated/app.ajuda'
@@ -198,6 +199,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
 const ECodigoRoute = ECodigoRouteImport.update({
   id: '/e/$codigo',
   path: '/e/$codigo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VCodigoRoute = VCodigoRouteImport.update({
+  id: '/v/$codigo',
+  path: '/v/$codigo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
@@ -599,6 +605,7 @@ export interface FileRoutesByFullPath {
   '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/e/$codigo': typeof ECodigoRoute
+  '/v/$codigo': typeof VCodigoRoute
   '/blog/': typeof BlogIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
@@ -685,6 +692,7 @@ export interface FileRoutesByTo {
   '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/e/$codigo': typeof ECodigoRoute
+  '/v/$codigo': typeof VCodigoRoute
   '/blog': typeof BlogIndexRoute
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
@@ -770,6 +778,7 @@ export interface FileRoutesById {
   '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/e/$codigo': typeof ECodigoRoute
+  '/v/$codigo': typeof VCodigoRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
@@ -859,6 +868,7 @@ export interface FileRouteTypes {
     | '/auth/confirmar'
     | '/blog/$slug'
     | '/e/$codigo'
+    | '/v/$codigo'
     | '/blog/'
     | '/app/admin'
     | '/app/ajuda'
@@ -945,6 +955,7 @@ export interface FileRouteTypes {
     | '/auth/confirmar'
     | '/blog/$slug'
     | '/e/$codigo'
+    | '/v/$codigo'
     | '/blog'
     | '/app/assinatura'
     | '/app/conta'
@@ -1029,6 +1040,7 @@ export interface FileRouteTypes {
     | '/auth/confirmar'
     | '/blog/$slug'
     | '/e/$codigo'
+    | '/v/$codigo'
     | '/blog/'
     | '/_authenticated/app/admin'
     | '/_authenticated/app/ajuda'
@@ -1116,6 +1128,7 @@ export interface RootRouteChildren {
   AuthConfirmarRoute: typeof AuthConfirmarRoute
   BlogSlugRoute: typeof BlogSlugRoute
   ECodigoRoute: typeof ECodigoRoute
+  VCodigoRoute: typeof VCodigoRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
@@ -1277,6 +1290,13 @@ declare module '@tanstack/react-router' {
       path: '/e/$codigo'
       fullPath: '/e/$codigo'
       preLoaderRoute: typeof ECodigoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/v/$codigo': {
+      id: '/v/$codigo'
+      path: '/v/$codigo'
+      fullPath: '/v/$codigo'
+      preLoaderRoute: typeof VCodigoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/': {
@@ -1984,6 +2004,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthConfirmarRoute: AuthConfirmarRoute,
   BlogSlugRoute: BlogSlugRoute,
   ECodigoRoute: ECodigoRoute,
+  VCodigoRoute: VCodigoRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
-import { useServerFn, useSuspenseQuery } from '@tanstack/react-start';
+import { useServerFn } from '@tanstack/react-start';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { solicitarAcessoVotacao, confirmarAcessoVotacao } from '@/lib/assembleias/votante.functions';
 import { getEstadoVotacao, registrarVoto } from '@/lib/assembleias/votacao.portal.functions';
 import { Button } from '@/components/ui/button';
