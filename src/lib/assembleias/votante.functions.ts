@@ -126,7 +126,7 @@ export const confirmarAcessoVotacao = createServerFn({ method: "POST" })
     const { data: sessao } = await supabaseAdmin
       .from("assembleia_sessoes_votante")
       .select("*, condominos!inner(email)")
-      .eq("condominos.email", emailNormalizado)
+      .eq("email", emailNormalizado)
       .eq("otp_hash", otpHash)
       .gt("expira_em", new Date().toISOString())
       .is("confirmado_em", null)
