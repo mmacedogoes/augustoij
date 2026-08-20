@@ -46,7 +46,7 @@ export function montarMensagemWhatsApp(
   let msg = `*${assembleia.condominio_nome}*\n`;
   msg += `*CONVOCAÇÃO: ASSEMBLEIA ${assembleia.tipo.toUpperCase()}*\n\n`;
   msg += `Prezado(a) ${destinatario.nome} (${destinatario.unidade}),\n\n`;
-  msg += `Convocamos V.S.ª para a assembleia que será realizada em *${dataFormatada}* (${diaSemana}), às *${horaFormatada}* em ${assembleia.convocacao_numero}ª convocação.\n\n`;
+  msg += `Convocamos V.S.ª para a assembleia em *${dataFormatada}* (${diaSemana}), às *${horaFormatada}* em ${assembleia.convocacao_numero}ª convocação.\n\n`;
   msg += `📍 *Local:* ${assembleia.local || 'Não informado'}\n`;
   msg += `💻 *Modalidade:* ${modalidadeTexto}\n\n`;
   
@@ -56,7 +56,7 @@ export function montarMensagemWhatsApp(
   });
   msg += `\n`;
 
-  const baseUrl = `https://augustoij.com.br`; // Usar o domínio do projeto
+  const baseUrl = `https://augustoij.com.br`;
   msg += `📄 *Edital completo:* ${baseUrl}/e/${assembleia.codigo_publico}\n`;
 
   if (assembleia.link_videoconferencia && (assembleia.modalidade === 'virtual' || assembleia.modalidade === 'hibrida')) {
@@ -64,14 +64,7 @@ export function montarMensagemWhatsApp(
   }
 
   if (options.incluirVotacao) {
-    // Apenas reservado para Fase 6
-    // msg += `🗳️ *Votação:* ${baseUrl}/v/${assembleia.codigo_publico}\n`;
-  }
-
-  // Validação de limite
-  if (msg.length > 900) {
-    // Tenta encurtar removendo descrições ou limitando itens se necessário
-    // Mas a instrução pede bloqueio na UI, aqui apenas retornamos
+    // Fase 6
   }
 
   return msg;
