@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
 import { logAdminAction } from "@/lib/audit.server";
 
-export const registrarLinkWhatsapp = createServerFn({ method: "POST" })
+export const registrarLinkWhatsApp = createServerFn({ method: "POST" })
   .inputValidator(z.object({ destinatarioId: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -36,7 +36,7 @@ export const registrarLinkWhatsapp = createServerFn({ method: "POST" })
     return { success: true };
   });
 
-export const confirmarEnvioWhatsapp = createServerFn({ method: "POST" })
+export const confirmarEnvioWhatsApp = createServerFn({ method: "POST" })
   .inputValidator(z.object({ destinatarioId: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
