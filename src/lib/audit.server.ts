@@ -46,7 +46,16 @@ export type AuditAction =
   | "assembleia.planilha.excluir"
   | "assembleia.item.abrir"
   | "assembleia.item.encerrar"
-  | "assembleia.item.apurar";
+  | "assembleia.item.apurar"
+  | "assembleia.item.prorrogar"
+  | "assembleia.item.exibir_parcial"
+  | "assembleia.item.anular"
+  | "assembleia.voto.mesa"
+  | "assembleia.cabine.abrir"
+  | "assembleia.fila.inscrever"
+  | "assembleia.sessao.suspender"
+  | "assembleia.sessao.retomar"
+  | "assembleia.encerrar";
 
 
 export type AuditEntry = {
