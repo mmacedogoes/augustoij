@@ -37,7 +37,13 @@ export type AuditAction =
   | "assembleia.convocacao.enviar_email"
   | "assembleia.convocacao.whatsapp_link"
   | "assembleia.convocacao.whatsapp_confirmar"
-  | "assembleia.convocacao.entrega_fisica";
+  | "assembleia.convocacao.entrega_fisica"
+  | "assembleia.inadimplencia.importar"
+  | "assembleia.inadimplencia.ajustar"
+  | "assembleia.habilitacao.confirmar"
+  | "assembleia.habilitacao.refazer"
+  | "assembleia.habilitacao.ajuste_mesa"
+  | "assembleia.planilha.excluir";
 
 
 export type AuditEntry = {
