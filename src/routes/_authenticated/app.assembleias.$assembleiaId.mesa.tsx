@@ -279,7 +279,12 @@ function MesaPage() {
                         <div className="flex items-center gap-4">
                           <NumeralRomano n={item.ordem} className="text-xl text-augusto-gold/40" />
                           <div>
-                            <h4 className="font-bold text-primary">{item.titulo}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-primary">{item.titulo}</h4>
+                              {item.alerta_ia && (
+                                <AlertCircle className="h-3 w-3 text-amber-500" />
+                              )}
+                            </div>
                             <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
                               {item.secreto ? "Voto Secreto" : "Voto Nominal"} • Quórum: {item.regra_quorum}
                             </span>
