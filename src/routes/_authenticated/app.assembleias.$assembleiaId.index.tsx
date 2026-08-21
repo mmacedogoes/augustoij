@@ -96,6 +96,14 @@ function Page() {
           </div>
           
           <div className="flex items-center gap-2">
+            {assembleia.situacao === "ao_vivo" && (
+              <Button 
+                className="bg-[#00512B] hover:bg-[#00512B]/90 text-white gap-2"
+                onClick={() => navigate({ to: `/app/assembleias/${assembleiaId}/mesa` as any })}
+              >
+                <Monitor className="h-4 w-4" /> Entrar na Mesa
+              </Button>
+            )}
             <Button 
               variant="outline"
               className="gap-2 border-augusto-gold/20 hover:bg-augusto-gold/5 text-augusto-gold"
