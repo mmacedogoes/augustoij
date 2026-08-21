@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Edit2, Calendar, MapPin, Video, FileText, Send } from "lucide-react";
+import { ChevronLeft, Edit2, Calendar, MapPin, Video, FileText, Send, Monitor } from "lucide-react";
 import { getAssembleia } from "@/lib/assembleias/assembleias.functions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
