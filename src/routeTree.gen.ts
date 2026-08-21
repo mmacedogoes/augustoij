@@ -29,6 +29,7 @@ import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthConfirmarRouteImport } from './routes/auth.confirmar'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as CabineTokenRouteImport } from './routes/cabine.$token'
 import { Route as ECodigoRouteImport } from './routes/e.$codigo'
 import { Route as VCodigoRouteImport } from './routes/v.$codigo'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
@@ -194,6 +195,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CabineTokenRoute = CabineTokenRouteImport.update({
+  id: '/cabine/$token',
+  path: '/cabine/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ECodigoRoute = ECodigoRouteImport.update({
@@ -604,6 +610,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/cabine/$token': typeof CabineTokenRoute
   '/e/$codigo': typeof ECodigoRoute
   '/v/$codigo': typeof VCodigoRoute
   '/blog/': typeof BlogIndexRoute
@@ -691,6 +698,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/cabine/$token': typeof CabineTokenRoute
   '/e/$codigo': typeof ECodigoRoute
   '/v/$codigo': typeof VCodigoRoute
   '/blog': typeof BlogIndexRoute
@@ -777,6 +785,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/cabine/$token': typeof CabineTokenRoute
   '/e/$codigo': typeof ECodigoRoute
   '/v/$codigo': typeof VCodigoRoute
   '/blog/': typeof BlogIndexRoute
@@ -867,6 +876,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/auth/confirmar'
     | '/blog/$slug'
+    | '/cabine/$token'
     | '/e/$codigo'
     | '/v/$codigo'
     | '/blog/'
@@ -954,6 +964,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/auth/confirmar'
     | '/blog/$slug'
+    | '/cabine/$token'
     | '/e/$codigo'
     | '/v/$codigo'
     | '/blog'
@@ -1039,6 +1050,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/auth/confirmar'
     | '/blog/$slug'
+    | '/cabine/$token'
     | '/e/$codigo'
     | '/v/$codigo'
     | '/blog/'
@@ -1127,6 +1139,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   AuthConfirmarRoute: typeof AuthConfirmarRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  CabineTokenRoute: typeof CabineTokenRoute
   ECodigoRoute: typeof ECodigoRoute
   VCodigoRoute: typeof VCodigoRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -1283,6 +1296,13 @@ declare module '@tanstack/react-router' {
       path: '/blog/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cabine/$token': {
+      id: '/cabine/$token'
+      path: '/cabine/$token'
+      fullPath: '/cabine/$token'
+      preLoaderRoute: typeof CabineTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/e/$codigo': {
@@ -2003,6 +2023,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   AuthConfirmarRoute: AuthConfirmarRoute,
   BlogSlugRoute: BlogSlugRoute,
+  CabineTokenRoute: CabineTokenRoute,
   ECodigoRoute: ECodigoRoute,
   VCodigoRoute: VCodigoRoute,
   BlogIndexRoute: BlogIndexRoute,

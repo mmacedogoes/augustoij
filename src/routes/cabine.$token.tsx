@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useParams } from "@tanstack/react-query";
+import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -7,11 +7,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { registrarVotoMesa, getProgressoItem } from "@/lib/assembleias/mesa.functions";
-import { getEstadoVotacao } from "@/lib/assembleias/votacao.portal.functions";
-import { ShieldCheck, UserX, Loader2, CheckCircle, XCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { registrarVotoMesa } from "@/lib/assembleias/mesa.functions";
+import { ShieldCheck, Loader2, CheckCircle, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/cabine/$token")({
   component: CabinePage,
@@ -33,7 +30,7 @@ function CabinePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("assembleia_cabine_tokens")
-        .select("*, assembleia_itens(*)")
+        .select("*, assembleia_itens(*, assembleia_opcoes(*))")
         .eq("token_hash", token)
         .is("usado_em", null)
         .gt("expira_em", new Date().toISOString())
@@ -52,8 +49,10 @@ function CabinePage() {
     retry: false
   });
 
+  const registerVotoFn = useServerFn(registrarVotoMesa);
+
   const mutation = useMutation({
-    mutationFn: registrarVotoMesa,
+    mutationFn: registerVotoFn,
     onSuccess: async () => {
       // Marcar token como usado
       await supabase
@@ -125,7 +124,7 @@ function CabinePage() {
 
         <CardContent className="p-8">
           <div className="grid gap-4">
-            {item?.opcoes?.map((opcao: any) => (
+            {item?.assembleia_opcoes?.map((opcao: any) => (
               <Button
                 key={opcao.id}
                 variant="outline"
