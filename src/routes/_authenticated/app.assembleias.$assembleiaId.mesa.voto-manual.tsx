@@ -202,7 +202,7 @@ function VotoManualPage() {
                       <SelectValue placeholder="Selecione a opção manifestada..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {item?.assembleia_opcoes?.map((op: any) => (
+                      {item?.opcoes?.map((op: any) => (
                         <SelectItem key={op.id} value={op.id}>{op.rotulo}</SelectItem>
                       ))}
                     </SelectContent>
