@@ -29,6 +29,7 @@ import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthConfirmarRouteImport } from './routes/auth.confirmar'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as CabineTokenRouteImport } from './routes/cabine.$token'
 import { Route as ECodigoRouteImport } from './routes/e.$codigo'
 import { Route as VCodigoRouteImport } from './routes/v.$codigo'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
@@ -84,6 +85,7 @@ import { Route as AuthenticatedAppAssembleiasAssembleiaIdIndexRouteImport } from
 import { Route as AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRouteImport } from './routes/_authenticated/app.assembleias.$assembleiaId.convocacao'
 import { Route as AuthenticatedAppAssembleiasAssembleiaIdEditalRouteImport } from './routes/_authenticated/app.assembleias.$assembleiaId.edital'
 import { Route as AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRouteImport } from './routes/_authenticated/app.assembleias.$assembleiaId.habilitacao'
+import { Route as AuthenticatedAppAssembleiasAssembleiaIdMesaRouteImport } from './routes/_authenticated/app.assembleias.$assembleiaId.mesa'
 import { Route as AuthenticatedAppContratosContratoIdEditarRouteImport } from './routes/_authenticated/app.contratos.$contratoId.editar'
 import { Route as AuthenticatedAppAdminImoveisAdministracaoIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.administracao.index'
 import { Route as AuthenticatedAppAdminImoveisAdministracaoIdRouteImport } from './routes/_authenticated/app.admin.imoveis.administracao.$id'
@@ -93,6 +95,7 @@ import { Route as AuthenticatedAppAdminImoveisProprietariosIndexRouteImport } fr
 import { Route as AuthenticatedAppAdminImoveisProprietariosIdRouteImport } from './routes/_authenticated/app.admin.imoveis.proprietarios.$id'
 import { Route as AuthenticatedAppAdminImoveisUnidadesIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.index'
 import { Route as AuthenticatedAppAdminImoveisUnidadesIdRouteImport } from './routes/_authenticated/app.admin.imoveis.unidades.$id'
+import { Route as AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRouteImport } from './routes/_authenticated/app.assembleias.$assembleiaId.mesa.voto-manual'
 import { Route as AuthenticatedAppAdminImoveisLocacaoIdIndexRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id.index'
 import { Route as AuthenticatedAppAdminImoveisLocacaoIdAditivoRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id.aditivo'
 import { Route as AuthenticatedAppAdminImoveisLocacaoIdEditarRouteImport } from './routes/_authenticated/app.admin.imoveis.locacao.$id.editar'
@@ -194,6 +197,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CabineTokenRoute = CabineTokenRouteImport.update({
+  id: '/cabine/$token',
+  path: '/cabine/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ECodigoRoute = ECodigoRouteImport.update({
@@ -512,6 +520,12 @@ const AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRoute =
     path: '/assembleias/$assembleiaId/habilitacao',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppAssembleiasAssembleiaIdMesaRoute =
+  AuthenticatedAppAssembleiasAssembleiaIdMesaRouteImport.update({
+    id: '/assembleias/$assembleiaId/mesa',
+    path: '/assembleias/$assembleiaId/mesa',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppContratosContratoIdEditarRoute =
   AuthenticatedAppContratosContratoIdEditarRouteImport.update({
     id: '/editar',
@@ -566,6 +580,12 @@ const AuthenticatedAppAdminImoveisUnidadesIdRoute =
     path: '/unidades/$id',
     getParentRoute: () => AuthenticatedAppAdminImoveisRoute,
   } as any)
+const AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRoute =
+  AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRouteImport.update({
+    id: '/voto-manual',
+    path: '/voto-manual',
+    getParentRoute: () => AuthenticatedAppAssembleiasAssembleiaIdMesaRoute,
+  } as any)
 const AuthenticatedAppAdminImoveisLocacaoIdIndexRoute =
   AuthenticatedAppAdminImoveisLocacaoIdIndexRouteImport.update({
     id: '/locacao/$id/',
@@ -604,6 +624,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/cabine/$token': typeof CabineTokenRoute
   '/e/$codigo': typeof ECodigoRoute
   '/v/$codigo': typeof VCodigoRoute
   '/blog/': typeof BlogIndexRoute
@@ -656,6 +677,7 @@ export interface FileRoutesByFullPath {
   '/app/assembleias/$assembleiaId/convocacao': typeof AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute
   '/app/assembleias/$assembleiaId/edital': typeof AuthenticatedAppAssembleiasAssembleiaIdEditalRoute
   '/app/assembleias/$assembleiaId/habilitacao': typeof AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRoute
+  '/app/assembleias/$assembleiaId/mesa': typeof AuthenticatedAppAssembleiasAssembleiaIdMesaRouteWithChildren
   '/app/contratos/$contratoId/editar': typeof AuthenticatedAppContratosContratoIdEditarRoute
   '/app/admin/helpdesk/': typeof AuthenticatedAppAdminHelpdeskIndexRoute
   '/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
@@ -664,6 +686,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/imoveis/administracao/$id': typeof AuthenticatedAppAdminImoveisAdministracaoIdRoute
   '/app/admin/imoveis/proprietarios/$id': typeof AuthenticatedAppAdminImoveisProprietariosIdRoute
   '/app/admin/imoveis/unidades/$id': typeof AuthenticatedAppAdminImoveisUnidadesIdRoute
+  '/app/assembleias/$assembleiaId/mesa/voto-manual': typeof AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRoute
   '/app/admin/imoveis/administracao/': typeof AuthenticatedAppAdminImoveisAdministracaoIndexRoute
   '/app/admin/imoveis/honorarios/': typeof AuthenticatedAppAdminImoveisHonorariosIndexRoute
   '/app/admin/imoveis/locacao/': typeof AuthenticatedAppAdminImoveisLocacaoIndexRoute
@@ -691,6 +714,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/cabine/$token': typeof CabineTokenRoute
   '/e/$codigo': typeof ECodigoRoute
   '/v/$codigo': typeof VCodigoRoute
   '/blog': typeof BlogIndexRoute
@@ -739,6 +763,7 @@ export interface FileRoutesByTo {
   '/app/assembleias/$assembleiaId/convocacao': typeof AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute
   '/app/assembleias/$assembleiaId/edital': typeof AuthenticatedAppAssembleiasAssembleiaIdEditalRoute
   '/app/assembleias/$assembleiaId/habilitacao': typeof AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRoute
+  '/app/assembleias/$assembleiaId/mesa': typeof AuthenticatedAppAssembleiasAssembleiaIdMesaRouteWithChildren
   '/app/contratos/$contratoId/editar': typeof AuthenticatedAppContratosContratoIdEditarRoute
   '/app/admin/helpdesk': typeof AuthenticatedAppAdminHelpdeskIndexRoute
   '/app/admin/imoveis': typeof AuthenticatedAppAdminImoveisIndexRoute
@@ -747,6 +772,7 @@ export interface FileRoutesByTo {
   '/app/admin/imoveis/administracao/$id': typeof AuthenticatedAppAdminImoveisAdministracaoIdRoute
   '/app/admin/imoveis/proprietarios/$id': typeof AuthenticatedAppAdminImoveisProprietariosIdRoute
   '/app/admin/imoveis/unidades/$id': typeof AuthenticatedAppAdminImoveisUnidadesIdRoute
+  '/app/assembleias/$assembleiaId/mesa/voto-manual': typeof AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRoute
   '/app/admin/imoveis/administracao': typeof AuthenticatedAppAdminImoveisAdministracaoIndexRoute
   '/app/admin/imoveis/honorarios': typeof AuthenticatedAppAdminImoveisHonorariosIndexRoute
   '/app/admin/imoveis/locacao': typeof AuthenticatedAppAdminImoveisLocacaoIndexRoute
@@ -777,6 +803,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/auth/confirmar': typeof AuthConfirmarRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/cabine/$token': typeof CabineTokenRoute
   '/e/$codigo': typeof ECodigoRoute
   '/v/$codigo': typeof VCodigoRoute
   '/blog/': typeof BlogIndexRoute
@@ -829,6 +856,7 @@ export interface FileRoutesById {
   '/_authenticated/app/assembleias/$assembleiaId/convocacao': typeof AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute
   '/_authenticated/app/assembleias/$assembleiaId/edital': typeof AuthenticatedAppAssembleiasAssembleiaIdEditalRoute
   '/_authenticated/app/assembleias/$assembleiaId/habilitacao': typeof AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRoute
+  '/_authenticated/app/assembleias/$assembleiaId/mesa': typeof AuthenticatedAppAssembleiasAssembleiaIdMesaRouteWithChildren
   '/_authenticated/app/contratos/$contratoId/editar': typeof AuthenticatedAppContratosContratoIdEditarRoute
   '/_authenticated/app/admin/helpdesk/': typeof AuthenticatedAppAdminHelpdeskIndexRoute
   '/_authenticated/app/admin/imoveis/': typeof AuthenticatedAppAdminImoveisIndexRoute
@@ -837,6 +865,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/imoveis/administracao/$id': typeof AuthenticatedAppAdminImoveisAdministracaoIdRoute
   '/_authenticated/app/admin/imoveis/proprietarios/$id': typeof AuthenticatedAppAdminImoveisProprietariosIdRoute
   '/_authenticated/app/admin/imoveis/unidades/$id': typeof AuthenticatedAppAdminImoveisUnidadesIdRoute
+  '/_authenticated/app/assembleias/$assembleiaId/mesa/voto-manual': typeof AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRoute
   '/_authenticated/app/admin/imoveis/administracao/': typeof AuthenticatedAppAdminImoveisAdministracaoIndexRoute
   '/_authenticated/app/admin/imoveis/honorarios/': typeof AuthenticatedAppAdminImoveisHonorariosIndexRoute
   '/_authenticated/app/admin/imoveis/locacao/': typeof AuthenticatedAppAdminImoveisLocacaoIndexRoute
@@ -867,6 +896,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/auth/confirmar'
     | '/blog/$slug'
+    | '/cabine/$token'
     | '/e/$codigo'
     | '/v/$codigo'
     | '/blog/'
@@ -919,6 +949,7 @@ export interface FileRouteTypes {
     | '/app/assembleias/$assembleiaId/convocacao'
     | '/app/assembleias/$assembleiaId/edital'
     | '/app/assembleias/$assembleiaId/habilitacao'
+    | '/app/assembleias/$assembleiaId/mesa'
     | '/app/contratos/$contratoId/editar'
     | '/app/admin/helpdesk/'
     | '/app/admin/imoveis/'
@@ -927,6 +958,7 @@ export interface FileRouteTypes {
     | '/app/admin/imoveis/administracao/$id'
     | '/app/admin/imoveis/proprietarios/$id'
     | '/app/admin/imoveis/unidades/$id'
+    | '/app/assembleias/$assembleiaId/mesa/voto-manual'
     | '/app/admin/imoveis/administracao/'
     | '/app/admin/imoveis/honorarios/'
     | '/app/admin/imoveis/locacao/'
@@ -954,6 +986,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/auth/confirmar'
     | '/blog/$slug'
+    | '/cabine/$token'
     | '/e/$codigo'
     | '/v/$codigo'
     | '/blog'
@@ -1002,6 +1035,7 @@ export interface FileRouteTypes {
     | '/app/assembleias/$assembleiaId/convocacao'
     | '/app/assembleias/$assembleiaId/edital'
     | '/app/assembleias/$assembleiaId/habilitacao'
+    | '/app/assembleias/$assembleiaId/mesa'
     | '/app/contratos/$contratoId/editar'
     | '/app/admin/helpdesk'
     | '/app/admin/imoveis'
@@ -1010,6 +1044,7 @@ export interface FileRouteTypes {
     | '/app/admin/imoveis/administracao/$id'
     | '/app/admin/imoveis/proprietarios/$id'
     | '/app/admin/imoveis/unidades/$id'
+    | '/app/assembleias/$assembleiaId/mesa/voto-manual'
     | '/app/admin/imoveis/administracao'
     | '/app/admin/imoveis/honorarios'
     | '/app/admin/imoveis/locacao'
@@ -1039,6 +1074,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/auth/confirmar'
     | '/blog/$slug'
+    | '/cabine/$token'
     | '/e/$codigo'
     | '/v/$codigo'
     | '/blog/'
@@ -1091,6 +1127,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/assembleias/$assembleiaId/convocacao'
     | '/_authenticated/app/assembleias/$assembleiaId/edital'
     | '/_authenticated/app/assembleias/$assembleiaId/habilitacao'
+    | '/_authenticated/app/assembleias/$assembleiaId/mesa'
     | '/_authenticated/app/contratos/$contratoId/editar'
     | '/_authenticated/app/admin/helpdesk/'
     | '/_authenticated/app/admin/imoveis/'
@@ -1099,6 +1136,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/imoveis/administracao/$id'
     | '/_authenticated/app/admin/imoveis/proprietarios/$id'
     | '/_authenticated/app/admin/imoveis/unidades/$id'
+    | '/_authenticated/app/assembleias/$assembleiaId/mesa/voto-manual'
     | '/_authenticated/app/admin/imoveis/administracao/'
     | '/_authenticated/app/admin/imoveis/honorarios/'
     | '/_authenticated/app/admin/imoveis/locacao/'
@@ -1127,6 +1165,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   AuthConfirmarRoute: typeof AuthConfirmarRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  CabineTokenRoute: typeof CabineTokenRoute
   ECodigoRoute: typeof ECodigoRoute
   VCodigoRoute: typeof VCodigoRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -1283,6 +1322,13 @@ declare module '@tanstack/react-router' {
       path: '/blog/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cabine/$token': {
+      id: '/cabine/$token'
+      path: '/cabine/$token'
+      fullPath: '/cabine/$token'
+      preLoaderRoute: typeof CabineTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/e/$codigo': {
@@ -1670,6 +1716,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/assembleias/$assembleiaId/mesa': {
+      id: '/_authenticated/app/assembleias/$assembleiaId/mesa'
+      path: '/assembleias/$assembleiaId/mesa'
+      fullPath: '/app/assembleias/$assembleiaId/mesa'
+      preLoaderRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdMesaRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/contratos/$contratoId/editar': {
       id: '/_authenticated/app/contratos/$contratoId/editar'
       path: '/editar'
@@ -1732,6 +1785,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/admin/imoveis/unidades/$id'
       preLoaderRoute: typeof AuthenticatedAppAdminImoveisUnidadesIdRouteImport
       parentRoute: typeof AuthenticatedAppAdminImoveisRoute
+    }
+    '/_authenticated/app/assembleias/$assembleiaId/mesa/voto-manual': {
+      id: '/_authenticated/app/assembleias/$assembleiaId/mesa/voto-manual'
+      path: '/voto-manual'
+      fullPath: '/app/assembleias/$assembleiaId/mesa/voto-manual'
+      preLoaderRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRouteImport
+      parentRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdMesaRoute
     }
     '/_authenticated/app/admin/imoveis/locacao/$id/': {
       id: '/_authenticated/app/admin/imoveis/locacao/$id/'
@@ -1929,6 +1989,21 @@ const AuthenticatedAppContratosRouteWithChildren =
     AuthenticatedAppContratosRouteChildren,
   )
 
+interface AuthenticatedAppAssembleiasAssembleiaIdMesaRouteChildren {
+  AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRoute
+}
+
+const AuthenticatedAppAssembleiasAssembleiaIdMesaRouteChildren: AuthenticatedAppAssembleiasAssembleiaIdMesaRouteChildren =
+  {
+    AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRoute:
+      AuthenticatedAppAssembleiasAssembleiaIdMesaVotoManualRoute,
+  }
+
+const AuthenticatedAppAssembleiasAssembleiaIdMesaRouteWithChildren =
+  AuthenticatedAppAssembleiasAssembleiaIdMesaRoute._addFileChildren(
+    AuthenticatedAppAssembleiasAssembleiaIdMesaRouteChildren,
+  )
+
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
   AuthenticatedAppAjudaRoute: typeof AuthenticatedAppAjudaRouteWithChildren
@@ -1944,6 +2019,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdConvocacaoRoute
   AuthenticatedAppAssembleiasAssembleiaIdEditalRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdEditalRoute
   AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRoute
+  AuthenticatedAppAssembleiasAssembleiaIdMesaRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdMesaRouteWithChildren
   AuthenticatedAppAssembleiasAssembleiaIdIndexRoute: typeof AuthenticatedAppAssembleiasAssembleiaIdIndexRoute
 }
 
@@ -1965,6 +2041,8 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
     AuthenticatedAppAssembleiasAssembleiaIdEditalRoute,
   AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRoute:
     AuthenticatedAppAssembleiasAssembleiaIdHabilitacaoRoute,
+  AuthenticatedAppAssembleiasAssembleiaIdMesaRoute:
+    AuthenticatedAppAssembleiasAssembleiaIdMesaRouteWithChildren,
   AuthenticatedAppAssembleiasAssembleiaIdIndexRoute:
     AuthenticatedAppAssembleiasAssembleiaIdIndexRoute,
 }
@@ -2003,6 +2081,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   AuthConfirmarRoute: AuthConfirmarRoute,
   BlogSlugRoute: BlogSlugRoute,
+  CabineTokenRoute: CabineTokenRoute,
   ECodigoRoute: ECodigoRoute,
   VCodigoRoute: VCodigoRoute,
   BlogIndexRoute: BlogIndexRoute,
