@@ -13,7 +13,7 @@ const getEditalPublico = createServerFn({ method: 'GET' })
         id,
         titulo,
         tipo,
-        data_inicio,
+        data_inicio:data_hora,
         local,
         modalidade,
         edital_texto,
