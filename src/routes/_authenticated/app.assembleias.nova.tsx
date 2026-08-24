@@ -10,7 +10,7 @@ import { PassoPauta, ItemPauta } from "@/components/assembleias/PassoPauta";
 import { PassoRegras } from "@/components/assembleias/PassoRegras";
 import { RevisaoIAPainel } from "@/components/assembleias/RevisaoIAPainel";
 import { createAssembleia, getAssembleia } from "@/lib/assembleias/assembleias.functions";
-import { upsertItemPauta, reordenarItens } from "@/lib/assembleias/pauta.functions";
+import { upsertItemPauta, reordenarItens, deleteItemPauta } from "@/lib/assembleias/pauta.functions";
 import { revisarPautaIA } from "@/lib/assembleias/revisao-ia.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -59,6 +59,7 @@ function Page() {
   const saveAssembleia = useServerFn(createAssembleia);
   const saveItem = useServerFn(upsertItemPauta);
   const sortItens = useServerFn(reordenarItens);
+  const removeItem = useServerFn(deleteItemPauta);
   const runIa = useServerFn(revisarPautaIA);
 
   // Acesso e condomínio ativo

@@ -32,11 +32,14 @@ export const upsertItemPauta = createServerFn({ method: "POST" })
       throw new Error("Itens de escolha única precisam de pelo menos duas opções.");
     }
 
-    const { opcoes, ...itemData } = data;
-    
+    const { opcoes, id, ...itemData } = data;
+
+    const payload: Record<string, unknown> = { ...itemData, atualizado_por: userId };
+    if (id) payload.id = id;
+
     const { data: row, error } = await supabase
       .from("assembleia_itens")
-      .upsert({ ...itemData, atualizado_por: userId })
+      .upsert(payload, { onConflict: "id" })
       .select()
       .single();
 
