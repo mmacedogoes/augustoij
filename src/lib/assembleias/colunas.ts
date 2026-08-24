@@ -47,7 +47,7 @@ function normalizarValor(chaveUi: string, valor: unknown): unknown {
   if (chaveUi === "quorum_instalacao_1" || chaveUi === "quorum_instalacao_2") {
     if (valor === null || valor === undefined || valor === "") return chaveUi === "quorum_instalacao_2" ? null : undefined;
     if (typeof valor === "number") return valor;
-    if (typeof valor === "string") return VALORES_QUORUM[valor] ?? Number(valor) || null;
+    if (typeof valor === "string") return VALORES_QUORUM[valor] ?? (Number(valor) || null);
   }
   return valor;
 }
