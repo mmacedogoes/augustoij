@@ -1,10 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
 import { paraRomano } from "./romanos";
 import { logAdminAction } from "@/lib/audit.server";
 
 export const montarEdital = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ assembleiaId: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -56,6 +58,7 @@ export const montarEdital = createServerFn({ method: "GET" })
   });
 
 export const publicarEdital = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ 
     assembleiaId: z.string(),
     texto: z.string()
@@ -85,6 +88,7 @@ export const publicarEdital = createServerFn({ method: "POST" })
   });
 
 export const melhorarRedacaoIA = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ 
     assembleiaId: z.string(),
     itens: z.array(z.object({
