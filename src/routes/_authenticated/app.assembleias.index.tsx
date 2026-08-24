@@ -217,7 +217,7 @@ function Page() {
               title="Nenhuma assembleia registrada"
               description="A primeira assembleia começa pela pauta. Clique em convocar para começar."
               action={
-                <Button variant="augusto" onClick={() => navigate({ to: "/app/assembleias/nova" as any })}>
+                <Button variant="augusto" onClick={() => navigate({ to: "/app/assembleias/nova" as any, search: { cid: condominioId } as any })}>
                   Convocar assembleia
                 </Button>
               }

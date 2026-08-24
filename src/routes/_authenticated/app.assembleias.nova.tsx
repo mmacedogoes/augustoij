@@ -29,7 +29,7 @@ function Page() {
   const assembleiaId = search.id as string | undefined;
 
   const [step, setStep] = useState(initialStep);
-  const [condominioId, setCondominioId] = useState<string | null>(null);
+  const [condominioId, setCondominioId] = useState<string | null>((search.cid as string | undefined) ?? null);
 
   const [dados, setDados] = useState({
     titulo: "",
@@ -63,8 +63,10 @@ function Page() {
 
   // Acesso e condomínio ativo
   useEffect(() => {
-    const cid = localStorage.getItem("augusto.condominioAtivo");
-    if (cid) setCondominioId(cid);
+    if (!search.cid) {
+      const cid = localStorage.getItem("augusto.condominioAtivo");
+      if (cid) setCondominioId(cid);
+    }
     
     const checkAccess = async () => {
       const { data: { user } } = await supabase.auth.getUser();
