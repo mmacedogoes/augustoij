@@ -55,7 +55,16 @@ export type AuditAction =
   | "assembleia.fila.inscrever"
   | "assembleia.sessao.suspender"
   | "assembleia.sessao.retomar"
-  | "assembleia.encerrar";
+  | "assembleia.encerrar"
+  | "assembleia.gravacao.iniciar"
+  | "assembleia.gravacao.enviar"
+  | "assembleia.transcricao.processar"
+  | "assembleia.ata.gerar"
+  | "assembleia.ata.editar"
+  | "assembleia.lacuna.preencher"
+  | "assembleia.lacuna.dispensar"
+  | "assembleia.ata.publicar"
+  | "assembleia.gravacao.excluir";
 
 
 export type AuditEntry = {
