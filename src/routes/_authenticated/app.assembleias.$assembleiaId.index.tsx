@@ -119,6 +119,14 @@ function Page() {
             >
               <FileText className="h-4 w-4" /> Ata
             </Button>
+
+            <Button 
+              variant="outline"
+              className="gap-2 border-augusto-gold/20 hover:bg-augusto-gold/5"
+              onClick={() => navigate({ to: `/app/assembleias/${assembleiaId}/auditoria` as any })}
+            >
+              <ShieldCheck className="h-4 w-4" /> Ver ata e votos
+            </Button>
             
             <Button 
               variant="outline"
