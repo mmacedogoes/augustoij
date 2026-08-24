@@ -84,7 +84,15 @@ export const registrarVotoCabine = createServerFn({ method: "POST" })
       .eq("unidade_id", tokenRow.unidade_id)
       .is("invalidado_em", null);
 
-    if (jaVotou && jaVotou > 0) throw new Error("Unidade já votou neste item.");
+    const { count: jaVotouSecreto } = await supabaseAdmin
+      .from("assembleia_votos_controle")
+      .select("*", { count: "exact", head: true })
+      .eq("item_id", item.id)
+      .eq("unidade_id", tokenRow.unidade_id);
+
+    if ((jaVotou && jaVotou > 0) || (jaVotouSecreto && jaVotouSecreto > 0)) {
+      throw new Error("Unidade já votou neste item.");
+    }
 
     const { data: recibo, error } = await supabaseAdmin.rpc("assembleia_registrar_voto", {
       p_item_id: item.id,
