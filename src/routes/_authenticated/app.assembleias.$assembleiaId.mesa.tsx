@@ -90,12 +90,26 @@ function MesaPage() {
     if (itemAtivo) setItemAtivoId(itemAtivo.id);
   }, [itemAtivo]);
 
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
   const { data: progresso } = useQuery({
     queryKey: ["progresso-item", itemAtivoId],
     queryFn: () => getProgresso({ data: { itemId: itemAtivoId! } }),
     enabled: !!itemAtivoId,
     refetchInterval: 3000
   });
+
+  const restanteMs = itemAtivo?.fecha_em ? new Date(itemAtivo.fecha_em).getTime() - agora : null;
+  const tempoRestante =
+    restanteMs === null
+      ? "--:--"
+      : `${String(Math.max(0, Math.floor(restanteMs / 60000))).padStart(2, "0")}:${String(
+          Math.max(0, Math.floor(restanteMs / 1000) % 60),
+        ).padStart(2, "0")}`;
 
   const handleAbrir = async (itemId: string) => {
     toast.promise(abrirVotacao({ data: { itemId } }), {
@@ -176,7 +190,7 @@ function MesaPage() {
             <div className="h-10 w-px bg-augusto-gold/20" />
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-augusto-gold" />
-              <span className="text-lg font-serif">128 <small className="text-[10px] text-muted-foreground uppercase">Presentes</small></span>
+              <span className="text-lg font-serif">{progresso?.totalAptos ?? 0} <small className="text-[10px] text-muted-foreground uppercase">Aptos</small></span>
             </div>
           </div>
         </header>
@@ -196,7 +210,7 @@ function MesaPage() {
                   </div>
                   <div className="flex items-center gap-4 bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
                     <Timer className="h-5 w-5 text-augusto-gold" />
-                    <span className="text-2xl font-mono font-bold">01:42</span>
+                    <span className="text-2xl font-mono font-bold">{tempoRestante}</span>
                   </div>
                 </div>
 

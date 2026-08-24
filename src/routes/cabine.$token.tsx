@@ -115,7 +115,7 @@ function CabinePage() {
 
         <CardContent className="p-8">
           <div className="grid gap-4">
-            {item?.assembleia_opcoes?.map((opcao: any) => (
+            {item?.opcoes?.map((opcao: any) => (
               <Button
                 key={opcao.id}
                 variant="outline"
