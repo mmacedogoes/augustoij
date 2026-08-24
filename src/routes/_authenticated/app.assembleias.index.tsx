@@ -1,44 +1,29 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
-import { Plus, RefreshCcw, Info } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { z } from "zod";
+import { Plus, RefreshCcw, Info, Building } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { AssembleiasIndicadores } from "@/components/assembleias/AssembleiasIndicadores";
 import { AssembleiasLista } from "@/components/assembleias/AssembleiasLista";
-import { listAssembleias, getIndicadoresAssembleias } from "@/lib/assembleias/assembleias.functions";
+import {
+  listAssembleias,
+  getIndicadoresAssembleias,
+  listCondominiosParaAssembleias,
+} from "@/lib/assembleias/assembleias.functions";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { isSuperAdmin } from "@/lib/contratos-servico/guard";
 import { supabase } from "@/integrations/supabase/client";
 
-// Reutiliza o mecanismo de condomínio ativo
-function useCondominioAtivo() {
-  const [condominioId, setCondominioId] = useState<string | null>(null);
-  
-  useEffect(() => {
-    const handleCondoChange = () => {
-      const stored = localStorage.getItem("augusto.condominioAtivo");
-      if (stored) setCondominioId(stored);
-    };
-
-    handleCondoChange();
-    window.addEventListener("storage", handleCondoChange);
-    // Evento customizado se o sistema disparar manual
-    window.addEventListener("augusto:condominioAtivoChanged", handleCondoChange);
-    
-    return () => {
-      window.removeEventListener("storage", handleCondoChange);
-      window.removeEventListener("augusto:condominioAtivoChanged", handleCondoChange);
-    };
-  }, []);
-
-  return condominioId;
-}
+const STORAGE_KEY = "augusto.condominioAtivo";
 
 export const Route = createFileRoute("/_authenticated/app/assembleias/")({
+  validateSearch: (raw) => z.object({ cid: z.string().uuid().optional() }).parse(raw),
   component: Page,
 });
 
