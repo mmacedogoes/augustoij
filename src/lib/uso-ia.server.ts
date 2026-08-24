@@ -21,6 +21,10 @@ export type OrigemEventoIa =
   | "embedding_documento"
   | "embedding_kb"
   | "demo_chat"
+  | "assembleia_transcricao"
+  | "assembleia_ata"
+  | "assembleia_inadimplencia"
+  | "assembleia_revisao_pauta"
   | "outro";
 
 type ModelPricingCache = {
