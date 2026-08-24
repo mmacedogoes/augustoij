@@ -20,7 +20,7 @@ export const montarEdital = createServerFn({ method: "GET" })
 
     if (error || !assembleia) throw new Error("Assembleia não encontrada.");
 
-    const dataObj = new Date(assembleia.data_inicio);
+    const dataObj = new Date(assembleia.data_hora);
     const dia = dataObj.getDate();
     const mesExtenso = dataObj.toLocaleDateString('pt-BR', { month: 'long' });
     const ano = dataObj.getFullYear();
