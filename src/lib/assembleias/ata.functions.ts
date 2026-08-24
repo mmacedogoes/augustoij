@@ -426,11 +426,21 @@ export const getAta = createServerFn({ method: "GET" })
 
     if (!versao) return { versao: null, versoes: versoes ?? [], blocos: [], lacunas: [], assembleia: null };
 
-    const { data: blocos } = await supabaseAdmin
+    const { data: blocosRaw } = await supabaseAdmin
       .from("ata_blocos")
-      .select("*, item:assembleia_itens(ordem, titulo, fundamento_legal)")
+      .select("*")
       .eq("versao_id", versao.id)
       .order("ordem", { ascending: true });
+
+    const { data: itens } = await supabaseAdmin
+      .from("assembleia_itens")
+      .select("id, ordem, titulo, fundamento_legal")
+      .eq("assembleia_id", input.assembleiaId);
+
+    const blocos = (blocosRaw ?? []).map((b: any) => ({
+      ...b,
+      item: (itens ?? []).find((it: any) => it.id === b.item_id) ?? null,
+    }));
 
     const { data: lacunas } = await supabaseAdmin
       .from("ata_lacunas")
@@ -443,7 +453,7 @@ export const getAta = createServerFn({ method: "GET" })
       .eq("id", input.assembleiaId)
       .single();
 
-    return { versao, versoes: versoes ?? [], blocos: blocos ?? [], lacunas: lacunas ?? [], assembleia };
+    return { versao, versoes: versoes ?? [], blocos, lacunas: lacunas ?? [], assembleia };
   });
 
 export const preencherLacuna = createServerFn({ method: "POST" })
@@ -490,7 +500,7 @@ export const preencherLacuna = createServerFn({ method: "POST" })
       if (assembleia) {
         await supabaseAdmin
           .from("condominios")
-          .update({ [input.campoCadastro]: input.valor })
+          .update({ [input.campoCadastro]: input.valor } as never)
           .eq("id", assembleia.condominio_id);
       }
     }

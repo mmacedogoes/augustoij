@@ -155,7 +155,7 @@ function AtaPage() {
   });
 
   const mPublicar = useMutation({
-    mutationFn: () => publicar({ data: { versaoId: ata!.versao.id } }),
+    mutationFn: () => publicar({ data: { versaoId: ata!.versao!.id } }),
     onSuccess: () => {
       toast.success("Ata publicada.");
       invalidar();
