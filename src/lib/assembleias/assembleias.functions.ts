@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
+import { SELECT_ASSEMBLEIA_ALIASES, paraColunasDb } from "./colunas";
 
 export const listAssembleias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -17,10 +18,11 @@ export const listAssembleias = createServerFn({ method: "GET" })
       .from("assembleias")
       .select(`
         *,
+        ${SELECT_ASSEMBLEIA_ALIASES},
         itens_count:assembleia_itens(count)
       `)
       .eq("condominio_id", data.condominioId)
-      .order("data_inicio", { ascending: false });
+      .order("data_hora", { ascending: false });
 
     if (data.situacao) {
       query = query.eq("situacao", data.situacao);
@@ -29,9 +31,9 @@ export const listAssembleias = createServerFn({ method: "GET" })
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
-    return rows.map((r: any) => ({
+    return (rows ?? []).map((r: any) => ({
       ...r,
-      itens_count: r.itens_count[0]?.count || 0
+      itens_count: r.itens_count?.[0]?.count || 0
     }));
   });
 
@@ -44,16 +46,17 @@ export const getIndicadoresAssembleias = createServerFn({ method: "GET" })
 
     const [emAndamento, convocadas] = await Promise.all([
       supabase.from("assembleias").select("id", { count: "exact" }).eq("condominio_id", data.condominioId).eq("situacao", "ao_vivo"),
-      supabase.from("assembleias").select("data_inicio").eq("condominio_id", data.condominioId).eq("situacao", "convocada").order("data_inicio", { ascending: true }).limit(1)
+      supabase.from("assembleias").select("data_hora").eq("condominio_id", data.condominioId).eq("situacao", "convocada").order("data_hora", { ascending: true }).limit(1)
     ]);
 
     return {
       emAndamento: emAndamento.count || 0,
       proximaEmDias: convocadas.data?.[0] 
-        ? Math.max(0, Math.ceil((new Date(convocadas.data[0].data_inicio).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+        ? Math.max(0, Math.ceil((new Date(convocadas.data[0].data_hora).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
         : null
     };
   });
+
 
 export const getAssembleia = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
