@@ -170,6 +170,24 @@ function Page() {
     { n: 4, label: "Edital e convite", disabled: true }
   ];
 
+  if (!condominioId && !assembleiaId) {
+    return (
+      <AppShell>
+        <div className="max-w-2xl space-y-6 animate-augusto-fade-up">
+          <h1 className="text-2xl font-serif text-primary">Nova Assembleia</h1>
+          <Card className="p-6 border-augusto-gold/10 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Escolha primeiro o condomínio na lista de assembleias para convocar uma nova.
+            </p>
+            <Button variant="augusto" onClick={() => navigate({ to: "/app/assembleias" })}>
+              Ir para a lista de assembleias
+            </Button>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <div className="max-w-6xl space-y-8 animate-augusto-fade-up">
