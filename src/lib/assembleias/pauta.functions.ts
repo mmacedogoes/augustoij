@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
 
 export const upsertItemPauta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({
     id: z.string().optional(),
     assembleia_id: z.string(),
@@ -69,6 +71,7 @@ export const upsertItemPauta = createServerFn({ method: "POST" })
   });
 
 export const reordenarItens = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({
     assembleiaId: z.string(),
     ordens: z.array(z.object({ id: z.string(), ordem: z.number() }))
@@ -86,6 +89,7 @@ export const reordenarItens = createServerFn({ method: "POST" })
   });
 
 export const deleteItemPauta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;

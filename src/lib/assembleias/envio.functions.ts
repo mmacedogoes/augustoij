@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
 import { logAdminAction } from "@/lib/audit.server";
 
 export const enviarConvocacaoEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ 
     convocacaoId: z.string(),
     destinatarioIds: z.array(z.string()).optional() 
@@ -97,6 +99,7 @@ export const enviarConvocacaoEmail = createServerFn({ method: "POST" })
   });
 
 export const registrarEntregaFisica = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ destinatarioId: z.string(), protocolo: z.string(), data: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;

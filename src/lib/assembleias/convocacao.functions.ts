@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
 import { logAdminAction } from "@/lib/audit.server";
 
 export const montarConvocacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ assembleiaId: z.string(), tipo: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -65,6 +67,7 @@ export const montarConvocacao = createServerFn({ method: "POST" })
   });
 
 export const getDadosConvocacao = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ convocacaoId: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;

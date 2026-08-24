@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
 
 export const listAssembleias = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ 
     condominioId: z.string(),
     situacao: z.string().optional()
@@ -34,6 +36,7 @@ export const listAssembleias = createServerFn({ method: "GET" })
   });
 
 export const getIndicadoresAssembleias = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ condominioId: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -53,6 +56,7 @@ export const getIndicadoresAssembleias = createServerFn({ method: "GET" })
   });
 
 export const getAssembleia = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -75,6 +79,7 @@ export const getAssembleia = createServerFn({ method: "GET" })
   });
 
 export const createAssembleia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({
     condominio_id: z.string(),
     titulo: z.string().min(5),
@@ -120,6 +125,7 @@ export const createAssembleia = createServerFn({ method: "POST" })
   });
 
 export const updateAssembleia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({
     id: z.string(),
     titulo: z.string().min(5).optional(),
@@ -157,6 +163,7 @@ export const updateAssembleia = createServerFn({ method: "POST" })
   });
 
 export const cancelarAssembleia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ 
     id: z.string(),
     motivo: z.string().optional()

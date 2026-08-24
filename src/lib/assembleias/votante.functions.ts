@@ -128,7 +128,7 @@ export const confirmarAcessoVotacao = createServerFn({ method: "POST" })
       .select("*, condominos!inner(email)")
       .eq("email", emailNormalizado)
       .eq("otp_hash", otpHash)
-      .gt("expira_em", new Date().toISOString())
+      .gt("otp_expira_em", new Date().toISOString())
       .is("confirmado_em", null)
       .maybeSingle();
 

@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
 
 export const revisarPautaIA = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ assembleiaId: z.string() }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;

@@ -4,10 +4,9 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { registrarVotoMesa } from "@/lib/assembleias/mesa.functions";
+import { validarTokenCabine, registrarVotoCabine } from "@/lib/assembleias/cabine.functions";
 import { ShieldCheck, Loader2, CheckCircle, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/cabine/$token")({
@@ -19,47 +18,39 @@ function CabinePage() {
   const navigate = useNavigate();
   const [valido, setValido] = useState<boolean | null>(null);
   const [item, setItem] = useState<any>(null);
-  const [unidadeId, setUnidadeId] = useState<string | null>(null);
-  const [justificativa, setJustificativa] = useState("Voto em cabine física");
+  const [, setUnidadeId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
-  // 1. Validar token e buscar item
+  const validarFn = useServerFn(validarTokenCabine);
+
+  // 1. Validar token e buscar item (via função de servidor pública)
   const { isLoading: validando } = useQuery({
     queryKey: ["cabine-token", token],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("assembleia_cabine_tokens")
-        .select("*, assembleia_itens(*, assembleia_opcoes(*))")
-        .eq("token_hash", token)
-        .is("usado_em", null)
-        .gt("expira_em", new Date().toISOString())
-        .single();
-
-      if (error || !data) {
+      try {
+        const res = await validarFn({ data: { token } });
+        if (!res.valido) {
+          setValido(false);
+          return null;
+        }
+        setValido(true);
+        setItem(res.item);
+        setUnidadeId(res.unidadeId);
+        return res;
+      } catch {
         setValido(false);
         return null;
       }
-
-      setValido(true);
-      setItem(data.assembleia_itens);
-      setUnidadeId(data.unidade_id);
-      return data;
     },
     retry: false
   });
 
-  const registerVotoFn = useServerFn(registrarVotoMesa);
+  const registerVotoFn = useServerFn(registrarVotoCabine);
 
   const mutation = useMutation({
     mutationFn: registerVotoFn,
     onSuccess: async () => {
-      // Marcar token como usado
-      await supabase
-        .from("assembleia_cabine_tokens")
-        .update({ usado_em: new Date().toISOString() })
-        .eq("token_hash", token);
-
       toast.success("Voto registrado com sucesso!");
       setTimeout(() => navigate({ to: "/" }), 3000);
     },
@@ -124,22 +115,15 @@ function CabinePage() {
 
         <CardContent className="p-8">
           <div className="grid gap-4">
-            {item?.assembleia_opcoes?.map((opcao: any) => (
+            {item?.opcoes?.map((opcao: any) => (
               <Button
                 key={opcao.id}
                 variant="outline"
                 className="h-20 text-lg border-2 hover:border-augusto-gold hover:bg-augusto-gold/5 justify-start px-8 group transition-all"
                 disabled={mutation.isPending}
                 onClick={() => {
-                  if (unidadeId && item) {
-                    mutation.mutate({
-                      data: {
-                        itemId: item.id,
-                        unidadeId,
-                        opcaoId: opcao.id,
-                        justificativa
-                      }
-                    });
+                  if (item) {
+                    mutation.mutate({ data: { token, opcaoId: opcao.id } });
                   }
                 }}
               >
