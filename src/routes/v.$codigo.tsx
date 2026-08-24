@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useServerFn } from '@tanstack/react-start';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { solicitarAcessoVotacao, confirmarAcessoVotacao } from '@/lib/assembleias/votante.functions';
-import { getEstadoVotacao, registrarVoto } from '@/lib/assembleias/votacao.portal.functions';
+import { getEstadoVotacao, registrarVoto, conferirRecibo } from '@/lib/assembleias/votacao.portal.functions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
