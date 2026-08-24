@@ -52,6 +52,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { GravacaoMesa } from "@/components/assembleias/GravacaoMesa";
 
 export const Route = createFileRoute("/_authenticated/app/assembleias/$assembleiaId/mesa")({
   component: MesaPage,
@@ -183,6 +184,7 @@ function MesaPage() {
             </div>
           </div>
           <div className="flex items-center gap-6">
+            <GravacaoMesa assembleiaId={assembleiaId} />
             <div className="text-right">
               <span className="block text-[10px] text-muted-foreground uppercase font-bold">Status da Sessão</span>
               <AssembleiaSituacaoBadge situacao={assembleia.situacao} />
