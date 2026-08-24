@@ -145,15 +145,103 @@ function Page() {
     }
   };
 
+  const payloadItem = (item: ItemPauta) => ({
+    id: item.id,
+    assembleia_id: assembleiaId!,
+    titulo: item.titulo,
+    descricao: item.descricao || undefined,
+    ordem: item.ordem,
+    tipo_votacao: item.tipo_votacao,
+    voto_secreto: !!item.voto_secreto,
+    regra_quorum: item.regra_quorum,
+    quorum_valor: item.quorum_valor,
+    base_calculo: item.base_calculo,
+    opcoes: item.opcoes,
+  });
+
+  const persistItem = async (item: ItemPauta, index: number) => {
+    if (!assembleiaId) return;
+    try {
+      const row: any = await saveItem({ data: payloadItem(item) as any });
+      if (row?.id) {
+        setItens((prev) => prev.map((it, i) => (i === index ? { ...it, id: row.id } : it)));
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível salvar o item da pauta.");
+    }
+  };
+
+  const persistDelete = async (item: ItemPauta) => {
+    if (!item.id) return;
+    try {
+      await removeItem({ data: { id: item.id } });
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível excluir o item.");
+    }
+  };
+
+  const persistOrder = async (lista: ItemPauta[]) => {
+    if (!assembleiaId) return;
+    const ordens = lista.filter((it) => !!it.id).map((it) => ({ id: it.id!, ordem: it.ordem }));
+    if (ordens.length === 0) return;
+    try {
+      await sortItens({ data: { assembleiaId, ordens } });
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível reordenar a pauta.");
+    }
+  };
+
+  /** Garante que todos os itens da tela existam no banco antes da revisão. */
+  const sincronizarItens = async (): Promise<ItemPauta[]> => {
+    if (!assembleiaId) return itens;
+    const atualizados = [...itens];
+    for (let i = 0; i < atualizados.length; i++) {
+      const it = atualizados[i];
+      if (it.id) continue;
+      const row: any = await saveItem({ data: payloadItem(it) as any });
+      atualizados[i] = { ...it, id: row?.id };
+    }
+    setItens(atualizados);
+    return atualizados;
+  };
+
   const handleIaRevisao = async () => {
     if (!assembleiaId) return;
     setIaLoading(true);
     setIaError(null);
     try {
-      const res = await runIa({ data: { assembleiaId } });
-      // Recarregar itens para mostrar alertas
-      const updated = await fetchAssembleia({ data: { id: assembleiaId } });
-      setItens(updated.itens);
+      const atuais = await sincronizarItens();
+      if (atuais.length === 0) {
+        setIaError("A pauta está vazia. Adicione ao menos um item antes de pedir a revisão.");
+        return;
+      }
+
+      const res: any = await runIa({ data: { assembleiaId } });
+      if (res?.warnings?.length) {
+        setIaError(res.warnings.join(" "));
+        return;
+      }
+
+      // Recarregar itens do banco apenas para mesclar os alertas
+      const updated: any = await fetchAssembleia({ data: { id: assembleiaId } });
+      const doBanco: any[] = updated?.itens ?? [];
+      if (doBanco.length === 0) {
+        setIaError("Não foi possível recuperar a revisão. A pauta na tela foi mantida.");
+        return;
+      }
+
+      setItens(
+        atuais.map((it) => {
+          const match = doBanco.find((d) => (it.id && d.id === it.id) || d.ordem === it.ordem);
+          if (!match) return it;
+          return {
+            ...it,
+            id: match.id ?? it.id,
+            alerta_ia: match.alerta_ia ?? it.alerta_ia,
+            fundamento_legal: match.fundamento_legal ?? it.fundamento_legal,
+          };
+        })
+      );
       toast.success("IA revisou a pauta com sucesso.");
     } catch (e: any) {
       setIaError(e.message);
