@@ -191,3 +191,17 @@ export const cancelarAssembleia = createServerFn({ method: "POST" })
 
     return row;
   });
+
+export const listCondominiosParaAssembleias = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    await ensureAcessoAssembleias({ supabase, userId });
+
+    const { data, error } = await supabase
+      .from("condominios")
+      .select("id, nome, cidade, uf")
+      .order("nome", { ascending: true });
+    if (error) throw new Error(error.message);
+    return { rows: data ?? [] };
+  });

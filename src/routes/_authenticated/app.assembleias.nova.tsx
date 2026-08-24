@@ -29,7 +29,7 @@ function Page() {
   const assembleiaId = search.id as string | undefined;
 
   const [step, setStep] = useState(initialStep);
-  const [condominioId, setCondominioId] = useState<string | null>(null);
+  const [condominioId, setCondominioId] = useState<string | null>((search.cid as string | undefined) ?? null);
 
   const [dados, setDados] = useState({
     titulo: "",
@@ -63,8 +63,10 @@ function Page() {
 
   // Acesso e condomínio ativo
   useEffect(() => {
-    const cid = localStorage.getItem("augusto.condominioAtivo");
-    if (cid) setCondominioId(cid);
+    if (!search.cid) {
+      const cid = localStorage.getItem("augusto.condominioAtivo");
+      if (cid) setCondominioId(cid);
+    }
     
     const checkAccess = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -167,6 +169,24 @@ function Page() {
     { n: 3, label: "Regras da votação" },
     { n: 4, label: "Edital e convite", disabled: true }
   ];
+
+  if (!condominioId && !assembleiaId) {
+    return (
+      <AppShell>
+        <div className="max-w-2xl space-y-6 animate-augusto-fade-up">
+          <h1 className="text-2xl font-serif text-primary">Nova Assembleia</h1>
+          <Card className="p-6 border-augusto-gold/10 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Escolha primeiro o condomínio na lista de assembleias para convocar uma nova.
+            </p>
+            <Button variant="augusto" onClick={() => navigate({ to: "/app/assembleias" })}>
+              Ir para a lista de assembleias
+            </Button>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
