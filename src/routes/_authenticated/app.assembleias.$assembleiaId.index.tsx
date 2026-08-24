@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Edit2, Calendar, MapPin, Video, FileText, Send, Monitor } from "lucide-react";
+import { ChevronLeft, Edit2, Calendar, MapPin, Video, FileText, Send, Monitor, ShieldCheck } from "lucide-react";
 import { getAssembleia } from "@/lib/assembleias/assembleias.functions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -118,6 +118,14 @@ function Page() {
               onClick={() => navigate({ to: `/app/assembleias/${assembleiaId}/ata` as any })}
             >
               <FileText className="h-4 w-4" /> Ata
+            </Button>
+
+            <Button 
+              variant="outline"
+              className="gap-2 border-augusto-gold/20 hover:bg-augusto-gold/5"
+              onClick={() => navigate({ to: `/app/assembleias/${assembleiaId}/auditoria` as any })}
+            >
+              <ShieldCheck className="h-4 w-4" /> Ver ata e votos
             </Button>
             
             <Button 

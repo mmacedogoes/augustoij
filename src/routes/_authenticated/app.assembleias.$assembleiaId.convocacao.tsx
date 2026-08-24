@@ -127,7 +127,7 @@ function ConvocacaoAssembleiaPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ReminderToggle label="Lembrete 48h antes" />
           <ReminderToggle label="Lembrete 2h antes" />
-          <ReminderToggle label="Aviso de continuada" disabled hint="Disponível na fase 7" />
+          <ReminderToggle label="Aviso de continuada" disabled hint="Enviado automaticamente ao registrar a assembleia continuada" />
         </div>
       </Card>
 

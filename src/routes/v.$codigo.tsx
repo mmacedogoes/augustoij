@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useServerFn } from '@tanstack/react-start';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { solicitarAcessoVotacao, confirmarAcessoVotacao } from '@/lib/assembleias/votante.functions';
-import { getEstadoVotacao, registrarVoto } from '@/lib/assembleias/votacao.portal.functions';
+import { getEstadoVotacao, registrarVoto, conferirRecibo } from '@/lib/assembleias/votacao.portal.functions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -158,7 +158,75 @@ function VotacaoPortalPage() {
             <p className="text-muted-foreground">A mesa diretora está preparando o próximo ponto da pauta. Mantenha esta tela aberta.</p>
           </CardContent>
         </Card>
+
+        <ConferirRecibo codigo={codigo} />
       </div>
     </div>
+  );
+}
+
+function ConferirRecibo({ codigo }: { codigo: string }) {
+  const fnConferir = useServerFn(conferirRecibo);
+  const [recibo, setRecibo] = useState("");
+  const [resultado, setResultado] = useState<any>(null);
+  const [carregando, setCarregando] = useState(false);
+
+  const handleConferir = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!recibo.trim()) return;
+    setCarregando(true);
+    setResultado(null);
+    try {
+      const r = await fnConferir({ data: { codigo, recibo: recibo.trim() } });
+      setResultado(r);
+    } catch {
+      toast.error("Não foi possível conferir agora. Tente novamente em instantes.");
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif text-xl text-[#00512B]">Conferir meu recibo</CardTitle>
+        <CardDescription>
+          Cole o código do recibo recebido ao votar. A conferência mostra o item e a opção computada, sem revelar
+          qualquer informação de unidade. Só responde para itens já encerrados.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <form onSubmit={handleConferir} className="flex flex-col sm:flex-row gap-2">
+          <Input
+            value={recibo}
+            onChange={(e) => setRecibo(e.target.value)}
+            placeholder="Código do recibo"
+            className="font-mono"
+            aria-label="Código do recibo"
+          />
+          <Button type="submit" disabled={carregando} className="bg-[#00512B] hover:bg-[#004022]">
+            Conferir
+          </Button>
+        </form>
+
+        {resultado && resultado.encontrado && (
+          <div className="rounded-md border border-[#E4E1D8] bg-white p-4 text-sm">
+            <p className="flex items-center gap-2 text-[#00512B] font-medium">
+              <CheckCircle2 className="w-4 h-4" /> Recibo localizado
+            </p>
+            <p className="mt-2">Item {resultado.item.ordem} — {resultado.item.titulo}</p>
+            <p className="text-muted-foreground">Opção computada: <strong>{resultado.opcao}</strong></p>
+            {resultado.anulado && <p className="text-destructive text-xs mt-1">Item anulado pela mesa.</p>}
+          </div>
+        )}
+
+        {resultado && !resultado.encontrado && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-destructive" />
+            Código não corresponde a nenhum voto encerrado desta assembleia.
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
