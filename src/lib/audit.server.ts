@@ -64,7 +64,12 @@ export type AuditAction =
   | "assembleia.lacuna.preencher"
   | "assembleia.lacuna.dispensar"
   | "assembleia.ata.publicar"
-  | "assembleia.gravacao.excluir";
+  | "assembleia.gravacao.excluir"
+  | "assembleia.auditoria.verificar"
+  | "assembleia.auditoria.exportar_votos"
+  | "assembleia.auditoria.exportar_presenca"
+  | "assembleia.auditoria.exportar_tentativas"
+  | "assembleia.auditoria.exportar_relatorio";
 
 
 export type AuditEntry = {
