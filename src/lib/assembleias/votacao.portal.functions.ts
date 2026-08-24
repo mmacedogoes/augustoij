@@ -93,3 +93,53 @@ export const getEstadoVotacao = createServerFn({ method: "GET" })
       }))
     };
   });
+
+// Conferência de recibo pelo condômino. Nunca devolve a unidade, em nenhuma hipótese.
+export const conferirRecibo = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({
+    codigo: z.string().min(3),
+    recibo: z.string().min(4).max(120)
+  }).parse(d))
+  .handler(async ({ data: input }) => {
+    const supabaseAdmin = await (await import("@/integrations/supabase/client.server")).supabaseAdmin;
+    const { dentroDoLimite } = await import("./rate-limit.server");
+    const ip = getRequestIP({ xForwardedFor: true }) || "127.0.0.1";
+
+    const { data: assembleia } = await supabaseAdmin
+      .from("assembleias")
+      .select("id")
+      .eq("codigo_publico", input.codigo)
+      .single();
+
+    if (!assembleia) return { encontrado: false as const };
+
+    if (!dentroDoLimite(`recibo:${ip}`)) {
+      await supabaseAdmin.from("assembleia_tentativas").insert({
+        assembleia_id: assembleia.id,
+        motivo: "rate_limit",
+        detalhe: "conferencia_recibo",
+        ip,
+        user_agent: getRequestHeader("user-agent") || null
+      } as any);
+      throw new Error("rate_limit");
+    }
+
+    const { data: voto } = await supabaseAdmin
+      .from("assembleia_votos")
+      .select("recibo, invalidado_em, item:assembleia_itens(ordem, titulo, situacao), opcao:assembleia_opcoes(rotulo)")
+      .eq("assembleia_id", assembleia.id)
+      .eq("recibo", input.recibo.trim())
+      .maybeSingle();
+
+    const item: any = (voto as any)?.item;
+    if (!voto || !item || !["encerrado", "apurado"].includes(item.situacao)) {
+      return { encontrado: false as const };
+    }
+
+    return {
+      encontrado: true as const,
+      item: { ordem: item.ordem, titulo: item.titulo },
+      opcao: (voto as any).opcao?.rotulo ?? "—",
+      anulado: !!(voto as any).invalidado_em
+    };
+  });
