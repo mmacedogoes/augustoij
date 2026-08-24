@@ -311,7 +311,16 @@ function Page() {
         <div className="grid lg:grid-cols-[1fr,300px] gap-8 items-start">
           <main className="space-y-8">
             {step === 1 && <PassoDados data={dados} onChange={setDados} />}
-            {step === 2 && <PassoPauta itens={itens} onChange={setItens} regrasPadrao={{ base_calculo: regras.base_calculo_padrao }} />}
+            {step === 2 && (
+              <PassoPauta
+                itens={itens}
+                onChange={setItens}
+                regrasPadrao={{ base_calculo: regras.base_calculo_padrao }}
+                onPersistItem={persistItem}
+                onPersistDelete={persistDelete}
+                onPersistOrder={persistOrder}
+              />
+            )}
             {step === 3 && <PassoRegras data={regras} onChange={setRegras} unidadesSemFracao={unidadesSemFracao} />}
             
             <div className="flex items-center justify-between border-t pt-8">
