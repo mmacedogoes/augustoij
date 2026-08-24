@@ -190,11 +190,14 @@ function Page() {
           <Button 
             variant="augusto" 
             className="gap-2"
-            onClick={() => navigate({ to: "/app/assembleias/nova" as any })}
+            onClick={() => navigate({ to: "/app/assembleias/nova" as any, search: { cid: condominioId } as any })}
           >
             <Plus className="h-4 w-4" /> Convocar assembleia
           </Button>
         </header>
+
+        {seletor}
+
 
         <AssembleiasIndicadores 
           emAndamento={indicadores.emAndamento} 
