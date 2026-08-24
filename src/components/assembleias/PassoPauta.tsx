@@ -121,7 +121,7 @@ export function PassoPauta({ itens, onChange, regrasPadrao }: PassoPautaProps) {
           <Button variant="outline" className="gap-2 border-augusto-gold/20 text-augusto-gold" onClick={handleAddItem}>
             <Plus className="h-4 w-4" /> Adicionar item como secundário
           </Button>
-          <Button variant="ghost" disabled className="gap-2 text-muted-foreground" title="Disponível na próxima etapa">
+          <Button variant="ghost" disabled className="gap-2 text-muted-foreground" title="Importação de pauta em PDF não faz parte desta versão">
             Importar pauta do edital em PDF
           </Button>
         </div>
