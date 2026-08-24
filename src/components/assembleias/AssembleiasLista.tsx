@@ -71,10 +71,8 @@ export function AssembleiasLista({ assembleias }: { assembleias: Assembleia[] })
         <Button 
           variant="ghost" 
           size="sm" 
-          disabled 
-          title="Disponível na próxima etapa"
-          aria-label="Disponível na próxima etapa"
-          className="h-8 gap-2"
+          className="h-8 gap-2 text-augusto-gold hover:text-augusto-gold hover:bg-augusto-gold/10"
+          onClick={() => navigate({ to: `/app/assembleias/${a.id}/auditoria` as any })}
         >
           <Eye className="h-3.5 w-3.5" /> Ver ata e votos
         </Button>
