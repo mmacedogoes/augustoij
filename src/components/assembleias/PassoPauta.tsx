@@ -50,9 +50,22 @@ interface PassoPautaProps {
   itens: ItemPauta[];
   onChange: (itens: ItemPauta[]) => void;
   regrasPadrao: { base_calculo: string };
+  /** Persiste um item no banco e devolve o id gerado (opcional). */
+  onPersistItem?: (item: ItemPauta, index: number) => void;
+  /** Remove o item no banco (opcional). */
+  onPersistDelete?: (item: ItemPauta) => void;
+  /** Persiste a nova ordem dos itens (opcional). */
+  onPersistOrder?: (itens: ItemPauta[]) => void;
 }
 
-export function PassoPauta({ itens, onChange, regrasPadrao }: PassoPautaProps) {
+export function PassoPauta({
+  itens,
+  onChange,
+  regrasPadrao,
+  onPersistItem,
+  onPersistDelete,
+  onPersistOrder,
+}: PassoPautaProps) {
   const [editingItem, setEditingItem] = useState<{ item: ItemPauta; index: number } | null>(null);
 
   const handleAddItem = () => {
@@ -69,31 +82,38 @@ export function PassoPauta({ itens, onChange, regrasPadrao }: PassoPautaProps) {
 
   const handleSaveItem = (item: ItemPauta) => {
     const newItens = [...itens];
+    const index = editingItem?.index === -1 ? newItens.length : editingItem!.index;
     if (editingItem?.index === -1) {
       newItens.push(item);
     } else {
-      newItens[editingItem!.index] = item;
+      newItens[index] = item;
     }
     onChange(newItens);
     setEditingItem(null);
+    onPersistItem?.(newItens[index], index);
   };
 
   const handleMove = (index: number, direction: "up" | "down") => {
     const newItens = [...itens];
     const newIndex = direction === "up" ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= newItens.length) return;
-    
+
     [newItens[index], newItens[newIndex]] = [newItens[newIndex], newItens[index]];
-    
+
     // Recalcular ordens
-    newItens.forEach((it, i) => it.ordem = i + 1);
-    onChange(newItens);
+    const reordenados = newItens.map((it, i) => ({ ...it, ordem: i + 1 }));
+    onChange(reordenados);
+    onPersistOrder?.(reordenados);
   };
 
   const handleRemove = (index: number) => {
-    const newItens = itens.filter((_, i) => i !== index);
-    newItens.forEach((it, i) => it.ordem = i + 1);
-    onChange(newItens);
+    const removido = itens[index];
+    const reordenados = itens
+      .filter((_, i) => i !== index)
+      .map((it, i) => ({ ...it, ordem: i + 1 }));
+    onChange(reordenados);
+    if (removido) onPersistDelete?.(removido);
+    onPersistOrder?.(reordenados);
   };
 
   return (
