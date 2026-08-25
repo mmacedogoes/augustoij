@@ -41,7 +41,7 @@ export function RevisaoIAPainel({
             onClick={onRevisar}
             className="h-7 text-[10px] uppercase tracking-wider text-augusto-gold hover:bg-augusto-gold/10"
           >
-            Revisar de novo
+            Revisar
           </Button>
         )}
       </div>
