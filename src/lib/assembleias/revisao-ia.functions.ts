@@ -120,6 +120,6 @@ ${JSON.stringify(itemsContext, null, 2)}`;
       return result;
     } catch (err) {
       console.error("[IA-Revisao]", err);
-      throw new Error("Falha na comunicação com a IA.");
+      throw new Error(`Falha na comunicação com a IA: ${err instanceof Error ? err.message : String(err)}`);
     }
   });
