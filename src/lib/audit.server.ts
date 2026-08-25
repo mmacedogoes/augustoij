@@ -50,6 +50,7 @@ export type AuditAction =
   | "assembleia.item.prorrogar"
   | "assembleia.item.exibir_parcial"
   | "assembleia.item.anular"
+  | "assembleia.instalar"
   | "assembleia.voto.mesa"
   | "assembleia.cabine.abrir"
   | "assembleia.fila.inscrever"
