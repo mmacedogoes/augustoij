@@ -34,7 +34,8 @@ import {
   getProgressoItem, 
   prorrogarVotacao, 
   anularEReabrirItem,
-  abrirCabine 
+  abrirCabine,
+  instalarAssembleia
 } from "@/lib/assembleias/mesa.functions";
 import { descreverResultado } from "@/lib/assembleias/resultado-texto";
 import { AssembleiaSituacaoBadge } from "@/components/assembleias/AssembleiaSituacaoBadge";
