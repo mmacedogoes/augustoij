@@ -290,3 +290,47 @@ export const abrirCabine = createServerFn({ method: "POST" })
 
     return { url: `/cabine/${token}` };
   });
+
+// Instala (abre oficialmente) a assembleia: pré-requisito para abrir votações
+export const instalarAssembleia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ assembleiaId: z.string().uuid() }).parse(d))
+  .handler(async ({ data: input, context }) => {
+    await ensureAcessoAssembleias(context);
+    const supabaseAdmin = await getSupabaseAdmin();
+
+    const { data: assembleia, error: errGet } = await supabaseAdmin
+      .from("assembleias")
+      .select("id, condominio_id, instalada_em, situacao")
+      .eq("id", input.assembleiaId)
+      .single();
+
+    if (errGet || !assembleia) throw new Error("Assembleia não encontrada.");
+    if (assembleia.situacao === "cancelada") throw new Error("Assembleia cancelada.");
+    if (assembleia.instalada_em) return { success: true, instalada_em: assembleia.instalada_em };
+
+    const { count: aptos } = await supabaseAdmin
+      .from("assembleia_habilitacoes")
+      .select("*", { count: "exact", head: true })
+      .eq("assembleia_id", input.assembleiaId)
+      .eq("apta", true);
+
+    if (!aptos) throw new Error("Conclua a habilitação das unidades antes de instalar a assembleia.");
+
+    const instaladaEm = new Date().toISOString();
+    const { error: errUpd } = await supabaseAdmin
+      .from("assembleias")
+      .update({ instalada_em: instaladaEm, situacao: "ao_vivo" })
+      .eq("id", input.assembleiaId);
+
+    if (errUpd) throw new Error(errUpd.message);
+
+    await logAdminAction({
+      actorUserId: context.userId,
+      action: "assembleia.instalar",
+      targetCondominioId: assembleia.condominio_id,
+      metadata: { assembleia_id: input.assembleiaId, aptos },
+    });
+
+    return { success: true, instalada_em: instaladaEm };
+  });
