@@ -32,9 +32,9 @@ export const upsertItemPauta = createServerFn({ method: "POST" })
       throw new Error("Itens de escolha única precisam de pelo menos duas opções.");
     }
 
-    const { opcoes, id, ...itemData } = data;
+    const { opcoes, id, voto_secreto, ...itemData } = data;
 
-    const payload: Record<string, unknown> = { ...itemData, atualizado_por: userId };
+    const payload: Record<string, unknown> = { ...itemData, secreto: voto_secreto ?? false };
     if (id) payload.id = id;
 
     const { data: row, error } = await supabase
