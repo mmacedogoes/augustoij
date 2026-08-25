@@ -114,7 +114,24 @@ function MesaPage() {
           Math.max(0, Math.floor(restanteMs / 1000) % 60),
         ).padStart(2, "0")}`;
 
+  const instalada = !!(assembleia as any)?.instalada_em;
+
+  const handleInstalar = async () => {
+    toast.promise(instalar({ data: { assembleiaId } }), {
+      loading: "Instalando assembleia...",
+      success: () => {
+        queryClient.invalidateQueries({ queryKey: ["assembleia-mesa"] });
+        return "Assembleia instalada. Já é possível abrir votações.";
+      },
+      error: (e) => e.message
+    });
+  };
+
   const handleAbrir = async (itemId: string) => {
+    if (!instalada) {
+      toast.error("Instale a assembleia antes de abrir a votação.");
+      return;
+    }
     toast.promise(abrirVotacao({ data: { itemId } }), {
       loading: "Abrindo votação...",
       success: () => {
@@ -124,6 +141,7 @@ function MesaPage() {
       error: (e) => e.message
     });
   };
+
 
   const handleEncerrar = async (itemId: string) => {
     toast.promise(encerrarVotacao({ data: { itemId } }), {
