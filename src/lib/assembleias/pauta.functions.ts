@@ -14,7 +14,7 @@ export const upsertItemPauta = createServerFn({ method: "POST" })
     tipo_votacao: z.enum(["sim_nao_abstencao", "escolha_unica"]),
     voto_secreto: z.boolean().default(false),
     regra_quorum: z.string(),
-    quorum_valor: z.number().min(0).max(1).optional(),
+    quorum_valor: z.number().min(0).max(1).nullish(),
     base_calculo: z.string(),
     opcoes: z.array(z.object({
       rotulo: z.string(),
