@@ -70,6 +70,64 @@ export function PassoPauta({
   onPersistOrder,
 }: PassoPautaProps) {
   const [editingItem, setEditingItem] = useState<{ item: ItemPauta; index: number } | null>(null);
+  const [importando, setImportando] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const importar = useServerFn(importarPautaPdf);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Arquivo grande demais (máx. 10 MB).");
+      return;
+    }
+    setImportando(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",", 2)[1] ?? "");
+        reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+        reader.readAsDataURL(file);
+      });
+
+      const res = await importar({
+        data: {
+          fileBase64: base64,
+          fileName: file.name,
+          mimeType: file.type || "application/pdf",
+          basePadrao: regrasPadrao.base_calculo,
+        },
+      });
+
+      const extraidos = res?.itens ?? [];
+      if (extraidos.length === 0) {
+        toast.warning("Nenhum item de pauta foi identificado no edital.");
+        return;
+      }
+
+      const base = itens.length;
+      const novos: ItemPauta[] = extraidos.map((it, i) => ({
+        titulo: it.titulo,
+        descricao: it.descricao ?? undefined,
+        ordem: base + i + 1,
+        tipo_votacao: it.tipo_votacao,
+        voto_secreto: false,
+        regra_quorum: it.regra_quorum,
+        base_calculo: it.base_calculo || regrasPadrao.base_calculo,
+      }));
+
+      const todos = [...itens, ...novos];
+      onChange(todos);
+      novos.forEach((item, i) => onPersistItem?.(item, base + i));
+      toast.success(`${novos.length} ${novos.length === 1 ? "item importado" : "itens importados"} do edital.`);
+    } catch (err) {
+      toast.error((err as Error).message || "Falha ao importar a pauta.");
+    } finally {
+      setImportando(false);
+    }
+  };
+
 
   const handleAddItem = () => {
     const newItem: ItemPauta = {
