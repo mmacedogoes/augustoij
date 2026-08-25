@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { importarPautaPdf } from "@/lib/assembleias/pauta-import.functions";
 import { Button } from "@/components/ui/button";
-import { Plus, X, GripVertical, Info, MoveUp, MoveDown, Trash2 } from "lucide-react";
+import { Plus, X, GripVertical, Info, MoveUp, MoveDown, Trash2, Upload, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -67,6 +70,65 @@ export function PassoPauta({
   onPersistOrder,
 }: PassoPautaProps) {
   const [editingItem, setEditingItem] = useState<{ item: ItemPauta; index: number } | null>(null);
+  const [importando, setImportando] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const importar = useServerFn(importarPautaPdf);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Arquivo grande demais (máx. 10 MB).");
+      return;
+    }
+    setImportando(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",", 2)[1] ?? "");
+        reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+        reader.readAsDataURL(file);
+      });
+
+      const res = await importar({
+        data: {
+          fileBase64: base64,
+          fileName: file.name,
+          mimeType: file.type || "application/pdf",
+          basePadrao: regrasPadrao.base_calculo,
+        },
+      });
+
+      const extraidos = res?.itens ?? [];
+      if (extraidos.length === 0) {
+        toast.warning("Nenhum item de pauta foi identificado no edital.");
+        return;
+      }
+
+      const base = itens.length;
+      const novos: ItemPauta[] = extraidos.map((it, i) => ({
+        titulo: it.titulo,
+        descricao: it.descricao ?? undefined,
+        ordem: base + i + 1,
+        // Itens importados entram como votação padrão; escolha única exige opções definidas na edição.
+        tipo_votacao: "sim_nao_abstencao",
+        voto_secreto: false,
+        regra_quorum: it.regra_quorum,
+        base_calculo: it.base_calculo || regrasPadrao.base_calculo,
+      }));
+
+      const todos = [...itens, ...novos];
+      onChange(todos);
+      novos.forEach((item, i) => onPersistItem?.(item, base + i));
+      toast.success(`${novos.length} ${novos.length === 1 ? "item importado" : "itens importados"} do edital.`);
+    } catch (err) {
+      toast.error((err as Error).message || "Falha ao importar a pauta.");
+    } finally {
+      setImportando(false);
+    }
+  };
+
 
   const handleAddItem = () => {
     const newItem: ItemPauta = {
@@ -139,10 +201,26 @@ export function PassoPauta({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" className="gap-2 border-augusto-gold/20 text-augusto-gold" onClick={handleAddItem}>
-            <Plus className="h-4 w-4" /> Adicionar item como secundário
+            <Plus className="h-4 w-4" /> Adicionar item à pauta
           </Button>
-          <Button variant="ghost" disabled className="gap-2 text-muted-foreground" title="Importação de pauta em PDF não faz parte desta versão">
-            Importar pauta do edital em PDF
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf,.pdf,.docx,.txt"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button
+            variant="ghost"
+            className="gap-2 text-muted-foreground"
+            disabled={importando}
+            onClick={() => fileRef.current?.click()}
+          >
+            {importando ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Lendo o edital...</>
+            ) : (
+              <><Upload className="h-4 w-4" /> Importar pauta do edital em PDF</>
+            )}
           </Button>
         </div>
       </div>
