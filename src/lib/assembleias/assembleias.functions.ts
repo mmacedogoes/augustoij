@@ -206,7 +206,12 @@ export const listCondominiosParaAssembleias = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     await ensureAcessoAssembleias({ supabase, userId });
 
-    const { data, error } = await supabase
+    // A listagem é exclusiva do Super Admin (validado acima). O cliente da
+    // sessão continua sujeito ao RLS dos condomínios e, por isso, ocultava os
+    // condomínios de terceiros justamente nesta tela de suporte.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data, error } = await supabaseAdmin
       .from("condominios")
       .select("id, nome, cidade, uf")
       .order("nome", { ascending: true });
