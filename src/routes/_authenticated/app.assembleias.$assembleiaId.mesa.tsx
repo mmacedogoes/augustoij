@@ -217,6 +217,27 @@ function MesaPage() {
           </div>
         </header>
 
+        {!instalada && (
+          <Card className="border-augusto-gold/40 bg-augusto-gold/5">
+            <CardContent className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-augusto-gold mt-0.5" />
+                <div>
+                  <p className="font-serif text-lg text-primary">Assembleia ainda não instalada</p>
+                  <p className="text-sm text-muted-foreground">
+                    A instalação registra a abertura oficial da sessão. Sem ela, nenhum item da pauta pode ser colocado em votação.
+                  </p>
+                </div>
+              </div>
+              <Button onClick={handleInstalar} className="shrink-0">
+                <Play className="h-4 w-4 mr-2" /> Instalar assembleia
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+
+
         <div className="grid lg:grid-cols-[1fr,400px] gap-8">
           <main className="space-y-8">
             {/* Item Ativo / Próximo */}
