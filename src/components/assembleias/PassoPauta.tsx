@@ -139,10 +139,26 @@ export function PassoPauta({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" className="gap-2 border-augusto-gold/20 text-augusto-gold" onClick={handleAddItem}>
-            <Plus className="h-4 w-4" /> Adicionar item como secundário
+            <Plus className="h-4 w-4" /> Adicionar item à pauta
           </Button>
-          <Button variant="ghost" disabled className="gap-2 text-muted-foreground" title="Importação de pauta em PDF não faz parte desta versão">
-            Importar pauta do edital em PDF
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf,.pdf,.docx,.txt"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button
+            variant="ghost"
+            className="gap-2 text-muted-foreground"
+            disabled={importando}
+            onClick={() => fileRef.current?.click()}
+          >
+            {importando ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Lendo o edital...</>
+            ) : (
+              <><Upload className="h-4 w-4" /> Importar pauta do edital em PDF</>
+            )}
           </Button>
         </div>
       </div>
