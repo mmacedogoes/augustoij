@@ -72,6 +72,7 @@ function MesaPage() {
   const prorrogar = useServerFn(prorrogarVotacao);
   const anularItem = useServerFn(anularEReabrirItem);
   const gerarCabine = useServerFn(abrirCabine);
+  const instalar = useServerFn(instalarAssembleia);
 
   const [itemAtivoId, setItemAtivoId] = useState<string | null>(null);
   const [showAnularModal, setShowAnularModal] = useState(false);
