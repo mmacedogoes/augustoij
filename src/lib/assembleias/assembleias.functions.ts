@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
 import { SELECT_ASSEMBLEIA_ALIASES, paraColunasDb } from "./colunas";
+import { regrasSchema } from "./schemas";
 
 export const listAssembleias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -81,15 +82,6 @@ export const getAssembleia = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return assembleia;
   });
-
-const regrasSchema = {
-  base_calculo_padrao: z.string().optional(),
-  quorum_instalacao_1: z.string().optional(),
-  quorum_instalacao_2: z.string().nullable().optional(),
-  bloqueio_inadimplente: z.boolean().optional(),
-  limite_procuracoes: z.number().nullable().optional(),
-  voto_pela_mesa: z.boolean().optional(),
-};
 
 export const createAssembleia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
