@@ -94,7 +94,7 @@ export const melhorarRedacaoIA = createServerFn({ method: "POST" })
     itens: z.array(z.object({
       id: z.string(),
       titulo: z.string(),
-      descricao: z.string().optional()
+      descricao: z.string().nullish()
     }))
   }))
   .handler(async ({ data, context }) => {
