@@ -78,12 +78,12 @@ ${JSON.stringify(itemsContext, null, 2)}`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
          method: "POST",
-         headers: { 
-           "Content-Type": "application/json",
-           "Lovable-API-Key": apiKey
-         },
-         body: JSON.stringify({
-           model: "google/gemini-2.0-flash-exp",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
            messages: [
              { role: "system", content: systemPrompt },
              { role: "user", content: userPrompt }
@@ -120,6 +120,6 @@ ${JSON.stringify(itemsContext, null, 2)}`;
       return result;
     } catch (err) {
       console.error("[IA-Revisao]", err);
-      throw new Error("Falha na comunicação com a IA.");
+      throw new Error(`Falha na comunicação com a IA: ${err instanceof Error ? err.message : String(err)}`);
     }
   });
