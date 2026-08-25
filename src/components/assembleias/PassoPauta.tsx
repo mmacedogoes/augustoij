@@ -111,7 +111,8 @@ export function PassoPauta({
         titulo: it.titulo,
         descricao: it.descricao ?? undefined,
         ordem: base + i + 1,
-        tipo_votacao: it.tipo_votacao,
+        // Itens importados entram como votação padrão; escolha única exige opções definidas na edição.
+        tipo_votacao: "sim_nao_abstencao",
         voto_secreto: false,
         regra_quorum: it.regra_quorum,
         base_calculo: it.base_calculo || regrasPadrao.base_calculo,
