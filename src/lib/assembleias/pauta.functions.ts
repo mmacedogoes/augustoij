@@ -32,9 +32,46 @@ export const upsertItemPauta = createServerFn({ method: "POST" })
       throw new Error("Itens de escolha única precisam de pelo menos duas opções.");
     }
 
-    const { opcoes, id, voto_secreto, ...itemData } = data;
+    const { opcoes, id, voto_secreto, base_calculo, regra_quorum, ...itemData } = data;
 
-    const payload: Record<string, unknown> = { ...itemData, secreto: voto_secreto ?? false };
+    const BASES: Record<string, string> = {
+      voto_por_unidade: "unidade",
+      por_unidade: "unidade",
+      unidade: "unidade",
+      fracao: "fracao_ideal",
+      fracao_ideal: "fracao_ideal",
+    };
+    const QUORUNS = new Set([
+      "maioria_simples_presentes",
+      "maioria_absoluta_condominos",
+      "dois_tercos_presentes",
+      "dois_tercos_condominos",
+      "tres_quartos_condominos",
+      "unanimidade",
+      "personalizado",
+    ]);
+    const REGRAS: Record<string, string> = {
+      maioria_simples: "maioria_simples_presentes",
+      maioria_unidades: "maioria_simples_presentes",
+      metade_mais_um: "maioria_absoluta_condominos",
+      maioria_absoluta: "maioria_absoluta_condominos",
+      dois_tercos: "dois_tercos_condominos",
+      tres_quartos: "tres_quartos_condominos",
+      qualquer_numero: "maioria_simples_presentes",
+    };
+    const regra = QUORUNS.has(regra_quorum)
+      ? regra_quorum
+      : (REGRAS[regra_quorum] ?? "maioria_simples_presentes");
+
+    const payload: Record<string, unknown> = {
+      ...itemData,
+      secreto: voto_secreto ?? false,
+      base_calculo: BASES[base_calculo] ?? "unidade",
+      regra_quorum: regra,
+    };
+    if (regra === "personalizado" && payload.quorum_valor == null) {
+      payload.quorum_valor = 0.5;
+    }
     if (id) payload.id = id;
 
     const { data: row, error } = await supabase
