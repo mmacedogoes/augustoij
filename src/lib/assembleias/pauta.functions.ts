@@ -55,6 +55,7 @@ export const upsertItemPauta = createServerFn({ method: "POST" })
       maioria_unidades: "maioria_simples_presentes",
       metade_mais_um: "maioria_absoluta_condominos",
       maioria_absoluta: "maioria_absoluta_condominos",
+      maioria_condominos: "maioria_absoluta_condominos",
       dois_tercos: "dois_tercos_condominos",
       tres_quartos: "tres_quartos_condominos",
       qualquer_numero: "maioria_simples_presentes",
