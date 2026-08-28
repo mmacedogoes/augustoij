@@ -136,7 +136,7 @@ export function PassoPauta({
       ordem: itens.length + 1,
       tipo_votacao: "sim_nao_abstencao",
       voto_secreto: false,
-      regra_quorum: "maioria_presentes",
+      regra_quorum: "maioria_simples_presentes",
       base_calculo: regrasPadrao.base_calculo,
     };
     setEditingItem({ item: newItem, index: -1 });
@@ -393,8 +393,8 @@ function ItemPautaForm({ item, onSave, onClose, onDelete }: {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="maioria_presentes">Maioria dos presentes</SelectItem>
-                  <SelectItem value="maioria_condominos">Maioria dos condôminos</SelectItem>
+                  <SelectItem value="maioria_simples_presentes">Maioria dos presentes</SelectItem>
+                  <SelectItem value="maioria_absoluta_condominos">Maioria dos condôminos</SelectItem>
                   <SelectItem value="dois_tercos_condominos">Dois terços dos condôminos</SelectItem>
                   <SelectItem value="tres_quartos_condominos">Três quartos dos condôminos</SelectItem>
                   <SelectItem value="unanimidade">Unanimidade</SelectItem>
