@@ -32,6 +32,7 @@ const VALORES_BASE_CALCULO: Record<string, string> = {
 /** Quóruns são armazenados como fração numérica (0 a 1). */
 const VALORES_QUORUM: Record<string, number> = {
   maioria_unidades: 0.5,
+  maioria_presentes: 0.5,
   metade_mais_um: 0.5,
   dois_tercos: 0.6667,
   qualquer_numero: 0,
