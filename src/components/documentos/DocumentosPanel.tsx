@@ -428,10 +428,11 @@ export function DocumentosPanel({
                         )}
                         {l.status === "erro" && (
                           <span
-                            className="inline-flex items-center gap-1 text-xs text-destructive"
+                            className="inline-flex items-start gap-1 text-xs text-destructive"
                             title={l.erro}
                           >
-                            <AlertTriangle className="h-3 w-3" /> Erro
+                            <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                            <span className="break-words">{l.erro || "Erro"}</span>
                           </span>
                         )}
                       </TableCell>
