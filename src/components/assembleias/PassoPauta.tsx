@@ -136,7 +136,7 @@ export function PassoPauta({
       ordem: itens.length + 1,
       tipo_votacao: "sim_nao_abstencao",
       voto_secreto: false,
-      regra_quorum: "maioria_presentes",
+      regra_quorum: "maioria_simples_presentes",
       base_calculo: regrasPadrao.base_calculo,
     };
     setEditingItem({ item: newItem, index: -1 });
