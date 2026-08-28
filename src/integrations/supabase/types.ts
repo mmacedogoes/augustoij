@@ -4860,6 +4860,7 @@ export type Database = {
         Returns: Json
       }
       check_alertas_uso: { Args: { _user_id: string }; Returns: undefined }
+      conta_master: { Args: { _user_id: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
