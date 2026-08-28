@@ -19,18 +19,15 @@ async function assertAnalisePermitida(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   userId: string,
 ) {
-  const [subRes, admin] = await Promise.all([
-    supabase
-      .from("subscriptions")
-      .select("plano_config_id, trial_end, cortesia")
-      .eq("user_id", userId)
-      .maybeSingle(),
+  const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
+  const [sub, admin] = await Promise.all([
+    getSubscriptionEfetiva(userId),
     isAdminInternoServer(supabase, userId),
   ]);
-  const planoBruto = resolvePlanId(subRes?.data?.plano_config_id ?? null);
-  const cortesia = subRes?.data?.cortesia === true || admin;
+  const planoBruto = resolvePlanId(sub?.plano_config_id ?? null);
+  const cortesia = sub?.cortesia === true || admin;
   if (cortesia) return;
-  if (isTrialExpired(planoBruto, subRes?.data?.trial_end ?? null)) {
+  if (isTrialExpired(planoBruto, sub?.trial_end ?? null)) {
     throw new Error(gateMessages.trialExpirado());
   }
   const planoV2Id: PlanoIdV2 = (planoBruto as string) in PLANOS ? (planoBruto as PlanoIdV2) : "gratuito";

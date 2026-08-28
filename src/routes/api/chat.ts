@@ -177,12 +177,9 @@ export const Route = createFileRoute("/api/chat")({
           const proximoMes = new Date(
             Date.UTC(nowSp.getFullYear(), nowSp.getMonth() + 1, 1, 3, 0, 0),
           );
-          const [subRes, mensalRes, diarioRes, admin] = await Promise.all([
-            supabase
-              .from("subscriptions")
-              .select("plano_config_id, trial_end, user_id, cortesia")
-              .eq("user_id", conv.user_id)
-              .maybeSingle(),
+          const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
+          const [sub, mensalRes, diarioRes, admin] = await Promise.all([
+            getSubscriptionEfetiva(conv.user_id),
             supabase
               .from("uso_mensal")
               .select("total_mensagens")
@@ -197,11 +194,11 @@ export const Route = createFileRoute("/api/chat")({
               .maybeSingle(),
             isAdminInternoServer(supabase, conv.user_id),
           ]);
-          const rawPlano = (subRes.data?.plano_config_id ?? "gratuito") as string;
+          const rawPlano = (sub?.plano_config_id ?? "gratuito") as string;
           const planoId = (rawPlano in PLANS ? rawPlano : "gratuito") as PlanId;
-          const cortesia = subRes.data?.cortesia === true || admin;
+          const cortesia = sub?.cortesia === true || admin;
           const plano = PLANS[planoId];
-          const trialFimIso = subRes.data?.trial_end ?? null;
+          const trialFimIso = sub?.trial_end ?? null;
           const trialExpirado =
             !cortesia &&
             planoId === "gratuito" &&

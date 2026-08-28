@@ -16,25 +16,23 @@ async function assertUploadPermitido(
   condominioId: string,
   tipo?: string,
 ) {
-  const [subRes, docsRes, admin] = await Promise.all([
-    supabase
-      .from("subscriptions")
-      .select("plano_config_id, trial_end, cortesia")
-      .eq("user_id", userId)
-      .maybeSingle(),
+  const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
+  const [sub, docsRes, admin] = await Promise.all([
+    getSubscriptionEfetiva(userId),
     supabase
       .from("documentos")
       .select("id", { count: "exact", head: true })
       .eq("condominio_id", condominioId),
     isAdminInternoServer(supabase, userId),
   ]);
-  const planoBruto = resolvePlanId(subRes.data?.plano_config_id ?? null);
-  const cortesia = subRes.data?.cortesia === true || admin;
+  const planoBruto = resolvePlanId(sub?.plano_config_id ?? null);
+  const cortesia = sub?.cortesia === true || admin;
   const planoId = efetivoPlanoId(planoBruto, cortesia);
   const plano = PLANS[planoId];
-  if (!cortesia && isTrialExpired(planoBruto, subRes.data?.trial_end ?? null)) {
+  if (!cortesia && isTrialExpired(planoBruto, sub?.trial_end ?? null)) {
     throw new Error(gateMessages.trialExpirado());
   }
+
 
   // Regras específicas do plano Gratuito: 1 Convenção + 1 Contrato,
   // contadas entre todos os condomínios do usuário (owner_id).

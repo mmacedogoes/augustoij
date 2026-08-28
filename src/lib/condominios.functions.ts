@@ -35,23 +35,20 @@ export const createCondominio = createServerFn({ method: "POST" })
   .inputValidator((input) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
     // ---- Gate por plano (bloqueio no servidor) ----
-    const [subRes, countRes, admin] = await Promise.all([
-      context.supabase
-        .from("subscriptions")
-        .select("plano_config_id, trial_end, cortesia")
-        .eq("user_id", context.userId)
-        .maybeSingle(),
+    const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
+    const [sub, countRes, admin] = await Promise.all([
+      getSubscriptionEfetiva(context.userId),
       context.supabase
         .from("condominios")
         .select("id", { count: "exact", head: true })
         .eq("owner_id", context.userId),
       isAdminInternoServer(context.supabase, context.userId),
     ]);
-    const planoBruto = resolvePlanId(subRes.data?.plano_config_id ?? null);
-    const cortesia = subRes.data?.cortesia === true || admin;
+    const planoBruto = resolvePlanId(sub?.plano_config_id ?? null);
+    const cortesia = sub?.cortesia === true || admin;
     const planoId = efetivoPlanoId(planoBruto, cortesia);
     const plano = PLANS[planoId];
-    if (!cortesia && isTrialExpired(planoBruto, subRes.data?.trial_end ?? null)) {
+    if (!cortesia && isTrialExpired(planoBruto, sub?.trial_end ?? null)) {
       throw new Error(gateMessages.trialExpirado());
     }
     const atual = countRes.count ?? 0;

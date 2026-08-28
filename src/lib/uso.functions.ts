@@ -23,12 +23,9 @@ export const getUsoAtual = createServerFn({ method: "GET" })
     const proximoMes = new Date(Date.UTC(nowSp.getFullYear(), nowSp.getMonth() + 1, 1, 3, 0, 0));
     const resetMesIso = proximoMes.toISOString();
 
-    const [subRes, mensalRes, diarioRes] = await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select("plano_config_id, trial_end, cortesia")
-        .eq("user_id", userId)
-        .maybeSingle(),
+    const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
+    const [sub, mensalRes, diarioRes] = await Promise.all([
+      getSubscriptionEfetiva(userId),
       supabase
         .from("uso_mensal")
         .select("total_mensagens")
@@ -43,14 +40,14 @@ export const getUsoAtual = createServerFn({ method: "GET" })
         .maybeSingle(),
     ]);
 
-    const rawPlano = (subRes.data?.plano_config_id ?? "gratuito") as string;
+    const rawPlano = (sub?.plano_config_id ?? "gratuito") as string;
     const planoId = (rawPlano in PLANS ? rawPlano : "gratuito") as PlanId;
-    const cortesia = subRes.data?.cortesia === true;
+    const cortesia = sub?.cortesia === true;
     // Cortesia usa limites do plano Personalizado (ilimitado em tudo)
     const planoEfetivo = cortesia ? PLANS.personalizado : PLANS[planoId];
     const plano = PLANS[planoId];
 
-    const trialFimIso = subRes.data?.trial_end ?? null;
+    const trialFimIso = sub?.trial_end ?? null;
     let diasRestantesTrial: number | null = null;
     let trialExpirado = false;
     if (planoId === "gratuito" && trialFimIso) {
