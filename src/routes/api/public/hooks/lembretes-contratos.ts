@@ -50,9 +50,12 @@ export const Route = createFileRoute("/api/public/hooks/lembretes-contratos")({
 });
 
 async function runHandler(request: Request): Promise<Response> {
+  const cronToken = process.env.CRON_LEMBRETES_TOKEN;
   const anonKey = process.env.SUPABASE_ANON_KEY;
-  const provided = request.headers.get("apikey") ?? "";
-  if (!anonKey || provided !== anonKey) {
+  const provided = request.headers.get("apikey") ?? request.headers.get("x-cron-token") ?? "";
+  const autorizado =
+    (!!cronToken && provided === cronToken) || (!!anonKey && provided === anonKey);
+  if (!autorizado) {
     return json({ ok: false, error: "unauthorized" }, 401);
   }
 
