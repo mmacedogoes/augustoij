@@ -8,6 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { Card } from "@/components/ui/card";
 import { ListaMeusChamados } from "@/components/helpdesk/ListaMeusChamados";
+import { UsuariosEquipePanel } from "@/components/conta/UsuariosEquipePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -353,6 +354,8 @@ function ContaPage() {
             {alterandoSenha ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Alterando…</> : "Alterar senha"}
           </Button>
         </Card>
+
+        <UsuariosEquipePanel />
 
         <PrivacidadeSection />
 

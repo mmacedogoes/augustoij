@@ -1,11 +1,11 @@
 /**
- * Rotina diária de lembretes dos contratos de prestação de serviços (Fase 4).
+ * Rotina semanal de lembretes dos contratos de prestação de serviços (Fase 4).
  *
- * Chamada por pg_cron uma vez por dia. Autentica pelo header `apikey`
+ * Chamada por pg_cron toda segunda-feira às 8h (Brasília). Autentica pelo header `apikey`
  * contra `SUPABASE_ANON_KEY` (padrão do projeto para hooks internos).
  *
  * Passos:
- *  1. Coleta eventos pendentes com data <= hoje (Brasília) que ainda não foram notificados.
+ *  1. Coleta eventos pendentes atrasados e os dos próximos 7 dias, ainda não notificados.
  *  2. Coleta checklists atrasados: períodos vencidos com itens obrigatórios ainda pendentes.
  *  3. Agrupa por destinatário (responsáveis do contrato; se não houver, o `criado_por`).
  *  4. Grava uma notificação in-app por item (com dedupe por evento+usuário).
@@ -50,15 +50,19 @@ export const Route = createFileRoute("/api/public/hooks/lembretes-contratos")({
 });
 
 async function runHandler(request: Request): Promise<Response> {
+  const cronToken = process.env.CRON_LEMBRETES_TOKEN;
   const anonKey = process.env.SUPABASE_ANON_KEY;
-  const provided = request.headers.get("apikey") ?? "";
-  if (!anonKey || provided !== anonKey) {
+  const provided = request.headers.get("apikey") ?? request.headers.get("x-cron-token") ?? "";
+  const autorizado =
+    (!!cronToken && provided === cronToken) || (!!anonKey && provided === anonKey);
+  if (!autorizado) {
     return json({ ok: false, error: "unauthorized" }, 401);
   }
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const resendKey = process.env.RESEND_API_KEY;
   const hoje = hojeBR();
+  const limite = somarDias(hoje, 7);
 
   // ---------- 1) Eventos vencidos hoje ou antes, ainda pendentes e não notificados
   const { data: eventosRaw, error: eErr } = await supabaseAdmin
@@ -66,7 +70,7 @@ async function runHandler(request: Request): Promise<Response> {
     .select("id, contrato_id, tipo, titulo, descricao, data_evento")
     .eq("status", "pendente")
     .is("notificado_em", null)
-    .lte("data_evento", hoje)
+    .lte("data_evento", limite)
     .order("data_evento", { ascending: true })
     .limit(500);
   if (eErr) {
@@ -245,7 +249,7 @@ async function runHandler(request: Request): Promise<Response> {
         body: JSON.stringify({
           from: "Augusto.IJ <lembretes@mail.augustoij.com.br>",
           to: [destinatario.email],
-          subject: `Você tem ${itens.length} lembrete${itens.length === 1 ? "" : "s"} de contrato hoje`,
+          subject: `Sua semana em contratos: ${itens.length} pendência${itens.length === 1 ? "" : "s"}`,
           html,
         }),
       });
@@ -301,6 +305,13 @@ function hojeBR(): string {
   const m = parts.find((p) => p.type === "month")!.value;
   const d = parts.find((p) => p.type === "day")!.value;
   return `${y}-${m}-${d}`;
+}
+
+/** Soma dias a uma data ISO (YYYY-MM-DD). */
+function somarDias(iso: string, dias: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
 }
 
 function formatBR(iso: string): string {
@@ -361,15 +372,15 @@ function montarHtml(
 
   const nome = destinatario.nome?.trim() || destinatario.email;
   const abertura = itens.length === 1
-    ? "Há um evento de contrato pedindo sua atenção hoje. O detalhe está logo abaixo."
-    : `Há ${itens.length} eventos de contrato pedindo sua atenção hoje. Confira os detalhes logo abaixo.`;
+    ? "Este é o seu resumo semanal: há uma pendência de contrato para tratar nos próximos dias."
+    : `Este é o seu resumo semanal: há ${itens.length} pendências e obrigações de contrato para tratar nos próximos dias.`;
   const preview = itens.length === 1
-    ? `1 lembrete de contrato: ${itens[0].titulo}`
-    : `${itens.length} lembretes de contrato para revisar hoje`;
+    ? `Resumo semanal: 1 pendência de contrato`
+    : `Resumo semanal: ${itens.length} pendências de contrato`;
 
   return (antes + itensHtml + depois)
     .replaceAll("{{PREVIEW_TEXTO}}", esc(preview))
-    .replaceAll("{{SUBTITULO}}", esc(itens.length === 1 ? "1 lembrete para hoje" : `${itens.length} lembretes para hoje`))
+    .replaceAll("{{SUBTITULO}}", esc(itens.length === 1 ? "1 pendência nesta semana" : `${itens.length} pendências nesta semana`))
     .replaceAll("{{NOME_USUARIO}}", esc(nome))
     .replaceAll("{{MENSAGEM_ABERTURA}}", esc(abertura))
     .replaceAll("{{URL_PAINEL}}", `${baseUrl}/app/contratos`)
