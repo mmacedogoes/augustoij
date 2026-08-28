@@ -36,12 +36,9 @@ export const getPlanContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<PlanContext> => {
     const { supabase, userId } = context;
-    const [subRes, condosRes, contratosRes, analisesRes, admin] = await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select("plano_config_id, trial_end, cortesia, status")
-        .eq("user_id", userId)
-        .maybeSingle(),
+    const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
+    const [sub, condosRes, contratosRes, analisesRes, admin] = await Promise.all([
+      getSubscriptionEfetiva(userId),
       supabase
         .from("condominios")
         .select("id", { count: "exact", head: true })
@@ -59,19 +56,19 @@ export const getPlanContext = createServerFn({ method: "GET" })
       isAdminInternoServer(supabase, userId),
     ]);
 
-    const planoId = resolvePlanId(subRes.data?.plano_config_id ?? null);
-    const cortesia = subRes.data?.cortesia === true || admin;
+    const planoId = resolvePlanId(sub?.plano_config_id ?? null);
+    const cortesia = sub?.cortesia === true || admin;
     const planoEfetivo = PLANS[efetivoPlanoId(planoId, cortesia)];
     const plano = PLANS[planoId];
     const planoV2Id = (planoId as string) in PLANOS ? (planoId as PlanoIdV2) : "gratuito";
     const planoV2Efetivo = cortesia ? PLANOS.personalizado : PLANOS[planoV2Id];
-    const trialEndIso = subRes.data?.trial_end ?? null;
+    const trialEndIso = sub?.trial_end ?? null;
 
     return {
       planoId,
       planoNome: plano.nome,
       cortesia,
-      status: subRes.data?.status ?? "active",
+      status: sub?.status ?? "active",
       recursos: planoEfetivo.recursos,
       condominiosMax: planoEfetivo.condomíniosMax,
       documentosMax: planoEfetivo.documentosMax,
