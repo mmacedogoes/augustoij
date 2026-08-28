@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensureAcessoContratos, isSuperAdmin } from "./guard";
+import { ensureAcessoContratos, isSuperAdmin, podeEscreverContratos, condominiosAcessiveis } from "./guard";
 import { gerarChecklistsInterno } from "./checklists.functions";
 import { gerarEventosInterno } from "./eventos.functions";
 import { registrarAuditoriaContrato } from "./auditoria.server";
@@ -440,7 +440,9 @@ export const listCondominiosParaContratos = createServerFn({ method: "GET" })
       .select("id, nome, cidade, uf");
 
     if (!isSuper) {
-      query = query.eq("owner_id", context.userId);
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { rows: [] };
+      query = query.in("id", ids);
     }
 
     const { data, error } = await query.order("nome", { ascending: true });
@@ -450,12 +452,7 @@ export const listCondominiosParaContratos = createServerFn({ method: "GET" })
 
 async function isCondominioOwner(context: { supabase: any; userId: string }, condominioId: string | null): Promise<boolean> {
   if (!condominioId) return false;
-  const { data } = await context.supabase
-    .from("condominios")
-    .select("owner_id")
-    .eq("id", condominioId)
-    .maybeSingle();
-  return data?.owner_id === context.userId;
+  return podeEscreverContratos(context, condominioId);
 }
 
 // re-export para consumo tipado no cliente

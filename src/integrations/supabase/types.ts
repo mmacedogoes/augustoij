@@ -2097,25 +2097,46 @@ export type Database = {
         Row: {
           condominio_id: string
           created_at: string
+          criado_por: string | null
           id: string
           papel: Database["public"]["Enums"]["papel_condo_v2"]
           papel_no_condominio: Database["public"]["Enums"]["papel_condominio"]
+          pode_gerenciar_assembleias: boolean
+          pode_gerenciar_contratos: boolean
+          pode_gerenciar_documentos: boolean
+          pode_gerenciar_unidades: boolean
+          pode_gerenciar_usuarios: boolean
+          updated_at: string
           user_id: string
         }
         Insert: {
           condominio_id: string
           created_at?: string
+          criado_por?: string | null
           id?: string
           papel?: Database["public"]["Enums"]["papel_condo_v2"]
           papel_no_condominio?: Database["public"]["Enums"]["papel_condominio"]
+          pode_gerenciar_assembleias?: boolean
+          pode_gerenciar_contratos?: boolean
+          pode_gerenciar_documentos?: boolean
+          pode_gerenciar_unidades?: boolean
+          pode_gerenciar_usuarios?: boolean
+          updated_at?: string
           user_id: string
         }
         Update: {
           condominio_id?: string
           created_at?: string
+          criado_por?: string | null
           id?: string
           papel?: Database["public"]["Enums"]["papel_condo_v2"]
           papel_no_condominio?: Database["public"]["Enums"]["papel_condominio"]
+          pode_gerenciar_assembleias?: boolean
+          pode_gerenciar_contratos?: boolean
+          pode_gerenciar_documentos?: boolean
+          pode_gerenciar_unidades?: boolean
+          pode_gerenciar_usuarios?: boolean
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -4917,6 +4938,10 @@ export type Database = {
       normalize_cpf: { Args: { _v: string }; Returns: string }
       normalize_edificio: { Args: { _v: string }; Returns: string }
       normalize_unidade: { Args: { _v: string }; Returns: string }
+      pode_no_condominio: {
+        Args: { _condominio_id: string; _permissao: string; _user_id: string }
+        Returns: boolean
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
