@@ -223,6 +223,8 @@ export function DocumentosPanel({
     }
 
     setEnviando(true);
+    let ok = 0;
+    const falhas: string[] = [];
     for (const linha of pendentes) {
       atualizarLinha(linha.uid, { status: "enviando" });
       try {
@@ -243,16 +245,25 @@ export function DocumentosPanel({
           },
         })) as { id: string };
         atualizarLinha(linha.uid, { status: "pronto" });
+        ok += 1;
         processDoc({ data: { id: created.id } }).catch(() => {});
       } catch (e) {
-        atualizarLinha(linha.uid, {
-          status: "erro",
-          erro: e instanceof Error ? e.message : "Falha no upload",
-        });
+        const msg = e instanceof Error ? e.message : "Falha no upload";
+        falhas.push(`${linha.file.name}: ${msg}`);
+        atualizarLinha(linha.uid, { status: "erro", erro: msg });
       }
     }
     setEnviando(false);
-    toast.success("Upload concluído. Processamento dos documentos em andamento.");
+    if (ok > 0 && falhas.length === 0) {
+      toast.success("Upload concluído. Processamento dos documentos em andamento.");
+    } else if (ok > 0) {
+      toast.warning(
+        `${ok} arquivo(s) enviado(s), ${falhas.length} com erro.`,
+        { description: falhas[0] },
+      );
+    } else {
+      toast.error("Nenhum arquivo foi enviado.", { description: falhas[0] });
+    }
     refresh();
     // limpa linhas concluídas com sucesso, mantém erros visíveis
     setLinhas((prev) => prev.filter((l) => l.status === "erro"));
@@ -428,10 +439,11 @@ export function DocumentosPanel({
                         )}
                         {l.status === "erro" && (
                           <span
-                            className="inline-flex items-center gap-1 text-xs text-destructive"
+                            className="inline-flex items-start gap-1 text-xs text-destructive"
                             title={l.erro}
                           >
-                            <AlertTriangle className="h-3 w-3" /> Erro
+                            <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                            <span className="break-words">{l.erro || "Erro"}</span>
                           </span>
                         )}
                       </TableCell>
