@@ -70,7 +70,9 @@ export type AuditAction =
   | "assembleia.auditoria.exportar_votos"
   | "assembleia.auditoria.exportar_presenca"
   | "assembleia.auditoria.exportar_tentativas"
-  | "assembleia.auditoria.exportar_relatorio";
+  | "assembleia.auditoria.exportar_relatorio"
+  | "unidades.auditoria.executar"
+  | "unidades.auditoria.corrigir";
 
 
 export type AuditEntry = {
