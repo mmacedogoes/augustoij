@@ -41,20 +41,17 @@ const permissoesSchema = z.object({
 type Ctx = { supabase: any; userId: string };
 
 async function contextoPlano(context: Ctx) {
+  const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
   const [sub, admin] = await Promise.all([
-    context.supabase
-      .from("subscriptions")
-      .select("plano_config_id, cortesia")
-      .eq("user_id", context.userId)
-      .maybeSingle(),
+    getSubscriptionEfetiva(context.userId),
     isAdminInternoServer(context.supabase, context.userId),
   ]);
-  const planoId = ((sub?.data?.plano_config_id ?? "gratuito") as string) in PLANOS
-    ? ((sub?.data?.plano_config_id ?? "gratuito") as PlanoId)
-    : "gratuito";
-  const liberado = admin || sub?.data?.cortesia === true || PLANOS_MULTIUSUARIO.includes(planoId);
+  const bruto = (sub?.plano_config_id ?? "gratuito") as string;
+  const planoId = (bruto in PLANOS ? bruto : "gratuito") as PlanoId;
+  const cortesia = sub?.cortesia === true;
+  const liberado = admin || cortesia || PLANOS_MULTIUSUARIO.includes(planoId);
   const limite = PLANOS[planoId].limites.usuarios; // null = ilimitado
-  return { planoId, liberado, limite: admin || sub?.data?.cortesia ? null : limite };
+  return { planoId, liberado, limite: admin || cortesia ? null : limite };
 }
 
 async function ensureMultiusuario(context: Ctx) {
@@ -65,14 +62,13 @@ async function ensureMultiusuario(context: Ctx) {
   return info;
 }
 
+/**
+ * Condomínios do ambiente de trabalho da conta dona — inclui os cadastrados
+ * por usuários vinculados, que também pertencem ao mesmo ambiente.
+ */
 async function condominiosDoDono(context: Ctx): Promise<Array<{ id: string; nome: string }>> {
-  const { data, error } = await context.supabase
-    .from("condominios")
-    .select("id, nome")
-    .eq("owner_id", context.userId)
-    .order("nome", { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as Array<{ id: string; nome: string }>;
+  const { condominiosDoAmbiente } = await import("@/lib/conta-master.server");
+  return condominiosDoAmbiente(context.userId);
 }
 
 export const getContextoEquipe = createServerFn({ method: "GET" })
@@ -89,7 +85,8 @@ export const listUsuariosEquipe = createServerFn({ method: "GET" })
     const condos = await condominiosDoDono(context);
     if (condos.length === 0) return { rows: [] };
     const nomePorId = new Map(condos.map((c) => [c.id, c.nome]));
-    const { data: membros, error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: membros, error } = await supabaseAdmin
       .from("condominio_members")
       .select(
         "id, condominio_id, user_id, pode_gerenciar_contratos, pode_gerenciar_documentos, pode_gerenciar_assembleias, pode_gerenciar_unidades, pode_gerenciar_usuarios",
@@ -104,7 +101,8 @@ export const listUsuariosEquipe = createServerFn({ method: "GET" })
     // O RLS de profiles não permite ao dono ler perfis de terceiros; a lista
     // acima já garante que só buscamos usuários vinculados a condomínios do
     // próprio dono autenticado, então usamos o client privilegiado.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // (usa o client privilegiado já importado acima)
+
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
       .select("id, nome, email")

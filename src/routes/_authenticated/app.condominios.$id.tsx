@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ArrowLeft, Building, Eye, MessageSquare } from "lucide-react";
@@ -10,7 +10,12 @@ import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { getCondominio, updateCondominio } from "@/lib/condominios.functions";
+import {
+  getCondominio,
+  updateCondominio,
+  podeExcluirCondominio,
+  deleteCondominio,
+} from "@/lib/condominios.functions";
 import { useHasReadyDocs } from "@/components/documentos/DocumentosPanel";
 import { listConversas, deleteConversa } from "@/lib/chat.functions";
 import { listMembros, inviteMembro, removeMembro, createOperadorPJ } from "@/lib/membros.functions";
@@ -128,6 +133,13 @@ function CondominioDetail() {
   const [novoOper, setNovoOper] = useState({ nome: "", email: "", password: "" });
   const [isPJ, setIsPJ] = useState(false);
   const [tab, setTab] = useState<string>("chat");
+  const [podeExcluir, setPodeExcluir] = useState(false);
+  const [openExcluir, setOpenExcluir] = useState(false);
+  const [confirmNome, setConfirmNome] = useState("");
+  const [excluindo, setExcluindo] = useState(false);
+  const checkExcluir = useServerFn(podeExcluirCondominio);
+  const removerCondominio = useServerFn(deleteCondominio);
+  const navigate = useNavigate();
   const hasReadyDocs = useHasReadyDocs(id);
 
   // Quando o admin pede ?admin_view=1, validamos o papel no servidor;
@@ -169,8 +181,31 @@ function CondominioDetail() {
       .catch(() => {});
   }, [fetchCondo, fetchProfile, id]);
 
+  useEffect(() => {
+    checkExcluir({ data: { id } })
+      .then((r) => setPodeExcluir(!!(r as { pode: boolean }).pode))
+      .catch(() => setPodeExcluir(false));
+  }, [checkExcluir, id]);
+
   const isOwner = !!profileId && !!condo?.owner_id && profileId === condo.owner_id;
-  const canEdit = isOwner && !adminView;
+  const canEdit = (isOwner || podeExcluir) && !adminView;
+
+  async function onExcluir() {
+    if (confirmNome.trim() !== (condo?.nome ?? "").trim()) {
+      toast.error("Digite o nome exato do condomínio para confirmar.");
+      return;
+    }
+    setExcluindo(true);
+    try {
+      await removerCondominio({ data: { id } });
+      toast.success("Condomínio excluído.");
+      navigate({ to: "/app/condominios" });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setExcluindo(false);
+    }
+  }
 
   const refreshMembros = () => {
     fetchMembros({ data: { condominioId: id } })
@@ -219,7 +254,46 @@ function CondominioDetail() {
               <AppSkeletonLines lines={2} className="w-64" />
             )}
           </div>
+          {podeExcluir && !adminView && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                setConfirmNome("");
+                setOpenExcluir(true);
+              }}
+            >
+              <Trash2 className="h-4 w-4" /> Excluir condomínio
+            </Button>
+          )}
         </div>
+
+        <Dialog open={openExcluir} onOpenChange={setOpenExcluir}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Excluir condomínio</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Esta ação é definitiva e remove documentos, unidades, contratos e assembleias
+              vinculados. Digite <strong className="text-foreground">{condo?.nome}</strong> para
+              confirmar.
+            </p>
+            <Input
+              value={confirmNome}
+              onChange={(e) => setConfirmNome(e.target.value)}
+              placeholder="Nome do condomínio"
+            />
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setOpenExcluir(false)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={onExcluir} disabled={excluindo}>
+                {excluindo ? "Excluindo..." : "Excluir definitivamente"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Tabs value={tab} onValueChange={setTab} className="mt-6">
           <TabsList>

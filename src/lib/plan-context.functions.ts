@@ -36,25 +36,30 @@ export const getPlanContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<PlanContext> => {
     const { supabase, userId } = context;
-    const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
-    const [sub, condosRes, contratosRes, analisesRes, admin] = await Promise.all([
+    const { getSubscriptionEfetiva, condominiosDoAmbiente } = await import(
+      "@/lib/conta-master.server"
+    );
+    const ambiente = await condominiosDoAmbiente(userId);
+    const ambienteIds = ambiente.map((c) => c.id);
+    const [sub, contratosRes, analisesRes, admin] = await Promise.all([
       getSubscriptionEfetiva(userId),
-      supabase
-        .from("condominios")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", userId),
-      supabase
-        .from("contratos_servico")
-        .select("id, condominios!inner(owner_id)", { count: "exact", head: true })
-        .eq("condominios.owner_id", userId)
-        .eq("situacao", "ativo"),
-      supabase
-        .from("contratos_servico")
-        .select("id, condominios!inner(owner_id)", { count: "exact", head: true })
-        .eq("condominios.owner_id", userId)
-        .not("analise_em", "is", null),
+      ambienteIds.length
+        ? supabase
+            .from("contratos_servico")
+            .select("id", { count: "exact", head: true })
+            .in("condominio_id", ambienteIds)
+            .eq("situacao", "ativo")
+        : Promise.resolve({ count: 0 }),
+      ambienteIds.length
+        ? supabase
+            .from("contratos_servico")
+            .select("id", { count: "exact", head: true })
+            .in("condominio_id", ambienteIds)
+            .not("analise_em", "is", null)
+        : Promise.resolve({ count: 0 }),
       isAdminInternoServer(supabase, userId),
     ]);
+
 
     const planoId = resolvePlanId(sub?.plano_config_id ?? null);
     const cortesia = sub?.cortesia === true || admin;
@@ -74,7 +79,7 @@ export const getPlanContext = createServerFn({ method: "GET" })
       documentosMax: planoEfetivo.documentosMax,
       usuariosMax: planoEfetivo.usuariosMax,
       historicosDias: planoEfetivo.historicosDias,
-      condominiosCount: condosRes.count ?? 0,
+      condominiosCount: ambiente.length,
       trialEndIso,
       trialExpirado: cortesia ? false : isTrialExpired(planoId, trialEndIso),
       contratosGestaoAtivaMax: planoV2Efetivo.limites.contratosGestaoAtiva,

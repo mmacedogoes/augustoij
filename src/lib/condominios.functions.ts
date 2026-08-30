@@ -9,14 +9,21 @@ import { slugCidade, isCidadeWhitelist } from "@/lib/cidades-cobertas";
 export const listCondominios = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    // Ambiente de trabalho: o usuário vê os condomínios que cadastrou e os
+    // que a conta dona compartilhou com ele (vínculo em condominio_members).
+    const { condominiosAcessiveisIds } = await import("@/lib/conta-master.server");
+    const ids = await condominiosAcessiveisIds(context.userId);
+    if (ids.length === 0) return [];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
       .from("condominios")
       .select("id, nome, cnpj, uf, cidade, qtd_unidades, created_at")
-      .eq("owner_id", context.userId)
+      .in("id", ids)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
 
 const createSchema = z.object({
   nome: z.string().trim().min(2).max(120),
@@ -34,14 +41,13 @@ export const createCondominio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
-    // ---- Gate por plano (bloqueio no servidor) ----
-    const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
-    const [sub, countRes, admin] = await Promise.all([
+    // ---- Gate por plano (bloqueio no servidor, contado por ambiente) ----
+    const { getSubscriptionEfetiva, condominiosDoAmbiente } = await import(
+      "@/lib/conta-master.server"
+    );
+    const [sub, doAmbiente, admin] = await Promise.all([
       getSubscriptionEfetiva(context.userId),
-      context.supabase
-        .from("condominios")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", context.userId),
+      condominiosDoAmbiente(context.userId),
       isAdminInternoServer(context.supabase, context.userId),
     ]);
     const planoBruto = resolvePlanId(sub?.plano_config_id ?? null);
@@ -51,10 +57,11 @@ export const createCondominio = createServerFn({ method: "POST" })
     if (!cortesia && isTrialExpired(planoBruto, sub?.trial_end ?? null)) {
       throw new Error(gateMessages.trialExpirado());
     }
-    const atual = countRes.count ?? 0;
+    const atual = doAmbiente.length;
     if (plano.condomíniosMax !== null && atual >= plano.condomíniosMax) {
       throw new Error(gateMessages.condominiosMax(plano.nome, plano.condomíniosMax));
     }
+
 
     const { data: row, error } = await context.supabase
       .from("condominios")
@@ -96,19 +103,21 @@ export const updateCondominio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => updateSchema.parse(input))
   .handler(async ({ data, context }) => {
-    // Apenas o dono pode editar — verificação explícita
-    // (a RLS de UPDATE deve cobrir, mas a checagem dá mensagem clara).
-    const { data: condo } = await context.supabase
+    // Quem cadastrou o condomínio ou a conta dona do ambiente pode editar.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { isDonoDoAmbienteDoCondominio } = await import("@/lib/conta-master.server");
+    const { data: condo } = await supabaseAdmin
       .from("condominios")
       .select("owner_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!condo) throw new Error("Condomínio não encontrado.");
-    if (condo.owner_id !== context.userId) {
+    const donoAmbiente = await isDonoDoAmbienteDoCondominio(context.userId, data.id);
+    if (condo.owner_id !== context.userId && !donoAmbiente) {
       throw new Error("Apenas o dono do condomínio pode editar estes dados.");
     }
     const { id, ...patch } = data;
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await supabaseAdmin
       .from("condominios")
       .update({ ...patch, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -118,6 +127,31 @@ export const updateCondominio = createServerFn({ method: "POST" })
     const cidadeNova = await verificarCidadeNova(context, row, data.cidade, data.uf);
     return { ...row, cidadeNova };
   });
+
+/** True quando o usuário logado é a conta dona do ambiente do condomínio. */
+export const podeExcluirCondominio = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { isDonoDoAmbienteDoCondominio } = await import("@/lib/conta-master.server");
+    return { pode: await isDonoDoAmbienteDoCondominio(context.userId, data.id) };
+  });
+
+/** Exclusão definitiva — somente a conta dona do ambiente. */
+export const deleteCondominio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { isDonoDoAmbienteDoCondominio } = await import("@/lib/conta-master.server");
+    const pode = await isDonoDoAmbienteDoCondominio(context.userId, data.id);
+    if (!pode) {
+      throw new Error("Apenas o dono do ambiente pode excluir um condomínio.");
+    }
+    const { error } = await context.supabase.from("condominios").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function verificarCidadeNova(

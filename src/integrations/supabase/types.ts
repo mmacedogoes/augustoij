@@ -4939,6 +4939,10 @@ export type Database = {
         Returns: Json
       }
       check_alertas_uso: { Args: { _user_id: string }; Returns: undefined }
+      condominio_ambiente_owner: {
+        Args: { _condominio_id: string }
+        Returns: string
+      }
       conta_master: { Args: { _user_id: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
