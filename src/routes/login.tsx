@@ -13,6 +13,10 @@ import { setRememberMe } from "@/lib/remember-session";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
+  // `next` preserva um destino interno (ex.: tela de consentimento OAuth do MCP).
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Entrar — Augusto.IJ" },
@@ -29,6 +33,7 @@ const schema = z.object({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,7 +70,8 @@ function LoginPage() {
     }
     setRememberMe(remember);
     toast.success("Bem-vindo de volta!");
-    navigate({ to: "/app" });
+    if (next) window.location.assign(next);
+    else navigate({ to: "/app" });
   }
 
   return (
@@ -77,7 +83,7 @@ function LoginPage() {
         <h1 className="text-3xl font-serif font-medium text-foreground tracking-tight text-center">Bem-vindo</h1>
         <p className="mt-2 text-sm text-muted-foreground text-center">Entre para conversar com o Augusto.</p>
         <div className="mt-8">
-          <GoogleAuthButton label="Continuar com Google" redirectTo="/app" remember={remember} />
+          <GoogleAuthButton label="Continuar com Google" redirectTo={next ?? "/app"} remember={remember} />
           <OrDivider />
         </div>
         <form onSubmit={onSubmit} className="space-y-5">
