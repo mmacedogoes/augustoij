@@ -45,7 +45,7 @@ const schema = z.object({
   cpf_cnpj: z.string().trim().min(11, "Informe CPF ou CNPJ").max(32),
   razao_social: z.string().trim().max(200).optional(),
   perfil_atuacao: z.enum(["sindico", "advogado", "administradora", "conselheiro", "outro"], {
-    errorMap: () => ({ message: "Selecione seu perfil de atuação." }),
+    error: "Selecione seu perfil de atuação.",
   }),
   password: z
     .string()
@@ -53,7 +53,7 @@ const schema = z.object({
     .regex(/[A-Za-z]/, "Inclua ao menos uma letra")
     .regex(/[0-9]/, "Inclua ao menos um número"),
   confirmar: z.string(),
-  lgpd: z.literal(true, { errorMap: () => ({ message: "É necessário aceitar os termos." }) }),
+  lgpd: z.literal(true, { error: "É necessário aceitar os termos." }),
 }).refine((d) => d.password === d.confirmar, { path: ["confirmar"], message: "As senhas não coincidem" });
 
 function ReqItem({ ok, children }: { ok: boolean; children: React.ReactNode }) {

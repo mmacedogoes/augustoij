@@ -41,9 +41,7 @@ export const iniciarGravacao = createServerFn({ method: "POST" })
       .object({
         assembleiaId: z.string().uuid(),
         comunicouPresentes: z.literal(true, {
-          errorMap: () => ({
-            message: "É obrigatório declarar que os presentes foram comunicados da gravação.",
-          }),
+          error: "É obrigatório declarar que os presentes foram comunicados da gravação.",
         }),
         modoGravador: z.enum(["duplo", "unico"]),
         formato: z.string(),
