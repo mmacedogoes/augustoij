@@ -50,8 +50,8 @@ export function ChatContratoPanel({
         .insert({
           condominio_id: condominioId,
           titulo: `Análise: ${prestadorNome}`,
-          metadata: { contrato_id: contratoId, tipo: "contrato" } as any
-        } as any)
+          metadata: { contrato_id: contratoId, tipo: "contrato" },
+        })
         .select("id")
         .single();
 
