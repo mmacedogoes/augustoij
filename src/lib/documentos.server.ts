@@ -39,40 +39,37 @@ function mimeFor(fileName: string): string {
   return IMAGE_MIME[ext] ?? "application/octet-stream";
 }
 
-/**
- * Lê e interpreta documentos escaneados ou imagens via Lovable AI Gateway
- * (modelo multimodal). Não usa OCR externo nem APIs de terceiros.
- */
-export async function extractTextWithVision(
+const PROMPT_OCR =
+  "Este documento é uma imagem escaneada / fotocópia ou um PDF sem camada de texto. " +
+  "Faça OCR completo do conteúdo visível e devolva a transcrição fiel de TODAS as páginas recebidas. " +
+  "REGRAS DE TRANSCRIÇÃO:\n" +
+  "1. Preserve a ordem de leitura, títulos, subtítulos e listas.\n" +
+  "2. Transcreva TABELAS em Markdown (| coluna | coluna |\\n|---|---|\\n| valor | valor |), uma linha por linha do original, sem inventar colunas nem valores.\n" +
+  "3. Quadros de frações ideais, áreas e coeficientes são CRÍTICOS: transcreva todas as linhas, com os números exatamente como impressos.\n" +
+  "4. Mantenha numeração de artigos, parágrafos, incisos e cláusulas exatamente como aparecem.\n" +
+  "5. Reproduza assinaturas, datas, números de processo e valores monetários sem reformatar.\n" +
+  "6. Se houver carimbos ou anotações manuscritas legíveis, transcreva-as entre colchetes: [manuscrito: ...].\n" +
+  "7. Onde um caractere estiver ilegível, escreva [ilegível] no lugar — nunca adivinhe números.\n" +
+  "8. NÃO resuma, NÃO interprete, NÃO adicione comentários — devolva APENAS o texto extraído.";
+
+const OCR_MODEL = "google/gemini-3.7-flash";
+/** Páginas por bloco de OCR (documentos longos são lidos em partes). */
+const PAGINAS_POR_BLOCO = 4;
+/** Chamadas simultâneas ao gateway. */
+const CONCORRENCIA_OCR = 2;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function ocrGateway(
   apiKey: string,
-  buffer: Uint8Array,
   fileName: string,
+  mime: string,
+  bytes: Uint8Array,
 ): Promise<string> {
-  if (buffer.byteLength === 0) {
-    throw new Error("Arquivo vazio (0 bytes). Reenvie um arquivo válido.");
-  }
-  const mime = mimeFor(fileName);
-  const base64 = bufferToBase64(buffer);
-  const dataUrl = `data:${mime};base64,${base64}`;
-
-  const promptTxt =
-    "Este documento é uma imagem escaneada ou um PDF sem camada de texto. " +
-    "Faça OCR completo do conteúdo visível e devolva a transcrição fiel. " +
-    "REGRAS DE TRANSCRIÇÃO:\n" +
-    "1. Preserve a ordem de leitura, títulos, subtítulos e listas.\n" +
-    "2. Transcreva TABELAS em Markdown (| coluna | coluna |\\n|---|---|\\n| valor | valor |), uma linha por linha do original, sem inventar colunas.\n" +
-    "3. Mantenha numeração de artigos, parágrafos, incisos e cláusulas exatamente como aparecem.\n" +
-    "4. Reproduza assinaturas, datas, números de processo e valores monetários sem reformatar.\n" +
-    "5. Se houver carimbos ou anotações manuscritas legíveis, transcreva-as entre colchetes: [manuscrito: ...].\n" +
-    "6. NÃO resuma, NÃO interprete, NÃO adicione comentários — devolva APENAS o texto extraído.";
-
-  const isPdf = mime === "application/pdf";
-  const userContent: Array<Record<string, unknown>> = [{ type: "text", text: promptTxt }];
-  if (isPdf) {
-    userContent.push({
-      type: "file",
-      file: { filename: fileName, file_data: dataUrl },
-    });
+  const dataUrl = `data:${mime};base64,${bufferToBase64(bytes)}`;
+  const userContent: Array<Record<string, unknown>> = [{ type: "text", text: PROMPT_OCR }];
+  if (mime === "application/pdf") {
+    userContent.push({ type: "file", file: { filename: fileName, file_data: dataUrl } });
   } else {
     userContent.push({ type: "image_url", image_url: { url: dataUrl } });
   }
@@ -85,30 +82,167 @@ export async function extractTextWithVision(
       "X-Lovable-AIG-SDK": "vercel-ai-sdk",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: OCR_MODEL,
       messages: [{ role: "user", content: userContent }],
     }),
   });
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(
-      `Não foi possível interpretar o conteúdo do documento. Verifique se a imagem está legível e tente novamente.${
-        body ? ` (gateway ${res.status})` : ""
-      }`,
-    );
+    const err = new Error(`OCR falhou (gateway ${res.status}) ${body.slice(0, 200)}`);
+    // 429/5xx são transitórios — o chamador tenta de novo.
+    (err as Error & { retryavel?: boolean }).retryavel = res.status === 429 || res.status >= 500;
+    throw err;
   }
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const text = json.choices?.[0]?.message?.content?.trim() ?? "";
-  if (!text) {
-    throw new Error(
-      "Não foi possível interpretar o conteúdo do documento. Verifique se a imagem está legível e tente novamente.",
-    );
-  }
-  return text;
+  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  return json.choices?.[0]?.message?.content?.trim() ?? "";
 }
+
+async function ocrComRetry(
+  apiKey: string,
+  fileName: string,
+  mime: string,
+  bytes: Uint8Array,
+): Promise<string> {
+  try {
+    return await ocrGateway(apiKey, fileName, mime, bytes);
+  } catch (e) {
+    const retryavel = (e as Error & { retryavel?: boolean }).retryavel !== false;
+    if (!retryavel) throw e;
+    await sleep(2500);
+    return await ocrGateway(apiKey, fileName, mime, bytes);
+  }
+}
+
+export type ResultadoVisao = {
+  texto: string;
+  totalPaginas: number;
+  paginasLidas: number;
+  paginasFalhas: number[];
+};
+
+/** Divide o PDF em sub-PDFs de N páginas (JS puro, sem renderização). */
+async function fatiarPdf(buffer: Uint8Array, porBloco: number) {
+  const { PDFDocument } = await import("pdf-lib");
+  const copia = new Uint8Array(buffer.byteLength);
+  copia.set(buffer);
+  const src = await PDFDocument.load(copia, { ignoreEncryption: true });
+  const total = src.getPageCount();
+  const blocos: { inicio: number; fim: number; bytes: Uint8Array }[] = [];
+  for (let i = 0; i < total; i += porBloco) {
+    const fim = Math.min(i + porBloco, total);
+    const out = await PDFDocument.create();
+    const paginas = await out.copyPages(
+      src,
+      Array.from({ length: fim - i }, (_, k) => i + k),
+    );
+    for (const p of paginas) out.addPage(p);
+    blocos.push({ inicio: i + 1, fim, bytes: await out.save() });
+  }
+  return { total, blocos };
+}
+
+/**
+ * Lê e interpreta documentos escaneados ou imagens via Lovable AI Gateway
+ * (modelo multimodal). PDFs longos são lidos em blocos de páginas e as
+ * transcrições são reconstruídas na ordem original; blocos ilegíveis viram
+ * lacunas em vez de invalidar o documento inteiro.
+ */
+export async function extractTextWithVisionDetalhado(
+  apiKey: string,
+  buffer: Uint8Array,
+  fileName: string,
+): Promise<ResultadoVisao> {
+  if (buffer.byteLength === 0) {
+    throw new Error("Arquivo vazio (0 bytes). Reenvie um arquivo válido.");
+  }
+  const mime = mimeFor(fileName);
+
+  if (mime !== "application/pdf") {
+    const texto = await ocrComRetry(apiKey, fileName, mime, buffer);
+    if (!texto) {
+      throw new Error(
+        "Não foi possível interpretar o conteúdo do documento. Verifique se a imagem está legível e tente novamente.",
+      );
+    }
+    return { texto, totalPaginas: 1, paginasLidas: 1, paginasFalhas: [] };
+  }
+
+  let total = 0;
+  let blocos: { inicio: number; fim: number; bytes: Uint8Array }[] = [];
+  try {
+    const r = await fatiarPdf(buffer, PAGINAS_POR_BLOCO);
+    total = r.total;
+    blocos = r.blocos;
+  } catch (e) {
+    // Não conseguiu fatiar (PDF atípico): tenta o arquivo inteiro de uma vez.
+    const texto = await ocrComRetry(apiKey, fileName, mime, buffer);
+    if (!texto) {
+      throw new Error(
+        "Não foi possível interpretar o conteúdo do documento. Reenvie um PDF com melhor qualidade de digitalização.",
+      );
+    }
+    return { texto, totalPaginas: 0, paginasLidas: 0, paginasFalhas: [] };
+  }
+
+  const partes: string[] = new Array(blocos.length).fill("");
+  const falhas: number[] = [];
+  let cursor = 0;
+
+  const worker = async () => {
+    for (;;) {
+      const idx = cursor++;
+      if (idx >= blocos.length) return;
+      const bloco = blocos[idx];
+      try {
+        const txt = await ocrComRetry(
+          apiKey,
+          `${fileName} (p. ${bloco.inicio}-${bloco.fim})`,
+          mime,
+          bloco.bytes,
+        );
+        if (txt.trim()) partes[idx] = txt.trim();
+        else for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
+      } catch (err) {
+        console.warn(`[ocr] bloco ${bloco.inicio}-${bloco.fim} falhou`, err);
+        for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(CONCORRENCIA_OCR, blocos.length) }, () => worker()),
+  );
+
+  const texto = partes
+    .map((p, i) => (p ? `\n\n<!-- páginas ${blocos[i].inicio}-${blocos[i].fim} -->\n${p}` : ""))
+    .join("")
+    .trim();
+
+  if (!texto) {
+    throw new Error(
+      "Não foi possível ler nenhuma página deste documento. A digitalização está ilegível — reenvie uma cópia com melhor qualidade.",
+    );
+  }
+
+  falhas.sort((a, b) => a - b);
+  return {
+    texto,
+    totalPaginas: total,
+    paginasLidas: total - falhas.length,
+    paginasFalhas: falhas,
+  };
+}
+
+/** Compat: devolve apenas o texto. */
+export async function extractTextWithVision(
+  apiKey: string,
+  buffer: Uint8Array,
+  fileName: string,
+): Promise<string> {
+  return (await extractTextWithVisionDetalhado(apiKey, buffer, fileName)).texto;
+}
+
 
 export async function extractText(buffer: Uint8Array, fileName: string): Promise<string> {
   const lower = fileName.toLowerCase();
