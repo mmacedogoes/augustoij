@@ -53,3 +53,58 @@ export async function getSubscriptionEfetiva(
   if (!doMaster) return propria ? { ...propria, origem_user_id: userId } : null;
   return { ...doMaster, origem_user_id: masterId };
 }
+
+/** Ids dos usuários que compõem o ambiente de trabalho da conta master. */
+export async function usuariosDoAmbiente(userId: string): Promise<string[]> {
+  const masterId = await getContaMasterId(userId);
+  const { data } = await supabaseAdmin
+    .from("condominio_members")
+    .select("user_id")
+    .eq("criado_por", masterId);
+  const ids = new Set<string>([masterId]);
+  for (const r of (data ?? []) as Array<{ user_id: string }>) ids.add(r.user_id);
+  return Array.from(ids);
+}
+
+/** Todos os condomínios do ambiente (independentemente de quem cadastrou). */
+export async function condominiosDoAmbiente(
+  userId: string,
+): Promise<Array<{ id: string; nome: string }>> {
+  const users = await usuariosDoAmbiente(userId);
+  const { data } = await supabaseAdmin
+    .from("condominios")
+    .select("id, nome")
+    .in("owner_id", users)
+    .order("nome", { ascending: true });
+  return (data ?? []) as Array<{ id: string; nome: string }>;
+}
+
+/**
+ * Condomínios que o usuário efetivamente acessa: os que ele cadastrou mais
+ * aqueles em que possui vínculo (o dono pode restringir removendo o vínculo).
+ */
+export async function condominiosAcessiveisIds(userId: string): Promise<string[]> {
+  const [proprios, vinculos] = await Promise.all([
+    supabaseAdmin.from("condominios").select("id").eq("owner_id", userId),
+    supabaseAdmin.from("condominio_members").select("condominio_id").eq("user_id", userId),
+  ]);
+  const ids = new Set<string>();
+  for (const r of (proprios.data ?? []) as Array<{ id: string }>) ids.add(r.id);
+  for (const r of (vinculos.data ?? []) as Array<{ condominio_id: string }>) ids.add(r.condominio_id);
+  return Array.from(ids);
+}
+
+/** True quando o usuário é a conta dona do ambiente ao qual o condomínio pertence. */
+export async function isDonoDoAmbienteDoCondominio(
+  userId: string,
+  condominioId: string,
+): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("condominios")
+    .select("owner_id")
+    .eq("id", condominioId)
+    .maybeSingle();
+  if (!data) return false;
+  const master = await getContaMasterId((data as { owner_id: string }).owner_id);
+  return master === userId;
+}
