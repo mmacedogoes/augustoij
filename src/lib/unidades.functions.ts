@@ -226,13 +226,13 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
     (input: {
       condominioId: string;
       linhas: z.infer<typeof ImportLinha>[];
-      estrategiaConflito?: "manter" | "substituir";
+      estrategiaConflito?: "manter" | "preencher" | "substituir";
     }) =>
       z
         .object({
           condominioId: z.string().uuid(),
           linhas: z.array(ImportLinha).min(1).max(2000),
-          estrategiaConflito: z.enum(["manter", "substituir"]).optional().default("manter"),
+          estrategiaConflito: z.enum(["manter", "preencher", "substituir"]).optional().default("preencher"),
         })
         .parse(input),
   )
@@ -320,20 +320,46 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
     }
 
     // 2) UPDATE das existentes (apenas em modo "substituir")
-    if (data.estrategiaConflito === "substituir") {
+    if (data.estrategiaConflito !== "manter") {
       const existentesParaAtualizar = linhas.filter((l) =>
         existentesMap.has(chave(l.bloco ?? null, l.numero)),
       );
       for (const l of existentesParaAtualizar) {
-        const id = existentesMap.get(chave(l.bloco ?? null, l.numero))!;
+        const id = existentesMap.get(chave(l.bloco ?? null, l.numero));
+        if (!id) continue;
+        let patch: {
+          tipo?: z.infer<typeof TipoUnidade>;
+          fracao_ideal?: number | null;
+          area_m2?: number | null;
+          vagas_garagem?: number;
+        } = {
+          tipo: (l.tipo_unidade ?? "apartamento") as never,
+          fracao_ideal: l.fracao_ideal ?? null,
+          area_m2: l.area_m2 ?? null,
+          vagas_garagem: l.vagas_garagem ?? 0,
+        };
+        if (data.estrategiaConflito === "preencher") {
+          const { data: atual, error: readError } = await sb
+            .from("unidades")
+            .select("fracao_ideal, area_m2, vagas_garagem")
+            .eq("id", id)
+            .maybeSingle();
+          if (readError) {
+            erros.push({ linha: 0, mensagem: `Falha ao conferir ${l.numero}: ${readError.message}` });
+            continue;
+          }
+          patch = {
+            ...(atual?.fracao_ideal == null && l.fracao_ideal != null ? { fracao_ideal: l.fracao_ideal } : {}),
+            ...(atual?.area_m2 == null && l.area_m2 != null ? { area_m2: l.area_m2 } : {}),
+            ...((atual?.vagas_garagem == null || atual.vagas_garagem === 0) && l.vagas_garagem != null
+              ? { vagas_garagem: l.vagas_garagem }
+              : {}),
+          };
+        }
+        if (Object.keys(patch).length === 0) continue;
         const { error } = await sb
           .from("unidades")
-          .update({
-            tipo: (l.tipo_unidade ?? "apartamento") as never,
-            fracao_ideal: l.fracao_ideal ?? null,
-            area_m2: l.area_m2 ?? null,
-            vagas_garagem: l.vagas_garagem ?? 0,
-          })
+          .update(patch)
           .eq("id", id);
         if (error) {
           erros.push({ linha: 0, mensagem: `Falha ao atualizar ${l.numero}: ${error.message}` });

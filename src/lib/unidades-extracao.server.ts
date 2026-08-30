@@ -1,0 +1,520 @@
+import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getCategoriaMeta, normalizeCategoria } from "@/lib/categorias-condominio";
+
+const UnidadeExtraidaSchema = z.object({
+  bloco: z.string().nullable().optional(),
+  numero: z.string().min(1),
+  tipo: z
+    .enum([
+      "apartamento",
+      "casa",
+      "lote",
+      "terreno",
+      "sala_comercial",
+      "loja",
+      "galpao",
+      "vaga_avulsa",
+      "outro",
+    ])
+    .optional(),
+  fracao_ideal: z.number().positive().nullable().optional(),
+  area_m2: z.number().positive().nullable().optional(),
+  vagas_garagem: z.number().int().min(0).max(50).optional(),
+  fracao_origem: z.enum(["documento", "ausente"]).nullable().optional(),
+  area_origem: z.enum(["documento", "ausente"]).nullable().optional(),
+  fracao_trecho: z.string().nullable().optional(),
+  area_trecho: z.string().nullable().optional(),
+  fonte: z.string().nullable().optional(),
+});
+
+export type UnidadeExtraida = z.infer<typeof UnidadeExtraidaSchema>;
+
+export type DiagnosticoExtracao = {
+  total_declarado_no_texto?: number | null;
+  quadro_fracoes_encontrado?: boolean | null;
+  observacao?: string | null;
+  total_trechos?: number;
+  total_lotes?: number;
+  lotes_processados?: number;
+  lotes_com_erro?: number;
+  unidades_encontradas?: number;
+  unidades_com_fracao?: number;
+  unidades_com_area?: number;
+  conflitos?: string[];
+  erros?: string[];
+};
+
+type ChunkRow = {
+  id: string;
+  conteudo: string;
+  metadata: { bloco?: number; trecho?: number; pagina_inicio?: number; pagina_fim?: number } | null;
+};
+
+type ChamadaIA = {
+  data: unknown;
+  model: string;
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  aigLogId: string | null;
+  aigRunId: string | null;
+};
+
+const MODELO = "google/gemini-3.7-flash";
+const TAMANHO_LOTE = 18_000;
+const MAX_TENTATIVAS = 3;
+const RE_RELEVANTE =
+  /(unidade|apart(a|â)mento|apto|fra[cç][aã]o|coeficiente|área\s+(privativa|real|total|comum)|quadro\s+de\s+áreas|lote|quadra|bloco|torre|sala|loja|pavimento)/i;
+
+export class ExtracaoIncompletaError extends Error {
+  readonly codigo = "extracao_incompleta";
+  readonly diagnostico: DiagnosticoExtracao;
+
+  constructor(message: string, diagnostico: DiagnosticoExtracao = {}) {
+    super(message);
+    this.name = "ExtracaoIncompletaError";
+    this.diagnostico = diagnostico;
+  }
+}
+
+export function chaveUnidade(bloco: string | null, numero: string) {
+  return `${normalizarParte(bloco ?? "")}|${normalizarParte(numero)}`;
+}
+
+function normalizarParte(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase();
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryAfterMs(response: Response, tentativa: number) {
+  const header = response.headers.get("retry-after");
+  if (header) {
+    const segundos = Number(header);
+    if (Number.isFinite(segundos)) return Math.max(1_000, segundos * 1_000);
+    const data = Date.parse(header);
+    if (Number.isFinite(data)) return Math.max(1_000, data - Date.now());
+  }
+  return Math.min(8_000, 1_000 * 2 ** tentativa) + Math.floor(Math.random() * 500);
+}
+
+export async function chamarIaJson(
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<ChamadaIA> {
+  let ultimaMensagem = "Falha na comunicação com a IA.";
+  for (let tentativa = 0; tentativa < MAX_TENTATIVAS; tentativa++) {
+    let response: Response;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 90_000);
+      try {
+        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            "Lovable-API-Key": apiKey,
+            "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+          },
+          body: JSON.stringify({
+            model: MODELO,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+          }),
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (error) {
+      ultimaMensagem = error instanceof Error ? error.message : ultimaMensagem;
+      if (tentativa === MAX_TENTATIVAS - 1) {
+        throw new Error(`A leitura foi interrompida temporariamente: ${ultimaMensagem}`);
+      }
+      await sleep(Math.min(8_000, 1_000 * 2 ** tentativa));
+      continue;
+    }
+
+    if (!response.ok) {
+      const raw = await response.text().catch(() => "");
+      let mensagem = raw.slice(0, 500);
+      try {
+        const parsed = JSON.parse(raw) as { message?: string; error?: { message?: string } };
+        mensagem = parsed.message ?? parsed.error?.message ?? mensagem;
+      } catch {
+        // O texto bruto já contém a melhor mensagem disponível.
+      }
+      ultimaMensagem = mensagem || `Falha na IA (${response.status})`;
+      if (response.status !== 429 && response.status < 500) {
+        throw new Error(ultimaMensagem);
+      }
+      if (tentativa === MAX_TENTATIVAS - 1) throw new Error(ultimaMensagem);
+      await sleep(retryAfterMs(response, tentativa));
+      continue;
+    }
+
+    const aigLogId = response.headers.get("x-lovable-aig-log-id");
+    const aigRunId = response.headers.get("x-lovable-aig-run-id");
+    const json = (await response.json()) as {
+      choices?: Array<{ finish_reason?: string; message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    };
+    const choice = json.choices?.[0];
+    if (choice?.finish_reason === "length") {
+      throw new Error("A resposta da IA foi truncada; o documento será relido em lotes menores.");
+    }
+    const raw = choice?.message?.content?.trim() ?? "";
+    if (!raw) throw new Error("A IA devolveu uma resposta vazia.");
+    let data: unknown;
+    try {
+      data = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim());
+    } catch {
+      throw new Error("A IA devolveu JSON incompleto ou inválido.");
+    }
+    return {
+      data,
+      model: MODELO,
+      usage: {
+        prompt_tokens: json.usage?.prompt_tokens ?? 0,
+        completion_tokens: json.usage?.completion_tokens ?? 0,
+        total_tokens: json.usage?.total_tokens ?? 0,
+      },
+      aigLogId,
+      aigRunId,
+    };
+  }
+  throw new Error(ultimaMensagem);
+}
+
+function ordenarChunks(chunks: ChunkRow[]) {
+  return chunks.slice().sort((a, b) => {
+    const ma = a.metadata ?? {};
+    const mb = b.metadata ?? {};
+    const bloco = (ma.bloco ?? Number.MAX_SAFE_INTEGER) - (mb.bloco ?? Number.MAX_SAFE_INTEGER);
+    if (bloco !== 0) return bloco;
+    const pagina = (ma.pagina_inicio ?? Number.MAX_SAFE_INTEGER) - (mb.pagina_inicio ?? Number.MAX_SAFE_INTEGER);
+    if (pagina !== 0) return pagina;
+    const trecho = (ma.trecho ?? Number.MAX_SAFE_INTEGER) - (mb.trecho ?? Number.MAX_SAFE_INTEGER);
+    if (trecho !== 0) return trecho;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+export function montarLotes(chunks: ChunkRow[], tamanho = TAMANHO_LOTE) {
+  const relevantes = ordenarChunks(chunks).filter((chunk) => RE_RELEVANTE.test(chunk.conteudo));
+  const lotes: Array<{ texto: string; fontes: string[] }> = [];
+  let texto = "";
+  let fontes: string[] = [];
+  for (const chunk of relevantes) {
+    const meta = chunk.metadata ?? {};
+    const ref = `bloco ${meta.bloco ?? "?"}, páginas ${meta.pagina_inicio ?? "?"}-${meta.pagina_fim ?? "?"}, trecho ${meta.trecho ?? "?"}`;
+    const parte = `\n\n[FONTE: ${ref}; id ${chunk.id}]\n${chunk.conteudo}`;
+    if (texto && texto.length + parte.length > tamanho) {
+      lotes.push({ texto, fontes });
+      texto = "";
+      fontes = [];
+    }
+    texto += parte;
+    fontes.push(ref);
+  }
+  if (texto.trim()) lotes.push({ texto, fontes });
+  return lotes;
+}
+
+function numeroApareceNoTrecho(valor: number, trecho: string | null | undefined) {
+  if (!trecho) return false;
+  const candidatos = new Set([
+    String(valor),
+    String(valor).replace(".", ","),
+    valor.toFixed(2),
+    valor.toFixed(2).replace(".", ","),
+    valor.toFixed(4),
+    valor.toFixed(4).replace(".", ","),
+  ]);
+  const compacto = trecho.replace(/\s/g, "");
+  return [...candidatos].some((candidato) => compacto.includes(candidato.replace(/\s/g, "")));
+}
+
+function validarProveniencia(unidade: UnidadeExtraida) {
+  if (unidade.fracao_ideal != null) {
+    if (unidade.fracao_origem !== "documento" || !numeroApareceNoTrecho(unidade.fracao_ideal, unidade.fracao_trecho)) {
+      unidade.fracao_ideal = null;
+      unidade.fracao_origem = "ausente";
+      unidade.fracao_trecho = null;
+    }
+  }
+  if (unidade.area_m2 != null) {
+    if (unidade.area_origem !== "documento" || !numeroApareceNoTrecho(unidade.area_m2, unidade.area_trecho)) {
+      unidade.area_m2 = null;
+      unidade.area_origem = "ausente";
+      unidade.area_trecho = null;
+    }
+  }
+  return unidade;
+}
+
+function normalizarParaCadastro(
+  unidade: UnidadeExtraida,
+  conhecidas: Array<{ bloco: string | null; numero: string }>,
+) {
+  const direto = conhecidas.find(
+    (item) => chaveUnidade(item.bloco, item.numero) === chaveUnidade(unidade.bloco ?? null, unidade.numero),
+  );
+  if (direto) return { ...unidade, bloco: direto.bloco, numero: direto.numero };
+
+  const numeroComBloco = normalizarParte(unidade.numero);
+  const porComposto = conhecidas.filter((item) => {
+    const composto = normalizarParte(`${item.numero}${item.bloco ?? ""}`);
+    return composto === numeroComBloco;
+  });
+  return porComposto.length === 1
+    ? { ...unidade, bloco: porComposto[0].bloco, numero: porComposto[0].numero }
+    : unidade;
+}
+
+function quaseIgual(a: number | null | undefined, b: number | null | undefined) {
+  if (a == null || b == null) return true;
+  return Math.abs(a - b) < 0.000001;
+}
+
+function consolidar(
+  candidatas: UnidadeExtraida[],
+  conhecidas: Array<{ bloco: string | null; numero: string }>,
+) {
+  const mapa = new Map<string, UnidadeExtraida>();
+  const conflitos: string[] = [];
+  for (const bruta of candidatas) {
+    const atualizada = validarProveniencia(normalizarParaCadastro({ ...bruta }, conhecidas));
+    const key = chaveUnidade(atualizada.bloco ?? null, atualizada.numero);
+    const anterior = mapa.get(key);
+    if (!anterior) {
+      mapa.set(key, atualizada);
+      continue;
+    }
+    if (!quaseIgual(anterior.fracao_ideal, atualizada.fracao_ideal)) conflitos.push(`${key}: frações divergentes`);
+    if (!quaseIgual(anterior.area_m2, atualizada.area_m2)) conflitos.push(`${key}: áreas divergentes`);
+    mapa.set(key, {
+      ...anterior,
+      tipo: anterior.tipo ?? atualizada.tipo,
+      vagas_garagem: anterior.vagas_garagem ?? atualizada.vagas_garagem,
+      fracao_ideal: anterior.fracao_ideal ?? atualizada.fracao_ideal,
+      fracao_origem: anterior.fracao_ideal != null ? anterior.fracao_origem : atualizada.fracao_origem,
+      fracao_trecho: anterior.fracao_ideal != null ? anterior.fracao_trecho : atualizada.fracao_trecho,
+      area_m2: anterior.area_m2 ?? atualizada.area_m2,
+      area_origem: anterior.area_m2 != null ? anterior.area_origem : atualizada.area_origem,
+      area_trecho: anterior.area_m2 != null ? anterior.area_trecho : atualizada.area_trecho,
+    });
+  }
+  return { unidades: [...mapa.values()], conflitos: [...new Set(conflitos)] };
+}
+
+export function validarCoberturaExtracao(
+  unidades: UnidadeExtraida[],
+  diagnostico: DiagnosticoExtracao,
+  qtdEsperada: number | null,
+) {
+  const total = unidades.length;
+  if (diagnostico.lotes_com_erro) {
+    throw new ExtracaoIncompletaError(
+      `${diagnostico.lotes_com_erro} lote(s) do documento não puderam ser interpretados. Continue a leitura para não perder unidades ou valores.`,
+      diagnostico,
+    );
+  }
+  if (diagnostico.conflitos?.length) {
+    throw new ExtracaoIncompletaError(
+      `Foram encontrados valores conflitantes para ${diagnostico.conflitos.length} unidade(s). Nada foi importado até a revisão da fonte.`,
+      diagnostico,
+    );
+  }
+  const semFracao = unidades.filter((u) => u.fracao_ideal == null || u.fracao_origem !== "documento");
+  if (semFracao.length > 0) {
+    const exemplos = semFracao.slice(0, 8).map((u) => `${u.bloco ? `${u.bloco}-` : ""}${u.numero}`).join(", ");
+    throw new ExtracaoIncompletaError(
+      `${semFracao.length} de ${total} unidade(s) ficaram sem fração ideal comprovada no documento (ex.: ${exemplos}${semFracao.length > 8 ? "…" : ""}). Nenhum valor foi inventado.`,
+      diagnostico,
+    );
+  }
+  const comArea = unidades.filter((u) => u.area_m2 != null && u.area_origem === "documento").length;
+  if (comArea > 0 && comArea < total) {
+    throw new ExtracaoIncompletaError(
+      `${total - comArea} de ${total} unidade(s) ficaram sem área comprovada, embora o documento informe áreas para as demais.`,
+      diagnostico,
+    );
+  }
+  const declarado = diagnostico.total_declarado_no_texto ?? null;
+  if (declarado && declarado !== total) {
+    throw new ExtracaoIncompletaError(
+      `A convenção declara ${declarado} unidades, mas foram identificadas ${total} com segurança.`,
+      diagnostico,
+    );
+  }
+  if (qtdEsperada && qtdEsperada !== total) {
+    throw new ExtracaoIncompletaError(
+      `Há ${qtdEsperada} unidades cadastradas, mas a convenção permitiu identificar ${total}.`,
+      diagnostico,
+    );
+  }
+}
+
+async function persistirFalha(
+  supabase: SupabaseClient,
+  doc: { id: string; condominio_id: string },
+  mensagem: string,
+  diagnostico: DiagnosticoExtracao,
+) {
+  await supabase.from("sugestoes_unidades").delete().eq("documento_id", doc.id).in("status", ["pendente", "falhou"]);
+  await supabase.from("sugestoes_unidades").insert({
+    condominio_id: doc.condominio_id,
+    documento_id: doc.id,
+    payload: { unidades: [], diagnostico: { ...diagnostico, observacao: mensagem } },
+    status: "falhou",
+  });
+}
+
+export async function extrairESalvarSugestaoUnidades(
+  supabase: SupabaseClient,
+  documentoId: string,
+  apiKey: string,
+  opts: { force?: boolean } = {},
+): Promise<UnidadeExtraida[]> {
+  const { data: doc, error } = await supabase
+    .from("documentos")
+    .select("id, condominio_id, nome_arquivo, status_processamento")
+    .eq("id", documentoId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!doc) throw new Error("Documento não encontrado.");
+  if (doc.status_processamento !== "pronto") throw new Error("Documento ainda não foi processado por completo.");
+
+  const { data: cond, error: condError } = await supabase
+    .from("condominios")
+    .select("categoria, qtd_unidades, owner_id")
+    .eq("id", doc.condominio_id)
+    .maybeSingle();
+  if (condError) throw new Error(condError.message);
+  const { data: existentes, error: unidadesError } = await supabase
+    .from("unidades")
+    .select("bloco, numero")
+    .eq("condominio_id", doc.condominio_id);
+  if (unidadesError) throw new Error(unidadesError.message);
+  const conhecidas = (existentes ?? []).map((u) => ({ bloco: u.bloco as string | null, numero: String(u.numero) }));
+
+  const { data: rows, error: chunksError } = await supabase
+    .from("document_chunks")
+    .select("id, conteudo, metadata")
+    .eq("documento_id", doc.id)
+    .limit(1000);
+  if (chunksError) throw new Error(chunksError.message);
+  const chunks = (rows ?? []) as ChunkRow[];
+  const lotes = montarLotes(chunks);
+  const diagnostico: DiagnosticoExtracao = {
+    total_trechos: chunks.length,
+    total_lotes: lotes.length,
+    lotes_processados: 0,
+    lotes_com_erro: 0,
+    erros: [],
+  };
+  if (lotes.length === 0) {
+    const mensagem = "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
+    await persistirFalha(supabase, doc, mensagem, diagnostico);
+    throw new ExtracaoIncompletaError(mensagem, diagnostico);
+  }
+
+  const categoria = getCategoriaMeta(normalizeCategoria(cond?.categoria as string | null));
+  const listaConhecida = conhecidas.length
+    ? `Unidades já cadastradas para correspondência (não use para inventar): ${JSON.stringify(conhecidas)}`
+    : "Não há lista prévia de unidades.";
+  const system =
+    "Extraia dados literais de unidades autônomas de uma convenção condominial brasileira. " +
+    categoria.vocabIA + " " +
+    "Leia cada trecho integralmente. Linhas agrupadas como '701A, 901A e 1501A' devem gerar uma linha para cada unidade somente se o texto atribuir explicitamente os mesmos valores ao grupo. " +
+    "Converta identificadores como 601A para bloco A e número 601 quando isso corresponder à lista conhecida. " +
+    "Para area_m2 use somente ÁREA REAL PRIVATIVA, nunca área total, comum ou equivalente. " +
+    "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
+    "Todo número precisa trazer em *_trecho uma citação literal curta que contenha o próprio número; sem citação, devolva null. " +
+    'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","fracao_ideal":number|null,"area_m2":number|null,"vagas_garagem":number,"fracao_origem":"documento|ausente","area_origem":"documento|ausente","fracao_trecho":string|null,"area_trecho":string|null,"fonte":string|null}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
+
+  const candidatas: UnidadeExtraida[] = [];
+  let tokensInput = 0;
+  let tokensOutput = 0;
+  let ultimoLogId: string | null = null;
+  let ultimoRunId: string | null = null;
+  for (let i = 0; i < lotes.length; i++) {
+    try {
+      const chamada = await chamarIaJson(
+        apiKey,
+        system,
+        `${listaConhecida}\n\nArquivo: ${doc.nome_arquivo}\nLote ${i + 1}/${lotes.length}:\n${lotes[i].texto}`,
+      );
+      const parsed = chamada.data as { unidades?: unknown[]; diagnostico?: DiagnosticoExtracao };
+      const resultado = z.array(UnidadeExtraidaSchema).safeParse(parsed.unidades ?? []);
+      if (!resultado.success) throw new Error(`JSON incompatível no lote ${i + 1}: ${resultado.error.issues[0]?.message ?? "formato inválido"}`);
+      candidatas.push(...resultado.data);
+      diagnostico.lotes_processados = (diagnostico.lotes_processados ?? 0) + 1;
+      diagnostico.total_declarado_no_texto ??= parsed.diagnostico?.total_declarado_no_texto ?? null;
+      diagnostico.quadro_fracoes_encontrado =
+        diagnostico.quadro_fracoes_encontrado === true || parsed.diagnostico?.quadro_fracoes_encontrado === true;
+      tokensInput += chamada.usage.prompt_tokens;
+      tokensOutput += chamada.usage.completion_tokens;
+      ultimoLogId = chamada.aigLogId;
+      ultimoRunId = chamada.aigRunId;
+    } catch (errorLote) {
+      diagnostico.lotes_com_erro = (diagnostico.lotes_com_erro ?? 0) + 1;
+      diagnostico.erros?.push(`Lote ${i + 1}: ${errorLote instanceof Error ? errorLote.message : "falha desconhecida"}`);
+    }
+  }
+
+  const { unidades, conflitos } = consolidar(candidatas, conhecidas);
+  diagnostico.conflitos = conflitos;
+  diagnostico.unidades_encontradas = unidades.length;
+  diagnostico.unidades_com_fracao = unidades.filter((u) => u.fracao_ideal != null).length;
+  diagnostico.unidades_com_area = unidades.filter((u) => u.area_m2 != null).length;
+
+  try {
+    const { registrarEventoIa } = await import("./uso-ia.server");
+    await registrarEventoIa({
+      userId: (cond?.owner_id as string | null) ?? null,
+      condominioId: doc.condominio_id,
+      origem: "importacao_convencao",
+      model: MODELO,
+      tokensInput,
+      tokensOutput,
+      aigLogId: ultimoLogId,
+      aigRunId: ultimoRunId,
+      meta: { documento_id: doc.id, ...diagnostico },
+    });
+  } catch (telemetryError) {
+    console.error("[uso-ia] importacao_convencao:", telemetryError);
+  }
+
+  try {
+    if (unidades.length === 0) {
+      throw new ExtracaoIncompletaError("A IA não localizou unidades com dados literais neste documento.", diagnostico);
+    }
+    validarCoberturaExtracao(unidades, diagnostico, (cond?.qtd_unidades as number | null) ?? null);
+  } catch (validationError) {
+    const mensagem = validationError instanceof Error ? validationError.message : "Extração incompleta.";
+    await persistirFalha(supabase, doc, mensagem, diagnostico);
+    throw validationError;
+  }
+
+  const deleteQuery = supabase.from("sugestoes_unidades").delete().eq("documento_id", doc.id);
+  await (opts.force ? deleteQuery : deleteQuery.in("status", ["pendente", "falhou"]));
+  const { error: insertError } = await supabase.from("sugestoes_unidades").insert({
+    condominio_id: doc.condominio_id,
+    documento_id: doc.id,
+    payload: { unidades, diagnostico },
+    status: "pendente",
+  });
+  if (insertError) throw new Error(insertError.message);
+  return unidades;
+}

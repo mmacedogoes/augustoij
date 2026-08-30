@@ -2,11 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "@/lib/admin-guard";
-import {
-  chaveUnidade,
-  ExtracaoIncompletaError,
-  _extrairESalvarSugestaoUnidades,
-} from "@/lib/unidades-ia.functions";
 
 export type PendenciaAuditoria = {
   unidade: string;
@@ -158,9 +153,12 @@ export const auditarCondominio = createServerFn({ method: "POST" })
       return { ...base, status: "sem_convencao", mensagem: "Sem convenção processada." };
     }
 
+    const { chaveUnidade, ExtracaoIncompletaError, extrairESalvarSugestaoUnidades } = await import(
+      "@/lib/unidades-extracao.server"
+    );
     let extraidas;
     try {
-      extraidas = await _extrairESalvarSugestaoUnidades(
+      extraidas = await extrairESalvarSugestaoUnidades(
         supabaseAdmin as never,
         doc.id as string,
         apiKey,

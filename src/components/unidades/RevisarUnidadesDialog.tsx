@@ -70,7 +70,7 @@ export function RevisarUnidadesDialog({
   onClose: () => void;
   onConfirmar: (
     linhas: Record<string, unknown>[],
-    estrategia: "manter" | "substituir",
+    estrategia: "manter" | "preencher" | "substituir",
   ) => Promise<void>;
 }) {
   const tipoPadrao = vocab.tipoPadrao;
@@ -92,7 +92,7 @@ export function RevisarUnidadesDialog({
       });
   });
   const [saving, setSaving] = useState(false);
-  const [estrategia, setEstrategia] = useState<"manter" | "substituir">("manter");
+  const [estrategia, setEstrategia] = useState<"manter" | "preencher" | "substituir">("preencher");
 
   const chaveExistentes = new Set(
     existentes.map((e) => `${(e.bloco ?? "").trim().toLowerCase()}::${e.numero.trim()}`),
@@ -302,6 +302,17 @@ export function RevisarUnidadesDialog({
                         }`}
                       >
                         Manter existentes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEstrategia("preencher")}
+                        className={`px-3 py-1.5 border-l transition-colors ${
+                          estrategia === "preencher"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        Preencher campos vazios
                       </button>
                       <button
                         type="button"
