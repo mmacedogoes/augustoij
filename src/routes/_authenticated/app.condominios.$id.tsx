@@ -106,9 +106,8 @@ function CondominioDetail() {
     endereco: string;
     uf: string;
     cidade: string;
-    qtd_unidades: number;
     categoria: CategoriaCondominio;
-  }>({ nome: "", cnpj: "", endereco: "", uf: "", cidade: "", qtd_unidades: 0, categoria: "predio" });
+  }>({ nome: "", cnpj: "", endereco: "", uf: "", cidade: "", categoria: "predio" });
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [conversaAtiva, setConversaAtiva] = useState<string | null>(null);
   // chave usada como `key` do ChatPanel para forçar remount limpo
@@ -157,7 +156,6 @@ function CondominioDetail() {
             endereco: row.endereco ?? "",
             uf: row.uf ?? "",
             cidade: row.cidade ?? "",
-            qtd_unidades: row.qtd_unidades ?? 0,
             categoria: normalizeCategoria(row.categoria),
           });
         }
@@ -215,7 +213,7 @@ function CondominioDetail() {
               <header className="app-page-header">
                 <span className="app-eyebrow">Condomínio</span>
                 <h1 className="app-title">{condo.nome}</h1>
-                <p className="app-subtitle">{condo.uf ?? "—"} • {condo.qtd_unidades ?? 0} unidades</p>
+                <p className="app-subtitle">{condo.uf ?? "—"} • {condo.qtd_unidades != null ? `${condo.qtd_unidades} unidades` : "unidades via convenção"}</p>
               </header>
             ) : (
               <AppSkeletonLines lines={2} className="w-64" />
@@ -380,7 +378,9 @@ function CondominioDetail() {
                     </p>
                     <p>
                       <strong>{getCategoriaMeta(condo?.categoria).vocab.unidade}s:</strong>{" "}
-                      {condo?.qtd_unidades ?? 0}
+                      {condo?.qtd_unidades != null
+                        ? `${condo.qtd_unidades} (extraídas da convenção)`
+                        : "serão extraídas da convenção"}
                     </p>
                   </div>
                 ) : (
@@ -427,15 +427,9 @@ function CondominioDetail() {
                         {getCategoriaMeta(form.categoria).descricaoCurta} — guia a IA na leitura da convenção.
                       </p>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label>{getCategoriaMeta(form.categoria).vocab.unidade}s</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={form.qtd_unidades}
-                        onChange={(e) => setForm({ ...form, qtd_unidades: Number(e.target.value) || 0 })}
-                      />
-                    </div>
+                    <p className="sm:col-span-2 text-[11px] leading-relaxed text-muted-foreground">
+                      O número de unidades é extraído automaticamente da convenção e não pode ser editado manualmente.
+                    </p>
                     <div className="sm:col-span-2 flex gap-2 justify-end">
                       <Button
                         variant="ghost"
@@ -449,7 +443,6 @@ function CondominioDetail() {
                               endereco: condo.endereco ?? "",
                               uf: condo.uf ?? "",
                               cidade: condo.cidade ?? "",
-                              qtd_unidades: condo.qtd_unidades ?? 0,
                               categoria: normalizeCategoria(condo.categoria),
                             });
                           }
@@ -470,7 +463,7 @@ function CondominioDetail() {
                                 endereco: form.endereco.trim() || null,
                                 uf: form.uf.trim() ? form.uf.trim().toUpperCase() : null,
                                 cidade: form.cidade.trim() || null,
-                                qtd_unidades: form.qtd_unidades,
+                                qtd_unidades: condo?.qtd_unidades ?? null,
                                 categoria: form.categoria,
                               },
                             });
