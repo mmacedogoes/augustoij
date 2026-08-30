@@ -199,13 +199,19 @@ export const processDocumento = createServerFn({ method: "POST" })
 
       let text = "";
       let usedVision = false;
+      let paginasFalhas: number[] = [];
+      let totalPaginas = 0;
       try {
         text = await extractText(buffer, doc.nome_arquivo);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg === "__NEEDS_VISION__") {
           usedVision = true;
-          text = await extractTextWithVision(apiKey, buffer, doc.nome_arquivo);
+          const { extractTextWithVisionDetalhado } = await import("./documentos.server");
+          const r = await extractTextWithVisionDetalhado(apiKey, buffer, doc.nome_arquivo);
+          text = r.texto;
+          paginasFalhas = r.paginasFalhas;
+          totalPaginas = r.totalPaginas;
         } else {
           throw err;
         }
@@ -219,7 +225,8 @@ export const processDocumento = createServerFn({ method: "POST" })
         );
       }
 
-      const chunks = chunkText(text, 1000, 150);
+      const chunks = chunkText(text);
+
 
       // Embeddings em paralelo controlado (evita timeout do Worker em docs longos)
       const { embeddings, totalTokens: embTokens } = await embedChunksParallel(
