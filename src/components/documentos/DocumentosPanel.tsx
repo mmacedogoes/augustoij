@@ -49,7 +49,9 @@ import {
   processDocumento,
   deleteDocumento,
   getDocumentoViewUrl,
+  reprocessarDocumento,
 } from "@/lib/documentos.functions";
+
 
 type Doc = {
   id: string;
