@@ -521,12 +521,28 @@ export function DocumentosPanel({
                 <Button
                   size="icon"
                   variant="ghost"
+                  disabled={reprocessando === d.id}
+                  onClick={() => handleReprocessar(d.id)}
+                  title="Reler documento (OCR completo)"
+                >
+                  {reprocessando === d.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+              {!readOnly && (
+                <Button
+                  size="icon"
+                  variant="ghost"
                   onClick={() => handleDelete(d.id)}
                   title="Excluir"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
+
             </div>
           ))}
         </Card>
