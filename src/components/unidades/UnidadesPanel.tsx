@@ -133,9 +133,18 @@ export function UnidadesPanel({
     {
       id: string;
       documento_id: string | null;
+      status: "pendente" | "falhou";
       payload: {
         unidades?: UnidadeSugerida[];
-        diagnostico?: { observacao?: string | null; total_declarado_no_texto?: number | null };
+        diagnostico?: {
+          observacao?: string | null;
+          total_declarado_no_texto?: number | null;
+          total_lotes?: number;
+          lotes_processados?: number;
+          unidades_encontradas?: number;
+          unidades_com_fracao?: number;
+          unidades_com_area?: number;
+        };
       };
     }[]
   >([]);
@@ -176,12 +185,23 @@ export function UnidadesPanel({
           (rows as unknown as {
             id: string;
             documento_id: string | null;
+            status: "pendente" | "falhou";
             payload: {
               unidades?: UnidadeSugerida[];
-              diagnostico?: { observacao?: string | null; total_declarado_no_texto?: number | null };
+              diagnostico?: {
+                observacao?: string | null;
+                total_declarado_no_texto?: number | null;
+                total_lotes?: number;
+                lotes_processados?: number;
+                unidades_encontradas?: number;
+                unidades_com_fracao?: number;
+                unidades_com_area?: number;
+              };
             };
           }[]) ?? [];
         setSugestoes(list);
+        const falha = list.find((item) => item.status === "falhou");
+        setErroExtracao(falha?.payload.diagnostico?.observacao ?? null);
       })
       .catch(() => setSugestoes([]));
   }
@@ -363,20 +383,23 @@ export function UnidadesPanel({
         </Card>
       )}
 
-      {isOwner && sugestoes.length > 0 && (
+      {isOwner && sugestoes.some((item) => item.status === "pendente") && (() => {
+        const sugestao = sugestoes.find((item) => item.status === "pendente");
+        if (!sugestao) return null;
+        return (
         <Card className="app-card p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
           <div className="flex-1 min-w-[220px]">
             <p className="text-sm font-medium">
-              {sugestoes[0].payload.unidades?.length ?? 0} {vocab.unidade.toLowerCase()}(s)
+              {sugestao.payload.unidades?.length ?? 0} {vocab.unidade.toLowerCase()}(s)
               detectada(s) na convenção
             </p>
             <p className="text-xs text-muted-foreground">
               Revise antes de importar para a lista de {vocab.unidade.toLowerCase()}s.
             </p>
-            {sugestoes[0].payload.diagnostico?.observacao && (
+            {sugestao.payload.diagnostico?.observacao && (
               <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                {sugestoes[0].payload.diagnostico.observacao}
+                {sugestao.payload.diagnostico.observacao}
               </p>
             )}
 
@@ -385,8 +408,8 @@ export function UnidadesPanel({
             size="sm"
             onClick={() =>
               setRevisarUnidades({
-                sugestaoId: sugestoes[0].id,
-                unidades: sugestoes[0].payload.unidades ?? [],
+                sugestaoId: sugestao.id,
+                unidades: sugestao.payload.unidades ?? [],
               })
             }
           >
@@ -396,14 +419,15 @@ export function UnidadesPanel({
             size="sm"
             variant="ghost"
             onClick={async () => {
-              await updateSugestaoFn({ data: { id: sugestoes[0].id, status: "descartada" } });
-              setSugestoes((prev) => prev.slice(1));
+              await updateSugestaoFn({ data: { id: sugestao.id, status: "descartada" } });
+              setSugestoes((prev) => prev.filter((item) => item.id !== sugestao.id));
             }}
           >
             Descartar
           </Button>
         </Card>
-      )}
+        );
+      })()}
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
@@ -599,6 +623,11 @@ export function UnidadesPanel({
               condominosCriados: number;
               erros: { linha: number; mensagem: string }[];
             };
+            if (r.erros.length > 0) {
+              throw new Error(
+                `Importação incompleta: ${r.erros.length} erro(s). ${r.erros[0]?.mensagem ?? "Revise os dados e tente novamente."}`,
+              );
+            }
             if (revisarUnidades.sugestaoId) {
               await updateSugestaoFn({
                 data: { id: revisarUnidades.sugestaoId, status: "aplicada" },

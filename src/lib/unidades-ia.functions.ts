@@ -68,14 +68,16 @@ export const extrairUnidadesDaConvencao = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!doc) throw new Error("Documento não encontrado.");
-    await assertOwnerCondominio(context.supabase, context.userId, doc.condominio_id);
+    const { assertAcessoCondominio } = await import("./unidades-acesso.server");
+    await assertAcessoCondominio(context.supabase, context.userId, doc.condominio_id);
     if (doc.status_processamento !== "pronto") {
       throw new Error("Documento ainda não foi processado.");
     }
 
     const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const unidades = await extrairESalvarSugestaoUnidades(
-      context.supabase,
+      supabaseAdmin,
       doc.id,
       apiKey,
     );
@@ -258,8 +260,9 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
     }
 
     const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const unidades = await extrairESalvarSugestaoUnidades(
-      context.supabase,
+      supabaseAdmin,
       doc.id,
       apiKey,
       { force: data.force },
@@ -287,7 +290,8 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
-    await assertOwnerCondominio(context.supabase, context.userId, data.condominioId);
+    const { assertAcessoCondominio } = await import("./unidades-acesso.server");
+    await assertAcessoCondominio(context.supabase, context.userId, data.condominioId);
 
     const { data: doc } = await context.supabase
       .from("documentos")
@@ -419,13 +423,17 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
     // 4) roda extração de unidades já com o texto novo
     let unidades: UnidadeSugerida[] = [];
     try {
-      unidades = await _extrairESalvarSugestaoUnidades(
-        context.supabase,
+      const { extrairESalvarSugestaoUnidades, ExtracaoIncompletaError } = await import(
+        "./unidades-extracao.server"
+      );
+      unidades = await extrairESalvarSugestaoUnidades(
+        supabaseAdmin,
         doc.id,
         apiKey,
         { force: true },
       );
-    } catch (err) {
+    } catch (err: unknown) {
+      const { ExtracaoIncompletaError } = await import("./unidades-extracao.server");
       if (err instanceof ExtracaoIncompletaError) {
         return {
           status: "incompleta" as const,

@@ -129,8 +129,9 @@ export const processarImportacaoIA = createServerFn({ method: "POST" })
         condomino: conds?.find(c => c.unidade_id === u.id)?.nome || "Não cadastrado"
       }));
 
-      const { callGeminiJson } = await import("../unidades-ia.functions");
-      const apiKey = process.env['LOVABLE_AI_GATEWAY_KEY'] || ""; 
+      const { chamarIaJson } = await import("../unidades-extracao.server");
+      const apiKey = process.env['LOVABLE_API_KEY'] || "";
+      if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
       
       const chunks = [];
       for (let i = 0; i < textoCompleto.length; i += 40000) {
@@ -149,7 +150,7 @@ Lista de unidades cadastradas: ${JSON.stringify(unidadesLista.slice(0, 150))}`;
 
         const userPrompt = `Texto da planilha:\n${chunk}\n\nRetorne JSON formatado: {"linhas": [{"identificador_bruto": string, "nome_bruto": string, "valor_debito": number, "unidade_id": uuid|null, "match_status": "ok"|"ambiguo"|"sem_match", "confianca": number}]}`;
 
-        const resIA = await callGeminiJson(apiKey, systemPrompt, userPrompt);
+        const resIA = await chamarIaJson(apiKey, systemPrompt, userPrompt);
         
         const parsedData = (resIA.data as any)?.linhas || [];
         allLinhas.push(...parsedData);
