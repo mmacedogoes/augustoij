@@ -404,15 +404,49 @@ export const Route = createFileRoute("/api/chat")({
           // Cadastro de unidades/condôminos do condomínio selecionado.
           // Necessário para qualificar destinatários em notificações e multas.
           let cadastroBlock = "";
+          let historicoBlock = "";
           try {
-            const { data: unidadesCad } = await supabase
-              .from("unidades")
-              .select("bloco, numero, tipo, condominos(nome, cpf, tipo, principal)")
-              .eq("condominio_id", condominioId);
-            cadastroBlock = blocoCadastroCondominial(unidadesCad as never, userText);
+            const [{ data: unidadesCad }, { data: condominioInfo }] = await Promise.all([
+              supabase
+                .from("unidades")
+                .select("id, bloco, numero, tipo, condominos(nome, cpf, tipo, principal)")
+                .eq("condominio_id", condominioId),
+              supabase
+                .from("condominios")
+                .select("nome, endereco, cidade, uf")
+                .eq("id", condominioId)
+                .maybeSingle(),
+            ]);
+            cadastroBlock = blocoCadastroCondominial(
+              unidadesCad as never,
+              userText,
+              condominioInfo ?? null,
+            );
+
+            const { selecionadas } = priorizarUnidades(
+              (unidadesCad ?? []) as never,
+              userText,
+              20,
+            );
+            const ids = selecionadas
+              .map((u) => u.id)
+              .filter((id): id is string => typeof id === "string");
+            if (ids.length > 0) {
+              const { data: infracoes } = await supabase
+                .from("unidade_infracoes")
+                .select("unidade_id, tipo, categoria, ocorrido_em, created_at, valor_multa")
+                .in("unidade_id", ids)
+                .order("created_at", { ascending: false })
+                .limit(80);
+              historicoBlock = blocoHistoricoInfracoes(
+                unidadesCad as never,
+                infracoes as never,
+              );
+            }
           } catch (e) {
             console.error("Cadastro condominial fetch failed:", e);
           }
+
 
           try {
             // Lidas com service role: o conteúdo é interno (super admin)
