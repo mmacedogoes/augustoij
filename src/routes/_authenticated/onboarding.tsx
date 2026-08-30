@@ -49,7 +49,6 @@ const condoSchema = z.object({
   cnpj: z.string().trim().max(20).optional(),
   endereco: z.string().trim().max(255).optional(),
   uf: z.string().trim().length(2).optional(),
-  qtd_unidades: z.coerce.number().int().min(0).max(100000).optional(),
 });
 
 function Step({ n, label, current }: { n: number; label: string; current: number }) {
@@ -86,7 +85,7 @@ function OnboardingPage() {
   const [contato, setContato] = useState({ nome: "", telefone: "", email: "", mensagem: "" });
 
   const [form, setForm] = useState({ nome: "", telefone: "", tipo_pessoa: "pf" as "pf" | "pj", cpf_cnpj: "", razao_social: "" });
-  const [condo, setCondo] = useState({ nome: "", cnpj: "", endereco: "", uf: "", qtd_unidades: "" });
+  const [condo, setCondo] = useState({ nome: "", cnpj: "", endereco: "", uf: "" });
 
   useEffect(() => {
     fetchProfile()
@@ -192,7 +191,7 @@ function OnboardingPage() {
           cnpj: parsed.data.cnpj || null,
           endereco: parsed.data.endereco || null,
           uf: parsed.data.uf || null,
-          qtd_unidades: parsed.data.qtd_unidades ?? null,
+          qtd_unidades: null,
         } });
       }
       await concluir({});
@@ -354,13 +353,10 @@ function OnboardingPage() {
                 <Input value={condo.endereco} onChange={(e) => setCondo({ ...condo, endereco: e.target.value })}
                   className="bg-augusto-green-dark border-augusto-cream/15 text-augusto-cream" />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs uppercase text-augusto-cream/70">Número de unidades</Label>
-                <Input type="number" value={condo.qtd_unidades}
-                  onChange={(e) => setCondo({ ...condo, qtd_unidades: e.target.value })}
-                  className="bg-augusto-green-dark border-augusto-cream/15 text-augusto-cream" />
-              </div>
             </div>
+            <p className="mt-3 text-[11px] leading-relaxed text-augusto-cream/60">
+              O número de unidades será extraído automaticamente da convenção do condomínio.
+            </p>
             <div className="mt-8 flex flex-col gap-2 items-center">
               <Button onClick={() => finalizar(true)} disabled={busy}
                 className="w-full sm:w-auto bg-augusto-gold hover:bg-augusto-gold-light text-augusto-green font-semibold">

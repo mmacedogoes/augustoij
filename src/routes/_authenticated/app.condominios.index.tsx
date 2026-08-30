@@ -38,7 +38,6 @@ const schema = z.object({
   cnpj: z.string().trim().max(20).optional(),
   uf: z.string().trim().length(2, "UF deve ter 2 letras").optional().or(z.literal("")),
   cidade: z.string().trim().min(2, "Informe a cidade").max(120),
-  qtd_unidades: z.coerce.number().int().min(0).max(100000).optional(),
   categoria: z.enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"]),
 });
 
@@ -54,9 +53,8 @@ function CondominiosPage() {
     cnpj: string;
     uf: string;
     cidade: string;
-    qtd_unidades: string;
     categoria: CategoriaCondominio;
-  }>({ nome: "", cnpj: "", uf: "", cidade: "", qtd_unidades: "", categoria: "predio" });
+  }>({ nome: "", cnpj: "", uf: "", cidade: "", categoria: "predio" });
   const [loading, setLoading] = useState(false);
 
   async function reload() {
@@ -76,12 +74,12 @@ function CondominiosPage() {
         cnpj: parsed.data.cnpj || null,
         uf: parsed.data.uf ? parsed.data.uf.toUpperCase() : null,
         cidade: parsed.data.cidade,
-        qtd_unidades: parsed.data.qtd_unidades ?? null,
+        qtd_unidades: null,
         categoria: parsed.data.categoria,
       }});
       toast.success("Condomínio criado!");
       setOpen(false);
-      setForm({ nome: "", cnpj: "", uf: "", cidade: "", qtd_unidades: "", categoria: "predio" });
+      setForm({ nome: "", cnpj: "", uf: "", cidade: "", categoria: "predio" });
       reload();
       refetchPlano();
       if ((res as { cidadeNova?: boolean } | null)?.cidadeNova) {
@@ -167,10 +165,9 @@ function CondominiosPage() {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="qtd">{getCategoriaMeta(form.categoria).vocab.unidade}s</Label>
-                  <Input id="qtd" type="number" min={0} value={form.qtd_unidades} onChange={(e) => setForm({ ...form, qtd_unidades: e.target.value })} />
-                </div>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  O número de unidades será extraído automaticamente da convenção do condomínio.
+                </p>
                 <Button type="submit" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Cadastrar"}</Button>
               </form>
             </DialogContent>
@@ -232,7 +229,7 @@ function CondominiosPage() {
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-augusto-green truncate leading-tight">{c.nome}</p>
                     <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                      {c.cidade ? `${c.cidade}${c.uf ? "/" + c.uf : ""}` : c.uf ?? "—"} • {c.qtd_unidades ?? 0} unidades {c.cnpj ? `• ${c.cnpj}` : ""}
+                      {c.cidade ? `${c.cidade}${c.uf ? "/" + c.uf : ""}` : c.uf ?? "—"} • {c.qtd_unidades != null ? `${c.qtd_unidades} unidades` : "unidades via convenção"} {c.cnpj ? `• ${c.cnpj}` : ""}
                     </p>
                   </div>
                 </div>
