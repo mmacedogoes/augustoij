@@ -328,16 +328,29 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
   }
 }
 
-export function chunkText(text: string, size = 1000, overlap = 150): string[] {
-  const clean = text.replace(/\s+/g, " ").trim();
-  if (clean.length <= size) return [clean];
+/**
+ * Fatia o texto preservando quebras de linha (essencial para tabelas
+ * Markdown de frações ideais) e cortando preferencialmente em fim de linha.
+ */
+export function chunkText(text: string, size = 1800, overlap = 200): string[] {
+  const clean = text
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  if (clean.length <= size) return clean ? [clean] : [];
   const chunks: string[] = [];
   let i = 0;
   while (i < clean.length) {
-    const end = Math.min(i + size, clean.length);
-    chunks.push(clean.slice(i, end));
-    if (end === clean.length) break;
-    i = end - overlap;
+    let end = Math.min(i + size, clean.length);
+    if (end < clean.length) {
+      const janela = clean.lastIndexOf("\n", end);
+      if (janela > i + size * 0.5) end = janela;
+    }
+    const parte = clean.slice(i, end).trim();
+    if (parte) chunks.push(parte);
+    if (end >= clean.length) break;
+    i = Math.max(end - overlap, i + 1);
   }
   return chunks;
 }
