@@ -1,0 +1,178 @@
+{
+  "version": 1,
+  "sdk_version": "0.28.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://pcmptbflyagxycqvvdvd.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "augusto-ij",
+      "version": "0.1.0",
+      "title": "Augusto.IJ"
+    },
+    "tools": [
+      {
+        "name": "listar_condominios",
+        "title": "Listar condomínios",
+        "description": "Lista os condomínios acessíveis ao usuário conectado (nome, cidade/UF, categoria e identificador).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_unidades",
+        "title": "Listar unidades de um condomínio",
+        "description": "Lista as unidades de um condomínio com bloco, número, tipo, fração ideal e área, conforme a convenção cadastrada.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "condominio_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Identificador do condomínio."
+            },
+            "limite": {
+              "description": "Máximo de unidades (padrão 200).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          "required": [
+            "condominio_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_documentos",
+        "title": "Listar documentos do condomínio",
+        "description": "Lista os documentos do acervo de um condomínio (convenção, regimento, atas, contratos) com o status de leitura.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "condominio_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Identificador do condomínio."
+            }
+          },
+          "required": [
+            "condominio_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_contratos_servico",
+        "title": "Listar contratos de prestação de serviços",
+        "description": "Lista os contratos de prestação de serviços de um condomínio: prestador, objeto, vigência, valor e situação.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "condominio_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Identificador do condomínio."
+            },
+            "situacao": {
+              "description": "Filtro opcional pela situação do contrato (ex.: vigente, encerrado).",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "condominio_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_assembleias",
+        "title": "Listar assembleias",
+        "description": "Lista as assembleias de um condomínio com tipo, data/hora, local, modalidade e situação.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "condominio_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Identificador do condomínio."
+            }
+          },
+          "required": [
+            "condominio_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "obter_pauta_assembleia",
+        "title": "Obter pauta de uma assembleia",
+        "description": "Retorna os itens de pauta de uma assembleia (ordem, título, descrição, quórum e base de cálculo).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "assembleia_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Identificador da assembleia."
+            }
+          },
+          "required": [
+            "assembleia_id"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

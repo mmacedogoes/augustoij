@@ -80,7 +80,10 @@ export function GoogleAuthButton({ label = "Continuar com Google", redirectTo = 
         }
       }
 
-      navigate({ to: redirectTo });
+      // `redirectTo` pode ser um caminho preservado (ex.: consentimento OAuth).
+      if (redirectTo.startsWith("/") && redirectTo !== "/app") window.location.assign(redirectTo);
+      else navigate({ to: "/app" });
+
     } catch (err) {
       console.error("[google-auth] erro inesperado", err);
       toast.error("Não foi possível entrar com o Google. Tente novamente ou use seu e-mail e senha.");
