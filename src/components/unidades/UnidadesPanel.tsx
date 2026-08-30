@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp } from "lucide-react";
+import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp, History } from "lucide-react";
 import { toast } from "sonner";
 import {
   listUnidades,
@@ -32,6 +32,7 @@ import {
   type CondominoSugerido,
   type UnidadeRef,
 } from "@/components/unidades/RevisarCondominosDialog";
+import { HistoricoInfracoesDialog } from "@/components/unidades/HistoricoInfracoesDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,6 +128,7 @@ export function UnidadesPanel({
   const [openCond, setOpenCond] = useState<Unidade | null>(null);
   const [openImport, setOpenImport] = useState(false);
   const [openView, setOpenView] = useState<Unidade | null>(null);
+  const [openHistorico, setOpenHistorico] = useState<Unidade | null>(null);
   const [sugestoes, setSugestoes] = useState<
     {
       id: string;
@@ -484,6 +486,9 @@ export function UnidadesPanel({
               <Button size="sm" variant="outline" onClick={() => setOpenCond(u)}>
                 <Users className="h-4 w-4 mr-1" /> Condôminos
               </Button>
+              <Button size="sm" variant="ghost" onClick={() => setOpenHistorico(u)}>
+                <History className="h-4 w-4 mr-1" /> Histórico
+              </Button>
               {isOwner && (
                 <>
                   <Button size="icon" variant="ghost" onClick={() => openEdit(u)}>
@@ -565,6 +570,16 @@ export function UnidadesPanel({
             setOpenView(null);
             setOpenCond(u);
           }}
+        />
+      )}
+
+      {openHistorico && (
+        <HistoricoInfracoesDialog
+          condominioId={condominioId}
+          unidadeId={openHistorico.id}
+          titulo={formatLabel(openHistorico, vocab.bloco)}
+          podeEditar={isOwner}
+          onClose={() => setOpenHistorico(null)}
         />
       )}
 
