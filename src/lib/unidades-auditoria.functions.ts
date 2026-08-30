@@ -206,9 +206,9 @@ export const auditarCondominio = createServerFn({ method: "POST" })
         });
         continue;
       }
-      const patch: Record<string, number> = {};
+      const patch: { fracao_ideal?: number; area_m2?: number } = {};
       if (atual.fracao_ideal == null && e.fracao_ideal != null) {
-        patch["fracao_ideal"] = e.fracao_ideal;
+        patch.fracao_ideal = e.fracao_ideal;
       } else if (
         atual.fracao_ideal != null &&
         e.fracao_ideal != null &&
@@ -222,7 +222,7 @@ export const auditarCondominio = createServerFn({ method: "POST" })
         });
       }
       if (atual.area_m2 == null && e.area_m2 != null) {
-        patch["area_m2"] = e.area_m2;
+        patch.area_m2 = e.area_m2;
       } else if (
         atual.area_m2 != null &&
         e.area_m2 != null &&
@@ -291,8 +291,8 @@ export const auditarCondominio = createServerFn({ method: "POST" })
         : "ok";
 
     try {
-      const { logAudit } = await import("@/lib/audit.server");
-      await logAudit({
+      const { logAdminAction } = await import("@/lib/audit.server");
+      await logAdminAction({
         actorUserId: context.userId,
         action: houveCorrecao ? "unidades.auditoria.corrigir" : "unidades.auditoria.executar",
         targetCondominioId: cond.id as string,
