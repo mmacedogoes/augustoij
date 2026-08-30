@@ -13,13 +13,6 @@ import { setRememberMe } from "@/lib/remember-session";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
-  // `next` preserva um destino interno (ex.: tela de consentimento OAuth do MCP).
-  validateSearch: (s: { next?: unknown }) => ({
-    next:
-      typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//")
-        ? s.next
-        : undefined,
-  }),
 
   head: () => ({
     meta: [
