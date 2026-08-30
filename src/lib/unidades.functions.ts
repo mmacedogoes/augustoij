@@ -327,7 +327,12 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
       for (const l of existentesParaAtualizar) {
         const id = existentesMap.get(chave(l.bloco ?? null, l.numero));
         if (!id) continue;
-        let patch: Record<string, unknown> = {
+        let patch: {
+          tipo?: z.infer<typeof TipoUnidade>;
+          fracao_ideal?: number | null;
+          area_m2?: number | null;
+          vagas_garagem?: number;
+        } = {
           tipo: (l.tipo_unidade ?? "apartamento") as never,
           fracao_ideal: l.fracao_ideal ?? null,
           area_m2: l.area_m2 ?? null,
