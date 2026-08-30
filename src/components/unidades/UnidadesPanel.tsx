@@ -193,6 +193,7 @@ export function UnidadesPanel({
         | { status: "erro_leitura"; mensagem?: string }
         | { status: "erro_indexacao"; mensagem?: string }
         | { status: "vazio_extracao" }
+        | { status: "incompleta"; mensagem: string }
         | { status: "sem_unidades"; modo: string; chunks: number }
         | {
             status: "gerada";
@@ -221,6 +222,10 @@ export function UnidadesPanel({
             "Mesmo com OCR/visão o arquivo não devolveu texto legível. Reenvie uma versão de melhor qualidade da convenção.",
           );
           break;
+        case "incompleta":
+          setErroExtracao(r.mensagem);
+          toast.error(r.mensagem);
+          break;
         case "sem_unidades":
           toast.warning(
             `Convenção reprocessada (${r.chunks} trechos, modo: ${r.modo}), mas a IA não localizou uma lista de ${vocab.unidade.toLowerCase()}s. Confirme se o arquivo enviado é a convenção completa (com quadro de frações/anexos).`,
@@ -228,12 +233,14 @@ export function UnidadesPanel({
           refresh();
           break;
         case "gerada":
+          setErroExtracao(null);
           toast.success(
             `${r.unidades.length} ${vocab.unidade.toLowerCase()}(s) identificada(s) após reprocessamento (${r.modo}).`,
           );
           refresh();
           break;
       }
+
     } catch (e) {
       toast.dismiss(t);
       toast.error(e instanceof Error ? e.message : "Falha ao reprocessar a convenção");
