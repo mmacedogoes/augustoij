@@ -3087,6 +3087,7 @@ export type Database = {
           condominio_id: string
           created_at: string
           id: string
+          metadata: Json | null
           skill_ativa: string | null
           titulo: string | null
           user_id: string
@@ -3095,6 +3096,7 @@ export type Database = {
           condominio_id: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           skill_ativa?: string | null
           titulo?: string | null
           user_id: string
@@ -3103,6 +3105,7 @@ export type Database = {
           condominio_id?: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           skill_ativa?: string | null
           titulo?: string | null
           user_id?: string
