@@ -111,10 +111,10 @@ export async function processarDocumentoCore(
       .eq("id", documento.id);
     if (concluido && documento.tipo === "convencao") {
       try {
-        const { _extrairESalvarSugestaoUnidades } = await import("./unidades-ia.functions");
-        await _extrairESalvarSugestaoUnidades(supabase, documento.id, apiKey, { force: true });
+        const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+        await extrairESalvarSugestaoUnidades(supabase, documento.id, apiKey, { force: true });
       } catch (autoErr) {
-        console.warn("[processarDocumentoCore] auto-extração de unidades falhou", autoErr);
+        console.error("[processarDocumentoCore] auto-extração de unidades falhou", autoErr);
       }
     }
   };

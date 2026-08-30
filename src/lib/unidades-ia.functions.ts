@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { getCategoriaMeta, normalizeCategoria } from "@/lib/categorias-condominio";
 
 /**
  * Sugestões estruturadas de unidades e condôminos extraídas por IA.
@@ -46,430 +45,6 @@ const CondominoSugestao = z.object({
   match_status: z.enum(["ok", "ambiguo", "sem_match"]).optional(),
 });
 
-export type DiagnosticoIA = {
-  total_declarado_no_texto?: number | null;
-  quadro_fracoes_encontrado?: boolean | null;
-  observacao?: string | null;
-};
-
-/** Erro de extração incompleta — nada é gravado e a mensagem sobe para a UI. */
-export class ExtracaoIncompletaError extends Error {
-  readonly codigo = "extracao_incompleta";
-  constructor(message: string) {
-    super(message);
-    this.name = "ExtracaoIncompletaError";
-  }
-}
-
-export function chaveUnidade(bloco: string | null, numero: string) {
-  return `${(bloco ?? "").trim().toLowerCase()}|${(numero ?? "").trim().toLowerCase()}`;
-}
-
-// Vocabulário genérico de unidades e vocabulário específico de quadros de
-// fração/área (a tabela costuma estar em anexo, no fim da convenção).
-const RE_UNIDADE =
-  /(unidade|apart(a|â)mento|apto|fra[cç][aã]o|lote|quadra|bloco|garag(e|em)|vaga|área privativa|coeficiente|sala|loja|piso|pavimento|galp[aã]o|setor|m[oó]dulo|torre)/i;
-const RE_TABELA_FRACAO =
-  /(fra[cç][aã]o\s+ideal|coeficiente\s+de\s+propriedade|área\s+(privativa|real|total|comum)|quadro\s+de\s+áreas)/i;
-const RE_LINHA_NUMERICA = /\d+[.,]\d{2,8}\s*%?/;
-
-/**
- * Monta (a) o texto principal enviado à IA, priorizando trechos com
- * vocabulário de unidades e, acima deles, trechos que parecem tabelas de
- * fração/área; e (b) um texto dedicado só com os trechos tabulares, usado
- * na 2ª passada quando faltam frações/áreas.
- */
-export function montarTextos(rawChunks: string[]) {
-  const tabelas: string[] = [];
-  const prioritarios: string[] = [];
-  const restantes: string[] = [];
-  for (const c of rawChunks) {
-    if (RE_TABELA_FRACAO.test(c) && RE_LINHA_NUMERICA.test(c)) tabelas.push(c);
-    else if (RE_UNIDADE.test(c)) prioritarios.push(c);
-    else restantes.push(c);
-  }
-  const texto = [...tabelas, ...prioritarios, ...restantes].join("\n\n").slice(0, 70000);
-  const textoFracoes = tabelas.join("\n\n").slice(0, 60000);
-  // Lotes de ~15k caracteres: quadros grandes truncariam em uma única chamada.
-  const lotesFracoes: string[] = [];
-  let atual = "";
-  for (const t of tabelas) {
-    if (atual && atual.length + t.length > 15000) {
-      lotesFracoes.push(atual);
-      atual = "";
-    }
-    atual += (atual ? "\n\n" : "") + t;
-  }
-  if (atual) lotesFracoes.push(atual);
-  return { texto, textoFracoes, lotesFracoes: lotesFracoes.slice(0, 8) };
-}
-
-/** 2ª passada: lê apenas os quadros de frações/áreas, em lotes. */
-async function extrairQuadroFracoes(apiKey: string, lotes: string[]) {
-  const system =
-    "Você lê quadros de frações ideais e áreas de convenções de condomínio brasileiras. " +
-    "Extraia APENAS o que estiver escrito, linha por linha, sem pular nenhuma. " +
-    "É proibido calcular, estimar ou inventar valores. " +
-    'Responda EXCLUSIVAMENTE em JSON: {"linhas":[{"bloco":string|null,"numero":string,' +
-    '"fracao_ideal":number|null,"area_m2":number|null}]}. ' +
-    "Use ponto como separador decimal e null quando o valor não constar.";
-  const schema = z.array(
-    z.object({
-      bloco: z.string().nullable().optional(),
-      numero: z.string(),
-      fracao_ideal: z.number().nullable().optional(),
-      area_m2: z.number().nullable().optional(),
-    }),
-  );
-  const mapa = new Map<string, { fracao_ideal: number | null; area_m2: number | null }>();
-  for (const lote of lotes) {
-    if (!lote.trim()) continue;
-    try {
-      const r = await callGeminiJson(apiKey, system, `Quadro:\n\n${lote}`);
-      const parsed = (r.data ?? {}) as { linhas?: unknown[] };
-      const linhas = schema.safeParse(parsed.linhas ?? []);
-      if (!linhas.success) continue;
-      for (const l of linhas.data) {
-        const chave = chaveUnidade(l.bloco ?? null, l.numero);
-        const anterior = mapa.get(chave);
-        mapa.set(chave, {
-          fracao_ideal: l.fracao_ideal ?? anterior?.fracao_ideal ?? null,
-          area_m2: l.area_m2 ?? anterior?.area_m2 ?? null,
-        });
-      }
-    } catch (err) {
-      console.warn("[unidades-ia] lote de frações falhou", err);
-    }
-  }
-  return mapa;
-}
-
-
-/**
- * Regra de negócio: sem fração ideal lida no documento, nada é importado.
- * Área é exigida quando o documento traz o quadro de áreas para parte das
- * unidades (indício de que a leitura ficou incompleta).
- */
-export function validarCoberturaExtracao(
-  unidades: UnidadeSugerida[],
-  diagnostico: DiagnosticoIA | null,
-  qtdEsperada: number | null,
-) {
-  const total = unidades.length;
-  const semFracao = unidades.filter((u) => u.fracao_ideal == null);
-  if (semFracao.length > 0) {
-    const exemplos = semFracao
-      .slice(0, 8)
-      .map((u) => `${u.bloco ? u.bloco + "-" : ""}${u.numero}`)
-      .join(", ");
-    throw new ExtracaoIncompletaError(
-      `${semFracao.length} de ${total} unidade(s) ficaram sem fração ideal identificada no documento ` +
-        `(ex.: ${exemplos}${semFracao.length > 8 ? "…" : ""}). ` +
-        "O sistema não cria frações que não estejam escritas na convenção. " +
-        "Envie o anexo/quadro de frações ideais ou um PDF com melhor qualidade de leitura e tente novamente.",
-    );
-  }
-  const semArea = unidades.filter((u) => u.area_m2 == null);
-  if (semArea.length > 0 && semArea.length < total) {
-    throw new ExtracaoIncompletaError(
-      `${semArea.length} de ${total} unidade(s) ficaram sem área identificada, embora o documento traga áreas ` +
-        "para as demais — a leitura do quadro de áreas ficou incompleta. " +
-        "Reenvie a convenção completa (com todos os anexos) ou um PDF com melhor qualidade.",
-    );
-  }
-  const declarado = diagnostico?.total_declarado_no_texto ?? null;
-  if (declarado && declarado > 0 && declarado !== total) {
-    throw new ExtracaoIncompletaError(
-      `A convenção declara ${declarado} unidades, mas só foi possível ler ${total} na lista individual. ` +
-        "Nada foi importado para evitar unidades inventadas. Confirme se o arquivo contém todos os anexos.",
-    );
-  }
-  if (qtdEsperada && qtdEsperada > 0 && qtdEsperada !== total) {
-    throw new ExtracaoIncompletaError(
-      `O cadastro do condomínio prevê ${qtdEsperada} unidades, mas a convenção enviada permitiu ler ${total}. ` +
-        "Ajuste o cadastro ou reenvie a convenção completa — o sistema não completa a diferença automaticamente.",
-    );
-  }
-}
-
-
-/**
- * Acesso ao condomínio pelo ambiente de trabalho: dono do registro, membro
- * vinculado, conta dona do ambiente ou administrador interno.
- */
-async function assertOwnerCondominio(
-  supabase: import("@supabase/supabase-js").SupabaseClient,
-  userId: string,
-  condominioId: string,
-) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("condominios")
-    .select("id, owner_id")
-    .eq("id", condominioId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Condomínio não encontrado.");
-  if ((data as { owner_id: string }).owner_id === userId) return;
-
-  const { data: vinculo } = await supabaseAdmin
-    .from("condominio_members")
-    .select("id")
-    .eq("condominio_id", condominioId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (vinculo) return;
-
-  const { isDonoDoAmbienteDoCondominio } = await import("@/lib/conta-master.server");
-  if (await isDonoDoAmbienteDoCondominio(userId, condominioId)) return;
-
-  const { data: hr } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (!hr) throw new Error("Sem permissão para este condomínio.");
-}
-
-
-export async function callGeminiJson(
-  apiKey: string,
-  systemPrompt: string,
-  userPrompt: string,
-): Promise<{
-  data: unknown;
-  model: string;
-  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
-  aigLogId: string | null;
-  aigRunId: string | null;
-}> {
-  // 524 = Cloudflare gateway timeout (>100s upstream). Gemini com prompts grandes
-  // costuma estourar; tentamos uma vez com modelo rápido, e em caso de 524/timeout
-  // repetimos automaticamente com o modelo "lite" (mais rápido).
-  const doCall = async (model: string, signalTimeoutMs: number) => {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), signalTimeoutMs);
-    try {
-      return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        signal: ctrl.signal,
-        headers: {
-          "Content-Type": "application/json",
-          "Lovable-API-Key": apiKey,
-          "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-        },
-        body: JSON.stringify({
-          model,
-          temperature: 0,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        }),
-      });
-    } finally {
-      clearTimeout(t);
-    }
-  };
-
-  let res: Response;
-  let modelUsado = "google/gemini-2.5-flash";
-  try {
-    res = await doCall("google/gemini-2.5-flash", 90_000);
-  } catch (e) {
-    // timeout local -> tenta modelo lite
-    modelUsado = "google/gemini-2.5-flash-lite";
-    res = await doCall("google/gemini-2.5-flash-lite", 90_000);
-  }
-  if (res.status === 524 || res.status === 502 || res.status === 504) {
-    // retry uma vez com modelo mais leve
-    try {
-      modelUsado = "google/gemini-2.5-flash-lite";
-      res = await doCall("google/gemini-2.5-flash-lite", 90_000);
-    } catch {
-      throw new Error(
-        "A IA demorou demais para responder (gateway 524). Tente novamente em instantes — se persistir, divida a convenção em partes menores.",
-      );
-    }
-  }
-  if (!res.ok) {
-    const body = await res.text();
-    if (res.status === 429) throw new Error("Limite de uso da IA atingido. Tente novamente em instantes.");
-    if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos para continuar.");
-    if (res.status === 524)
-      throw new Error(
-        "A IA demorou demais para responder (gateway 524). Tente novamente em instantes — se persistir, divida a convenção em partes menores.",
-      );
-    throw new Error(`Falha na IA (${res.status}): ${body.slice(0, 200)}`);
-  }
-  const aigLogId = res.headers.get("x-lovable-aig-log-id");
-  const aigRunId = res.headers.get("x-lovable-aig-run-id");
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-  };
-  const raw = json.choices?.[0]?.message?.content ?? "{}";
-  const usage = {
-    prompt_tokens: json.usage?.prompt_tokens ?? 0,
-    completion_tokens: json.usage?.completion_tokens ?? 0,
-    total_tokens: json.usage?.total_tokens ?? 0,
-  };
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    const m = raw.match(/\{[\s\S]*\}/);
-    if (m) parsed = JSON.parse(m[0]);
-    else throw new Error("Resposta da IA não é JSON válido.");
-  }
-  return { data: parsed, model: modelUsado, usage, aigLogId, aigRunId };
-}
-
-/**
- * Núcleo compartilhado: dado um documento já processado, extrai unidades
- * e persiste uma sugestão pendente. Reutilizado pelo auto-disparo em
- * processDocumento e pela server function pública.
- */
-export async function _extrairESalvarSugestaoUnidades(
-  supabase: import("@supabase/supabase-js").SupabaseClient,
-  documentoId: string,
-  apiKey: string,
-  opts: { force?: boolean } = {},
-): Promise<UnidadeSugerida[]> {
-  const { data: doc, error } = await supabase
-    .from("documentos")
-    .select("id, condominio_id, nome_arquivo, status_processamento")
-    .eq("id", documentoId)
-    .maybeSingle();
-  if (error || !doc) return [];
-  if (doc.status_processamento !== "pronto") return [];
-
-  // Categoria do condomínio guia o vocabulário do prompt (predio, casas,
-  // salas_comerciais, shopping, galpoes)
-  const { data: cond } = await supabase
-    .from("condominios")
-    .select("categoria, qtd_unidades, owner_id")
-    .eq("id", doc.condominio_id)
-    .maybeSingle();
-  const categoriaId = normalizeCategoria(cond?.categoria as string | null);
-  const catMeta = getCategoriaMeta(categoriaId);
-  const qtdEsperada = (cond?.qtd_unidades as number | null) ?? null;
-  const ownerId = (cond?.owner_id as string | null) ?? null;
-
-  const { data: chunks } = await supabase
-    .from("document_chunks")
-    .select("conteudo")
-    .eq("documento_id", doc.id)
-    .limit(600);
-  const rawChunks = (chunks ?? []).map((c) => c.conteudo as string);
-  const { texto, lotesFracoes } = montarTextos(rawChunks);
-  if (!texto.trim()) return [];
-
-  const hint = qtdEsperada
-    ? `O cadastro do condomínio indica ${qtdEsperada} unidades — use apenas como conferência, nunca para completar dados ausentes.`
-    : "";
-  const system =
-    "Você é um assistente especialista em convenções de condomínio brasileiras. " +
-    "Sua tarefa é EXTRAIR as unidades autônomas que estiverem LITERALMENTE descritas no texto, " +
-    "com suas frações ideais e áreas, procurando quadros de frações ideais, listas numeradas, " +
-    "anexos e memoriais descritivos. " +
-    catMeta.vocabIA + " " + hint + " " +
-    "PROIBIÇÃO ABSOLUTA: é terminantemente proibido INVENTAR, ESTIMAR, CALCULAR, INTERPOLAR ou GERAR " +
-    "unidades, números, frações ideais ou áreas. Se a convenção declarar apenas quantidades globais " +
-    '(ex.: "662 lotes em 36 quadras") sem a lista individual, NÃO gere as unidades: devolva a lista vazia ' +
-    "e informe isso no diagnóstico. Se a fração ideal ou a área de uma unidade não estiver escrita no texto, " +
-    "devolva null nesse campo — nunca dividir 100% pelo número de unidades, nunca repetir o valor de outra unidade. " +
-    "NÃO conte como unidade autônoma: vagas de garagem, boxes/depósitos, área comum, salão de festas, guarita, " +
-    "casa do zelador, reservatórios, barrilete — a menos que a convenção diga EXPLICITAMENTE que possuem matrícula própria. " +
-    "NÃO duplique unidades: cada par (bloco, número) aparece UMA única vez; se a mesma unidade constar em várias " +
-    "tabelas (fração, área, vagas), consolide em UMA linha. " +
-    'Responda EXCLUSIVAMENTE em JSON: {"unidades":[{"bloco":string|null,"numero":string,' +
-    '"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","fracao_ideal":number|null,' +
-    '"area_m2":number|null,"vagas_garagem":number,"fracao_origem":"documento|ausente","area_origem":"documento|ausente"}],' +
-    '"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,' +
-    '"observacao":string|null}}. ' +
-    "Use fracao_origem='documento' SOMENTE quando o número foi lido no texto; caso contrário 'ausente' com fracao_ideal=null. " +
-    "A mesma regra vale para area_origem/area_m2.";
-  const user = `Arquivo: ${doc.nome_arquivo}\n\nTexto da convenção (pode estar truncado):\n\n${texto}`;
-
-  const chamada = await callGeminiJson(apiKey, system, user);
-  try {
-    const { registrarEventoIa } = await import("./uso-ia.server");
-    await registrarEventoIa({
-      userId: ownerId,
-      condominioId: doc.condominio_id,
-      origem: "importacao_convencao",
-      model: chamada.model,
-      tokensInput: chamada.usage.prompt_tokens,
-      tokensOutput: chamada.usage.completion_tokens,
-      aigLogId: chamada.aigLogId,
-      aigRunId: chamada.aigRunId,
-      meta: { documento_id: doc.id, arquivo: doc.nome_arquivo },
-    });
-  } catch (err) {
-    console.error("[uso-ia] importacao_convencao:", err);
-  }
-  const parsed = chamada.data as { unidades?: unknown[]; diagnostico?: DiagnosticoIA };
-  const linhas = z.array(UnidadeSugestao).safeParse(parsed?.unidades ?? []);
-  const brutas = linhas.success ? linhas.data : [];
-  const diagnostico = parsed?.diagnostico ?? null;
-
-  // Deduplica por (bloco, numero) — a IA às vezes repete a mesma unidade em
-  // tabelas diferentes (fração / área / vagas), inflando o total.
-  const seen = new Set<string>();
-  const unidades: typeof brutas = [];
-  for (const u of brutas) {
-    const key = chaveUnidade(u.bloco ?? null, u.numero ?? "");
-    if (!u.numero || seen.has(key)) continue;
-    seen.add(key);
-    unidades.push(u);
-  }
-
-  if (unidades.length === 0) {
-    throw new ExtracaoIncompletaError(
-      "A IA não localizou a lista individual de unidades nesta convenção" +
-        (diagnostico?.total_declarado_no_texto
-          ? ` (o texto menciona ${diagnostico.total_declarado_no_texto} unidades, mas sem relação nominal).`
-          : ".") +
-        " Envie o anexo/quadro de frações ideais ou uma versão do PDF com melhor qualidade de leitura. " +
-        "Nenhuma unidade foi criada — o sistema não gera números, áreas ou frações que não estejam no documento.",
-    );
-  }
-
-  // 2ª passada: quando faltam frações/áreas e existe texto tabular específico,
-  // pedimos apenas o quadro de frações e consolidamos por (bloco, número).
-  const faltando = () =>
-    unidades.filter((u) => u.fracao_ideal == null || u.area_m2 == null).length;
-  if (faltando() > 0 && lotesFracoes.length > 0) {
-    try {
-      const quadro = await extrairQuadroFracoes(apiKey, lotesFracoes);
-
-      for (const u of unidades) {
-        const hit = quadro.get(chaveUnidade(u.bloco ?? null, u.numero));
-        if (!hit) continue;
-        if (u.fracao_ideal == null && hit.fracao_ideal != null) u.fracao_ideal = hit.fracao_ideal;
-        if (u.area_m2 == null && hit.area_m2 != null) u.area_m2 = hit.area_m2;
-      }
-    } catch (err) {
-      console.warn("[unidades-ia] 2ª passada de frações falhou", err);
-    }
-  }
-
-  validarCoberturaExtracao(unidades, diagnostico, qtdEsperada);
-
-  // Em modo force, apaga sugestões anteriores em QUALQUER status para essa convenção
-  const del = supabase.from("sugestoes_unidades").delete().eq("documento_id", doc.id);
-  await (opts.force ? del : del.eq("status", "pendente"));
-  await supabase.from("sugestoes_unidades").insert({
-    condominio_id: doc.condominio_id,
-    documento_id: doc.id,
-    payload: {
-      unidades,
-      diagnostico: diagnostico ?? undefined,
-    },
-    status: "pendente",
-  });
-  return unidades;
-}
-
-
 type UnidadeSugerida = z.infer<typeof UnidadeSugestao>;
 
 export const extrairUnidadesDaConvencao = createServerFn({ method: "POST" })
@@ -498,7 +73,8 @@ export const extrairUnidadesDaConvencao = createServerFn({ method: "POST" })
       throw new Error("Documento ainda não foi processado.");
     }
 
-    const unidades = await _extrairESalvarSugestaoUnidades(
+    const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+    const unidades = await extrairESalvarSugestaoUnidades(
       context.supabase,
       doc.id,
       apiKey,
@@ -514,9 +90,9 @@ export const listSugestoesUnidades = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("sugestoes_unidades")
-      .select("id, documento_id, payload, created_at")
+      .select("id, documento_id, payload, status, created_at")
       .eq("condominio_id", data.condominioId)
-      .eq("status", "pendente")
+      .in("status", ["pendente", "falhou"])
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return rows ?? [];
@@ -555,7 +131,8 @@ export const extrairCondominosDeArquivo = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
-    await assertOwnerCondominio(context.supabase, context.userId, data.condominioId);
+    const { assertAcessoCondominio } = await import("./unidades-acesso.server");
+    await assertAcessoCondominio(context.supabase, context.userId, data.condominioId);
 
     const { extractText, extractTextWithVision } = await import("./documentos.server");
     const { humanizeIngestError, IngestError } = await import("./ingest-errors");
@@ -618,7 +195,8 @@ export const extrairCondominosDeArquivo = createServerFn({ method: "POST" })
       `Unidades já cadastradas neste condomínio (JSON):\n${JSON.stringify(unidadesResumo).slice(0, 8000)}\n\n` +
       `Arquivo: ${data.fileName}\n\nConteúdo extraído:\n\n${texto}`;
 
-    const chamada = await callGeminiJson(apiKey, system, user);
+    const { chamarIaJson } = await import("./unidades-extracao.server");
+    const chamada = await chamarIaJson(apiKey, system, user);
     try {
       const { registrarEventoIa } = await import("./uso-ia.server");
       await registrarEventoIa({
@@ -655,7 +233,8 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
-    await assertOwnerCondominio(context.supabase, context.userId, data.condominioId);
+    const { assertAcessoCondominio } = await import("./unidades-acesso.server");
+    await assertAcessoCondominio(context.supabase, context.userId, data.condominioId);
 
     const { data: doc } = await context.supabase
       .from("documentos")
@@ -678,7 +257,8 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
       if (existente) return { status: "ja_processada" as const };
     }
 
-    const unidades = await _extrairESalvarSugestaoUnidades(
+    const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+    const unidades = await extrairESalvarSugestaoUnidades(
       context.supabase,
       doc.id,
       apiKey,
