@@ -283,29 +283,61 @@ export function DocumentosPanel({
   };
 
   const [reprocessando, setReprocessando] = useState<string | null>(null);
+  const [progresso, setProgresso] = useState<string | null>(null);
   const reprocessar = useServerFn(reprocessarDocumento);
 
+  type Rodada = {
+    concluido: boolean;
+    chunks: number;
+    totalPaginas: number;
+    paginasLidas: number;
+    paginasFalhas: number[];
+    blocosProntos: number;
+    totalBlocos: number;
+    aviso: string | null;
+  };
+
+  /**
+   * Documentos escaneados longos são lidos em rodadas: cada chamada avança o
+   * que couber no tempo do servidor e o cliente continua até concluir.
+   */
   const handleReprocessar = async (id: string) => {
     setReprocessando(id);
+    setProgresso(null);
     try {
-      const r = (await reprocessar({ data: { id } })) as {
-        chunks: number;
-        totalPaginas: number;
-        paginasFalhas: number[];
-        aviso: string | null;
-      };
-      if (r.aviso) toast.warning("Documento relido parcialmente", { description: r.aviso });
-      else
+      let r = (await reprocessar({ data: { id, reiniciar: true } })) as Rodada;
+      let totalChunks = r.chunks;
+      let rodadas = 1;
+      let anterior = -1;
+      while (!r.concluido && rodadas < 25 && r.blocosProntos > anterior) {
+        anterior = r.blocosProntos;
+        setProgresso(
+          `Lendo ${r.blocosProntos}/${r.totalBlocos} bloco(s)${r.totalPaginas ? ` · ${r.paginasLidas} de ${r.totalPaginas} páginas` : ""}…`,
+        );
+        r = (await reprocessar({ data: { id } })) as Rodada;
+        totalChunks += r.chunks;
+        rodadas += 1;
+      }
+      if (r.concluido && r.paginasFalhas.length === 0) {
         toast.success("Documento relido com sucesso", {
-          description: `${r.chunks} trecho(s) indexado(s)${r.totalPaginas ? ` · ${r.totalPaginas} página(s)` : ""}.`,
+          description: `${totalChunks} trecho(s) indexado(s)${r.totalPaginas ? ` · ${r.totalPaginas} página(s)` : ""}.`,
         });
+      } else {
+        toast.warning("Documento relido parcialmente", {
+          description:
+            r.aviso ??
+            `${r.paginasFalhas.length} página(s) não puderam ser lidas. O restante foi indexado.`,
+        });
+      }
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao reprocessar");
     } finally {
       setReprocessando(null);
+      setProgresso(null);
     }
   };
+
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este documento e todos os seus trechos?")) return;
