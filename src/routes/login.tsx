@@ -30,7 +30,13 @@ const schema = z.object({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { next } = Route.useSearch();
+  // `next` preserva um destino interno (ex.: consentimento OAuth do MCP).
+  const next = (() => {
+    if (typeof window === "undefined") return undefined;
+    const v = new URLSearchParams(window.location.search).get("next");
+    return v && v.startsWith("/") && !v.startsWith("//") ? v : undefined;
+  })();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
