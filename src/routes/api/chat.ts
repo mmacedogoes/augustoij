@@ -560,7 +560,7 @@ PERGUNTAS ESTRUTURADAS (opcional):
 \`\`\`
 - Não use nenhum destes formatos se a pergunta já estiver clara.
 
-${cadastroBlock}${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${blocoContextoCondominial(
+${cadastroBlock}${historicoBlock}${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${blocoContextoCondominial(
             { contexto, temBaseCondominial },
           )}${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}\n\n` : ""}${
             attachmentContext && attachmentContext.trim()
