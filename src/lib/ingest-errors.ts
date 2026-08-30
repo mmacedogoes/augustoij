@@ -112,6 +112,16 @@ export function humanizeIngestError(
     );
   }
 
+  // Tempo/limite do gateway durante o OCR — NÃO é documento ilegível.
+  if (/gateway (429|5\d\d)|timeout|timed out|aborted|too many requests|rate.?limit/i.test(raw)) {
+    return new IngestError(
+      "ocr",
+      "A leitura foi interrompida por limite temporário do serviço de IA",
+      "Clique novamente em “Reler documento” para continuar de onde parou.",
+      raw,
+    );
+  }
+
   // OCR falhou
   if (/Não foi possível interpretar|vision.*fail|OCR/i.test(raw)) {
     return new IngestError(
@@ -121,6 +131,7 @@ export function humanizeIngestError(
       raw,
     );
   }
+
 
   // Limite/créditos do gateway
   if (/Embedding failed.*429|rate.?limit|too many requests/i.test(raw)) {

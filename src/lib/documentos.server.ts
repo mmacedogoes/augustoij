@@ -54,9 +54,9 @@ const PROMPT_OCR =
 
 const OCR_MODEL = "google/gemini-3.7-flash";
 /** Páginas por bloco de OCR (documentos longos são lidos em partes). */
-const PAGINAS_POR_BLOCO = 4;
+const PAGINAS_POR_BLOCO = 6;
 /** Chamadas simultâneas ao gateway. */
-const CONCORRENCIA_OCR = 2;
+const CONCORRENCIA_OCR = 3;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -120,6 +120,57 @@ export type ResultadoVisao = {
   paginasLidas: number;
   paginasFalhas: number[];
 };
+
+export type BlocoOcr = { indice: number; inicio: number; fim: number; bytes: Uint8Array };
+
+/** Paralelismo padrão e tipo MIME, expostos para a leitura retomável. */
+export const OCR_CONCORRENCIA = CONCORRENCIA_OCR;
+export function mimeParaArquivo(fileName: string): string {
+  return mimeFor(fileName);
+}
+
+/**
+ * Prepara os blocos de OCR de um arquivo. PDFs viram sub-PDFs de N páginas;
+ * imagens viram um único bloco. Usado pela leitura retomável por rodadas.
+ */
+export async function prepararBlocosOcr(
+  buffer: Uint8Array,
+  fileName: string,
+): Promise<{ mime: string; totalPaginas: number; blocos: BlocoOcr[] }> {
+  if (buffer.byteLength === 0) {
+    throw new Error("Arquivo vazio (0 bytes). Reenvie um arquivo válido.");
+  }
+  const mime = mimeFor(fileName);
+  if (mime !== "application/pdf") {
+    return {
+      mime,
+      totalPaginas: 1,
+      blocos: [{ indice: 0, inicio: 1, fim: 1, bytes: buffer }],
+    };
+  }
+  try {
+    const r = await fatiarPdf(buffer, PAGINAS_POR_BLOCO);
+    return {
+      mime,
+      totalPaginas: r.total,
+      blocos: r.blocos.map((b, i) => ({ indice: i, inicio: b.inicio, fim: b.fim, bytes: b.bytes })),
+    };
+  } catch {
+    // PDF atípico que não pode ser fatiado: um único bloco com o arquivo inteiro.
+    return { mime, totalPaginas: 0, blocos: [{ indice: 0, inicio: 1, fim: 0, bytes: buffer }] };
+  }
+}
+
+/** OCR de um bloco isolado (com uma retentativa em falhas transitórias). */
+export async function ocrBloco(
+  apiKey: string,
+  fileName: string,
+  mime: string,
+  bytes: Uint8Array,
+): Promise<string> {
+  return ocrComRetry(apiKey, fileName, mime, bytes);
+}
+
 
 /** Divide o PDF em sub-PDFs de N páginas (JS puro, sem renderização). */
 async function fatiarPdf(buffer: Uint8Array, porBloco: number) {
