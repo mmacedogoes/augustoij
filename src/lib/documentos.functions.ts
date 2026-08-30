@@ -177,7 +177,7 @@ export const processDocumento = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { embedChunksParallel } = await import("./ai-gateway.server");
-    const { extractText, extractTextWithVision, chunkText } = await import("./documentos.server");
+    const { extractText, chunkText } = await import("./documentos.server");
     const { humanizeIngestError } = await import("./ingest-errors");
 
     try {
