@@ -591,7 +591,11 @@ export function DocumentosPanel({
                 )}
                 <div className="flex items-center gap-3 mt-0.5">
                   <span className="text-xs text-muted-foreground">{tipoLabel(d.tipo)}</span>
-                  {statusBadge(d.status_processamento)}
+                  {reprocessando === d.id && progresso ? (
+                    <span className="text-xs text-muted-foreground">{progresso}</span>
+                  ) : (
+                    statusBadge(d.status_processamento)
+                  )}
                 </div>
               </div>
               <Button
