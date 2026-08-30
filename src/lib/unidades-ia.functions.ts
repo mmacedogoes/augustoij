@@ -800,12 +800,26 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
       .eq("id", doc.id);
 
     // 4) roda extração de unidades já com o texto novo
-    const unidades = await _extrairESalvarSugestaoUnidades(
-      context.supabase,
-      doc.id,
-      apiKey,
-      { force: true },
-    );
+    let unidades: UnidadeSugerida[] = [];
+    try {
+      unidades = await _extrairESalvarSugestaoUnidades(
+        context.supabase,
+        doc.id,
+        apiKey,
+        { force: true },
+      );
+    } catch (err) {
+      if (err instanceof ExtracaoIncompletaError) {
+        return {
+          status: "incompleta" as const,
+          documentoId: doc.id,
+          mensagem: err.message,
+          modo,
+          chunks: chunks.length,
+        };
+      }
+      throw err;
+    }
     if (unidades.length === 0) {
       return {
         status: "sem_unidades" as const,
