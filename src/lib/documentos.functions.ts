@@ -291,7 +291,20 @@ export const processDocumento = createServerFn({ method: "POST" })
         }
       }
 
-      return { ok: true, chunks: chunks.length, mode: usedVision ? "vision" : "text" };
+      return {
+        ok: true,
+        chunks: chunks.length,
+        mode: usedVision ? "vision" : "text",
+        totalPaginas,
+        paginasFalhas,
+        aviso:
+          paginasFalhas.length > 0
+            ? `${paginasFalhas.length} de ${totalPaginas} página(s) não puderam ser lidas (${paginasFalhas
+                .slice(0, 10)
+                .join(", ")}${paginasFalhas.length > 10 ? "…" : ""}). O restante do documento foi indexado.`
+            : null,
+      };
+
     } catch (e) {
       const ing = humanizeIngestError(e, "leitura");
       await supabaseAdmin
