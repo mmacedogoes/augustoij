@@ -133,10 +133,11 @@ export function UnidadesPanel({
       documento_id: string | null;
       payload: {
         unidades?: UnidadeSugerida[];
-        auditoria?: { ajustes?: string[]; totalOriginal?: number; totalFinal?: number };
+        diagnostico?: { observacao?: string | null; total_declarado_no_texto?: number | null };
       };
     }[]
   >([]);
+  const [erroExtracao, setErroExtracao] = useState<string | null>(null);
   const [revisarUnidades, setRevisarUnidades] = useState<{
     sugestaoId: string | null;
     unidades: UnidadeSugerida[];
@@ -150,6 +151,7 @@ export function UnidadesPanel({
   const [categoria, setCategoria] = useState<CategoriaCondominio>("predio");
   const [qtdConvencao, setQtdConvencao] = useState<number | null>(null);
   const [reprocessando, setReprocessando] = useState(false);
+
 
   const vocab = getCategoriaMeta(categoria).vocab;
 
