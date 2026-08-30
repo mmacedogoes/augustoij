@@ -194,8 +194,20 @@ export function RevisarUnidadesDialog({
                     <option value="vaga_avulsa">Vaga avulsa</option>
                     <option value="outro">Outro</option>
                   </select>
-                  <Input value={l.fracao_ideal} onChange={(e) => update(i, { fracao_ideal: e.target.value })} className="h-9" placeholder="0.01" />
-                  <Input value={l.area_m2} onChange={(e) => update(i, { area_m2: e.target.value })} className="h-9" placeholder="75.5" />
+                  <Input
+                    value={l.fracao_ideal}
+                    onChange={(e) => update(i, { fracao_ideal: e.target.value })}
+                    className={`h-9 ${l.fracao_ideal ? "" : "border-destructive/60 bg-destructive/5"}`}
+                    placeholder="não identificada"
+                    title={l.fracao_ideal ? undefined : "Fração ideal não identificada na convenção — preencha manualmente."}
+                  />
+                  <Input
+                    value={l.area_m2}
+                    onChange={(e) => update(i, { area_m2: e.target.value })}
+                    className={`h-9 ${l.area_m2 ? "" : "border-destructive/60 bg-destructive/5"}`}
+                    placeholder="não identificada"
+                    title={l.area_m2 ? undefined : "Área não identificada na convenção — preencha manualmente."}
+                  />
                   <Input type="number" min={0} value={l.vagas_garagem} onChange={(e) => update(i, { vagas_garagem: e.target.value })} className="h-9" />
                   <Button size="icon" variant="ghost" onClick={() => remove(i)} className="text-red-500 hover:text-red-600 transition-colors">
                     <Trash2 className="h-4 w-4" />
