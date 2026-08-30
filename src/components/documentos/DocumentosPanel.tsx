@@ -250,7 +250,31 @@ export function DocumentosPanel({
         })) as { id: string };
         atualizarLinha(linha.uid, { status: "pronto" });
         ok += 1;
-        processDoc({ data: { id: created.id } }).catch(() => {});
+        // Escaneados longos exigem várias rodadas de OCR; segue em background.
+        void (async () => {
+          try {
+            let r = (await processDoc({ data: { id: created.id } })) as {
+              concluido?: boolean;
+              blocosProntos?: number;
+            };
+            let anterior = -1;
+            let rodadas = 1;
+            while (
+              r?.concluido === false &&
+              rodadas < 25 &&
+              (r.blocosProntos ?? 0) > anterior
+            ) {
+              anterior = r.blocosProntos ?? 0;
+              r = (await processDoc({ data: { id: created.id } })) as typeof r;
+              rodadas += 1;
+            }
+          } catch {
+            /* status fica registrado no documento */
+          } finally {
+            refresh();
+          }
+        })();
+
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Falha no upload";
         falhas.push(`${linha.file.name}: ${msg}`);
