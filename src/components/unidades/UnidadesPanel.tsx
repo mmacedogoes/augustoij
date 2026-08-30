@@ -343,6 +343,15 @@ export function UnidadesPanel({
 
   return (
     <div className="space-y-4">
+      {isOwner && erroExtracao && (
+        <Card className="app-card p-4 border-destructive/40 bg-destructive/5">
+          <p className="text-sm font-medium text-destructive">
+            Leitura da convenção incompleta — nada foi importado
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{erroExtracao}</p>
+        </Card>
+      )}
+
       {isOwner && sugestoes.length > 0 && (
         <Card className="app-card p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
@@ -354,11 +363,12 @@ export function UnidadesPanel({
             <p className="text-xs text-muted-foreground">
               Revise antes de importar para a lista de {vocab.unidade.toLowerCase()}s.
             </p>
-            {sugestoes[0].payload.auditoria?.ajustes?.[0] && (
+            {sugestoes[0].payload.diagnostico?.observacao && (
               <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                {sugestoes[0].payload.auditoria.ajustes[0]}
+                {sugestoes[0].payload.diagnostico.observacao}
               </p>
             )}
+
           </div>
           <Button
             size="sm"
