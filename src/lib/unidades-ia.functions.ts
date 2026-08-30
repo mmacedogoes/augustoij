@@ -345,7 +345,7 @@ export async function _extrairESalvarSugestaoUnidades(
     .eq("documento_id", doc.id)
     .limit(600);
   const rawChunks = (chunks ?? []).map((c) => c.conteudo as string);
-  const { texto, textoFracoes } = montarTextos(rawChunks);
+  const { texto, lotesFracoes } = montarTextos(rawChunks);
   if (!texto.trim()) return [];
 
   const hint = qtdEsperada
