@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { memo, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { BarChart3, Users, Building2, GraduationCap, Megaphone, History, DollarSign, Newspaper, Activity, Home, MapPin, LifeBuoy } from "lucide-react";
+import { BarChart3, Users, Building2, GraduationCap, Megaphone, History, DollarSign, Newspaper, Activity, Home, MapPin, LifeBuoy, Ruler } from "lucide-react";
 import { countAlertasPendentes } from "@/lib/admin-uso.functions";
 import { isCurrentUserAdmin } from "@/lib/admin.functions";
 import { countCidadesNovasPendentes } from "@/lib/cidades-novas.functions";
@@ -19,6 +19,7 @@ type AdminNavItem = {
     | "/app/admin/treinamento"
     | "/app/admin/orientacoes"
     | "/app/admin/auditoria"
+    | "/app/admin/unidades"
     | "/app/admin/cidades-novas"
     | "/app/admin/imoveis"
     | "/app/admin/helpdesk";
@@ -38,6 +39,7 @@ const items: AdminNavItem[] = [
   { to: "/app/admin/treinamento", label: "Treinar IA", icon: GraduationCap },
   { to: "/app/admin/orientacoes", label: "Orientações", icon: Megaphone },
   { to: "/app/admin/auditoria", label: "Auditoria", icon: History },
+  { to: "/app/admin/unidades", label: "Auditoria de unidades", icon: Ruler, superAdminOnly: true },
   { to: "/app/admin/cidades-novas", label: "Cidades novas", icon: MapPin, superAdminOnly: true },
   { to: "/app/admin/imoveis", label: "Administração de Imóveis", icon: Home, superAdminOnly: true },
   { to: "/app/admin/helpdesk", label: "Helpdesk", icon: LifeBuoy },

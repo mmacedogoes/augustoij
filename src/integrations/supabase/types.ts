@@ -4670,6 +4670,82 @@ export type Database = {
           },
         ]
       }
+      unidade_infracoes: {
+        Row: {
+          base_normativa: string | null
+          categoria: string
+          condominio_id: string
+          condomino_id: string | null
+          conversa_id: string | null
+          created_at: string
+          descricao: string | null
+          documento_titulo: string | null
+          id: string
+          ocorrido_em: string | null
+          registrado_por: string
+          tipo: string
+          unidade_id: string
+          updated_at: string
+          valor_multa: number | null
+        }
+        Insert: {
+          base_normativa?: string | null
+          categoria: string
+          condominio_id: string
+          condomino_id?: string | null
+          conversa_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          documento_titulo?: string | null
+          id?: string
+          ocorrido_em?: string | null
+          registrado_por?: string
+          tipo?: string
+          unidade_id: string
+          updated_at?: string
+          valor_multa?: number | null
+        }
+        Update: {
+          base_normativa?: string | null
+          categoria?: string
+          condominio_id?: string
+          condomino_id?: string | null
+          conversa_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          documento_titulo?: string | null
+          id?: string
+          ocorrido_em?: string | null
+          registrado_por?: string
+          tipo?: string
+          unidade_id?: string
+          updated_at?: string
+          valor_multa?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unidade_infracoes_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unidade_infracoes_condomino_id_fkey"
+            columns: ["condomino_id"]
+            isOneToOne: false
+            referencedRelation: "condominos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unidade_infracoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unidades: {
         Row: {
           area_m2: number | null
