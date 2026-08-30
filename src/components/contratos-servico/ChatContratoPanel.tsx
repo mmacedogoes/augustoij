@@ -45,13 +45,18 @@ export function ChatContratoPanel({
 
       if (data) return data;
 
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      if (!userId) throw new Error("Sessão expirada. Faça login novamente.");
+
       const { data: newConv, error: createError } = await supabase
         .from("conversas")
         .insert({
           condominio_id: condominioId,
+          user_id: userId,
           titulo: `Análise: ${prestadorNome}`,
-          metadata: { contrato_id: contratoId, tipo: "contrato" } as any
-        } as any)
+          metadata: { contrato_id: contratoId, tipo: "contrato" },
+        })
         .select("id")
         .single();
 
