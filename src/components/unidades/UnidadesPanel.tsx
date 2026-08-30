@@ -176,7 +176,7 @@ export function UnidadesPanel({
             documento_id: string | null;
             payload: {
               unidades?: UnidadeSugerida[];
-              auditoria?: { ajustes?: string[]; totalOriginal?: number; totalFinal?: number };
+              diagnostico?: { observacao?: string | null; total_declarado_no_texto?: number | null };
             };
           }[]) ?? [];
         setSugestoes(list);
