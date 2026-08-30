@@ -14,11 +14,20 @@ export type CondominoRow = {
 };
 
 export type UnidadeRow = {
+  id?: string | null;
   bloco: string | null;
   numero: string | null;
   tipo?: string | null;
   condominos?: CondominoRow[] | null;
 };
+
+export type CondominioInfo = {
+  nome?: string | null;
+  endereco?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+};
+
 
 const MAX_UNIDADES = 60;
 
