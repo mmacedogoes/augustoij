@@ -327,9 +327,22 @@ export const getDocumentoViewUrl = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!doc) throw new Error("Documento não encontrado");
-    const { data: signed, error: sErr } = await context.supabase.storage
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Confirma que o arquivo existe no storage antes de assinar a URL.
+    const barra = doc.storage_path.lastIndexOf("/");
+    const pasta = barra >= 0 ? doc.storage_path.slice(0, barra) : "";
+    const arquivo = barra >= 0 ? doc.storage_path.slice(barra + 1) : doc.storage_path;
+    const { data: encontrados } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .list(pasta, { search: arquivo, limit: 100 });
+    if (!encontrados?.some((f) => f.name === arquivo)) {
+      throw new Error(
+        "O arquivo não está mais disponível no armazenamento. O upload pode ter falhado — exclua este registro e envie o documento novamente.",
+      );
+    }
+    const { data: signed, error: sErr } = await supabaseAdmin.storage
       .from(BUCKET)
       .createSignedUrl(doc.storage_path, 3600);
-    if (sErr) throw new Error(sErr.message);
+    if (sErr || !signed) throw new Error(sErr?.message ?? "Falha ao gerar link do documento");
     return { url: signed.signedUrl, nome: doc.nome_arquivo };
   });
