@@ -41,14 +41,13 @@ export const createCondominio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
-    // ---- Gate por plano (bloqueio no servidor) ----
-    const { getSubscriptionEfetiva } = await import("@/lib/conta-master.server");
-    const [sub, countRes, admin] = await Promise.all([
+    // ---- Gate por plano (bloqueio no servidor, contado por ambiente) ----
+    const { getSubscriptionEfetiva, condominiosDoAmbiente } = await import(
+      "@/lib/conta-master.server"
+    );
+    const [sub, doAmbiente, admin] = await Promise.all([
       getSubscriptionEfetiva(context.userId),
-      context.supabase
-        .from("condominios")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", context.userId),
+      condominiosDoAmbiente(context.userId),
       isAdminInternoServer(context.supabase, context.userId),
     ]);
     const planoBruto = resolvePlanId(sub?.plano_config_id ?? null);
@@ -58,10 +57,11 @@ export const createCondominio = createServerFn({ method: "POST" })
     if (!cortesia && isTrialExpired(planoBruto, sub?.trial_end ?? null)) {
       throw new Error(gateMessages.trialExpirado());
     }
-    const atual = countRes.count ?? 0;
+    const atual = doAmbiente.length;
     if (plano.condomíniosMax !== null && atual >= plano.condomíniosMax) {
       throw new Error(gateMessages.condominiosMax(plano.nome, plano.condomíniosMax));
     }
+
 
     const { data: row, error } = await context.supabase
       .from("condominios")
