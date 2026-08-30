@@ -763,7 +763,7 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
 
     // 3) reindexa chunks
     await supabaseAdmin.from("document_chunks").delete().eq("documento_id", doc.id);
-    const chunks = chunkText(texto, 1000, 150);
+    const chunks = chunkText(texto);
     const { embeddings, totalTokens: embTokens } = await embedChunksParallel(
       apiKey,
       chunks,
