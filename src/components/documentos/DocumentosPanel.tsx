@@ -59,6 +59,13 @@ type Doc = {
   titulo?: string | null;
   tipo: string;
   status_processamento: string;
+  processamento_meta?: {
+    mensagem?: string;
+    aviso?: string;
+    extracao_status?: string;
+    blocos_prontos?: number;
+    total_blocos?: number;
+  } | null;
   created_at: string;
 };
 
@@ -150,8 +157,8 @@ export function DocumentosPanel({
     try {
       const rows = await fetchDocs({ data: { condominioId } });
       setDocs(rows as Doc[]);
-    } catch {
-      /* noop */
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao atualizar documentos");
     }
   }, [fetchDocs, condominioId]);
 
@@ -597,6 +604,11 @@ export function DocumentosPanel({
                     statusBadge(d.status_processamento)
                   )}
                 </div>
+                {(d.processamento_meta?.mensagem || d.processamento_meta?.aviso) && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {d.processamento_meta.mensagem ?? d.processamento_meta.aviso}
+                  </p>
+                )}
               </div>
               <Button
                 size="icon"

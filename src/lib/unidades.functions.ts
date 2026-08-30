@@ -238,6 +238,21 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
+    const somenteUnidades = data.linhas.every((linha) => !linha.nome);
+    if (somenteUnidades) {
+      const { data: resultado, error } = await sb.rpc("aplicar_unidades_extraidas", {
+        p_condominio_id: data.condominioId,
+        p_linhas: data.linhas,
+        p_estrategia: data.estrategiaConflito,
+      });
+      if (error) throw new Error(`Nenhuma unidade foi alterada: ${error.message}`);
+      return resultado as {
+        unidadesCriadas: number;
+        unidadesAtualizadas: number;
+        condominosCriados: number;
+        erros: { linha: number; mensagem: string }[];
+      };
+    }
     // Limite pelo total previsto na convenção (qtd_unidades).
     // 0 ou null = "não informado" → sem limite.
     const { data: cond } = await sb

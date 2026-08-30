@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { chaveUnidade, montarLotes, validarCoberturaExtracao } from "./unidades-extracao.server";
+import {
+  chaveUnidade,
+  montarLotes,
+  normalizarParaCadastro,
+  validarCoberturaExtracao,
+} from "./unidades-extracao.server";
 
 describe("extração literal de unidades", () => {
   it("normaliza bloco e número sem confundir acentos ou pontuação", () => {
@@ -15,6 +20,26 @@ describe("extração literal de unidades", () => {
     const lotes = montarLotes(chunks, 2_000);
     expect(lotes.map((lote) => lote.texto).join("\n")).toContain("Unidade 700");
     expect(lotes.length).toBeGreaterThan(8);
+  });
+
+  it("não descarta trechos que não parecem relevantes isoladamente", () => {
+    const lotes = montarLotes([
+      { id: "1", conteudo: "601A", metadata: { bloco: 1, trecho: 1 } },
+      { id: "2", conteudo: "315,50 m² — 1,9956%", metadata: { bloco: 1, trecho: 2 } },
+    ]);
+    expect(lotes.map((lote) => lote.texto).join("\n")).toContain("315,50 m²");
+  });
+
+  it("mapeia identificador composto nos dois sentidos para o cadastro", () => {
+    const conhecidas = [{ bloco: "A", numero: "601" }];
+    expect(normalizarParaCadastro({ numero: "601A" }, conhecidas)).toMatchObject({
+      bloco: "A",
+      numero: "601",
+    });
+    expect(normalizarParaCadastro({ numero: "A601" }, conhecidas)).toMatchObject({
+      bloco: "A",
+      numero: "601",
+    });
   });
 
   it("recusa importação quando algum valor não tem proveniência documental", () => {
