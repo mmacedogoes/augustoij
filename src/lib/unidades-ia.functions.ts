@@ -28,6 +28,8 @@ const UnidadeSugestao = z.object({
   fracao_ideal: z.number().nullable().optional(),
   area_m2: z.number().nullable().optional(),
   vagas_garagem: z.number().int().min(0).max(50).optional(),
+  fracao_origem: z.enum(["documento", "ausente"]).nullable().optional(),
+  area_origem: z.enum(["documento", "ausente"]).nullable().optional(),
 });
 
 const CondominoSugestao = z.object({
