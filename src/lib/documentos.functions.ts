@@ -170,10 +170,16 @@ export const processDocumento = createServerFn({ method: "POST" })
     return await processarDocumentoCore(context.supabase, context.userId, data.id, apiKey);
   });
 
-/** Relê um documento já enviado com o motor atual (OCR por blocos de páginas). */
+/**
+ * Relê um documento já enviado com o motor atual (OCR por blocos de páginas).
+ * A leitura é retomável: por padrão continua de onde parou; `reiniciar: true`
+ * apaga os trechos e recomeça do zero.
+ */
 export const reprocessarDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input) =>
+    z.object({ id: z.string().uuid(), reiniciar: z.boolean().optional() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
@@ -189,9 +195,10 @@ export const reprocessarDocumento = createServerFn({ method: "POST" })
     const { processarDocumentoCore, limparChunks } = await import(
       "./documentos-processar.server"
     );
-    await limparChunks(data.id);
+    if (data.reiniciar) await limparChunks(data.id);
     return await processarDocumentoCore(context.supabase, context.userId, data.id, apiKey);
   });
+
 
 
 export const getUploadUrl = createServerFn({ method: "POST" })
