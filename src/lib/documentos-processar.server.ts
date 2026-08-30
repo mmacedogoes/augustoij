@@ -62,7 +62,7 @@ export async function processarDocumentoCore(
 
   const indexar = async (
     textos: string[],
-    metaBase: Record<string, unknown>,
+    metaBase: Record<string, string | number>,
   ): Promise<number> => {
     const chunks = textos.flatMap((t) => chunkText(t));
     if (chunks.length === 0) return 0;
