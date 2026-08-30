@@ -101,7 +101,8 @@ export const listUsuariosEquipe = createServerFn({ method: "GET" })
     // O RLS de profiles não permite ao dono ler perfis de terceiros; a lista
     // acima já garante que só buscamos usuários vinculados a condomínios do
     // próprio dono autenticado, então usamos o client privilegiado.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // (usa o client privilegiado já importado acima)
+
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
       .select("id, nome, email")
