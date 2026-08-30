@@ -114,6 +114,15 @@ export const atualizarStatusSugestao = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { data: sugestao, error: readError } = await context.supabase
+      .from("sugestoes_unidades")
+      .select("condominio_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!sugestao) throw new Error("Sugestão não encontrada.");
+    const { assertAcessoCondominio } = await import("./unidades-acesso.server");
+    await assertAcessoCondominio(context.supabase, context.userId, sugestao.condominio_id);
     const { error } = await context.supabase
       .from("sugestoes_unidades")
       .update({ status: data.status })
@@ -174,7 +183,11 @@ export const extrairCondominosDeArquivo = createServerFn({ method: "POST" })
     }
     texto = texto.trim();
     if (!texto) throw new Error("Não foi possível ler o conteúdo do arquivo.");
-    if (texto.length > 40000) texto = texto.slice(0, 40000);
+    if (texto.length > 40000) {
+      throw new Error(
+        "A lista de condôminos excede o limite de uma análise única. Divida o arquivo em partes para garantir que nenhuma pessoa seja omitida.",
+      );
+    }
 
     const { data: unidades, error: uErr } = await context.supabase
       .from("unidades")

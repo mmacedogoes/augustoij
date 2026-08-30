@@ -1,0 +1,1 @@
+ALTER FUNCTION public.aplicar_unidades_extraidas(uuid, jsonb, text) SECURITY INVOKER;

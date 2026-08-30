@@ -62,8 +62,6 @@ type ChamadaIA = {
 const MODELO = "google/gemini-3.7-flash";
 const TAMANHO_LOTE = 18_000;
 const MAX_TENTATIVAS = 3;
-const RE_RELEVANTE =
-  /(unidade|apart(a|â)mento|apto|fra[cç][aã]o|coeficiente|área\s+(privativa|real|total|comum)|quadro\s+de\s+áreas|lote|quadra|bloco|torre|sala|loja|pavimento)/i;
 
 export class ExtracaoIncompletaError extends Error {
   readonly codigo = "extracao_incompleta";
@@ -210,11 +208,11 @@ function ordenarChunks(chunks: ChunkRow[]) {
 }
 
 export function montarLotes(chunks: ChunkRow[], tamanho = TAMANHO_LOTE) {
-  const relevantes = ordenarChunks(chunks).filter((chunk) => RE_RELEVANTE.test(chunk.conteudo));
+  const ordenados = ordenarChunks(chunks);
   const lotes: Array<{ texto: string; fontes: string[] }> = [];
   let texto = "";
   let fontes: string[] = [];
-  for (const chunk of relevantes) {
+  for (const chunk of ordenados) {
     const meta = chunk.metadata ?? {};
     const ref = `bloco ${meta.bloco ?? "?"}, páginas ${meta.pagina_inicio ?? "?"}-${meta.pagina_fim ?? "?"}, trecho ${meta.trecho ?? "?"}`;
     const parte = `\n\n[FONTE: ${ref}; id ${chunk.id}]\n${chunk.conteudo}`;
@@ -240,8 +238,10 @@ function numeroApareceNoTrecho(valor: number, trecho: string | null | undefined)
     valor.toFixed(4),
     valor.toFixed(4).replace(".", ","),
   ]);
-  const compacto = trecho.replace(/\s/g, "");
-  return [...candidatos].some((candidato) => compacto.includes(candidato.replace(/\s/g, "")));
+  const compacto = trecho.replace(/\s/g, "").replace(/\.(?=\d{3}(?:\D|$))/g, "");
+  return [...candidatos].some((candidato) =>
+    compacto.includes(candidato.replace(/\s/g, "").replace(/\.(?=\d{3}(?:\D|$))/g, "")),
+  );
 }
 
 function validarProveniencia(unidade: UnidadeExtraida) {
@@ -262,7 +262,7 @@ function validarProveniencia(unidade: UnidadeExtraida) {
   return unidade;
 }
 
-function normalizarParaCadastro(
+export function normalizarParaCadastro(
   unidade: UnidadeExtraida,
   conhecidas: Array<{ bloco: string | null; numero: string }>,
 ) {
@@ -273,8 +273,9 @@ function normalizarParaCadastro(
 
   const numeroComBloco = normalizarParte(unidade.numero);
   const porComposto = conhecidas.filter((item) => {
-    const composto = normalizarParte(`${item.numero}${item.bloco ?? ""}`);
-    return composto === numeroComBloco;
+    const numeroBloco = normalizarParte(`${item.numero}${item.bloco ?? ""}`);
+    const blocoNumero = normalizarParte(`${item.bloco ?? ""}${item.numero}`);
+    return numeroBloco === numeroComBloco || blocoNumero === numeroComBloco;
   });
   return porComposto.length === 1
     ? { ...unidade, bloco: porComposto[0].bloco, numero: porComposto[0].numero }
@@ -378,6 +379,34 @@ async function persistirFalha(
     payload: { unidades: [], diagnostico: { ...diagnostico, observacao: mensagem } },
     status: "falhou",
   });
+  await supabase
+    .from("documentos")
+    .update({
+      processamento_meta: {
+        etapa: "interpretacao_unidades",
+        extracao_status: "falhou",
+        mensagem,
+        diagnostico,
+        atualizado_em: new Date().toISOString(),
+      },
+    })
+    .eq("id", doc.id);
+}
+
+async function carregarTodosChunks(supabase: SupabaseClient, documentoId: string) {
+  const todos: ChunkRow[] = [];
+  const pagina = 500;
+  for (let inicio = 0; ; inicio += pagina) {
+    const { data, error } = await supabase
+      .from("document_chunks")
+      .select("id, conteudo, metadata")
+      .eq("documento_id", documentoId)
+      .range(inicio, inicio + pagina - 1);
+    if (error) throw new Error(error.message);
+    const lote = (data ?? []) as ChunkRow[];
+    todos.push(...lote);
+    if (lote.length < pagina) return todos;
+  }
 }
 
 export async function extrairESalvarSugestaoUnidades(
@@ -408,13 +437,7 @@ export async function extrairESalvarSugestaoUnidades(
   if (unidadesError) throw new Error(unidadesError.message);
   const conhecidas = (existentes ?? []).map((u) => ({ bloco: u.bloco as string | null, numero: String(u.numero) }));
 
-  const { data: rows, error: chunksError } = await supabase
-    .from("document_chunks")
-    .select("id, conteudo, metadata")
-    .eq("documento_id", doc.id)
-    .limit(1000);
-  if (chunksError) throw new Error(chunksError.message);
-  const chunks = (rows ?? []) as ChunkRow[];
+  const chunks = await carregarTodosChunks(supabase, doc.id);
   const lotes = montarLotes(chunks);
   const diagnostico: DiagnosticoExtracao = {
     total_trechos: chunks.length,
@@ -448,29 +471,58 @@ export async function extrairESalvarSugestaoUnidades(
   let tokensOutput = 0;
   let ultimoLogId: string | null = null;
   let ultimoRunId: string | null = null;
-  for (let i = 0; i < lotes.length; i++) {
-    try {
-      const chamada = await chamarIaJson(
-        apiKey,
-        system,
-        `${listaConhecida}\n\nArquivo: ${doc.nome_arquivo}\nLote ${i + 1}/${lotes.length}:\n${lotes[i].texto}`,
-      );
-      const parsed = chamada.data as { unidades?: unknown[]; diagnostico?: DiagnosticoExtracao };
-      const resultado = z.array(UnidadeExtraidaSchema).safeParse(parsed.unidades ?? []);
-      if (!resultado.success) throw new Error(`JSON incompatível no lote ${i + 1}: ${resultado.error.issues[0]?.message ?? "formato inválido"}`);
-      candidatas.push(...resultado.data);
-      diagnostico.lotes_processados = (diagnostico.lotes_processados ?? 0) + 1;
-      diagnostico.total_declarado_no_texto ??= parsed.diagnostico?.total_declarado_no_texto ?? null;
-      diagnostico.quadro_fracoes_encontrado =
-        diagnostico.quadro_fracoes_encontrado === true || parsed.diagnostico?.quadro_fracoes_encontrado === true;
-      tokensInput += chamada.usage.prompt_tokens;
-      tokensOutput += chamada.usage.completion_tokens;
-      ultimoLogId = chamada.aigLogId;
-      ultimoRunId = chamada.aigRunId;
-    } catch (errorLote) {
-      diagnostico.lotes_com_erro = (diagnostico.lotes_com_erro ?? 0) + 1;
-      diagnostico.erros?.push(`Lote ${i + 1}: ${errorLote instanceof Error ? errorLote.message : "falha desconhecida"}`);
+  const resultados = new Array<{
+    unidades: UnidadeExtraida[];
+    diagnostico?: DiagnosticoExtracao;
+    chamada: ChamadaIA;
+  } | null>(lotes.length).fill(null);
+  let cursor = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = cursor++;
+      if (i >= lotes.length) return;
+      try {
+        const chamada = await chamarIaJson(
+          apiKey,
+          system,
+          `${listaConhecida}\n\nArquivo: ${doc.nome_arquivo}\nLote ${i + 1}/${lotes.length}:\n${lotes[i].texto}`,
+        );
+        const parsed = chamada.data as { unidades?: unknown[]; diagnostico?: DiagnosticoExtracao };
+        const resultado = z.array(UnidadeExtraidaSchema).safeParse(parsed.unidades ?? []);
+        if (!resultado.success) {
+          throw new Error(`JSON incompatível no lote ${i + 1}: ${resultado.error.issues[0]?.message ?? "formato inválido"}`);
+        }
+        resultados[i] = { unidades: resultado.data, diagnostico: parsed.diagnostico, chamada };
+      } catch (errorLote) {
+        diagnostico.lotes_com_erro = (diagnostico.lotes_com_erro ?? 0) + 1;
+        diagnostico.erros?.push(`Lote ${i + 1}: ${errorLote instanceof Error ? errorLote.message : "falha desconhecida"}`);
+      }
+      await supabase
+        .from("documentos")
+        .update({
+          processamento_meta: {
+            etapa: "interpretacao_unidades",
+            lotes_concluidos: resultados.filter(Boolean).length,
+            total_lotes: lotes.length,
+            lotes_com_erro: diagnostico.lotes_com_erro,
+            atualizado_em: new Date().toISOString(),
+          },
+        })
+        .eq("id", doc.id);
     }
+  };
+  await Promise.all(Array.from({ length: Math.min(3, lotes.length) }, () => worker()));
+  for (const resultado of resultados) {
+    if (!resultado) continue;
+    candidatas.push(...resultado.unidades);
+    diagnostico.lotes_processados = (diagnostico.lotes_processados ?? 0) + 1;
+    diagnostico.total_declarado_no_texto ??= resultado.diagnostico?.total_declarado_no_texto ?? null;
+    diagnostico.quadro_fracoes_encontrado =
+      diagnostico.quadro_fracoes_encontrado === true || resultado.diagnostico?.quadro_fracoes_encontrado === true;
+    tokensInput += resultado.chamada.usage.prompt_tokens;
+    tokensOutput += resultado.chamada.usage.completion_tokens;
+    ultimoLogId = resultado.chamada.aigLogId;
+    ultimoRunId = resultado.chamada.aigRunId;
   }
 
   const { unidades, conflitos } = consolidar(candidatas, conhecidas);
@@ -516,5 +568,16 @@ export async function extrairESalvarSugestaoUnidades(
     status: "pendente",
   });
   if (insertError) throw new Error(insertError.message);
+  await supabase
+    .from("documentos")
+    .update({
+      processamento_meta: {
+        etapa: "concluido",
+        extracao_status: "pronto_para_revisao",
+        diagnostico,
+        atualizado_em: new Date().toISOString(),
+      },
+    })
+    .eq("id", doc.id);
   return unidades;
 }

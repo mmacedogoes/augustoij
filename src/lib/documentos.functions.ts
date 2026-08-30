@@ -90,7 +90,7 @@ export const listDocumentos = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("documentos")
-      .select("id, nome_arquivo, titulo, tipo, status_processamento, storage_path, created_at")
+      .select("id, nome_arquivo, titulo, tipo, status_processamento, processamento_meta, storage_path, created_at")
       .eq("condominio_id", data.condominioId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);

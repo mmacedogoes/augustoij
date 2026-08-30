@@ -3342,6 +3342,7 @@ export type Database = {
           created_at: string
           id: string
           nome_arquivo: string
+          processamento_meta: Json
           status_processamento: string
           storage_path: string
           tipo: Database["public"]["Enums"]["tipo_documento"]
@@ -3352,6 +3353,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome_arquivo: string
+          processamento_meta?: Json
           status_processamento?: string
           storage_path: string
           tipo?: Database["public"]["Enums"]["tipo_documento"]
@@ -3362,6 +3364,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome_arquivo?: string
+          processamento_meta?: Json
           status_processamento?: string
           storage_path?: string
           tipo?: Database["public"]["Enums"]["tipo_documento"]
@@ -4907,6 +4910,10 @@ export type Database = {
           dia: string
           mensagens: number
         }[]
+      }
+      aplicar_unidades_extraidas: {
+        Args: { p_condominio_id: string; p_estrategia?: string; p_linhas: Json }
+        Returns: Json
       }
       assembleia_gerar_recibo: { Args: never; Returns: string }
       assembleia_registrar_voto: {

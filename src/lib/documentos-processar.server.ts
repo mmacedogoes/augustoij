@@ -65,7 +65,13 @@ export async function processarDocumentoCore(
     metaBase: Record<string, string | number>,
   ): Promise<number> => {
     const chunks = textos.flatMap((t) => chunkText(t));
-    if (chunks.length === 0) return 0;
+    if (chunks.length === 0) {
+      throw new IngestError(
+        "chunking",
+        "O bloco foi lido, mas não produziu nenhum trecho utilizável",
+        "Tente reler o documento; se persistir, verifique a qualidade das páginas indicadas.",
+      );
+    }
     const { embeddings, totalTokens } = await embedChunksParallel(apiKey, chunks, 5);
     const rows = chunks.map((c, i) => ({
       condominio_id: documento.condominio_id,
@@ -74,18 +80,37 @@ export async function processarDocumentoCore(
       embedding: `[${embeddings[i].join(",")}]`,
       metadata: metaBase,
     }));
-    for (let i = 0; i < rows.length; i += 50) {
-      const { error: insErr } = await supabaseAdmin
+    const bloco = typeof metaBase.bloco === "number" ? metaBase.bloco : null;
+    if (bloco != null) {
+      await supabaseAdmin
         .from("document_chunks")
-        .insert(rows.slice(i, i + 50));
-      if (insErr) {
-        throw new IngestError(
-          "indexacao",
-          "Falha ao salvar os trechos indexados",
-          "Tente reprocessar o documento.",
-          insErr.message,
-        );
+        .delete()
+        .eq("documento_id", documento.id)
+        .contains("metadata", { bloco });
+    }
+    try {
+      for (let i = 0; i < rows.length; i += 50) {
+        const { error: insErr } = await supabaseAdmin
+          .from("document_chunks")
+          .insert(rows.slice(i, i + 50));
+        if (insErr) {
+          throw new IngestError(
+            "indexacao",
+            "Falha ao salvar os trechos indexados",
+            "Tente reprocessar o documento.",
+            insErr.message,
+          );
+        }
       }
+    } catch (error) {
+      if (bloco != null) {
+        await supabaseAdmin
+          .from("document_chunks")
+          .delete()
+          .eq("documento_id", documento.id)
+          .contains("metadata", { bloco });
+      }
+      throw error;
     }
     try {
       const { registrarEventoIa } = await import("./uso-ia.server");
@@ -104,10 +129,20 @@ export async function processarDocumentoCore(
     return chunks.length;
   };
 
-  const finalizar = async (concluido: boolean) => {
+  const finalizar = async (
+    concluido: boolean,
+    meta: Record<string, string | number | boolean | number[] | null>,
+  ) => {
     await supabaseAdmin
       .from("documentos")
-      .update({ status_processamento: concluido ? "pronto" : "processando" })
+      .update({
+        status_processamento: concluido ? "pronto" : "processando",
+        processamento_meta: {
+          ...meta,
+          etapa: concluido ? "interpretacao_unidades" : "ocr",
+          atualizado_em: new Date().toISOString(),
+        },
+      })
       .eq("id", documento.id);
     if (concluido && documento.tipo === "convencao") {
       try {
@@ -115,6 +150,19 @@ export async function processarDocumentoCore(
         await extrairESalvarSugestaoUnidades(supabaseAdmin, documento.id, apiKey, { force: true });
       } catch (autoErr) {
         console.error("[processarDocumentoCore] auto-extração de unidades falhou", autoErr);
+        const mensagem = autoErr instanceof Error ? autoErr.message : "Falha ao interpretar as unidades.";
+        await supabaseAdmin
+          .from("documentos")
+          .update({
+            processamento_meta: {
+              ...meta,
+              etapa: "interpretacao_unidades",
+              extracao_status: "falhou",
+              mensagem,
+              atualizado_em: new Date().toISOString(),
+            },
+          })
+          .eq("id", documento.id);
       }
     }
   };
@@ -151,7 +199,14 @@ export async function processarDocumentoCore(
     if (texto.trim()) {
       await supabaseAdmin.from("document_chunks").delete().eq("documento_id", documento.id);
       const n = await indexar([texto], { origem: "texto" });
-      await finalizar(true);
+      await finalizar(true, {
+        modo: "texto",
+        chunks: n,
+        blocos_prontos: 1,
+        total_blocos: 1,
+        paginas_falhas: [],
+        aviso: null,
+      });
       return {
         ok: true,
         concluido: true,
@@ -237,10 +292,22 @@ export async function processarDocumentoCore(
     // Só é definitivo quando não sobrou bloco algum. Se ainda há pendentes
     // (falta de tempo ou falhas transitórias), a próxima rodada retoma.
     const concluido = restantes.length === 0;
-    await finalizar(concluido);
-
     falhas.sort((a, b) => a - b);
     const paginasPendentes = restantes.reduce((acc, b) => acc + (b.fim - b.inicio + 1), 0);
+    await finalizar(concluido, {
+      modo: "ocr",
+      chunks_novos: novosChunks,
+      total_paginas: totalPaginas,
+      blocos_prontos: blocosProntos,
+      total_blocos: blocos.length,
+      paginas_falhas: falhas,
+      aviso: concluido
+        ? null
+        : semTempo
+          ? `Leitura em andamento: ${blocosProntos} de ${blocos.length} bloco(s) concluído(s).`
+          : `${paginasPendentes} página(s) ainda não puderam ser lidas.`,
+    });
+
     return {
       ok: true,
       concluido,
@@ -261,7 +328,15 @@ export async function processarDocumentoCore(
     const ing = humanizeIngestError(e, "leitura");
     await supabaseAdmin
       .from("documentos")
-      .update({ status_processamento: ing.toStatus() })
+      .update({
+        status_processamento: ing.toStatus(),
+        processamento_meta: {
+          etapa: ing.stage,
+          mensagem: ing.toHuman(),
+          detalhe_tecnico: ing.technical,
+          atualizado_em: new Date().toISOString(),
+        },
+      })
       .eq("id", documento.id);
     throw new Error(ing.toHuman());
   }
@@ -273,6 +348,13 @@ export async function limparChunks(documentoId: string) {
   await supabaseAdmin.from("document_chunks").delete().eq("documento_id", documentoId);
   await supabaseAdmin
     .from("documentos")
-    .update({ status_processamento: "processando" })
+    .update({
+      status_processamento: "processando",
+      processamento_meta: {
+        etapa: "reiniciando",
+        mensagem: null,
+        atualizado_em: new Date().toISOString(),
+      },
+    })
     .eq("id", documentoId);
 }
