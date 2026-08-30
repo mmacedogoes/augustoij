@@ -282,6 +282,31 @@ export function DocumentosPanel({
     }
   };
 
+  const [reprocessando, setReprocessando] = useState<string | null>(null);
+  const reprocessar = useServerFn(reprocessarDocumento);
+
+  const handleReprocessar = async (id: string) => {
+    setReprocessando(id);
+    try {
+      const r = (await reprocessar({ data: { id } })) as {
+        chunks: number;
+        totalPaginas: number;
+        paginasFalhas: number[];
+        aviso: string | null;
+      };
+      if (r.aviso) toast.warning("Documento relido parcialmente", { description: r.aviso });
+      else
+        toast.success("Documento relido com sucesso", {
+          description: `${r.chunks} trecho(s) indexado(s)${r.totalPaginas ? ` · ${r.totalPaginas} página(s)` : ""}.`,
+        });
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao reprocessar");
+    } finally {
+      setReprocessando(null);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este documento e todos os seus trechos?")) return;
     try {
