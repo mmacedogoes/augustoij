@@ -221,5 +221,18 @@ export function blocoCadastroCondominial(
       ? `\n(+${omitidas} unidade(s) não listada(s) aqui — peça a unidade específica se precisar.)`
       : "";
 
-  return `CADASTRO DE UNIDADES E CONDÔMINOS DESTE CONDOMÍNIO (dados fornecidos pelo próprio gestor):\n${linhas.join("\n")}${rodape}\n\n`;
+  const cabecalhoCondominio = condominio
+    ? `CONDOMÍNIO: ${condominio.nome?.trim() ?? "(sem nome)"}${
+        enderecoCondominio(condominio) ? ` — ${enderecoCondominio(condominio)}` : ""
+      }\n`
+    : "";
+
+  const modelos = selecionadas
+    .slice(0, 10)
+    .map((u) => montarEnderecamento(u, condominio))
+    .join("\n---\n");
+
+  return `${cabecalhoCondominio}CADASTRO DE UNIDADES E CONDÔMINOS DESTE CONDOMÍNIO (dados fornecidos pelo próprio gestor):\n${linhas.join(
+    "\n",
+  )}${rodape}\n\nBLOCOS DE ENDEREÇAMENTO PRONTOS (copie literalmente no topo de qualquer notificação, advertência, multa, cobrança ou comunicado dirigido à unidade):\n${modelos}\n\n`;
 }
