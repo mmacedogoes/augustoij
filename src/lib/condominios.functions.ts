@@ -9,14 +9,21 @@ import { slugCidade, isCidadeWhitelist } from "@/lib/cidades-cobertas";
 export const listCondominios = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    // Ambiente de trabalho: o usuário vê os condomínios que cadastrou e os
+    // que a conta dona compartilhou com ele (vínculo em condominio_members).
+    const { condominiosAcessiveisIds } = await import("@/lib/conta-master.server");
+    const ids = await condominiosAcessiveisIds(context.userId);
+    if (ids.length === 0) return [];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
       .from("condominios")
       .select("id, nome, cnpj, uf, cidade, qtd_unidades, created_at")
-      .eq("owner_id", context.userId)
+      .in("id", ids)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
 
 const createSchema = z.object({
   nome: z.string().trim().min(2).max(120),
