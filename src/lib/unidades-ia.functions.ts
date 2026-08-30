@@ -90,19 +90,29 @@ export function montarTextos(rawChunks: string[]) {
   }
   const texto = [...tabelas, ...prioritarios, ...restantes].join("\n\n").slice(0, 70000);
   const textoFracoes = tabelas.join("\n\n").slice(0, 60000);
-  return { texto, textoFracoes };
+  // Lotes de ~15k caracteres: quadros grandes truncariam em uma única chamada.
+  const lotesFracoes: string[] = [];
+  let atual = "";
+  for (const t of tabelas) {
+    if (atual && atual.length + t.length > 15000) {
+      lotesFracoes.push(atual);
+      atual = "";
+    }
+    atual += (atual ? "\n\n" : "") + t;
+  }
+  if (atual) lotesFracoes.push(atual);
+  return { texto, textoFracoes, lotesFracoes: lotesFracoes.slice(0, 8) };
 }
 
-/** 2ª passada: lê apenas o quadro de frações/áreas. */
-async function extrairQuadroFracoes(apiKey: string, textoFracoes: string) {
+/** 2ª passada: lê apenas os quadros de frações/áreas, em lotes. */
+async function extrairQuadroFracoes(apiKey: string, lotes: string[]) {
   const system =
     "Você lê quadros de frações ideais e áreas de convenções de condomínio brasileiras. " +
-    "Extraia APENAS o que estiver escrito. É proibido calcular, estimar ou inventar valores. " +
+    "Extraia APENAS o que estiver escrito, linha por linha, sem pular nenhuma. " +
+    "É proibido calcular, estimar ou inventar valores. " +
     'Responda EXCLUSIVAMENTE em JSON: {"linhas":[{"bloco":string|null,"numero":string,' +
     '"fracao_ideal":number|null,"area_m2":number|null}]}. ' +
     "Use ponto como separador decimal e null quando o valor não constar.";
-  const r = await callGeminiJson(apiKey, system, `Quadro:\n\n${textoFracoes}`);
-  const parsed = (r.data ?? {}) as { linhas?: unknown[] };
   const schema = z.array(
     z.object({
       bloco: z.string().nullable().optional(),
@@ -111,17 +121,29 @@ async function extrairQuadroFracoes(apiKey: string, textoFracoes: string) {
       area_m2: z.number().nullable().optional(),
     }),
   );
-  const linhas = schema.safeParse(parsed.linhas ?? []);
   const mapa = new Map<string, { fracao_ideal: number | null; area_m2: number | null }>();
-  if (!linhas.success) return mapa;
-  for (const l of linhas.data) {
-    mapa.set(chaveUnidade(l.bloco ?? null, l.numero), {
-      fracao_ideal: l.fracao_ideal ?? null,
-      area_m2: l.area_m2 ?? null,
-    });
+  for (const lote of lotes) {
+    if (!lote.trim()) continue;
+    try {
+      const r = await callGeminiJson(apiKey, system, `Quadro:\n\n${lote}`);
+      const parsed = (r.data ?? {}) as { linhas?: unknown[] };
+      const linhas = schema.safeParse(parsed.linhas ?? []);
+      if (!linhas.success) continue;
+      for (const l of linhas.data) {
+        const chave = chaveUnidade(l.bloco ?? null, l.numero);
+        const anterior = mapa.get(chave);
+        mapa.set(chave, {
+          fracao_ideal: l.fracao_ideal ?? anterior?.fracao_ideal ?? null,
+          area_m2: l.area_m2 ?? anterior?.area_m2 ?? null,
+        });
+      }
+    } catch (err) {
+      console.warn("[unidades-ia] lote de frações falhou", err);
+    }
   }
   return mapa;
 }
+
 
 /**
  * Regra de negócio: sem fração ideal lida no documento, nada é importado.
