@@ -270,7 +270,7 @@ async function processarDocumentoAcervo(documentoId: string): Promise<void> {
     }
     if (!text.trim()) throw new Error("texto vazio");
 
-    const chunks = chunkText(text, 1000, 150);
+    const chunks = chunkText(text);
     const { embeddings } = await embedChunksParallel(apiKey, chunks, 5);
 
     // Limpa chunks antigos deste documento para permitir reprocessamento.

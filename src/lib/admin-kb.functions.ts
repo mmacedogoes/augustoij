@@ -197,7 +197,7 @@ export const processKbDocumento = createServerFn({ method: "POST" })
       // Limpa chunks antigos
       await supabaseAdmin.from("kb_chunks").delete().eq("kb_documento_id", doc.id);
 
-      const chunks = chunkText(texto, 1000, 150);
+      const chunks = chunkText(texto);
       // Paralelismo controlado: evita timeout do Worker em documentos longos.
       const { embeddings, totalTokens: embTokens } = await embedChunksParallel(
         apiKey,

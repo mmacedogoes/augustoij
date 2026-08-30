@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   ExternalLink,
+  RefreshCw,
   X as XIcon,
+
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +49,9 @@ import {
   processDocumento,
   deleteDocumento,
   getDocumentoViewUrl,
+  reprocessarDocumento,
 } from "@/lib/documentos.functions";
+
 
 type Doc = {
   id: string;
@@ -275,6 +279,31 @@ export function DocumentosPanel({
       window.open(r.url, "_blank", "noopener,noreferrer");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao abrir");
+    }
+  };
+
+  const [reprocessando, setReprocessando] = useState<string | null>(null);
+  const reprocessar = useServerFn(reprocessarDocumento);
+
+  const handleReprocessar = async (id: string) => {
+    setReprocessando(id);
+    try {
+      const r = (await reprocessar({ data: { id } })) as {
+        chunks: number;
+        totalPaginas: number;
+        paginasFalhas: number[];
+        aviso: string | null;
+      };
+      if (r.aviso) toast.warning("Documento relido parcialmente", { description: r.aviso });
+      else
+        toast.success("Documento relido com sucesso", {
+          description: `${r.chunks} trecho(s) indexado(s)${r.totalPaginas ? ` · ${r.totalPaginas} página(s)` : ""}.`,
+        });
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao reprocessar");
+    } finally {
+      setReprocessando(null);
     }
   };
 
@@ -521,12 +550,28 @@ export function DocumentosPanel({
                 <Button
                   size="icon"
                   variant="ghost"
+                  disabled={reprocessando === d.id}
+                  onClick={() => handleReprocessar(d.id)}
+                  title="Reler documento (OCR completo)"
+                >
+                  {reprocessando === d.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+              {!readOnly && (
+                <Button
+                  size="icon"
+                  variant="ghost"
                   onClick={() => handleDelete(d.id)}
                   title="Excluir"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
+
             </div>
           ))}
         </Card>

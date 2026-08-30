@@ -166,134 +166,33 @@ export const processDocumento = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+    const { processarDocumentoCore } = await import("./documentos-processar.server");
+    return await processarDocumentoCore(context.supabase, context.userId, data.id, apiKey);
+  });
 
-    const { data: doc, error: errGet } = await context.supabase
+/** Relê um documento já enviado com o motor atual (OCR por blocos de páginas). */
+export const reprocessarDocumento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+    // RLS garante que o usuário só enxerga documentos dos seus condomínios.
+    const { data: doc, error } = await context.supabase
       .from("documentos")
-      .select("id, condominio_id, storage_path, nome_arquivo, tipo")
+      .select("id")
       .eq("id", data.id)
       .maybeSingle();
-    if (errGet) throw new Error(errGet.message);
+    if (error) throw new Error(error.message);
     if (!doc) throw new Error("Documento não encontrado");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { embedChunksParallel } = await import("./ai-gateway.server");
-    const { extractText, extractTextWithVision, chunkText } = await import("./documentos.server");
-    const { humanizeIngestError } = await import("./ingest-errors");
-
-    try {
-      const { data: file, error: dlErr } = await supabaseAdmin.storage.from(BUCKET).download(doc.storage_path);
-      if (dlErr || !file) {
-        const { IngestError } = await import("./ingest-errors");
-        throw new IngestError("upload", "Falha ao baixar o arquivo do storage", "Reenvie o documento.", dlErr?.message ?? "");
-      }
-      const buffer = new Uint8Array(await file.arrayBuffer());
-
-      if (buffer.byteLength === 0) {
-        const { IngestError } = await import("./ingest-errors");
-        throw new IngestError(
-          "upload",
-          "Arquivo armazenado está vazio (0 bytes)",
-          "O upload falhou ou o arquivo original está vazio. Reenvie o documento.",
-        );
-      }
-
-      let text = "";
-      let usedVision = false;
-      try {
-        text = await extractText(buffer, doc.nome_arquivo);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (msg === "__NEEDS_VISION__") {
-          usedVision = true;
-          text = await extractTextWithVision(apiKey, buffer, doc.nome_arquivo);
-        } else {
-          throw err;
-        }
-      }
-      if (!text.trim()) {
-        const { IngestError } = await import("./ingest-errors");
-        throw new IngestError(
-          "ocr",
-          "Não foi possível ler o conteúdo do documento",
-          "Verifique se a imagem está legível e tente novamente.",
-        );
-      }
-
-      const chunks = chunkText(text, 1000, 150);
-
-      // Embeddings em paralelo controlado (evita timeout do Worker em docs longos)
-      const { embeddings, totalTokens: embTokens } = await embedChunksParallel(
-        apiKey,
-        chunks,
-        5,
-      );
-      try {
-        const { registrarEventoIa } = await import("./uso-ia.server");
-        const { EMBEDDING_MODEL } = await import("./ai-gateway.server");
-        await registrarEventoIa({
-          userId: context.userId,
-          condominioId: doc.condominio_id,
-          origem: "embedding_documento",
-          model: EMBEDDING_MODEL,
-          tokensInput: embTokens,
-          meta: { documento_id: doc.id, chunks: chunks.length, arquivo: doc.nome_arquivo },
-        });
-        if (usedVision) {
-          await registrarEventoIa({
-            userId: context.userId,
-            condominioId: doc.condominio_id,
-            origem: "ocr_visao_documento",
-            model: "google/gemini-3-flash-preview",
-            tokensOutput: Math.ceil(text.length / 4),
-            meta: { documento_id: doc.id, arquivo: doc.nome_arquivo },
-          });
-        }
-      } catch (err) {
-        console.error("[uso-ia] processDocumento:", err);
-      }
-      const rows = chunks.map((c, i) => ({
-        condominio_id: doc.condominio_id,
-        documento_id: doc.id,
-        conteudo: c,
-        embedding: `[${embeddings[i].join(",")}]`,
-      }));
-
-      // insert in batches of 50
-      for (let i = 0; i < rows.length; i += 50) {
-        const slice = rows.slice(i, i + 50);
-        const { error: insErr } = await supabaseAdmin.from("document_chunks").insert(slice);
-        if (insErr) {
-          const { IngestError } = await import("./ingest-errors");
-          throw new IngestError("indexacao", "Falha ao salvar os trechos indexados", "Tente reprocessar o documento.", insErr.message);
-        }
-      }
-
-      await supabaseAdmin
-        .from("documentos")
-        .update({ status_processamento: "pronto" })
-        .eq("id", doc.id);
-
-      // Auto-extração de unidades quando o documento é a convenção.
-      // Best-effort: se falhar, não invalida o processamento do documento.
-      if (doc.tipo === "convencao") {
-        try {
-          const { _extrairESalvarSugestaoUnidades } = await import("./unidades-ia.functions");
-          await _extrairESalvarSugestaoUnidades(context.supabase, doc.id, apiKey);
-        } catch (autoErr) {
-          console.warn("[processDocumento] auto-extração de unidades falhou", autoErr);
-        }
-      }
-
-      return { ok: true, chunks: chunks.length, mode: usedVision ? "vision" : "text" };
-    } catch (e) {
-      const ing = humanizeIngestError(e, "leitura");
-      await supabaseAdmin
-        .from("documentos")
-        .update({ status_processamento: ing.toStatus() })
-        .eq("id", doc.id);
-      throw new Error(ing.toHuman());
-    }
+    const { processarDocumentoCore, limparChunks } = await import(
+      "./documentos-processar.server"
+    );
+    await limparChunks(data.id);
+    return await processarDocumentoCore(context.supabase, context.userId, data.id, apiKey);
   });
+
 
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
