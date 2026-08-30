@@ -61,7 +61,8 @@ export const extrairUnidadesDaConvencao = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
 
-    const { data: doc, error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: doc, error } = await supabaseAdmin
       .from("documentos")
       .select("id, condominio_id, tipo, status_processamento, nome_arquivo")
       .eq("id", data.documentoId)
@@ -75,7 +76,6 @@ export const extrairUnidadesDaConvencao = createServerFn({ method: "POST" })
     }
 
     const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const unidades = await extrairESalvarSugestaoUnidades(
       supabaseAdmin,
       doc.id,
@@ -90,7 +90,10 @@ export const listSugestoesUnidades = createServerFn({ method: "POST" })
     z.object({ condominioId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { assertAcessoCondominio } = await import("./unidades-acesso.server");
+    await assertAcessoCondominio(context.supabase, context.userId, data.condominioId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
       .from("sugestoes_unidades")
       .select("id, documento_id, payload, status, created_at")
       .eq("condominio_id", data.condominioId)
@@ -238,7 +241,8 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
     const { assertAcessoCondominio } = await import("./unidades-acesso.server");
     await assertAcessoCondominio(context.supabase, context.userId, data.condominioId);
 
-    const { data: doc } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: doc } = await supabaseAdmin
       .from("documentos")
       .select("id")
       .eq("condominio_id", data.condominioId)
@@ -260,7 +264,6 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
     }
 
     const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const unidades = await extrairESalvarSugestaoUnidades(
       supabaseAdmin,
       doc.id,
@@ -273,15 +276,6 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
     return { status: "gerada" as const, unidades, documentoId: doc.id };
   });
 
-/**
- * Reprocessamento REAL da convenção:
- *  1. baixa o PDF original do storage;
- *  2. extrai texto — se o resultado for pobre (poucas keywords de unidade),
- *     força fallback de visão/OCR mesmo que exista camada de texto;
- *  3. reindexa (apaga chunks antigos, recria com novos embeddings);
- *  4. executa a extração de unidades com force=true.
- * Retorna status descritivo para a UI mostrar mensagem específica.
- */
 export const reprocessarConvencao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { condominioId: string }) =>
@@ -293,139 +287,25 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
     const { assertAcessoCondominio } = await import("./unidades-acesso.server");
     await assertAcessoCondominio(context.supabase, context.userId, data.condominioId);
 
-    const { data: doc } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: doc } = await supabaseAdmin
       .from("documentos")
-      .select("id, storage_path, nome_arquivo")
+      .select("id, status_processamento")
       .eq("condominio_id", data.condominioId)
       .eq("tipo", "convencao")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (!doc) return { status: "sem_convencao" as const };
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { extractText, extractTextWithVision, chunkText } = await import(
-      "./documentos.server"
-    );
-    const { embedChunksParallel } = await import("./ai-gateway.server");
-
-    // 1) baixa arquivo original
-    const { data: file, error: dlErr } = await supabaseAdmin.storage
-      .from("documentos")
-      .download(doc.storage_path);
-    if (dlErr || !file) {
-      return { status: "erro_download" as const, mensagem: dlErr?.message ?? "" };
+    if (doc.status_processamento !== "pronto") {
+      return {
+        status: "erro_leitura" as const,
+        mensagem: "A leitura técnica ainda não terminou. Continue em Documentos > Reler documento.",
+      };
     }
-    const buffer = new Uint8Array(await file.arrayBuffer());
-
-    // 2) extrai texto (com fallback e detecção de texto "ruim")
-    const RE_UNIDADE =
-      /(unidade|apart|apto|fra[cç][aã]o|lote|quadra|bloco|garag|vaga|área privativa|coeficiente|sala|loja|piso|pavimento|galp[aã]o|setor|m[oó]dulo|torre)/gi;
-    let texto = "";
-    let modo: "texto" | "visao_forcada" | "visao_fallback" = "texto";
-    try {
-      texto = await extractText(buffer, doc.nome_arquivo);
-    } catch (err) {
-      if (err instanceof Error && err.message === "__NEEDS_VISION__") {
-        modo = "visao_fallback";
-        // preserva buffer: extractText do PDF detach o array — precisamos recopiar
-        const copy = new Uint8Array(buffer.byteLength);
-        copy.set(buffer);
-        texto = await extractTextWithVision(apiKey, copy, doc.nome_arquivo);
-      } else {
-        return {
-          status: "erro_leitura" as const,
-          mensagem: err instanceof Error ? err.message : String(err),
-        };
-      }
-    }
-
-    const hits = (texto.match(RE_UNIDADE) ?? []).length;
-    const densidade = texto.length > 0 ? hits / (texto.length / 1000) : 0;
-    // Texto suspeito: mais de 1500 chars mas menos de 1 keyword de unidade a
-    // cada 1000 chars → provável ruído (headers PJe/carimbos). Força OCR/visão.
-    if (modo === "texto" && texto.length > 1500 && densidade < 1 && buffer.byteLength > 0) {
-      try {
-        const copy = new Uint8Array(buffer.byteLength);
-        copy.set(buffer);
-        texto = await extractTextWithVision(apiKey, copy, doc.nome_arquivo);
-        modo = "visao_forcada";
-      } catch {
-        // mantém o texto original — tenta indexar assim mesmo
-      }
-    }
-
-    if (!texto.trim()) {
-      return { status: "vazio_extracao" as const };
-    }
-
-    // 3) reindexa chunks
-    await supabaseAdmin.from("document_chunks").delete().eq("documento_id", doc.id);
-    const chunks = chunkText(texto);
-    const { embeddings, totalTokens: embTokens } = await embedChunksParallel(
-      apiKey,
-      chunks,
-      5,
-    );
-    try {
-      const { registrarEventoIa } = await import("./uso-ia.server");
-      const { EMBEDDING_MODEL } = await import("./ai-gateway.server");
-      await registrarEventoIa({
-        userId: context.userId,
-        condominioId: data.condominioId,
-        origem: "embedding_documento",
-        model: EMBEDDING_MODEL,
-        tokensInput: embTokens,
-        meta: { documento_id: doc.id, chunks: chunks.length, contexto: "reprocessarConvencao" },
-      });
-    } catch (err) {
-      console.error("[uso-ia] reprocessarConvencao embed:", err);
-    }
-    const rows = chunks.map((c, i) => ({
-      condominio_id: data.condominioId,
-      documento_id: doc.id,
-      conteudo: c,
-      embedding: `[${embeddings[i].join(",")}]`,
-    }));
-
-    // Se caiu no fallback de visão, também registra o custo do OCR
-    if (modo === "visao_forcada" || modo === "visao_fallback") {
-      try {
-        const { registrarEventoIa } = await import("./uso-ia.server");
-        await registrarEventoIa({
-          userId: context.userId,
-          condominioId: data.condominioId,
-          origem: "ocr_visao_documento",
-          model: "google/gemini-3-flash-preview",
-          // Sem usage do gateway aqui (chamada em documentos.server.ts não
-          // retorna). Estimamos por tamanho do texto retornado (~4 chars/token).
-          tokensOutput: Math.ceil(texto.length / 4),
-          meta: { documento_id: doc.id, contexto: "reprocessarConvencao", modo },
-        });
-      } catch (err) {
-        console.error("[uso-ia] reprocessarConvencao ocr:", err);
-      }
-    }
-    for (let i = 0; i < rows.length; i += 50) {
-      const slice = rows.slice(i, i + 50);
-      const { error: insErr } = await supabaseAdmin
-        .from("document_chunks")
-        .insert(slice);
-      if (insErr) {
-        return { status: "erro_indexacao" as const, mensagem: insErr.message };
-      }
-    }
-    await supabaseAdmin
-      .from("documentos")
-      .update({ status_processamento: "pronto" })
-      .eq("id", doc.id);
-
-    // 4) roda extração de unidades já com o texto novo
     let unidades: UnidadeSugerida[] = [];
     try {
-      const { extrairESalvarSugestaoUnidades, ExtracaoIncompletaError } = await import(
-        "./unidades-extracao.server"
-      );
+      const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
       unidades = await extrairESalvarSugestaoUnidades(
         supabaseAdmin,
         doc.id,
@@ -439,8 +319,8 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
           status: "incompleta" as const,
           documentoId: doc.id,
           mensagem: err.message,
-          modo,
-          chunks: chunks.length,
+          modo: "indice_completo",
+          chunks: 0,
         };
       }
       throw err;
@@ -449,15 +329,15 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
       return {
         status: "sem_unidades" as const,
         documentoId: doc.id,
-        modo,
-        chunks: chunks.length,
+        modo: "indice_completo",
+        chunks: 0,
       };
     }
     return {
       status: "gerada" as const,
       documentoId: doc.id,
       unidades,
-      modo,
-      chunks: chunks.length,
+      modo: "indice_completo",
+      chunks: 0,
     };
   });
