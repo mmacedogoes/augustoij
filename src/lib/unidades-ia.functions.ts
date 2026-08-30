@@ -193,26 +193,40 @@ export function validarCoberturaExtracao(
 }
 
 
+/**
+ * Acesso ao condomínio pelo ambiente de trabalho: dono do registro, membro
+ * vinculado, conta dona do ambiente ou administrador interno.
+ */
 async function assertOwnerCondominio(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   userId: string,
   condominioId: string,
 ) {
-  const { data, error } = await supabase
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
     .from("condominios")
     .select("id, owner_id")
     .eq("id", condominioId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Condomínio não encontrado.");
-  if (data.owner_id !== userId) {
-    const { data: hr } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    if (!hr) throw new Error("Sem permissão para este condomínio.");
-  }
+  if ((data as { owner_id: string }).owner_id === userId) return;
+
+  const { data: vinculo } = await supabaseAdmin
+    .from("condominio_members")
+    .select("id")
+    .eq("condominio_id", condominioId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (vinculo) return;
+
+  const { isDonoDoAmbienteDoCondominio } = await import("@/lib/conta-master.server");
+  if (await isDonoDoAmbienteDoCondominio(userId, condominioId)) return;
+
+  const { data: hr } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  if (!hr) throw new Error("Sem permissão para este condomínio.");
 }
+
 
 export async function callGeminiJson(
   apiKey: string,
