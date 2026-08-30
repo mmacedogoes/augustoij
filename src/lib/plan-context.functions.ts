@@ -79,7 +79,7 @@ export const getPlanContext = createServerFn({ method: "GET" })
       documentosMax: planoEfetivo.documentosMax,
       usuariosMax: planoEfetivo.usuariosMax,
       historicosDias: planoEfetivo.historicosDias,
-      condominiosCount: condosRes.count ?? 0,
+      condominiosCount: ambiente.length,
       trialEndIso,
       trialExpirado: cortesia ? false : isTrialExpired(planoId, trialEndIso),
       contratosGestaoAtivaMax: planoV2Efetivo.limites.contratosGestaoAtiva,
