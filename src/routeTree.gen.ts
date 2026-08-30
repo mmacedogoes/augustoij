@@ -17,12 +17,15 @@ import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as HistoriaRouteImport } from './routes/historia'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as SegurancaRouteImport } from './routes/seguranca'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
@@ -32,6 +35,8 @@ import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as CabineTokenRouteImport } from './routes/cabine.$token'
 import { Route as ECodigoRouteImport } from './routes/e.$codigo'
 import { Route as VCodigoRouteImport } from './routes/v.$codigo'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppAjudaRouteImport } from './routes/_authenticated/app.ajuda'
@@ -142,6 +147,11 @@ const ManifestoRoute = ManifestoRouteImport.update({
   path: '/manifesto',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
@@ -172,6 +182,18 @@ const TermosRoute = TermosRouteImport.update({
   path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -217,6 +239,17 @@ const VCodigoRoute = VCodigoRouteImport.update({
   path: '/v/$codigo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -634,12 +667,15 @@ export interface FileRoutesByFullPath {
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/mcp': typeof McpRoute
   '/privacidade': typeof PrivacidadeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/seguranca': typeof SegurancaRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
@@ -649,6 +685,8 @@ export interface FileRoutesByFullPath {
   '/e/$codigo': typeof ECodigoRoute
   '/v/$codigo': typeof VCodigoRoute
   '/blog/': typeof BlogIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
@@ -728,12 +766,15 @@ export interface FileRoutesByTo {
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/mcp': typeof McpRoute
   '/privacidade': typeof PrivacidadeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/seguranca': typeof SegurancaRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/auth/confirmar': typeof AuthConfirmarRoute
@@ -742,6 +783,8 @@ export interface FileRoutesByTo {
   '/e/$codigo': typeof ECodigoRoute
   '/v/$codigo': typeof VCodigoRoute
   '/blog': typeof BlogIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
   '/app/conta': typeof AuthenticatedAppContaRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
@@ -819,12 +862,15 @@ export interface FileRoutesById {
   '/historia': typeof HistoriaRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/mcp': typeof McpRoute
   '/privacidade': typeof PrivacidadeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/seguranca': typeof SegurancaRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
@@ -834,6 +880,8 @@ export interface FileRoutesById {
   '/e/$codigo': typeof ECodigoRoute
   '/v/$codigo': typeof VCodigoRoute
   '/blog/': typeof BlogIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/ajuda': typeof AuthenticatedAppAjudaRouteWithChildren
   '/_authenticated/app/assinatura': typeof AuthenticatedAppAssinaturaRouteWithChildren
@@ -915,12 +963,15 @@ export interface FileRouteTypes {
     | '/historia'
     | '/login'
     | '/manifesto'
+    | '/mcp'
     | '/privacidade'
     | '/redefinir-senha'
     | '/seguranca'
     | '/signup'
     | '/sitemap.xml'
     | '/termos'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/app'
     | '/onboarding'
     | '/api/chat'
@@ -930,6 +981,8 @@ export interface FileRouteTypes {
     | '/e/$codigo'
     | '/v/$codigo'
     | '/blog/'
+    | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/app/admin'
     | '/app/ajuda'
     | '/app/assinatura'
@@ -1009,12 +1062,15 @@ export interface FileRouteTypes {
     | '/historia'
     | '/login'
     | '/manifesto'
+    | '/mcp'
     | '/privacidade'
     | '/redefinir-senha'
     | '/seguranca'
     | '/signup'
     | '/sitemap.xml'
     | '/termos'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/onboarding'
     | '/api/chat'
     | '/auth/confirmar'
@@ -1023,6 +1079,8 @@ export interface FileRouteTypes {
     | '/e/$codigo'
     | '/v/$codigo'
     | '/blog'
+    | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/app/assinatura'
     | '/app/conta'
     | '/api/public/asaas-webhook'
@@ -1099,12 +1157,15 @@ export interface FileRouteTypes {
     | '/historia'
     | '/login'
     | '/manifesto'
+    | '/mcp'
     | '/privacidade'
     | '/redefinir-senha'
     | '/seguranca'
     | '/signup'
     | '/sitemap.xml'
     | '/termos'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/app'
     | '/_authenticated/onboarding'
     | '/api/chat'
@@ -1114,6 +1175,8 @@ export interface FileRouteTypes {
     | '/e/$codigo'
     | '/v/$codigo'
     | '/blog/'
+    | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/app/admin'
     | '/_authenticated/app/ajuda'
     | '/_authenticated/app/assinatura'
@@ -1195,12 +1258,15 @@ export interface RootRouteChildren {
   HistoriaRoute: typeof HistoriaRoute
   LoginRoute: typeof LoginRoute
   ManifestoRoute: typeof ManifestoRoute
+  McpRoute: typeof McpRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   SegurancaRoute: typeof SegurancaRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
+  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiChatRoute: typeof ApiChatRoute
   AuthConfirmarRoute: typeof AuthConfirmarRoute
   BlogSlugRoute: typeof BlogSlugRoute
@@ -1208,6 +1274,8 @@ export interface RootRouteChildren {
   ECodigoRoute: typeof ECodigoRoute
   VCodigoRoute: typeof VCodigoRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
+  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
   ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
@@ -1279,6 +1347,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManifestoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacidade': {
       id: '/privacidade'
       path: '/privacidade'
@@ -1319,6 +1394,20 @@ declare module '@tanstack/react-router' {
       path: '/termos'
       fullPath: '/termos'
       preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app': {
@@ -1382,6 +1471,20 @@ declare module '@tanstack/react-router' {
       path: '/v/$codigo'
       fullPath: '/v/$codigo'
       preLoaderRoute: typeof VCodigoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/': {
@@ -2140,12 +2243,16 @@ const rootRouteChildren: RootRouteChildren = {
   HistoriaRoute: HistoriaRoute,
   LoginRoute: LoginRoute,
   ManifestoRoute: ManifestoRoute,
+  McpRoute: McpRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   SegurancaRoute: SegurancaRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
+  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiChatRoute: ApiChatRoute,
   AuthConfirmarRoute: AuthConfirmarRoute,
   BlogSlugRoute: BlogSlugRoute,
@@ -2153,6 +2260,8 @@ const rootRouteChildren: RootRouteChildren = {
   ECodigoRoute: ECodigoRoute,
   VCodigoRoute: VCodigoRoute,
   BlogIndexRoute: BlogIndexRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
+  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,
   ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
