@@ -28,6 +28,8 @@ const UnidadeSugestao = z.object({
   fracao_ideal: z.number().nullable().optional(),
   area_m2: z.number().nullable().optional(),
   vagas_garagem: z.number().int().min(0).max(50).optional(),
+  fracao_origem: z.enum(["documento", "ausente"]).nullable().optional(),
+  area_origem: z.enum(["documento", "ausente"]).nullable().optional(),
 });
 
 const CondominoSugestao = z.object({
@@ -44,122 +46,130 @@ const CondominoSugestao = z.object({
   match_status: z.enum(["ok", "ambiguo", "sem_match"]).optional(),
 });
 
-type AuditoriaSugestao = {
-  ajustes: string[];
-  totalOriginal: number;
-  totalFinal: number;
-  totalEsperado: number | null;
+export type DiagnosticoIA = {
+  total_declarado_no_texto?: number | null;
+  quadro_fracoes_encontrado?: boolean | null;
+  observacao?: string | null;
 };
 
-function parseNumeroApartamento(numero: string) {
-  const digits = String(numero ?? "").replace(/\D/g, "");
-  if (digits.length < 3 || digits.length > 5) return null;
-  const sufixo = digits.slice(-2);
-  const andar = Number.parseInt(digits.slice(0, -2), 10);
-  const final = Number.parseInt(sufixo, 10);
-  if (!Number.isFinite(andar) || !Number.isFinite(final) || andar <= 0 || final <= 0) {
-    return null;
+/** Erro de extração incompleta — nada é gravado e a mensagem sobe para a UI. */
+export class ExtracaoIncompletaError extends Error {
+  readonly codigo = "extracao_incompleta";
+  constructor(message: string) {
+    super(message);
+    this.name = "ExtracaoIncompletaError";
   }
-  return { andar, sufixo, final };
 }
 
-function detectarPadraoPavimentosTipo(texto: string) {
-  const match = texto.match(
-    /(\d{1,3})\s*(?:\([^)]{0,40}\))?\s*pavimentos?\s+tipo[\s\S]{0,240}?(?:cada\s+pavimento|por\s+pavimento|pavimento\s+possuidor)[\s\S]{0,140}?(\d{1,2})\s*(?:\([^)]{0,40}\))?\s+unidades?\s+aut[oô]nomas?/i,
+export function chaveUnidade(bloco: string | null, numero: string) {
+  return `${(bloco ?? "").trim().toLowerCase()}|${(numero ?? "").trim().toLowerCase()}`;
+}
+
+// Vocabulário genérico de unidades e vocabulário específico de quadros de
+// fração/área (a tabela costuma estar em anexo, no fim da convenção).
+const RE_UNIDADE =
+  /(unidade|apart(a|â)mento|apto|fra[cç][aã]o|lote|quadra|bloco|garag(e|em)|vaga|área privativa|coeficiente|sala|loja|piso|pavimento|galp[aã]o|setor|m[oó]dulo|torre)/i;
+const RE_TABELA_FRACAO =
+  /(fra[cç][aã]o\s+ideal|coeficiente\s+de\s+propriedade|área\s+(privativa|real|total|comum)|quadro\s+de\s+áreas)/i;
+const RE_LINHA_NUMERICA = /\d+[.,]\d{2,8}\s*%?/;
+
+/**
+ * Monta (a) o texto principal enviado à IA, priorizando trechos com
+ * vocabulário de unidades e, acima deles, trechos que parecem tabelas de
+ * fração/área; e (b) um texto dedicado só com os trechos tabulares, usado
+ * na 2ª passada quando faltam frações/áreas.
+ */
+export function montarTextos(rawChunks: string[]) {
+  const tabelas: string[] = [];
+  const prioritarios: string[] = [];
+  const restantes: string[] = [];
+  for (const c of rawChunks) {
+    if (RE_TABELA_FRACAO.test(c) && RE_LINHA_NUMERICA.test(c)) tabelas.push(c);
+    else if (RE_UNIDADE.test(c)) prioritarios.push(c);
+    else restantes.push(c);
+  }
+  const texto = [...tabelas, ...prioritarios, ...restantes].join("\n\n").slice(0, 70000);
+  const textoFracoes = tabelas.join("\n\n").slice(0, 60000);
+  return { texto, textoFracoes };
+}
+
+/** 2ª passada: lê apenas o quadro de frações/áreas. */
+async function extrairQuadroFracoes(apiKey: string, textoFracoes: string) {
+  const system =
+    "Você lê quadros de frações ideais e áreas de convenções de condomínio brasileiras. " +
+    "Extraia APENAS o que estiver escrito. É proibido calcular, estimar ou inventar valores. " +
+    'Responda EXCLUSIVAMENTE em JSON: {"linhas":[{"bloco":string|null,"numero":string,' +
+    '"fracao_ideal":number|null,"area_m2":number|null}]}. ' +
+    "Use ponto como separador decimal e null quando o valor não constar.";
+  const r = await callGeminiJson(apiKey, system, `Quadro:\n\n${textoFracoes}`);
+  const parsed = (r.data ?? {}) as { linhas?: unknown[] };
+  const schema = z.array(
+    z.object({
+      bloco: z.string().nullable().optional(),
+      numero: z.string(),
+      fracao_ideal: z.number().nullable().optional(),
+      area_m2: z.number().nullable().optional(),
+    }),
   );
-  if (!match) return null;
-  const andaresTipo = Number.parseInt(match[1], 10);
-  const unidadesPorAndar = Number.parseInt(match[2], 10);
-  if (!Number.isFinite(andaresTipo) || !Number.isFinite(unidadesPorAndar)) return null;
-  if (andaresTipo <= 0 || unidadesPorAndar <= 0) return null;
-  return { andaresTipo, unidadesPorAndar, total: andaresTipo * unidadesPorAndar };
+  const linhas = schema.safeParse(parsed.linhas ?? []);
+  const mapa = new Map<string, { fracao_ideal: number | null; area_m2: number | null }>();
+  if (!linhas.success) return mapa;
+  for (const l of linhas.data) {
+    mapa.set(chaveUnidade(l.bloco ?? null, l.numero), {
+      fracao_ideal: l.fracao_ideal ?? null,
+      area_m2: l.area_m2 ?? null,
+    });
+  }
+  return mapa;
 }
 
-function corrigirExcessoPredioPorPadrao(
+/**
+ * Regra de negócio: sem fração ideal lida no documento, nada é importado.
+ * Área é exigida quando o documento traz o quadro de áreas para parte das
+ * unidades (indício de que a leitura ficou incompleta).
+ */
+export function validarCoberturaExtracao(
   unidades: UnidadeSugerida[],
+  diagnostico: DiagnosticoIA | null,
   qtdEsperada: number | null,
-  categoriaId: string,
-  texto: string,
-): { unidades: UnidadeSugerida[]; auditoria: AuditoriaSugestao | null } {
-  if (!qtdEsperada || qtdEsperada <= 0 || unidades.length <= qtdEsperada) {
-    return { unidades, auditoria: null };
-  }
-  if (categoriaId !== "predio") return { unidades, auditoria: null };
-
-  const parsed = unidades.map((unidade, index) => ({
-    unidade,
-    index,
-    apto: parseNumeroApartamento(unidade.numero),
-  }));
-  if (parsed.some((item) => !item.apto)) return { unidades, auditoria: null };
-
-  const ordenadas = [...parsed].sort((a, b) => {
-    const aptoA = a.apto!;
-    const aptoB = b.apto!;
-    return (
-      aptoA.andar - aptoB.andar ||
-      aptoA.final - aptoB.final ||
-      a.index - b.index
+) {
+  const total = unidades.length;
+  const semFracao = unidades.filter((u) => u.fracao_ideal == null);
+  if (semFracao.length > 0) {
+    const exemplos = semFracao
+      .slice(0, 8)
+      .map((u) => `${u.bloco ? u.bloco + "-" : ""}${u.numero}`)
+      .join(", ");
+    throw new ExtracaoIncompletaError(
+      `${semFracao.length} de ${total} unidade(s) ficaram sem fração ideal identificada no documento ` +
+        `(ex.: ${exemplos}${semFracao.length > 8 ? "…" : ""}). ` +
+        "O sistema não cria frações que não estejam escritas na convenção. " +
+        "Envie o anexo/quadro de frações ideais ou um PDF com melhor qualidade de leitura e tente novamente.",
     );
-  });
-
-  const padrao = detectarPadraoPavimentosTipo(texto);
-  if (padrao?.total === qtdEsperada) {
-    const mantidas = ordenadas.slice(0, qtdEsperada);
-    const removidas = ordenadas.slice(qtdEsperada);
-    const maiorAndarMantido = Math.max(...mantidas.map((item) => item.apto!.andar));
-    const menorAndarRemovido = Math.min(...removidas.map((item) => item.apto!.andar));
-    if (
-      mantidas.length === qtdEsperada &&
-      removidas.length > 0 &&
-      maiorAndarMantido <= padrao.andaresTipo &&
-      menorAndarRemovido > padrao.andaresTipo
-    ) {
-      return {
-        unidades: mantidas.map((item) => item.unidade),
-        auditoria: {
-          totalOriginal: unidades.length,
-          totalFinal: qtdEsperada,
-          totalEsperado: qtdEsperada,
-          ajustes: [
-            `A IA retornou ${unidades.length} unidades, mas a convenção/cadastro prevê ${qtdEsperada}. Foram removidas ${removidas.length} unidade(s) gerada(s) em pavimentos acima dos ${padrao.andaresTipo} pavimentos tipo residenciais.`,
-          ],
-        },
-      };
-    }
   }
-
-  const porAndar = new Map<number, number>();
-  for (const item of parsed) {
-    const andar = item.apto!.andar;
-    porAndar.set(andar, (porAndar.get(andar) ?? 0) + 1);
+  const semArea = unidades.filter((u) => u.area_m2 == null);
+  if (semArea.length > 0 && semArea.length < total) {
+    throw new ExtracaoIncompletaError(
+      `${semArea.length} de ${total} unidade(s) ficaram sem área identificada, embora o documento traga áreas ` +
+        "para as demais — a leitura do quadro de áreas ficou incompleta. " +
+        "Reenvie a convenção completa (com todos os anexos) ou um PDF com melhor qualidade.",
+    );
   }
-  const frequencias = Array.from(porAndar.values());
-  const unidadesPorAndar = frequencias[0];
-  const padraoRegular =
-    unidadesPorAndar > 0 &&
-    frequencias.every((count) => count === unidadesPorAndar) &&
-    qtdEsperada % unidadesPorAndar === 0 &&
-    (unidades.length - qtdEsperada) % unidadesPorAndar === 0;
-
-  if (padraoRegular) {
-    const mantidas = ordenadas.slice(0, qtdEsperada);
-    const removidas = ordenadas.slice(qtdEsperada);
-    return {
-      unidades: mantidas.map((item) => item.unidade),
-      auditoria: {
-        totalOriginal: unidades.length,
-        totalFinal: qtdEsperada,
-        totalEsperado: qtdEsperada,
-        ajustes: [
-          `A IA retornou ${unidades.length} unidades em padrão regular por andar, mas o total previsto é ${qtdEsperada}. Foram removidas ${removidas.length} unidade(s) excedente(s) dos pavimentos finais.`,
-        ],
-      },
-    };
+  const declarado = diagnostico?.total_declarado_no_texto ?? null;
+  if (declarado && declarado > 0 && declarado !== total) {
+    throw new ExtracaoIncompletaError(
+      `A convenção declara ${declarado} unidades, mas só foi possível ler ${total} na lista individual. ` +
+        "Nada foi importado para evitar unidades inventadas. Confirme se o arquivo contém todos os anexos.",
+    );
   }
-
-  return { unidades, auditoria: null };
+  if (qtdEsperada && qtdEsperada > 0 && qtdEsperada !== total) {
+    throw new ExtracaoIncompletaError(
+      `O cadastro do condomínio prevê ${qtdEsperada} unidades, mas a convenção enviada permitiu ler ${total}. ` +
+        "Ajuste o cadastro ou reenvie a convenção completa — o sistema não completa a diferença automaticamente.",
+    );
+  }
 }
+
 
 async function assertOwnerCondominio(
   supabase: import("@supabase/supabase-js").SupabaseClient,
@@ -312,55 +322,36 @@ export async function _extrairESalvarSugestaoUnidades(
     .select("conteudo")
     .eq("documento_id", doc.id)
     .limit(600);
-  // Prioriza chunks que mencionam vocabulário de unidades — a tabela costuma
-  // aparecer no meio/fim da convenção e ficava de fora do corte de 40k.
-  const RE_UNIDADE =
-    /(unidade|apart(a|â)mento|apto|fra[cç][aã]o|lote|quadra|bloco|garag(e|em)|vaga|área privativa|coeficiente|sala|loja|piso|pavimento|galp[aã]o|setor|m[oó]dulo|torre)/i;
   const rawChunks = (chunks ?? []).map((c) => c.conteudo as string);
-  const prioritarios = rawChunks.filter((c) => RE_UNIDADE.test(c));
-  const restantes = rawChunks.filter((c) => !RE_UNIDADE.test(c));
-  // Limitamos a ~70k chars para evitar 524 (timeout do gateway) com prompts muito grandes.
-  // Chunks prioritários (contendo vocabulário de unidades) vêm primeiro, então cortar aqui
-  // não perde a tabela de unidades — só descarta contexto redundante.
-  const texto = [...prioritarios, ...restantes].join("\n\n").slice(0, 70000);
+  const { texto, textoFracoes } = montarTextos(rawChunks);
   if (!texto.trim()) return [];
 
   const hint = qtdEsperada
-    ? `O cadastro do condomínio indica aproximadamente ${qtdEsperada} unidades — use esse valor como referência.`
+    ? `O cadastro do condomínio indica ${qtdEsperada} unidades — use apenas como conferência, nunca para completar dados ausentes.`
     : "";
   const system =
     "Você é um assistente especialista em convenções de condomínio brasileiras. " +
-    "Sua tarefa é EXTRAIR TODAS as unidades autônomas mencionadas — mesmo que o texto esteja " +
-    "quebrado por OCR ou dividido em várias tabelas/anexos. Procure quadros de frações ideais, " +
-    "listas numeradas, anexos, memoriais descritivos e o corpo da convenção. " +
+    "Sua tarefa é EXTRAIR as unidades autônomas que estiverem LITERALMENTE descritas no texto, " +
+    "com suas frações ideais e áreas, procurando quadros de frações ideais, listas numeradas, " +
+    "anexos e memoriais descritivos. " +
     catMeta.vocabIA + " " + hint + " " +
-    "REGRA IMPORTANTE: se a convenção declarar quantidades globais (por exemplo " +
-    '"o condomínio é composto por 662 lotes distribuídos em 36 quadras" ou "40 apartamentos por bloco") ' +
-    "e NÃO trouxer a lista individual completa, GERE as unidades numericamente conforme a descrição " +
-    "(ex.: 662 lotes em 36 quadras → distribua exatamente 662 lotes entre Q1..Q36; o TOTAL deve bater " +
-    "com o número declarado. Se 662/36 não for inteiro, use base=floor(662/36)=18 por quadra e some +1 " +
-    "às primeiras (662 mod 36)=14 quadras — resultando em 14 quadras com 19 lotes e 22 com 18 lotes, " +
-    "totalizando exatamente 662. Nunca devolva 648 ou 650 quando o texto disser 662). Sempre preencha o " +
-    "campo 'bloco' com Q1..QN quando houver quadras/setores/torres declarados. " +
-    "REGRA DE CONTAGEM ESTRITA: o TOTAL de unidades retornadas deve ser EXATAMENTE o número que a convenção " +
-    "declarar (ex.: 'condomínio composto por 60 apartamentos' → devolva 60, nunca 72). NÃO conte como unidade: " +
-    "vagas de garagem, boxes/depósitos, hobby boxes, área comum, salão de festas, guarita, casa do zelador, " +
-    "reservatórios, subsolo, térreo, pavimento especial, cobertura, barrilete e qualquer pavimento descrito como área comum — " +
-    "a menos que a convenção diga EXPLICITAMENTE que são unidades autônomas com matrícula própria. " +
-    "Em prédios, números ordinais de pavimento especial/cobertura (ex.: 18º andar com piscina/salão/sauna) NÃO indicam " +
-    "que existam apartamentos naquele andar; use somente pavimentos tipo/residenciais para gerar apartamentos. " +
-    "NÃO duplique unidades: cada par (bloco, número) deve aparecer UMA única vez. Se a mesma unidade aparecer " +
-    "em várias tabelas (fração ideal, área privativa, vagas), consolide em UMA linha. " +
-    "Prefira sempre a lista real quando existir. NÃO devolva vazio se o próprio texto disser quantas unidades existem. " +
-    'Responda EXCLUSIVAMENTE em JSON no formato: {"unidades":[{"bloco":string|null,"numero":string,' +
+    "PROIBIÇÃO ABSOLUTA: é terminantemente proibido INVENTAR, ESTIMAR, CALCULAR, INTERPOLAR ou GERAR " +
+    "unidades, números, frações ideais ou áreas. Se a convenção declarar apenas quantidades globais " +
+    '(ex.: "662 lotes em 36 quadras") sem a lista individual, NÃO gere as unidades: devolva a lista vazia ' +
+    "e informe isso no diagnóstico. Se a fração ideal ou a área de uma unidade não estiver escrita no texto, " +
+    "devolva null nesse campo — nunca dividir 100% pelo número de unidades, nunca repetir o valor de outra unidade. " +
+    "NÃO conte como unidade autônoma: vagas de garagem, boxes/depósitos, área comum, salão de festas, guarita, " +
+    "casa do zelador, reservatórios, barrilete — a menos que a convenção diga EXPLICITAMENTE que possuem matrícula própria. " +
+    "NÃO duplique unidades: cada par (bloco, número) aparece UMA única vez; se a mesma unidade constar em várias " +
+    "tabelas (fração, área, vagas), consolide em UMA linha. " +
+    'Responda EXCLUSIVAMENTE em JSON: {"unidades":[{"bloco":string|null,"numero":string,' +
     '"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","fracao_ideal":number|null,' +
-    '"area_m2":number|null,"vagas_garagem":number}]}. ' +
-    "SEMPRE preencha o campo 'tipo' com o valor que melhor descreve a unidade conforme a categoria informada acima " +
-    "(condomínio de casas/lotes → 'lote' ou 'casa'; logístico → 'galpao'; comercial → 'sala_comercial' ou 'loja'). " +
-    "Se o documento não trouxer o campo, use null (ou 0 para vagas). Se realmente NÃO encontrar " +
-    'nenhuma unidade, devolva {"unidades":[]}, mas releia com atenção antes de desistir — ' +
-    "convenções sempre listam unidades em algum ponto. Não invente unidades que não estejam no texto.";
-  const user = `Arquivo: ${doc.nome_arquivo}\n\nTexto da convenção (pode estar truncado; releia com cuidado procurando listas/tabelas):\n\n${texto}`;
+    '"area_m2":number|null,"vagas_garagem":number,"fracao_origem":"documento|ausente","area_origem":"documento|ausente"}],' +
+    '"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,' +
+    '"observacao":string|null}}. ' +
+    "Use fracao_origem='documento' SOMENTE quando o número foi lido no texto; caso contrário 'ausente' com fracao_ideal=null. " +
+    "A mesma regra vale para area_origem/area_m2.";
+  const user = `Arquivo: ${doc.nome_arquivo}\n\nTexto da convenção (pode estar truncado):\n\n${texto}`;
 
   const chamada = await callGeminiJson(apiKey, system, user);
   try {
@@ -379,27 +370,52 @@ export async function _extrairESalvarSugestaoUnidades(
   } catch (err) {
     console.error("[uso-ia] importacao_convencao:", err);
   }
-  const parsed = chamada.data as { unidades?: unknown[] };
+  const parsed = chamada.data as { unidades?: unknown[]; diagnostico?: DiagnosticoIA };
   const linhas = z.array(UnidadeSugestao).safeParse(parsed?.unidades ?? []);
   const brutas = linhas.success ? linhas.data : [];
+  const diagnostico = parsed?.diagnostico ?? null;
+
   // Deduplica por (bloco, numero) — a IA às vezes repete a mesma unidade em
   // tabelas diferentes (fração / área / vagas), inflando o total.
   const seen = new Set<string>();
   const unidades: typeof brutas = [];
   for (const u of brutas) {
-    const key = `${(u.bloco ?? "").trim().toLowerCase()}|${(u.numero ?? "").trim().toLowerCase()}`;
+    const key = chaveUnidade(u.bloco ?? null, u.numero ?? "");
     if (!u.numero || seen.has(key)) continue;
     seen.add(key);
     unidades.push(u);
   }
-  const corrigida = corrigirExcessoPredioPorPadrao(
-    unidades,
-    qtdEsperada && qtdEsperada > 0 ? qtdEsperada : null,
-    categoriaId,
-    texto,
-  );
-  const unidadesFinais = corrigida.unidades;
-  if (unidadesFinais.length === 0) return [];
+
+  if (unidades.length === 0) {
+    throw new ExtracaoIncompletaError(
+      "A IA não localizou a lista individual de unidades nesta convenção" +
+        (diagnostico?.total_declarado_no_texto
+          ? ` (o texto menciona ${diagnostico.total_declarado_no_texto} unidades, mas sem relação nominal).`
+          : ".") +
+        " Envie o anexo/quadro de frações ideais ou uma versão do PDF com melhor qualidade de leitura. " +
+        "Nenhuma unidade foi criada — o sistema não gera números, áreas ou frações que não estejam no documento.",
+    );
+  }
+
+  // 2ª passada: quando faltam frações/áreas e existe texto tabular específico,
+  // pedimos apenas o quadro de frações e consolidamos por (bloco, número).
+  const faltando = () =>
+    unidades.filter((u) => u.fracao_ideal == null || u.area_m2 == null).length;
+  if (faltando() > 0 && textoFracoes.trim()) {
+    try {
+      const quadro = await extrairQuadroFracoes(apiKey, textoFracoes);
+      for (const u of unidades) {
+        const hit = quadro.get(chaveUnidade(u.bloco ?? null, u.numero));
+        if (!hit) continue;
+        if (u.fracao_ideal == null && hit.fracao_ideal != null) u.fracao_ideal = hit.fracao_ideal;
+        if (u.area_m2 == null && hit.area_m2 != null) u.area_m2 = hit.area_m2;
+      }
+    } catch (err) {
+      console.warn("[unidades-ia] 2ª passada de frações falhou", err);
+    }
+  }
+
+  validarCoberturaExtracao(unidades, diagnostico, qtdEsperada);
 
   // Em modo force, apaga sugestões anteriores em QUALQUER status para essa convenção
   const del = supabase.from("sugestoes_unidades").delete().eq("documento_id", doc.id);
@@ -408,13 +424,14 @@ export async function _extrairESalvarSugestaoUnidades(
     condominio_id: doc.condominio_id,
     documento_id: doc.id,
     payload: {
-      unidades: unidadesFinais,
-      auditoria: corrigida.auditoria ?? undefined,
+      unidades,
+      diagnostico: diagnostico ?? undefined,
     },
     status: "pendente",
   });
-  return unidadesFinais;
+  return unidades;
 }
+
 
 type UnidadeSugerida = z.infer<typeof UnidadeSugestao>;
 
@@ -783,12 +800,26 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
       .eq("id", doc.id);
 
     // 4) roda extração de unidades já com o texto novo
-    const unidades = await _extrairESalvarSugestaoUnidades(
-      context.supabase,
-      doc.id,
-      apiKey,
-      { force: true },
-    );
+    let unidades: UnidadeSugerida[] = [];
+    try {
+      unidades = await _extrairESalvarSugestaoUnidades(
+        context.supabase,
+        doc.id,
+        apiKey,
+        { force: true },
+      );
+    } catch (err) {
+      if (err instanceof ExtracaoIncompletaError) {
+        return {
+          status: "incompleta" as const,
+          documentoId: doc.id,
+          mensagem: err.message,
+          modo,
+          chunks: chunks.length,
+        };
+      }
+      throw err;
+    }
     if (unidades.length === 0) {
       return {
         status: "sem_unidades" as const,

@@ -133,10 +133,11 @@ export function UnidadesPanel({
       documento_id: string | null;
       payload: {
         unidades?: UnidadeSugerida[];
-        auditoria?: { ajustes?: string[]; totalOriginal?: number; totalFinal?: number };
+        diagnostico?: { observacao?: string | null; total_declarado_no_texto?: number | null };
       };
     }[]
   >([]);
+  const [erroExtracao, setErroExtracao] = useState<string | null>(null);
   const [revisarUnidades, setRevisarUnidades] = useState<{
     sugestaoId: string | null;
     unidades: UnidadeSugerida[];
@@ -150,6 +151,7 @@ export function UnidadesPanel({
   const [categoria, setCategoria] = useState<CategoriaCondominio>("predio");
   const [qtdConvencao, setQtdConvencao] = useState<number | null>(null);
   const [reprocessando, setReprocessando] = useState(false);
+
 
   const vocab = getCategoriaMeta(categoria).vocab;
 
@@ -174,7 +176,7 @@ export function UnidadesPanel({
             documento_id: string | null;
             payload: {
               unidades?: UnidadeSugerida[];
-              auditoria?: { ajustes?: string[]; totalOriginal?: number; totalFinal?: number };
+              diagnostico?: { observacao?: string | null; total_declarado_no_texto?: number | null };
             };
           }[]) ?? [];
         setSugestoes(list);
@@ -193,6 +195,7 @@ export function UnidadesPanel({
         | { status: "erro_leitura"; mensagem?: string }
         | { status: "erro_indexacao"; mensagem?: string }
         | { status: "vazio_extracao" }
+        | { status: "incompleta"; mensagem: string }
         | { status: "sem_unidades"; modo: string; chunks: number }
         | {
             status: "gerada";
@@ -221,6 +224,10 @@ export function UnidadesPanel({
             "Mesmo com OCR/visão o arquivo não devolveu texto legível. Reenvie uma versão de melhor qualidade da convenção.",
           );
           break;
+        case "incompleta":
+          setErroExtracao(r.mensagem);
+          toast.error(r.mensagem);
+          break;
         case "sem_unidades":
           toast.warning(
             `Convenção reprocessada (${r.chunks} trechos, modo: ${r.modo}), mas a IA não localizou uma lista de ${vocab.unidade.toLowerCase()}s. Confirme se o arquivo enviado é a convenção completa (com quadro de frações/anexos).`,
@@ -228,12 +235,14 @@ export function UnidadesPanel({
           refresh();
           break;
         case "gerada":
+          setErroExtracao(null);
           toast.success(
             `${r.unidades.length} ${vocab.unidade.toLowerCase()}(s) identificada(s) após reprocessamento (${r.modo}).`,
           );
           refresh();
           break;
       }
+
     } catch (e) {
       toast.dismiss(t);
       toast.error(e instanceof Error ? e.message : "Falha ao reprocessar a convenção");
@@ -343,6 +352,15 @@ export function UnidadesPanel({
 
   return (
     <div className="space-y-4">
+      {isOwner && erroExtracao && (
+        <Card className="app-card p-4 border-destructive/40 bg-destructive/5">
+          <p className="text-sm font-medium text-destructive">
+            Leitura da convenção incompleta — nada foi importado
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{erroExtracao}</p>
+        </Card>
+      )}
+
       {isOwner && sugestoes.length > 0 && (
         <Card className="app-card p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
@@ -354,11 +372,12 @@ export function UnidadesPanel({
             <p className="text-xs text-muted-foreground">
               Revise antes de importar para a lista de {vocab.unidade.toLowerCase()}s.
             </p>
-            {sugestoes[0].payload.auditoria?.ajustes?.[0] && (
+            {sugestoes[0].payload.diagnostico?.observacao && (
               <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                {sugestoes[0].payload.auditoria.ajustes[0]}
+                {sugestoes[0].payload.diagnostico.observacao}
               </p>
             )}
+
           </div>
           <Button
             size="sm"
