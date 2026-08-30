@@ -262,12 +262,18 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
       const pdfCopy = new Uint8Array(buffer.byteLength);
       pdfCopy.set(buffer);
       const pdf = await getDocumentProxy(pdfCopy);
-      const { text } = await unpdfExtract(pdf, { mergePages: true });
+      const { text, totalPages } = await unpdfExtract(pdf, { mergePages: true });
       const out = Array.isArray(text) ? text.join("\n\n") : text;
-      if (!out || !out.trim()) {
+      const limpo = (out ?? "").trim();
+      // Fotocópias costumam trazer uma camada de texto residual (números de
+      // página, carimbos). Menos de ~180 caracteres úteis por página indica
+      // que o conteúdo real está na imagem → OCR por visão.
+      const paginas = Math.max(1, totalPages ?? 1);
+      if (!limpo || limpo.length < paginas * 180) {
         throw new Error("__NEEDS_VISION__");
       }
       return out;
+
     }
     if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
       const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
