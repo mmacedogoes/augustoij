@@ -1,0 +1,2 @@
+ALTER TABLE public.sugestoes_unidades DROP CONSTRAINT IF EXISTS sugestoes_unidades_status_check;
+ALTER TABLE public.sugestoes_unidades ADD CONSTRAINT sugestoes_unidades_status_check CHECK (status = ANY (ARRAY['pendente'::text, 'aplicada'::text, 'descartada'::text, 'falhou'::text]));
