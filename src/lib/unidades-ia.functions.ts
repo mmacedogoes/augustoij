@@ -423,9 +423,10 @@ export async function _extrairESalvarSugestaoUnidades(
   // pedimos apenas o quadro de frações e consolidamos por (bloco, número).
   const faltando = () =>
     unidades.filter((u) => u.fracao_ideal == null || u.area_m2 == null).length;
-  if (faltando() > 0 && textoFracoes.trim()) {
+  if (faltando() > 0 && lotesFracoes.length > 0) {
     try {
-      const quadro = await extrairQuadroFracoes(apiKey, textoFracoes);
+      const quadro = await extrairQuadroFracoes(apiKey, lotesFracoes);
+
       for (const u of unidades) {
         const hit = quadro.get(chaveUnidade(u.bloco ?? null, u.numero));
         if (!hit) continue;
