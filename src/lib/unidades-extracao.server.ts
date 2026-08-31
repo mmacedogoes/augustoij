@@ -1132,13 +1132,14 @@ export async function extrairESalvarSugestaoUnidades(
   diagnostico.tokens_output = tokensOutput;
 
 
-  const { unidades, conflitos, escala, somasHipoteses, regras } = consolidar(
+  const { unidades, conflitos, escala, somasHipoteses, regras, medidasDescartadas } = consolidar(
     candidatas,
     conhecidas,
   );
   diagnostico.conflitos = conflitos;
   diagnostico.escala_fracao = escala;
   diagnostico.somas_hipoteses = somasHipoteses;
+  diagnostico.medidas_descartadas = medidasDescartadas;
   diagnostico.regra_area = regras.includes("area_privativa")
     ? "area_privativa"
     : regras.includes("area_global_menos_comum")
@@ -1149,6 +1150,8 @@ export async function extrairESalvarSugestaoUnidades(
   diagnostico.unidades_com_area = unidades.filter((u) => u.area_m2 != null).length;
   diagnostico.unidades_confianca_alta = unidades.filter((u) => u.confianca === "alta").length;
   diagnostico.unidades_pendentes_revisao = unidades.filter((u) => u.confianca !== "alta").length;
+  diagnostico.duracao_ms = Date.now() - inicio;
+
 
   try {
     const { registrarEventoIa } = await import("./uso-ia.server");
