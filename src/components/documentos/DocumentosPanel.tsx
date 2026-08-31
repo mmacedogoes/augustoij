@@ -67,6 +67,9 @@ type Doc = {
     extracao_status?: string;
     blocos_prontos?: number;
     total_blocos?: number;
+    indexado_em?: string | null;
+    modo?: string | null;
+    total_paginas?: number | null;
   } | null;
   created_at: string;
 };
