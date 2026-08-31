@@ -156,6 +156,7 @@ export async function processarDocumentoCore(
         processamento_meta: {
           ...meta,
           etapa: concluido ? "interpretacao_unidades" : "ocr",
+          indexado_em: concluido ? new Date().toISOString() : null,
           atualizado_em: new Date().toISOString(),
         },
       })

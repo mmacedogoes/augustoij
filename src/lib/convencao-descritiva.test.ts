@@ -258,3 +258,54 @@ describe("leitura determinística da seção descritiva", () => {
     expect(leitura.pendentes).toContain("2801B");
   });
 });
+
+describe("tentativa descritiva sempre registrada", () => {
+  it("localiza o rol real do Altavista, sem parêntese e com separador colado", () => {
+    const texto =
+      "Artigo 2 — O empreendimento, totalizando 56 unidades autônomas, assim distribuídas: " +
+      "Bloco A :101A, 201A, 301A, 401A, 501A, 601A, 701A, 801A, 901A, 1001A, 1101A; " +
+      "Bloco B :101B, 201B, 301B, 401B, 501B, 601B, 701B, 801B, 901B, 1001B, 1101B. " +
+      "Artigo 3 — ...";
+    const rol = extrairRolArtigo2(normalizarProsa(texto));
+    expect(rol?.total_declarado).toBe(56);
+    expect(rol?.identificadores).toContain("101A");
+    expect(rol?.identificadores).toContain("1101B");
+    expect(rol?.identificadores).toHaveLength(22);
+  });
+
+  it("falha na soma não descarta o caminho descritivo", () => {
+    const quebrado = TEXTO.replace("FRAÇÃO IDEAL....................................1", "FRAÇÃO IDEAL....................................9");
+    const leitura = interpretarConvencaoDescritiva(quebrado);
+    expect(leitura.unidades.length).toBeGreaterThan(0);
+    expect(leitura.ok).toBe(true);
+    if (!leitura.soma_ok) {
+      expect(leitura.tentativa.motivo_descarte).toContain("soma das frações");
+    }
+  });
+
+  it("escala mista: fração sem % é normalizada por valor", () => {
+    const misto = TEXTO.replace(/1,9(\d{3})%/, "1,9$1");
+    const leitura = interpretarConvencaoDescritiva(misto);
+    expect(leitura.unidades.every((u) => (u.fracao_ideal ?? 0) < 1)).toBe(true);
+  });
+
+  it("documento sem seção descritiva registra o motivo e as amostras", () => {
+    const leitura = interpretarConvencaoDescritiva(
+      "Artigo 1 — Fica instituído o condomínio. Artigo 2 — As despesas serão rateadas.",
+    );
+    expect(leitura.ok).toBe(false);
+    expect(leitura.tentativa.blocos_descritivos).toBe(0);
+    expect(leitura.tentativa.motivo_descarte).toContain("nenhum bloco descritivo");
+    expect(leitura.tentativa.amostras?.length).toBe(3);
+    expect(leitura.tentativa.amostras?.every((a) => a.ocorrencias.length === 0)).toBe(true);
+  });
+
+  it("a tentativa vem preenchida mesmo no caso feliz", () => {
+    const leitura = interpretarConvencaoDescritiva(TEXTO);
+    expect(leitura.tentativa.rol_localizado).toBe(true);
+    expect(leitura.tentativa.unidades_apos_expansao).toBe(56);
+    expect(leitura.tentativa.com_fracao_ideal).toBe(56);
+    expect(leitura.tentativa.soma_ok).toBe(true);
+    expect(leitura.tentativa.motivo_descarte).toBeNull();
+  });
+});

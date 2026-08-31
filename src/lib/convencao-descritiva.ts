@@ -71,6 +71,22 @@ export type BalancoDescritivo = {
   fecha: boolean;
 };
 
+/** O que aconteceu na tentativa de leitura descritiva — registrada SEMPRE. */
+export type TentativaDescritiva = {
+  rol_localizado: boolean;
+  identificadores_no_rol: number;
+  blocos_descritivos: number;
+  unidades_apos_expansao: number;
+  com_area_privativa: number;
+  com_fracao_ideal: number;
+  soma_fracoes: number;
+  escala_aplicada: string;
+  soma_ok: boolean;
+  caminho_usado: "secao_descritiva" | "censo_de_linhas";
+  motivo_descarte: string | null;
+  amostras?: Array<{ termo: string; ocorrencias: string[] }>;
+};
+
 export type LeituraDescritiva = {
   rol: RolArtigo2 | null;
   blocos: BlocoDescritivo[];
@@ -82,9 +98,13 @@ export type LeituraDescritiva = {
   duplicadas: string[];
   pendentes: string[];
   escala_fracao: string;
+  regras_aplicadas: string[];
   vagas_declaradas: number | null;
+  soma_ok: boolean;
+  tentativa: Omit<TentativaDescritiva, "caminho_usado">;
   ok: boolean;
 };
+
 
 // ---------------------------------------------------------------------------
 // Normalização
@@ -117,20 +137,20 @@ const mediana = (valores: number[]) => {
 // 1. O rol do Artigo 2 é o censo
 // ---------------------------------------------------------------------------
 
-const REGEX_ROL =
-  /totalizando\s+(\d+)\s*\([^)]*\)\s*(?:apartamentos?|unidades?|casas?|salas?|lojas?)[^.]{0,200}?assim\s+distribu[ií]d[oa]s?\s*:?/i;
+/**
+ * O parêntese com o número por extenso é OPCIONAL — no Altavista o rol é
+ * "totalizando 56 unidades autônomas, assim distribuídas: Bloco A :101A...".
+ * Aceita também "compõe-se de", "é composto de", "assim discriminadas" etc.
+ */
+export const REGEX_ROL =
+  /(?:totalizando|comp[õo]e[m]?-se\s+de|[ée]\s+composto\s+(?:de|por)|num?\s+total\s+de|no\s+total\s+de|perfazendo)\s+(\d+)(?:\s*\([^)]*\))?\s*(?:apartamentos?|unidades?(?:\s+aut[oôó]nomas?)?|casas?|salas?|lojas?)[^.]{0,240}?(?:assim\s+distribu[ií]d[oa]s?|assim\s+discriminad[oa]s?|assim\s+descrit[oa]s?|assim\s+dispost[oa]s?|a\s+saber)\s*:?/i;
 
-export function extrairRolArtigo2(prosa: string): RolArtigo2 | null {
-  const m = REGEX_ROL.exec(prosa);
-  if (!m) return null;
-  const inicio = m.index + m[0].length;
-  let corpo = prosa.slice(inicio, inicio + 4000);
-  const corte = /\bArt(?:igo)?\.?\s*\d|\bPar[áa]grafo\b|\bunidade\s+aut[oô]noma\s+de\s+N/i.exec(corpo);
-  if (corte) corpo = corpo.slice(0, corte.index);
+const REGEX_ROL_GLOBAL = new RegExp(REGEX_ROL.source, "gi");
 
+function identificadoresDoCorpo(corpo: string) {
   const identificadores: string[] = [];
   let blocoAtual: string | null = null;
-  const token = /(?:bloco|torre|quadra)\s+([A-Za-z0-9]{1,3})\s*:?|(\d{2,5})\s*([A-Za-z])?(?![\d.,])/gi;
+  const token = /(?:bloco|torre|quadra)\s*:?\s*([A-Za-z0-9]{1,3})\s*:?|(\d{2,5})\s*([A-Za-z])?(?![\d.,])/gi;
   for (let t = token.exec(corpo); t; t = token.exec(corpo)) {
     if (t[1]) {
       blocoAtual = t[1].toUpperCase();
@@ -141,21 +161,41 @@ export function extrairRolArtigo2(prosa: string): RolArtigo2 | null {
     const bloco = (t[3] ?? blocoAtual ?? "").toUpperCase();
     identificadores.push(`${numero}${bloco}`);
   }
-  return {
-    total_declarado: Number(m[1]) || null,
-    identificadores: [...new Set(identificadores)],
-    trecho: m[0] + corpo,
-  };
+  return [...new Set(identificadores)];
 }
+
+export function extrairRolArtigo2(prosa: string): RolArtigo2 | null {
+  REGEX_ROL_GLOBAL.lastIndex = 0;
+  const candidatos: RolArtigo2[] = [];
+  for (let m = REGEX_ROL_GLOBAL.exec(prosa); m; m = REGEX_ROL_GLOBAL.exec(prosa)) {
+    const inicio = m.index + m[0].length;
+    let corpo = prosa.slice(inicio, inicio + 4000);
+    const corte = /\bArt(?:igo)?\.?\s*\d|\bPar[áa]grafo\b|\bunidades?\s+aut[oôó]nomas?\s+de\s+N/i.exec(
+      corpo,
+    );
+    if (corte) corpo = corpo.slice(0, corte.index);
+    candidatos.push({
+      total_declarado: Number(m[1]) || null,
+      identificadores: identificadoresDoCorpo(corpo),
+      trecho: m[0] + corpo,
+    });
+  }
+  if (candidatos.length === 0) return null;
+  // Prefere a frase seguida da lista longa: é o rol de verdade, não uma menção.
+  const longos = candidatos.filter((c) => c.identificadores.length > 10);
+  const pool = longos.length ? longos : candidatos;
+  return [...pool].sort((a, b) => b.identificadores.length - a.identificadores.length)[0];
+}
+
 
 // ---------------------------------------------------------------------------
 // 2. Segmentar por bloco descritivo
 // ---------------------------------------------------------------------------
 
 const REGEX_SINGULAR =
-  /A\s+unidade\s+aut[oô]noma\s+de\s+N\.?\s*[º°o]?\s*([0-9]{1,5}\s*[A-Z]?)\s+possui/gi;
+  /A\s+unidade\s+aut[oôó]noma\s+de\s+N\.?\s*[º°o]?\s*([0-9]{1,5}\s*[A-Z]?)\s+possui/gi;
 const REGEX_PLURAL =
-  /As\s+unidades\s+aut[oô]nomas\s+de\s+N\.?\s*[º°o]?\s*(.+?)\s+possuem/gi;
+  /As\s+unidades\s+aut[oôó]nomas\s+de\s+N\.?\s*[º°o]?\s*(.+?)\s+possuem/gi;
 
 export function expandirIdentificadores(lista: string): string[] {
   return lista
@@ -271,9 +311,26 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
     }
   }
 
-  // --- escala das frações: (a) é a conferência mestre ------------------------
+  // --- escala das frações ----------------------------------------------------
+  // Primeiro por VALOR: quando a maioria já está em decimal, o valor solto acima
+  // de 1 é percentual cujo "%" o OCR perdeu. Só depois o somatório global decide.
+  const regrasAplicadas: string[] = [];
+  const comFracao = unidades.filter((u) => u.fracao_ideal != null);
+  const menores = comFracao.filter((u) => (u.fracao_ideal ?? 0) < 1).length;
+  if (comFracao.length > 0 && menores > comFracao.length / 2) {
+    let corrigidas = 0;
+    for (const u of comFracao) {
+      if ((u.fracao_ideal ?? 0) > 1) {
+        u.fracao_ideal = (u.fracao_ideal as number) / 100;
+        corrigidas += 1;
+      }
+    }
+    if (corrigidas > 0)
+      regrasAplicadas.push(`escala_por_valor: ${corrigidas} fração(ões) acima de 1 divididas por 100`);
+  }
   const brutas = unidades.map((u) => u.fracao_ideal).filter((v): v is number => v != null);
   let escala = "decimal";
+
   if (brutas.length > 0) {
     const soma = brutas.reduce((a, b) => a + b, 0);
     const melhor = ESCALAS.map((e) => ({ e, erro: Math.abs(soma * e.fator - 1) })).sort(
@@ -281,6 +338,7 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
     )[0];
     if (melhor && melhor.e.fator !== 1 && melhor.erro <= 0.005) {
       escala = melhor.e.nome;
+      regrasAplicadas.push(`escala_global: ${melhor.e.nome}`);
       for (const u of unidades) {
         if (u.fracao_ideal != null) u.fracao_ideal = u.fracao_ideal * melhor.e.fator;
       }
@@ -414,6 +472,19 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
     fecha: somaOk && faltando.length === 0 && sobrando.length === 0 && semMedida.length === 0,
   };
 
+  const comArea = unidades.filter((u) => u.area_privativa != null).length;
+  const comFracaoFinal = unidades.filter((u) => u.fracao_ideal != null).length;
+  const motivo_descarte =
+    blocos.length === 0
+      ? "nenhum bloco descritivo ('A unidade autônoma de N.º ... possui') foi localizado no texto indexado"
+      : unidades.length === 0
+        ? "os blocos descritivos não produziram nenhum identificador de unidade"
+        : comFracaoFinal === 0
+          ? "nenhum bloco trouxe a linha FRAÇÃO IDEAL legível"
+          : !somaOk
+            ? `a soma das frações deu ${somaFracoes.toFixed(6)} e nenhuma escala fecha em 1,0`
+            : null;
+
   return {
     rol,
     blocos,
@@ -425,10 +496,46 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
     duplicadas,
     pendentes: [...pendentes],
     escala_fracao: escala,
+    regras_aplicadas: regrasAplicadas,
     vagas_declaradas: capacidade,
-    ok: unidades.length > 0 && somaOk,
+    soma_ok: somaOk,
+    tentativa: {
+      rol_localizado: Boolean(rol),
+      identificadores_no_rol: noRol.size,
+      blocos_descritivos: blocos.length,
+      unidades_apos_expansao: unidades.length,
+      com_area_privativa: comArea,
+      com_fracao_ideal: comFracaoFinal,
+      soma_fracoes: Number(somaFracoes.toFixed(6)),
+      escala_aplicada: escala,
+      soma_ok: somaOk,
+      motivo_descarte,
+      // Sem blocos, mostre onde os termos aparecem: é o que evita adivinhação.
+      amostras: blocos.length === 0 ? amostrasDeTermos(prosa) : undefined,
+    },
+    // Se achou unidades, USA. A soma serve para status e confiança, não como
+    // interruptor do caminho descritivo.
+    ok: unidades.length > 0,
   };
 }
+
+const TERMOS_DIAGNOSTICO = ["unidade autônoma", "ÁREA REAL PRIVATIVA", "FRAÇÃO IDEAL"];
+
+/** As 3 primeiras ocorrências de cada termo, com 200 caracteres de contexto. */
+export function amostrasDeTermos(
+  prosa: string,
+  termos: string[] = TERMOS_DIAGNOSTICO,
+): Array<{ termo: string; ocorrencias: string[] }> {
+  return termos.map((termo) => {
+    const re = new RegExp(termo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "gi");
+    const ocorrencias: string[] = [];
+    for (let m = re.exec(prosa); m && ocorrencias.length < 3; m = re.exec(prosa)) {
+      ocorrencias.push(prosa.slice(Math.max(0, m.index - 60), m.index + 200).trim());
+    }
+    return { termo, ocorrencias };
+  });
+}
+
 
 // ---------------------------------------------------------------------------
 // 6. Faixa descritiva — o que precisa de OCR de alta fidelidade
@@ -444,7 +551,7 @@ export function localizarFaixaDescritiva(paginas: string[]): { inicio: number; f
   const marcada = paginas.map((p) => {
     const prosa = normalizarProsa(p);
     return (
-      /unidade[s]?\s+aut[oô]noma[s]?\s+de\s+N/i.test(prosa) ||
+      /unidade[s]?\s+aut[oôó]noma[s]?\s+de\s+N/i.test(prosa) ||
       /[ÁA]REA\s+REAL\s+PRIVATIVA/i.test(prosa) ||
       REGEX_ROL.test(prosa)
     );

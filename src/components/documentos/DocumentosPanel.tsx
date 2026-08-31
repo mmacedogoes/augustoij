@@ -67,6 +67,9 @@ type Doc = {
     extracao_status?: string;
     blocos_prontos?: number;
     total_blocos?: number;
+    indexado_em?: string | null;
+    modo?: string | null;
+    total_paginas?: number | null;
   } | null;
   created_at: string;
 };
@@ -632,11 +635,22 @@ export function DocumentosPanel({
                     statusBadge(d.status_processamento)
                   )}
                 </div>
+                {d.processamento_meta?.indexado_em && (
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    Indexado em{" "}
+                    {new Date(d.processamento_meta.indexado_em).toLocaleString("pt-BR")}
+                    {d.processamento_meta.modo ? ` · leitura ${d.processamento_meta.modo}` : ""}
+                    {d.processamento_meta.total_paginas
+                      ? ` · ${d.processamento_meta.total_paginas} página(s)`
+                      : ""}
+                  </p>
+                )}
                 {(d.processamento_meta?.mensagem || d.processamento_meta?.aviso) && (
                   <p className="mt-1 text-xs text-destructive">
                     {d.processamento_meta.mensagem ?? d.processamento_meta.aviso}
                   </p>
                 )}
+
               </div>
               <Button
                 size="icon"

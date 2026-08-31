@@ -4,7 +4,11 @@ import {
   type LinhaOrfa,
   type LinhaPendente,
 } from "./BalancoExtracao";
-import type { BalancoDescritivo, Conferencia } from "@/lib/convencao-descritiva";
+import type {
+  BalancoDescritivo,
+  Conferencia,
+  TentativaDescritiva,
+} from "@/lib/convencao-descritiva";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp, History } from "lucide-react";
@@ -151,6 +155,7 @@ export function UnidadesPanel({
           linhas_nao_lidas?: LinhaPendente[];
           orfas?: LinhaOrfa[];
           balanco_descritivo?: BalancoDescritivo | null;
+          tentativa_descritiva?: TentativaDescritiva | null;
           conferencias?: Conferencia[];
         };
       };
@@ -207,6 +212,7 @@ export function UnidadesPanel({
                 linhas_nao_lidas?: LinhaPendente[];
                 orfas?: LinhaOrfa[];
                 balanco_descritivo?: BalancoDescritivo | null;
+                tentativa_descritiva?: TentativaDescritiva | null;
                 conferencias?: Conferencia[];
                 unidades_confianca_alta?: number;
                 unidades_pendentes_revisao?: number;
@@ -426,9 +432,11 @@ export function UnidadesPanel({
                     {sugestao.payload.diagnostico.observacao}
                   </p>
                 )}
-                {sugestao.payload.diagnostico?.balanco && (
+                {(sugestao.payload.diagnostico?.balanco ||
+                  sugestao.payload.diagnostico?.tentativa_descritiva) && (
                   <BalancoExtracao
                     balanco={sugestao.payload.diagnostico.balanco}
+                    tentativa={sugestao.payload.diagnostico.tentativa_descritiva}
                     balancoDescritivo={sugestao.payload.diagnostico.balanco_descritivo}
                     conferencias={sugestao.payload.diagnostico.conferencias}
                     naoLidas={sugestao.payload.diagnostico.linhas_nao_lidas}
