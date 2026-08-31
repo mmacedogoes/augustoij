@@ -933,38 +933,40 @@ export function validarCoberturaExtracao(
     ok: Math.abs(soma - 1) <= 0.005,
     valor: Number(soma.toFixed(8)),
   });
-  const identidadesInvalidas = unidades.filter((u) => {
-    const p = u.medidas.find((m) => m.campo === "area_privativa");
-    const c = u.medidas.find((m) => m.campo === "area_comum");
-    const g = u.medidas.find((m) => m.campo === "area_global");
-    const pv = p ? numeroBrasileiro(p.valor_bruto) : null;
-    const cv = c ? numeroBrasileiro(c.valor_bruto) : null;
-    const gv = g ? numeroBrasileiro(g.valor_bruto) : null;
-    return pv != null && cv != null && gv != null && !dentroTolerancia(gv, pv + cv, 0.05);
-  });
-  validacoes.push({
-    regra: "area_global_privativa_comum",
-    ok: identidadesInvalidas.length === 0,
-    unidades: identidadesInvalidas.map((u) => chaveUnidade(u.bloco ?? null, u.numero)),
-  });
+  // A identidade "global = privativa + comum" NÃO vale em convenções que somam
+  // a vaga de garagem à área total. A conferência correta é a (c) da leitura
+  // descritiva: total = privativa + comum + vagas x constante derivada.
   const somaAreaPrivativa = unidades.reduce((total, unidade) => total + (unidade.area_m2 ?? 0), 0);
   validacoes.push({
     regra: "soma_area_privativa",
     ok: somaAreaPrivativa > 0,
     valor: Number(somaAreaPrivativa.toFixed(2)),
   });
-  const proporcionais = unidades.filter((u) => u.area_m2 != null && u.fracao_ideal != null);
-  const ratios = proporcionais.map((u) => (u.fracao_ideal ?? 0) / (u.area_m2 ?? 1));
+  // A fração é proporcional à ÁREA EQUIVALENTE DE CONSTRUÇÃO, não à privativa.
+  const areaEquivalente = (u: UnidadeExtraida) => {
+    const m = u.medidas.find((item) => item.campo === "area_equivalente");
+    return m ? numeroBrasileiro(m.valor_bruto) : null;
+  };
+  const usaEquivalente = unidades.some((u) => areaEquivalente(u) != null);
+  const proporcionais = unidades.filter(
+    (u) => u.fracao_ideal != null && (usaEquivalente ? areaEquivalente(u) != null : u.area_m2 != null),
+  );
+  const base = (u: UnidadeExtraida) => (usaEquivalente ? (areaEquivalente(u) ?? 1) : (u.area_m2 ?? 1));
+  const ratios = proporcionais.map((u) => (u.fracao_ideal ?? 0) / base(u));
   const mediaRatio = ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
+  // Sem a área equivalente a proporcionalidade é só um indício: tolerância larga.
+  const limite = usaEquivalente ? 0.0005 : 0.25;
   const foraProporcao = proporcionais.filter((u) => {
-    const ratio = (u.fracao_ideal ?? 0) / (u.area_m2 ?? 1);
-    return mediaRatio > 0 && Math.abs(ratio - mediaRatio) / mediaRatio > 0.25;
+    const ratio = (u.fracao_ideal ?? 0) / base(u);
+    return mediaRatio > 0 && Math.abs(ratio - mediaRatio) / mediaRatio > limite;
   });
   validacoes.push({
     regra: "proporcionalidade_area_fracao",
     ok: foraProporcao.length === 0,
+    detalhe: usaEquivalente ? "base: área equivalente" : "base: área privativa (indício)",
     unidades: foraProporcao.map((u) => chaveUnidade(u.bloco ?? null, u.numero)),
   });
+
   const declarado = diagnostico.total_declarado_no_texto ?? qtdEsperada;
   validacoes.push({
     regra: "quantidade_unidades",
