@@ -951,16 +951,30 @@ export async function extrairESalvarSugestaoUnidades(
     numero: String(u.numero),
   }));
 
+  const inicio = Date.now();
   const chunks = await carregarTodosChunks(supabase, doc.id);
-  const lotes = montarLotes(chunks);
+
+  // 1) Parser determinístico: quadros em Markdown não precisam de IA.
+  const { extrairUnidadesDeQuadros } = await import("./quadro-parser");
+  const quadro = extrairUnidadesDeQuadros(chunks);
+
+  // 2) Pré-filtro: só vai para a IA o que pode conter unidade.
+  const restantes = chunks.filter((c) => !quadro.chunksResolvidos.has(c.id));
+  const { chunks: selecionados, prefiltro } = selecionarChunksRelevantes(restantes);
+  const lotes = quadro.linhasLidas > 0 && selecionados.length === 0 ? [] : montarLotes(selecionados);
   const diagnostico: DiagnosticoExtracao = {
     total_trechos: chunks.length,
+    trechos_selecionados: selecionados.length,
+    prefiltro,
+    linhas_do_quadro: quadro.linhasLidas,
     total_lotes: lotes.length,
     lotes_processados: 0,
     lotes_com_erro: 0,
+    chamadas_ia: 0,
+    chamadas_em_cache: 0,
     erros: [],
   };
-  if (lotes.length === 0) {
+  if (lotes.length === 0 && quadro.linhasLidas === 0) {
     const mensagem =
       "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
     await persistirFalha(supabase, doc, mensagem, diagnostico);
@@ -968,23 +982,20 @@ export async function extrairESalvarSugestaoUnidades(
   }
 
   const categoria = getCategoriaMeta(normalizeCategoria(cond?.categoria as string | null));
-  const listaConhecida = conhecidas.length
-    ? `Unidades já cadastradas para correspondência (não use para inventar): ${JSON.stringify(conhecidas)}`
-    : "Não há lista prévia de unidades.";
   const system =
     "Extraia dados literais de unidades autônomas de uma convenção condominial brasileira. " +
     categoria.vocabIA +
     " " +
+    "Cada linha do texto recebido vem prefixada por um identificador do tipo L0001. " +
+    "Em cada medida, devolva o campo linha_id com o identificador da linha de onde o valor foi lido; NÃO redigite o trecho. " +
     "Leia cada trecho integralmente. Linhas agrupadas como '701A, 901A e 1501A' devem gerar uma linha para cada unidade somente se o texto atribuir explicitamente os mesmos valores ao grupo. " +
-    "Converta identificadores como 601A para bloco A e número 601 quando isso corresponder à lista conhecida. " +
     "Devolva TODAS as medidas numéricas que o documento associa à unidade, cada uma com seu rótulo. " +
     "Se o cabeçalho da coluna não estiver visível no trecho recebido, use campo indeterminado; nunca adivinhe o rótulo. " +
     "Preserve valor_bruto exatamente como impresso, inclusive %, ‰, barra e vírgula. Não converta escalas. " +
     "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
-    "Cada medida precisa citar literalmente o identificador e o valor e informar página/bloco da marca FONTE. " +
-    'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","trecho":string,"pagina":number|null,"bloco":number|null,"fonte":string|null}],"fonte":string|null}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
+    'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
 
-  const candidatas: UnidadeExtraida[] = [];
+  const candidatas: UnidadeExtraida[] = [...quadro.unidades];
   let tokensInput = 0;
   let tokensOutput = 0;
   let ultimoLogId: string | null = null;
@@ -992,27 +1003,50 @@ export async function extrairESalvarSugestaoUnidades(
   const resultados = new Array<{
     unidades: UnidadeExtraida[];
     diagnostico?: DiagnosticoExtracao;
-    chamada: ChamadaIA;
+    usage: { prompt_tokens: number; completion_tokens: number };
+    cache: boolean;
+    aigLogId: string | null;
+    aigRunId: string | null;
   } | null>(lotes.length).fill(null);
   let cursor = 0;
   const worker = async () => {
     for (;;) {
       const i = cursor++;
       if (i >= lotes.length) return;
+      const lote = lotes[i];
       try {
-        const chamada = await chamarIaJson(
-          apiKey,
-          system,
-          `${listaConhecida}\n\nArquivo: ${doc.nome_arquivo}\nLote ${i + 1}/${lotes.length}:\n${lotes[i].texto}`,
-        );
-        const parsed = chamada.data as { unidades?: unknown[]; diagnostico?: DiagnosticoExtracao };
+        const hash = await hashLote(lote.texto);
+        const cacheado = await lerCacheExtracao(supabase, hash);
+        const bruto =
+          cacheado ??
+          (await (async () => {
+            const chamada = await chamarIaJson(
+              apiKey,
+              system,
+              `Arquivo: ${doc.nome_arquivo}\nLote ${i + 1}/${lotes.length}:\n${lote.texto}`,
+            );
+            tokensInput += chamada.usage.prompt_tokens;
+            tokensOutput += chamada.usage.completion_tokens;
+            ultimoLogId = chamada.aigLogId;
+            ultimoRunId = chamada.aigRunId;
+            await gravarCacheExtracao(supabase, hash, chamada.data);
+            return chamada.data;
+          })());
+        const parsed = bruto as { unidades?: unknown[]; diagnostico?: DiagnosticoExtracao };
         const resultado = z.array(UnidadeExtraidaSchema).safeParse(parsed.unidades ?? []);
         if (!resultado.success) {
           throw new Error(
             `JSON incompatível no lote ${i + 1}: ${resultado.error.issues[0]?.message ?? "formato inválido"}`,
           );
         }
-        resultados[i] = { unidades: resultado.data, diagnostico: parsed.diagnostico, chamada };
+        resultados[i] = {
+          unidades: resultado.data.map((u) => resolverLinhas(u, lote.linhas)),
+          diagnostico: parsed.diagnostico,
+          usage: { prompt_tokens: 0, completion_tokens: 0 },
+          cache: Boolean(cacheado),
+          aigLogId: ultimoLogId,
+          aigRunId: ultimoRunId,
+        };
       } catch (errorLote) {
         diagnostico.lotes_com_erro = (diagnostico.lotes_com_erro ?? 0) + 1;
         diagnostico.erros?.push(
@@ -1033,21 +1067,25 @@ export async function extrairESalvarSugestaoUnidades(
         .eq("id", doc.id);
     }
   };
-  await Promise.all(Array.from({ length: Math.min(3, lotes.length) }, () => worker()));
+  await Promise.all(
+    Array.from({ length: Math.min(CONCORRENCIA, Math.max(1, lotes.length)) }, () => worker()),
+  );
   for (const resultado of resultados) {
     if (!resultado) continue;
     candidatas.push(...resultado.unidades);
     diagnostico.lotes_processados = (diagnostico.lotes_processados ?? 0) + 1;
+    if (resultado.cache) diagnostico.chamadas_em_cache = (diagnostico.chamadas_em_cache ?? 0) + 1;
+    else diagnostico.chamadas_ia = (diagnostico.chamadas_ia ?? 0) + 1;
     diagnostico.total_declarado_no_texto ??=
       resultado.diagnostico?.total_declarado_no_texto ?? null;
     diagnostico.quadro_fracoes_encontrado =
       diagnostico.quadro_fracoes_encontrado === true ||
+      quadro.linhasLidas > 0 ||
       resultado.diagnostico?.quadro_fracoes_encontrado === true;
-    tokensInput += resultado.chamada.usage.prompt_tokens;
-    tokensOutput += resultado.chamada.usage.completion_tokens;
-    ultimoLogId = resultado.chamada.aigLogId;
-    ultimoRunId = resultado.chamada.aigRunId;
   }
+  diagnostico.tokens_input = tokensInput;
+  diagnostico.tokens_output = tokensOutput;
+
 
   const { unidades, conflitos, escala, somasHipoteses, regras } = consolidar(
     candidatas,
