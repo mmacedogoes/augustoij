@@ -153,13 +153,6 @@ export const auditarCondominio = createServerFn({ method: "POST" })
         apiKey,
         { force: true },
       );
-      // A auditoria já aplica/relata o resultado — a sugestão pendente criada
-      // pelo pipeline seria um caminho duplicado na tela de unidades.
-      await supabaseAdmin
-        .from("sugestoes_unidades")
-        .delete()
-        .eq("documento_id", doc.id)
-        .eq("status", "pendente");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha na leitura da convenção.";
       return {
