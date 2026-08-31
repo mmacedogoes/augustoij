@@ -153,8 +153,9 @@ export function BalancoExtracao({
           />
           <Item rotulo="Balanço fecha" valor={d.fecha ? "sim" : "não"} alerta={!d.fecha} />
         </div>
-      ) : (
+      ) : balanco ? (
         <div className="grid gap-x-8 gap-y-1 text-xs sm:grid-cols-2">
+
           <Item rotulo="Linhas candidatas no censo" valor={String(balanco.linhas_candidatas)} />
           <Item rotulo="Lidas pelo leitor de quadros" valor={String(balanco.lidas_pelo_parser)} />
           <Item rotulo="Lidas pela IA" valor={String(balanco.lidas_pela_ia)} />
