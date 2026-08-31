@@ -1533,10 +1533,14 @@ async function persistirExtracao(entrada: {
 }): Promise<UnidadeExtraida[]> {
   const { supabase, doc, unidades, diagnostico, conhecidas, escala } = entrada;
   validarCoberturaExtracao(unidades, diagnostico, entrada.qtdEsperada);
-  const deleteQuery = supabase.from("sugestoes_unidades").delete().eq("documento_id", doc.id);
-  await (entrada.force
-    ? deleteQuery
-    : deleteQuery.in("status", ["pendente", "pendente_revisao", "falhou"]));
+  // Uma sugestão nova sempre substitui as anteriores do MESMO documento — não
+  // deve sobrar tela antiga convivendo com a leitura recém-feita.
+  const { error: deleteError } = await supabase
+    .from("sugestoes_unidades")
+    .delete()
+    .eq("documento_id", doc.id);
+  if (deleteError) throw new Error(deleteError.message);
+
   const pendentes = unidades.filter((u) => u.confianca !== "alta");
   const balancoFinal = diagnostico.balanco;
   const status =
