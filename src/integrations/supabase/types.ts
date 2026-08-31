@@ -4087,6 +4087,60 @@ export type Database = {
           },
         ]
       }
+      perfis_documentais_condominio: {
+        Row: {
+          condominio_id: string
+          created_at: string
+          diagnostico: Json
+          documento_id: string | null
+          escala_fracao: string | null
+          id: string
+          regra_area: string | null
+          tolerancias: Json
+          updated_at: string
+          validacoes: Json
+        }
+        Insert: {
+          condominio_id: string
+          created_at?: string
+          diagnostico?: Json
+          documento_id?: string | null
+          escala_fracao?: string | null
+          id?: string
+          regra_area?: string | null
+          tolerancias?: Json
+          updated_at?: string
+          validacoes?: Json
+        }
+        Update: {
+          condominio_id?: string
+          created_at?: string
+          diagnostico?: Json
+          documento_id?: string | null
+          escala_fracao?: string | null
+          id?: string
+          regra_area?: string | null
+          tolerancias?: Json
+          updated_at?: string
+          validacoes?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfis_documentais_condominio_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: true
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfis_documentais_condominio_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos: {
         Row: {
           ativo: boolean
