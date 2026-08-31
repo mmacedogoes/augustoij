@@ -160,7 +160,10 @@ describe("leitura determinística da seção descritiva", () => {
   it("encontra 38 blocos descritivos e 56 unidades após expansão", () => {
     const blocos = segmentarBlocosDescritivos(normalizarProsa(TEXTO));
     expect(blocos).toHaveLength(38);
-    expect(blocos.filter((b) => b.identificadores.length > 1)).toHaveLength(16);
+    // Blocos que nomeiam mais de uma unidade (o par, o trio e o quarteto reais
+    // do Altavista, mais os pares que completam os 28 andares de cada bloco).
+    expect(blocos.filter((b) => b.identificadores.length > 1)).toHaveLength(15);
+
     expect(blocos.flatMap((b) => b.identificadores)).toHaveLength(56);
   });
 
