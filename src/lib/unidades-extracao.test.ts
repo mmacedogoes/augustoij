@@ -8,6 +8,7 @@ import {
   trechoContemIdentidade,
   validarCoberturaExtracao,
   type UnidadeExtraida,
+  type DiagnosticoExtracao,
 } from "./unidades-extracao.server";
 
 type Medida = NonNullable<UnidadeExtraida["medidas"]>[number];
@@ -157,7 +158,7 @@ describe("identidade, paginação e determinismo", () => {
   });
 
   it("registra falhas aritméticas sem lançar exceção", () => {
-    const diagnostico = { total_declarado_no_texto: 2, lotes_com_erro: 1 };
+    const diagnostico: DiagnosticoExtracao = { total_declarado_no_texto: 2, lotes_com_erro: 1 };
     const unidadeParcial = unidade("601", []);
     unidadeParcial.confianca = "media";
     const validacoes = validarCoberturaExtracao([unidadeParcial], diagnostico, null);
