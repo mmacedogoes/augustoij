@@ -157,6 +157,8 @@ export type DiagnosticoExtracao = {
   /** As quatro conferências da seção descritiva. */
   conferencias?: Conferencia[];
   balanco_descritivo?: BalancoDescritivo;
+  /** A tentativa de leitura descritiva — registrada SEMPRE, deu certo ou não. */
+  tentativa_descritiva?: TentativaDescritiva;
   rol_artigo_2?: { total_declarado: number | null; identificadores: string[] } | null;
 };
 
