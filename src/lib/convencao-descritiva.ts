@@ -338,6 +338,7 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
     )[0];
     if (melhor && melhor.e.fator !== 1 && melhor.erro <= 0.005) {
       escala = melhor.e.nome;
+      regrasAplicadas.push(`escala_global: ${melhor.e.nome}`);
       for (const u of unidades) {
         if (u.fracao_ideal != null) u.fracao_ideal = u.fracao_ideal * melhor.e.fator;
       }
