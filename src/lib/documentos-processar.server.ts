@@ -122,6 +122,8 @@ export async function processarDocumentoCore(
         model: EMBEDDING_MODEL,
         tokensInput: totalTokens,
         meta: {
+          etapa: "embedding",
+
           documento_id: documento.id,
           chunks: chunks.length,
           arquivo: documento.nome_arquivo,
