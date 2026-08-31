@@ -20,6 +20,16 @@ export type UnidadeSugerida = {
   fracao_ideal: number | null;
   area_m2: number | null;
   vagas_garagem?: number;
+  confianca?: "alta" | "media" | "conflito";
+  medidas?: Array<{
+    campo: string;
+    valor_bruto: string;
+    escala: string;
+    trecho: string;
+    pagina?: number | null;
+    bloco?: number | null;
+  }>;
+  regras_aplicadas?: string[];
 };
 
 type Linha = {
@@ -29,6 +39,9 @@ type Linha = {
   fracao_ideal: string;
   area_m2: string;
   vagas_garagem: string;
+  confianca: "alta" | "media" | "conflito";
+  medidas: NonNullable<UnidadeSugerida["medidas"]>;
+  regrasAplicadas: string[];
 };
 
 function toLinha(u: UnidadeSugerida): Linha {
@@ -39,6 +52,9 @@ function toLinha(u: UnidadeSugerida): Linha {
     fracao_ideal: u.fracao_ideal != null ? String(u.fracao_ideal) : "",
     area_m2: u.area_m2 != null ? String(u.area_m2) : "",
     vagas_garagem: String(u.vagas_garagem ?? 0),
+    confianca: u.confianca ?? "media",
+    medidas: u.medidas ?? [],
+    regrasAplicadas: u.regras_aplicadas ?? [],
   };
 }
 
@@ -70,7 +86,7 @@ export function RevisarUnidadesDialog({
   onClose: () => void;
   onConfirmar: (
     linhas: Record<string, unknown>[],
-    estrategia: "manter" | "preencher" | "substituir",
+    estrategia: "manter" | "preencher",
   ) => Promise<void>;
 }) {
   const tipoPadrao = vocab.tipoPadrao;
@@ -92,7 +108,7 @@ export function RevisarUnidadesDialog({
       });
   });
   const [saving, setSaving] = useState(false);
-  const [estrategia, setEstrategia] = useState<"manter" | "preencher" | "substituir">("preencher");
+  const [estrategia, setEstrategia] = useState<"manter" | "preencher">("preencher");
 
   const chaveExistentes = new Set(
     existentes.map((e) => `${(e.bloco ?? "").trim().toLowerCase()}::${e.numero.trim()}`),
@@ -117,7 +133,7 @@ export function RevisarUnidadesDialog({
   function add() {
     setLinhas((prev) => [
       ...prev,
-      { bloco: "", numero: "", tipo: tipoPadrao, fracao_ideal: "", area_m2: "", vagas_garagem: "0" },
+      { bloco: "", numero: "", tipo: tipoPadrao, fracao_ideal: "", area_m2: "", vagas_garagem: "0", confianca: "media", medidas: [], regrasAplicadas: [] },
     ]);
   }
 
@@ -212,6 +228,25 @@ export function RevisarUnidadesDialog({
                   <Button size="icon" variant="ghost" onClick={() => remove(i)} className="text-red-500 hover:text-red-600 transition-colors">
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  <div className="col-span-7 text-xs text-muted-foreground">
+                    <span className={l.confianca === "conflito" ? "text-destructive" : l.confianca === "alta" ? "text-primary" : "text-amber-600"}>
+                      Confiança {l.confianca}
+                    </span>
+                    {l.regrasAplicadas.length > 0 && ` · ${l.regrasAplicadas.join(" · ")}`}
+                    {l.medidas.length > 0 && (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer">Ver {l.medidas.length} medida(s) e fontes</summary>
+                        <ul className="mt-1 space-y-1 border-l pl-3">
+                          {l.medidas.map((m, medidaIndex) => (
+                            <li key={`${m.campo}-${medidaIndex}`}>
+                              <strong>{m.campo.replaceAll("_", " ")}:</strong> {m.valor_bruto}
+                              {m.pagina ? ` · pág. ${m.pagina}` : ""} — “{m.trecho}”
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -292,7 +327,9 @@ export function RevisarUnidadesDialog({
                       Escolha como tratar as duplicatas antes de importar.
                     </p>
                     <div className="mt-2 inline-flex rounded-md border overflow-hidden text-xs">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => setEstrategia("manter")}
                         className={`px-3 py-1.5 transition-colors ${
@@ -302,8 +339,10 @@ export function RevisarUnidadesDialog({
                         }`}
                       >
                         Manter existentes
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => setEstrategia("preencher")}
                         className={`px-3 py-1.5 border-l transition-colors ${
@@ -313,18 +352,7 @@ export function RevisarUnidadesDialog({
                         }`}
                       >
                         Preencher campos vazios
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEstrategia("substituir")}
-                        className={`px-3 py-1.5 border-l transition-colors ${
-                          estrategia === "substituir"
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
-                        }`}
-                      >
-                        Substituir pelos da convenção
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>

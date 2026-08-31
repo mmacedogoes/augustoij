@@ -133,7 +133,7 @@ export function UnidadesPanel({
     {
       id: string;
       documento_id: string | null;
-      status: "pendente" | "falhou";
+      status: "pendente" | "pendente_revisao" | "falhou";
       payload: {
         unidades?: UnidadeSugerida[];
         diagnostico?: {
@@ -185,7 +185,7 @@ export function UnidadesPanel({
           (rows as unknown as {
             id: string;
             documento_id: string | null;
-            status: "pendente" | "falhou";
+            status: "pendente" | "pendente_revisao" | "falhou";
             payload: {
               unidades?: UnidadeSugerida[];
               diagnostico?: {
@@ -196,6 +196,10 @@ export function UnidadesPanel({
                 unidades_encontradas?: number;
                 unidades_com_fracao?: number;
                 unidades_com_area?: number;
+                unidades_confianca_alta?: number;
+                unidades_pendentes_revisao?: number;
+                escala_fracao?: string | null;
+                somas_hipoteses?: Record<string, number>;
               };
             };
           }[]) ?? [];
