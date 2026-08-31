@@ -245,13 +245,20 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
         p_linhas: data.linhas,
         p_estrategia: data.estrategiaConflito,
       });
-      if (error) throw new Error(`Nenhuma unidade foi alterada: ${error.message}`);
-      return resultado as {
-        unidadesCriadas: number;
-        unidadesAtualizadas: number;
-        condominosCriados: number;
-        erros: { linha: number; mensagem: string }[];
+      if (error) {
+        const msg = /row-level security|permission denied|Sem permissão/i.test(error.message)
+          ? "Você não tem permissão para gravar unidades neste condomínio."
+          : error.message;
+        throw new Error(`Nenhuma unidade foi alterada: ${msg}`);
+      }
+      const r = (resultado ?? {}) as { criadas?: number; atualizadas?: number };
+      return {
+        unidadesCriadas: r.criadas ?? 0,
+        unidadesAtualizadas: r.atualizadas ?? 0,
+        condominosCriados: 0,
+        erros: [] as { linha: number; mensagem: string }[],
       };
+
     }
     // Limite pelo total previsto na convenção (qtd_unidades).
     // 0 ou null = "não informado" → sem limite.
