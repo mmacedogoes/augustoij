@@ -208,8 +208,6 @@ export function UnidadesPanel({
                 orfas?: LinhaOrfa[];
                 balanco_descritivo?: BalancoDescritivo | null;
                 conferencias?: Conferencia[];
-          balanco_descritivo?: BalancoDescritivo | null;
-          conferencias?: Conferencia[];
                 unidades_confianca_alta?: number;
                 unidades_pendentes_revisao?: number;
                 escala_fracao?: string | null;
