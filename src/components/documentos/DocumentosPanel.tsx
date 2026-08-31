@@ -369,6 +369,32 @@ export function DocumentosPanel({
     }
   };
 
+  /** Reinterpretar usa o texto já indexado: nunca refaz OCR. */
+  const [reinterpretando, setReinterpretando] = useState<string | null>(null);
+  const reinterpretar = useServerFn(extrairUnidadesDaConvencao);
+  const handleReinterpretar = async (id: string) => {
+    setReinterpretando(id);
+    try {
+      const r = (await reinterpretar({ data: { documentoId: id } })) as {
+        status: "gerada" | "incompleta";
+        unidades: unknown[];
+        mensagem?: string;
+      };
+      if (r.status === "gerada") {
+        toast.success("Unidades reinterpretadas", {
+          description: `${r.unidades.length} unidade(s) para revisar.`,
+        });
+      } else {
+        toast.warning("A leitura precisa de revisão", { description: r.mensagem });
+      }
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao reinterpretar unidades");
+    } finally {
+      setReinterpretando(null);
+    }
+  };
+
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este documento e todos os seus trechos?")) return;
