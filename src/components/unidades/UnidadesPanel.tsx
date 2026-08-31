@@ -424,8 +424,11 @@ export function UnidadesPanel({
                 {sugestao.payload.diagnostico?.balanco && (
                   <BalancoExtracao
                     balanco={sugestao.payload.diagnostico.balanco}
+                    balancoDescritivo={sugestao.payload.diagnostico.balanco_descritivo}
+                    conferencias={sugestao.payload.diagnostico.conferencias}
                     naoLidas={sugestao.payload.diagnostico.linhas_nao_lidas}
                     orfas={sugestao.payload.diagnostico.orfas}
+
                   />
                 )}
               </div>
