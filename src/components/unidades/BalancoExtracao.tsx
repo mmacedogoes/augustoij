@@ -1,5 +1,7 @@
 /** Balanço da leitura: o usuário precisa ver a diferença entre "a convenção
  * não diz" e "o sistema não leu". */
+import type { BalancoDescritivo, Conferencia } from "@/lib/convencao-descritiva";
+
 export type BalancoLeitura = {
   linhas_candidatas: number;
   lidas_pelo_parser: number;
