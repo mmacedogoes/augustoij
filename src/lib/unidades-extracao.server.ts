@@ -1122,7 +1122,7 @@ export async function extrairESalvarSugestaoUnidades(
     "Extraia dados literais de unidades autônomas de uma convenção condominial brasileira. " +
     categoria.vocabIA +
     " " +
-    "Cada linha do texto recebido vem prefixada por um identificador do tipo L0001. " +
+    "Cada linha do texto recebido vem prefixada por um identificador estável, no formato documento:ordem:indice, seguido de ': '. " +
     "Em cada medida, devolva o campo linha_id com o identificador da linha de onde o valor foi lido; NÃO redigite o trecho. " +
     "Leia cada trecho integralmente. Linhas agrupadas como '701A, 901A e 1501A' devem gerar uma linha para cada unidade somente se o texto atribuir explicitamente os mesmos valores ao grupo. " +
     "Devolva TODAS as medidas numéricas que o documento associa à unidade, cada uma com seu rótulo. " +
