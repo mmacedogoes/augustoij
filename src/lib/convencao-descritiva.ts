@@ -472,6 +472,19 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
     fecha: somaOk && faltando.length === 0 && sobrando.length === 0 && semMedida.length === 0,
   };
 
+  const comArea = unidades.filter((u) => u.area_privativa != null).length;
+  const comFracaoFinal = unidades.filter((u) => u.fracao_ideal != null).length;
+  const motivo_descarte =
+    blocos.length === 0
+      ? "nenhum bloco descritivo ('A unidade autônoma de N.º ... possui') foi localizado no texto indexado"
+      : unidades.length === 0
+        ? "os blocos descritivos não produziram nenhum identificador de unidade"
+        : comFracaoFinal === 0
+          ? "nenhum bloco trouxe a linha FRAÇÃO IDEAL legível"
+          : !somaOk
+            ? `a soma das frações deu ${somaFracoes.toFixed(6)} e nenhuma escala fecha em 1,0`
+            : null;
+
   return {
     rol,
     blocos,
@@ -483,10 +496,46 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
     duplicadas,
     pendentes: [...pendentes],
     escala_fracao: escala,
+    regras_aplicadas: regrasAplicadas,
     vagas_declaradas: capacidade,
-    ok: unidades.length > 0 && somaOk,
+    soma_ok: somaOk,
+    tentativa: {
+      rol_localizado: Boolean(rol),
+      identificadores_no_rol: noRol.size,
+      blocos_descritivos: blocos.length,
+      unidades_apos_expansao: unidades.length,
+      com_area_privativa: comArea,
+      com_fracao_ideal: comFracaoFinal,
+      soma_fracoes: Number(somaFracoes.toFixed(6)),
+      escala_aplicada: escala,
+      soma_ok: somaOk,
+      motivo_descarte,
+      // Sem blocos, mostre onde os termos aparecem: é o que evita adivinhação.
+      amostras: blocos.length === 0 ? amostrasDeTermos(prosa) : undefined,
+    },
+    // Se achou unidades, USA. A soma serve para status e confiança, não como
+    // interruptor do caminho descritivo.
+    ok: unidades.length > 0,
   };
 }
+
+const TERMOS_DIAGNOSTICO = ["unidade autônoma", "ÁREA REAL PRIVATIVA", "FRAÇÃO IDEAL"];
+
+/** As 3 primeiras ocorrências de cada termo, com 200 caracteres de contexto. */
+export function amostrasDeTermos(
+  prosa: string,
+  termos: string[] = TERMOS_DIAGNOSTICO,
+): Array<{ termo: string; ocorrencias: string[] }> {
+  return termos.map((termo) => {
+    const re = new RegExp(termo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "gi");
+    const ocorrencias: string[] = [];
+    for (let m = re.exec(prosa); m && ocorrencias.length < 3; m = re.exec(prosa)) {
+      ocorrencias.push(prosa.slice(Math.max(0, m.index - 60), m.index + 200).trim());
+    }
+    return { termo, ocorrencias };
+  });
+}
+
 
 // ---------------------------------------------------------------------------
 // 6. Faixa descritiva — o que precisa de OCR de alta fidelidade
