@@ -120,6 +120,25 @@ export type DiagnosticoExtracao = {
   }>;
   unidades_confianca_alta?: number;
   unidades_pendentes_revisao?: number;
+  /** Balanço da invariante 4 — o total só pode diminuir com registro. */
+  balanco?: {
+    linhas_candidatas: number;
+    lidas_pelo_parser: number;
+    lidas_pela_ia: number;
+    nao_lidas: number;
+    unidades_resolvidas: number;
+    sem_correspondencia: number;
+    soma_fracoes: number;
+    fecha: boolean;
+  };
+  linhas_nao_lidas?: Array<{ linha_id: string; texto: string; pagina: number | null }>;
+  orfas?: Array<{
+    numero: string;
+    bloco: string | null;
+    texto: string;
+    pagina: number | null;
+    linha_id: string | null;
+  }>;
 };
 
 
