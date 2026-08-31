@@ -17,6 +17,13 @@ import {
   type Conhecida,
   type LinhaCenso,
 } from "./censo-linhas";
+import {
+  interpretarConvencaoDescritiva,
+  type BalancoDescritivo,
+  type Conferencia,
+  type LeituraDescritiva,
+} from "./convencao-descritiva";
+
 
 
 export const CampoMedidaSchema = z.enum([
