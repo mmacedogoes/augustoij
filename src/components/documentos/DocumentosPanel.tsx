@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ExternalLink,
   RefreshCw,
+  ListRestart,
   X as XIcon,
 
 } from "lucide-react";
@@ -51,6 +52,7 @@ import {
   getDocumentoViewUrl,
   reprocessarDocumento,
 } from "@/lib/documentos.functions";
+import { extrairUnidadesDaConvencao } from "@/lib/unidades-ia.functions";
 
 
 type Doc = {
