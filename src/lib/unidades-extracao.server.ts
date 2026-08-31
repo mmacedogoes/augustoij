@@ -287,35 +287,94 @@ function quaseIgual(a: number | null | undefined, b: number | null | undefined) 
   return Math.abs(a - b) < 0.000001;
 }
 
-function consolidar(
+function trechoContemIdentidade(
+  unidade: UnidadeExtraida,
+  trecho: string | null | undefined,
+) {
+  if (!trecho) return false;
+  const texto = normalizarParte(trecho);
+  const numero = normalizarParte(unidade.numero);
+  const bloco = normalizarParte(unidade.bloco ?? "");
+  if (!bloco) return texto.includes(numero);
+  return texto.includes(`${numero}${bloco}`) || texto.includes(`${bloco}${numero}`);
+}
+
+type CampoNumerico = "fracao_ideal" | "area_m2";
+
+function resolverValorComEvidencia(
+  candidatas: UnidadeExtraida[],
+  campo: CampoNumerico,
+) {
+  const trechoCampo = campo === "fracao_ideal" ? "fracao_trecho" : "area_trecho";
+  const origemCampo = campo === "fracao_ideal" ? "fracao_origem" : "area_origem";
+  const validas = candidatas.filter((item) => item[campo] != null && item[origemCampo] === "documento");
+  if (validas.length === 0) return { candidata: undefined, conflito: false };
+
+  const grupos = new Map<string, UnidadeExtraida[]>();
+  for (const item of validas) {
+    const valor = item[campo];
+    if (valor == null) continue;
+    const chave = valor.toFixed(6);
+    grupos.set(chave, [...(grupos.get(chave) ?? []), item]);
+  }
+  if (grupos.size === 1) return { candidata: validas[0], conflito: false };
+
+  const ranking = [...grupos.values()]
+    .map((grupo) => ({
+      grupo,
+      // Uma citação que contém simultaneamente a unidade e o valor é mais
+      // confiável que menções vizinhas capturadas por sobreposição do OCR.
+      fortes: grupo.filter((item) => trechoContemIdentidade(item, item[trechoCampo])).length,
+      evidencias: new Set(
+        grupo.map((item) => normalizarParte(`${item[trechoCampo] ?? ""}|${item.fonte ?? ""}`)),
+      ).size,
+    }))
+    .sort((a, b) => b.fortes - a.fortes || b.evidencias - a.evidencias || b.grupo.length - a.grupo.length);
+
+  const primeira = ranking[0];
+  const segunda = ranking[1];
+  if (!primeira) return { candidata: undefined, conflito: false };
+  const venceuPorCitacao = primeira.fortes > 0 && primeira.fortes > (segunda?.fortes ?? 0);
+  const venceuPorConsenso =
+    primeira.fortes === (segunda?.fortes ?? 0) &&
+    primeira.grupo.length > validas.length / 2;
+  return {
+    candidata: venceuPorCitacao || venceuPorConsenso ? primeira.grupo[0] : undefined,
+    conflito: !venceuPorCitacao && !venceuPorConsenso,
+  };
+}
+
+export function consolidar(
   candidatas: UnidadeExtraida[],
   conhecidas: Array<{ bloco: string | null; numero: string }>,
 ) {
-  const mapa = new Map<string, UnidadeExtraida>();
+  const grupos = new Map<string, UnidadeExtraida[]>();
   const conflitos: string[] = [];
   for (const bruta of candidatas) {
     const atualizada = validarProveniencia(normalizarParaCadastro({ ...bruta }, conhecidas));
     const key = chaveUnidade(atualizada.bloco ?? null, atualizada.numero);
-    const anterior = mapa.get(key);
-    if (!anterior) {
-      mapa.set(key, atualizada);
-      continue;
-    }
-    if (!quaseIgual(anterior.fracao_ideal, atualizada.fracao_ideal)) conflitos.push(`${key}: frações divergentes`);
-    if (!quaseIgual(anterior.area_m2, atualizada.area_m2)) conflitos.push(`${key}: áreas divergentes`);
-    mapa.set(key, {
-      ...anterior,
-      tipo: anterior.tipo ?? atualizada.tipo,
-      vagas_garagem: anterior.vagas_garagem ?? atualizada.vagas_garagem,
-      fracao_ideal: anterior.fracao_ideal ?? atualizada.fracao_ideal,
-      fracao_origem: anterior.fracao_ideal != null ? anterior.fracao_origem : atualizada.fracao_origem,
-      fracao_trecho: anterior.fracao_ideal != null ? anterior.fracao_trecho : atualizada.fracao_trecho,
-      area_m2: anterior.area_m2 ?? atualizada.area_m2,
-      area_origem: anterior.area_m2 != null ? anterior.area_origem : atualizada.area_origem,
-      area_trecho: anterior.area_m2 != null ? anterior.area_trecho : atualizada.area_trecho,
-    });
+    grupos.set(key, [...(grupos.get(key) ?? []), atualizada]);
   }
-  return { unidades: [...mapa.values()], conflitos: [...new Set(conflitos)] };
+
+  const unidades = [...grupos.entries()].map(([key, grupo]) => {
+    const base = grupo[0];
+    const fracao = resolverValorComEvidencia(grupo, "fracao_ideal");
+    const area = resolverValorComEvidencia(grupo, "area_m2");
+    if (fracao.conflito) conflitos.push(`${key}: frações divergentes sem evidência conclusiva`);
+    if (area.conflito) conflitos.push(`${key}: áreas divergentes sem evidência conclusiva`);
+    return {
+      ...base,
+      tipo: grupo.find((item) => item.tipo)?.tipo,
+      vagas_garagem: grupo.find((item) => item.vagas_garagem != null)?.vagas_garagem,
+      fracao_ideal: fracao.candidata?.fracao_ideal ?? null,
+      fracao_origem: fracao.candidata?.fracao_origem ?? "ausente",
+      fracao_trecho: fracao.candidata?.fracao_trecho ?? null,
+      area_m2: area.candidata?.area_m2 ?? null,
+      area_origem: area.candidata?.area_origem ?? "ausente",
+      area_trecho: area.candidata?.area_trecho ?? null,
+    } satisfies UnidadeExtraida;
+  });
+  return { unidades, conflitos };
 }
 
 export function validarCoberturaExtracao(
@@ -331,8 +390,11 @@ export function validarCoberturaExtracao(
     );
   }
   if (diagnostico.conflitos?.length) {
+    const unidadesEmConflito = new Set(
+      diagnostico.conflitos.map((conflito) => conflito.split(":", 1)[0]),
+    ).size;
     throw new ExtracaoIncompletaError(
-      `Foram encontrados valores conflitantes para ${diagnostico.conflitos.length} unidade(s). Nada foi importado até a revisão da fonte.`,
+      `Foram encontrados valores conflitantes sem evidência conclusiva para ${unidadesEmConflito} unidade(s). Nada foi importado até a revisão da fonte.`,
       diagnostico,
     );
   }
@@ -463,7 +525,7 @@ export async function extrairESalvarSugestaoUnidades(
     "Converta identificadores como 601A para bloco A e número 601 quando isso corresponder à lista conhecida. " +
     "Para area_m2 use somente ÁREA REAL PRIVATIVA, nunca área total, comum ou equivalente. " +
     "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
-    "Todo número precisa trazer em *_trecho uma citação literal curta que contenha o próprio número; sem citação, devolva null. " +
+    "Todo número precisa trazer em *_trecho uma citação literal que contenha o identificador da unidade e o próprio valor; sem ambos na mesma citação, devolva null. " +
     'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","fracao_ideal":number|null,"area_m2":number|null,"vagas_garagem":number,"fracao_origem":"documento|ausente","area_origem":"documento|ausente","fracao_trecho":string|null,"area_trecho":string|null,"fonte":string|null}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
 
   const candidatas: UnidadeExtraida[] = [];

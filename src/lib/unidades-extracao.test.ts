@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chaveUnidade,
+  consolidar,
   montarLotes,
   normalizarParaCadastro,
   validarCoberturaExtracao,
@@ -78,5 +79,53 @@ describe("extração literal de unidades", () => {
         1,
       ),
     ).not.toThrow();
+  });
+
+  it("descarta a leitura vizinha quando outra citação liga unidade e valor", () => {
+    const resultado = consolidar(
+      [
+        {
+          bloco: "A",
+          numero: "601",
+          fracao_ideal: 1.9828,
+          fracao_origem: "documento",
+          fracao_trecho: "FRAÇÃO IDEAL 1,9828%",
+        },
+        {
+          bloco: "A",
+          numero: "601",
+          fracao_ideal: 1.9956,
+          fracao_origem: "documento",
+          fracao_trecho: "A unidade 601A possui FRAÇÃO IDEAL 1,9956%",
+        },
+      ],
+      [{ bloco: "A", numero: "601" }],
+    );
+    expect(resultado.conflitos).toEqual([]);
+    expect(resultado.unidades[0]?.fracao_ideal).toBe(1.9956);
+  });
+
+  it("mantém bloqueio quando duas citações igualmente fortes divergem", () => {
+    const resultado = consolidar(
+      [
+        {
+          bloco: "A",
+          numero: "601",
+          area_m2: 315.5,
+          area_origem: "documento",
+          area_trecho: "Unidade 601A — ÁREA REAL PRIVATIVA 315,50 m²",
+        },
+        {
+          bloco: "A",
+          numero: "601",
+          area_m2: 310.37,
+          area_origem: "documento",
+          area_trecho: "Unidade 601A — ÁREA REAL PRIVATIVA 310,37 m²",
+        },
+      ],
+      [{ bloco: "A", numero: "601" }],
+    );
+    expect(resultado.conflitos).toHaveLength(1);
+    expect(resultado.unidades[0]?.area_m2).toBeNull();
   });
 });
