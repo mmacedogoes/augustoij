@@ -39,11 +39,7 @@ export function normalizarFracao(valorBruto: string, escala: EscalaFracao): numb
   const numero = numeroBrasileiro(valorBruto);
   if (numero == null) return null;
   const canonica =
-    escala === "percentual"
-      ? numero / 100
-      : escala === "milesimo"
-        ? numero / 1000
-        : numero;
+    escala === "percentual" ? numero / 100 : escala === "milesimo" ? numero / 1000 : numero;
   return canonica >= 0 && canonica <= 1 ? arredondar8(canonica) : null;
 }
 
@@ -74,14 +70,13 @@ export function detectarEscalaFracoes(valores: string[]): {
 }
 
 export function extrairNumerais(texto: string) {
-  return texto.match(/[+-]?\d{1,3}(?:\.\d{3})*(?:,\d+)?(?:\s*[%‰]|\s*mil[eé]simos?)?|[+-]?\d+(?:[.,]\d+)?\s*\/\s*\d+(?:[.,]\d+)?|[+-]?\d+(?:[.,]\d+)?/gi) ?? [];
+  return (
+    texto.match(
+      /[+-]?\d{1,3}(?:\.\d{3})*(?:,\d+)?(?:\s*[%‰]|\s*mil[eé]simos?)?|[+-]?\d+(?:[.,]\d+)?\s*\/\s*\d+(?:[.,]\d+)?|[+-]?\d+(?:[.,]\d+)?/gi,
+    ) ?? []
+  );
 }
 
-export function dentroTolerancia(
-  a: number,
-  b: number,
-  absoluto: number,
-  relativo = 0.001,
-) {
+export function dentroTolerancia(a: number, b: number, absoluto: number, relativo = 0.001) {
   return Math.abs(a - b) <= Math.max(absoluto, Math.max(Math.abs(a), Math.abs(b)) * relativo);
 }

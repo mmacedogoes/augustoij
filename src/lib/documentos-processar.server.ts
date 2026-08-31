@@ -55,9 +55,8 @@ export async function processarDocumentoCore(
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { embedChunksParallel } = await import("./ai-gateway.server");
-  const { extractText, prepararBlocosOcr, ocrBloco, chunkText, OCR_CONCORRENCIA } = await import(
-    "./documentos.server"
-  );
+  const { extractText, prepararBlocosOcr, ocrBloco, chunkText, OCR_CONCORRENCIA } =
+    await import("./documentos.server");
   const { humanizeIngestError, IngestError } = await import("./ingest-errors");
 
   const indexar = async (
@@ -122,7 +121,11 @@ export async function processarDocumentoCore(
         origem: "embedding_documento",
         model: EMBEDDING_MODEL,
         tokensInput: totalTokens,
-        meta: { documento_id: documento.id, chunks: chunks.length, arquivo: documento.nome_arquivo },
+        meta: {
+          documento_id: documento.id,
+          chunks: chunks.length,
+          arquivo: documento.nome_arquivo,
+        },
       });
     } catch (err) {
       console.error("[uso-ia] indexar:", err);
@@ -151,7 +154,8 @@ export async function processarDocumentoCore(
         await extrairESalvarSugestaoUnidades(supabaseAdmin, documento.id, apiKey, { force: true });
       } catch (autoErr) {
         console.error("[processarDocumentoCore] auto-extração de unidades falhou", autoErr);
-        const mensagem = autoErr instanceof Error ? autoErr.message : "Falha ao interpretar as unidades.";
+        const mensagem =
+          autoErr instanceof Error ? autoErr.message : "Falha ao interpretar as unidades.";
         await supabaseAdmin
           .from("documentos")
           .update({
