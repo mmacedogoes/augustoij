@@ -13,13 +13,7 @@ export type PendenciaAuditoria = {
 export type ResultadoAuditoria = {
   condominioId: string;
   nome: string;
-  status:
-    | "ok"
-    | "sem_convencao"
-    | "leitura_incompleta"
-    | "corrigido"
-    | "pendencias"
-    | "erro";
+  status: "ok" | "sem_convencao" | "leitura_incompleta" | "corrigido" | "pendencias" | "erro";
   mensagem?: string;
   declarado: number | null;
   cadastradas: number;
@@ -142,20 +136,15 @@ export const auditarCondominio = createServerFn({ method: "POST" })
     base.cadastradas = cadastro.length;
     base.somaFracoes =
       cadastro.length > 0
-        ? Number(
-            cadastro
-              .reduce((acc, u) => acc + (Number(u.fracao_ideal) || 0), 0)
-              .toFixed(6),
-          )
+        ? Number(cadastro.reduce((acc, u) => acc + (Number(u.fracao_ideal) || 0), 0).toFixed(6))
         : null;
 
     if (!doc) {
       return { ...base, status: "sem_convencao", mensagem: "Sem convenção processada." };
     }
 
-    const { chaveUnidade, extrairESalvarSugestaoUnidades } = await import(
-      "@/lib/unidades-extracao.server"
-    );
+    const { chaveUnidade, extrairESalvarSugestaoUnidades } =
+      await import("@/lib/unidades-extracao.server");
     let extraidas;
     try {
       extraidas = await extrairESalvarSugestaoUnidades(
@@ -176,7 +165,9 @@ export const auditarCondominio = createServerFn({ method: "POST" })
       return {
         ...base,
         status:
-          typeof e === "object" && e !== null && "codigo" in e &&
+          typeof e === "object" &&
+          e !== null &&
+          "codigo" in e &&
           (e as { codigo?: unknown }).codigo === "extracao_incompleta"
             ? "leitura_incompleta"
             : "erro",
@@ -287,19 +278,13 @@ export const auditarCondominio = createServerFn({ method: "POST" })
     base.somaFracoes =
       base.cadastradas > 0
         ? Number(
-            (finais ?? [])
-              .reduce((acc, u) => acc + (Number(u.fracao_ideal) || 0), 0)
-              .toFixed(6),
+            (finais ?? []).reduce((acc, u) => acc + (Number(u.fracao_ideal) || 0), 0).toFixed(6),
           )
         : null;
 
     const houveCorrecao =
       base.criadas > 0 || base.fracoesPreenchidas > 0 || base.areasPreenchidas > 0;
-    base.status = houveCorrecao
-      ? "corrigido"
-      : base.pendencias.length > 0
-        ? "pendencias"
-        : "ok";
+    base.status = houveCorrecao ? "corrigido" : base.pendencias.length > 0 ? "pendencias" : "ok";
 
     try {
       const { logAdminAction } = await import("@/lib/audit.server");

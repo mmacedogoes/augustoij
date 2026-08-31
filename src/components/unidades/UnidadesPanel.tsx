@@ -63,11 +63,7 @@ type TipoUnidade =
   | "galpao"
   | "vaga_avulsa"
   | "outro";
-type TipoCondomino =
-  | "proprietario"
-  | "inquilino"
-  | "morador"
-  | "responsavel_legal";
+type TipoCondomino = "proprietario" | "inquilino" | "morador" | "responsavel_legal";
 
 type Condomino = {
   id: string;
@@ -163,7 +159,6 @@ export function UnidadesPanel({
   const [qtdConvencao, setQtdConvencao] = useState<number | null>(null);
   const [reprocessando, setReprocessando] = useState(false);
 
-
   const vocab = getCategoriaMeta(categoria).vocab;
 
   function refresh() {
@@ -238,9 +233,7 @@ export function UnidadesPanel({
           toast.error(`Não foi possível baixar o arquivo original. ${r.mensagem ?? ""}`);
           break;
         case "erro_leitura":
-          toast.error(
-            `Não foi possível ler o conteúdo do arquivo. ${r.mensagem ?? ""}`,
-          );
+          toast.error(`Não foi possível ler o conteúdo do arquivo. ${r.mensagem ?? ""}`);
           break;
         case "erro_indexacao":
           toast.error(`Falha ao reindexar os trechos. ${r.mensagem ?? ""}`);
@@ -268,7 +261,6 @@ export function UnidadesPanel({
           refresh();
           break;
       }
-
     } catch (e) {
       toast.dismiss(t);
       toast.error(e instanceof Error ? e.message : "Falha ao reprocessar a convenção");
@@ -358,7 +350,10 @@ export function UnidadesPanel({
   }
 
   async function excluir(u: Unidade) {
-    if (!confirm(`Excluir a unidade ${formatLabel(u, vocab.bloco)} e todos os condôminos vinculados?`)) return;
+    if (
+      !confirm(`Excluir a unidade ${formatLabel(u, vocab.bloco)} e todos os condôminos vinculados?`)
+    )
+      return;
     try {
       await deleteFn({ data: { id: u.id } });
       toast.success("Unidade removida.");
@@ -387,57 +382,56 @@ export function UnidadesPanel({
         </Card>
       )}
 
-      {isOwner && sugestoes.some((item) => item.status === "pendente") && (() => {
-        const sugestao = sugestoes.find((item) => item.status === "pendente");
-        if (!sugestao) return null;
-        return (
-        <Card className="app-card p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
-          <Sparkles className="h-5 w-5 text-primary shrink-0" />
-          <div className="flex-1 min-w-[220px]">
-            <p className="text-sm font-medium">
-              {sugestao.payload.unidades?.length ?? 0} {vocab.unidade.toLowerCase()}(s)
-              detectada(s) na convenção
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Revise antes de importar para a lista de {vocab.unidade.toLowerCase()}s.
-            </p>
-            {sugestao.payload.diagnostico?.observacao && (
-              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                {sugestao.payload.diagnostico.observacao}
-              </p>
-            )}
-
-          </div>
-          <Button
-            size="sm"
-            onClick={() =>
-              setRevisarUnidades({
-                sugestaoId: sugestao.id,
-                unidades: sugestao.payload.unidades ?? [],
-              })
-            }
-          >
-            Revisar e importar
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={async () => {
-              await updateSugestaoFn({ data: { id: sugestao.id, status: "descartada" } });
-              setSugestoes((prev) => prev.filter((item) => item.id !== sugestao.id));
-            }}
-          >
-            Descartar
-          </Button>
-        </Card>
-        );
-      })()}
+      {isOwner &&
+        sugestoes.some((item) => item.status === "pendente") &&
+        (() => {
+          const sugestao = sugestoes.find((item) => item.status === "pendente");
+          if (!sugestao) return null;
+          return (
+            <Card className="app-card p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
+              <Sparkles className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1 min-w-[220px]">
+                <p className="text-sm font-medium">
+                  {sugestao.payload.unidades?.length ?? 0} {vocab.unidade.toLowerCase()}(s)
+                  detectada(s) na convenção
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Revise antes de importar para a lista de {vocab.unidade.toLowerCase()}s.
+                </p>
+                {sugestao.payload.diagnostico?.observacao && (
+                  <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                    {sugestao.payload.diagnostico.observacao}
+                  </p>
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={() =>
+                  setRevisarUnidades({
+                    sugestaoId: sugestao.id,
+                    unidades: sugestao.payload.unidades ?? [],
+                  })
+                }
+              >
+                Revisar e importar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={async () => {
+                  await updateSugestaoFn({ data: { id: sugestao.id, status: "descartada" } });
+                  setSugestoes((prev) => prev.filter((item) => item.id !== sugestao.id));
+                }}
+              >
+                Descartar
+              </Button>
+            </Card>
+          );
+        })()}
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">
-            {vocab.unidade}s e Condôminos
-          </h2>
+          <h2 className="text-lg font-semibold tracking-tight">{vocab.unidade}s e Condôminos</h2>
           <p className="text-xs text-muted-foreground">
             {unidades.length} {vocab.unidade.toLowerCase()}(s) cadastrada(s)
             {qtdConvencao != null && ` • convenção prevê ${qtdConvencao}`}
@@ -497,7 +491,9 @@ export function UnidadesPanel({
                 className="flex-1 min-w-0 text-left hover:bg-muted/30 -m-2 p-2 rounded transition-colors"
                 title="Ver detalhes da unidade"
               >
-                <p className="font-medium text-primary hover:underline">{formatLabel(u, vocab.bloco)}</p>
+                <p className="font-medium text-primary hover:underline">
+                  {formatLabel(u, vocab.bloco)}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {labelTipoUnidade(u.tipo)}
                   {u.area_m2 ? ` • ${u.area_m2} m²` : ""}
@@ -505,7 +501,7 @@ export function UnidadesPanel({
                   {u.vagas_garagem ? ` • ${u.vagas_garagem} vaga(s)` : ""}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {(u.condominos?.length ?? 0)} condômino(s)
+                  {u.condominos?.length ?? 0} condômino(s)
                 </p>
               </button>
               <Button size="sm" variant="ghost" onClick={() => setOpenView(u)}>
@@ -638,9 +634,7 @@ export function UnidadesPanel({
               });
               setSugestoes((prev) => prev.filter((s) => s.id !== revisarUnidades.sugestaoId));
             }
-            toast.success(
-              `${r.unidadesCriadas} nova(s), ${r.unidadesAtualizadas} já existiam.`,
-            );
+            toast.success(`${r.unidadesCriadas} nova(s), ${r.unidadesAtualizadas} já existiam.`);
             setRevisarUnidades(null);
             refresh();
           }}
@@ -678,9 +672,8 @@ export function UnidadesPanel({
             <DialogHeader>
               <DialogTitle>Importar unidades e condôminos</DialogTitle>
               <DialogDescription>
-                Envie um arquivo com a lista de condôminos (CSV, Excel, PDF, DOCX, DOC ou
-                TXT). As unidades são extraídas automaticamente da convenção do condomínio
-                na aba Documentos.
+                Envie um arquivo com a lista de condôminos (CSV, Excel, PDF, DOCX, DOC ou TXT). As
+                unidades são extraídas automaticamente da convenção do condomínio na aba Documentos.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
@@ -700,9 +693,7 @@ export function UnidadesPanel({
               <Button
                 className="w-full"
                 disabled={extraindo}
-                onClick={() =>
-                  document.getElementById("upload-import-unificado")?.click()
-                }
+                onClick={() => document.getElementById("upload-import-unificado")?.click()}
               >
                 {extraindo ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -763,10 +754,7 @@ function VisualizarUnidadeDialog({
             <Campo label="Bloco" valor={unidade.bloco ?? "—"} />
             <Campo label="Número" valor={unidade.numero} />
             <Campo label="Tipo" valor={labelTipoUnidade(unidade.tipo)} />
-            <Campo
-              label="Área"
-              valor={unidade.area_m2 != null ? `${unidade.area_m2} m²` : "—"}
-            />
+            <Campo label="Área" valor={unidade.area_m2 != null ? `${unidade.area_m2} m²` : "—"} />
             <Campo
               label="Fração ideal"
               valor={unidade.fracao_ideal != null ? String(unidade.fracao_ideal) : "—"}
@@ -784,9 +772,7 @@ function VisualizarUnidadeDialog({
 
           <section>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold">
-                Condôminos ({condominos.length})
-              </h3>
+              <h3 className="text-sm font-semibold">Condôminos ({condominos.length})</h3>
               {isOwner && (
                 <Button size="sm" variant="outline" onClick={onGerenciarCondominos}>
                   <Users className="h-4 w-4 mr-1" /> Gerenciar
@@ -815,9 +801,7 @@ function VisualizarUnidadeDialog({
                     <div className="text-xs text-muted-foreground mt-1 grid grid-cols-2 gap-1">
                       <span>CPF: {c.cpf || "—"}</span>
                       <span>Tel.: {c.telefone || "—"}</span>
-                      <span className="col-span-2 truncate">
-                        E-mail: {c.email || "—"}
-                      </span>
+                      <span className="col-span-2 truncate">E-mail: {c.email || "—"}</span>
                     </div>
                   </div>
                 ))}
@@ -839,20 +823,10 @@ function VisualizarUnidadeDialog({
   );
 }
 
-function Campo({
-  label,
-  valor,
-  colSpan,
-}: {
-  label: string;
-  valor: string;
-  colSpan?: boolean;
-}) {
+function Campo({ label, valor, colSpan }: { label: string; valor: string; colSpan?: boolean }) {
   return (
     <div className={colSpan ? "col-span-2" : ""}>
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="text-sm text-foreground">{valor}</p>
     </div>
   );
@@ -908,7 +882,10 @@ function UnidadeFormDialog({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Bloco (opcional)</Label>
-            <Input value={form.bloco} onChange={(e) => setForm({ ...form, bloco: e.target.value })} />
+            <Input
+              value={form.bloco}
+              onChange={(e) => setForm({ ...form, bloco: e.target.value })}
+            />
           </div>
           <div>
             <Label>Número *</Label>
@@ -1024,7 +1001,14 @@ function CondominosDialog({
         tipo: form.tipo,
         principal: form.principal,
       });
-      setForm({ nome: "", cpf: "", email: "", telefone: "", tipo: "proprietario", principal: false });
+      setForm({
+        nome: "",
+        cpf: "",
+        email: "",
+        telefone: "",
+        tipo: "proprietario",
+        principal: false,
+      });
       toast.success("Condômino adicionado.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao adicionar");
@@ -1086,11 +1070,17 @@ function CondominosDialog({
               <div className="grid grid-cols-2 gap-2">
                 <div className="col-span-2">
                   <Label>Nome *</Label>
-                  <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                  <Input
+                    value={form.nome}
+                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>CPF</Label>
-                  <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
+                  <Input
+                    value={form.cpf}
+                    onChange={(e) => setForm({ ...form, cpf: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>Telefone</Label>
@@ -1209,8 +1199,8 @@ function ImportDialog({
               bloco, numero, tipo_unidade, fracao_ideal, area_m2, vagas_garagem, nome, cpf, email,
               telefone, tipo_condomino
             </code>
-            . Somente <strong>numero</strong> é obrigatório. Linhas com mesmo bloco+numero
-            atualizam a unidade existente.
+            . Somente <strong>numero</strong> é obrigatório. Linhas com mesmo bloco+numero atualizam
+            a unidade existente.
           </DialogDescription>
         </DialogHeader>
 
@@ -1225,7 +1215,9 @@ function ImportDialog({
               className="w-full h-40 border rounded p-2 text-xs font-mono"
               value={csv}
               onChange={(e) => setCsv(e.target.value)}
-              placeholder={"bloco,numero,nome,email,tipo_condomino\nA,101,João Silva,joao@email.com,proprietario"}
+              placeholder={
+                "bloco,numero,nome,email,tipo_condomino\nA,101,João Silva,joao@email.com,proprietario"
+              }
             />
           </div>
 
