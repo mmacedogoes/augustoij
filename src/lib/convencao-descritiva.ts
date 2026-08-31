@@ -71,6 +71,22 @@ export type BalancoDescritivo = {
   fecha: boolean;
 };
 
+/** O que aconteceu na tentativa de leitura descritiva — registrada SEMPRE. */
+export type TentativaDescritiva = {
+  rol_localizado: boolean;
+  identificadores_no_rol: number;
+  blocos_descritivos: number;
+  unidades_apos_expansao: number;
+  com_area_privativa: number;
+  com_fracao_ideal: number;
+  soma_fracoes: number;
+  escala_aplicada: string;
+  soma_ok: boolean;
+  caminho_usado: "secao_descritiva" | "censo_de_linhas";
+  motivo_descarte: string | null;
+  amostras?: Array<{ termo: string; ocorrencias: string[] }>;
+};
+
 export type LeituraDescritiva = {
   rol: RolArtigo2 | null;
   blocos: BlocoDescritivo[];
@@ -82,9 +98,13 @@ export type LeituraDescritiva = {
   duplicadas: string[];
   pendentes: string[];
   escala_fracao: string;
+  regras_aplicadas: string[];
   vagas_declaradas: number | null;
+  soma_ok: boolean;
+  tentativa: Omit<TentativaDescritiva, "caminho_usado">;
   ok: boolean;
 };
+
 
 // ---------------------------------------------------------------------------
 // Normalização
