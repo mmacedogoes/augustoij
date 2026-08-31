@@ -54,7 +54,7 @@ const PROMPT_OCR =
 
 const OCR_MODEL = "google/gemini-3.7-flash";
 /** Páginas por bloco de OCR (documentos longos são lidos em partes). */
-const PAGINAS_POR_BLOCO = 6;
+const PAGINAS_POR_BLOCO = 12;
 /** Chamadas simultâneas ao gateway. */
 const CONCORRENCIA_OCR = 3;
 
@@ -311,16 +311,24 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
       const pdfCopy = new Uint8Array(buffer.byteLength);
       pdfCopy.set(buffer);
       const pdf = await getDocumentProxy(pdfCopy);
-      const { text, totalPages } = await unpdfExtract(pdf, { mergePages: true });
-      const out = Array.isArray(text) ? text.join("\n\n") : text;
-      const limpo = (out ?? "").trim();
-      // Fotocópias costumam trazer uma camada de texto residual (números de
-      // página, carimbos). Menos de ~180 caracteres úteis por página indica
-      // que o conteúdo real está na imagem → OCR por visão.
-      const paginas = Math.max(1, totalPages ?? 1);
-      if (!limpo || limpo.length < paginas * 180) {
+      const { text, totalPages } = await unpdfExtract(pdf, { mergePages: false });
+      const paginasTexto = (Array.isArray(text) ? text : [text ?? ""]).map((p) => String(p ?? ""));
+      const out = paginasTexto.join("\n\n");
+      const limpo = out.trim();
+      // OCR é caro: só vale quando a camada de texto é mesmo insuficiente.
+      // Critério por PALAVRAS (um quadro tem poucos caracteres por página) e
+      // pela presença do vocabulário esperado de um documento condominial.
+      const paginas = Math.max(1, totalPages ?? paginasTexto.length ?? 1);
+      const palavras = (p: string) => (p.match(/\p{L}[\p{L}\p{M}'-]*/gu) ?? []).length;
+      const paginasComTexto = paginasTexto.filter((p) => palavras(p) >= 40).length;
+      const vocabulario = /condom[ií]nio|artigo|fra[cç][aã]o|unidade/i.test(limpo);
+      const suficiente =
+        limpo.length > 0 && vocabulario && paginasComTexto >= Math.ceil(paginas * 0.6);
+      if (!suficiente) {
         throw new Error("__NEEDS_VISION__");
       }
+
+
       return out;
     }
     if (lower.endsWith(".docx") || lower.endsWith(".doc")) {

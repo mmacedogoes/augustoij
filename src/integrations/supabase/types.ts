@@ -3523,6 +3523,27 @@ export type Database = {
           },
         ]
       }
+      extracao_cache: {
+        Row: {
+          created_at: string
+          hash_lote: string
+          resposta_json: Json
+          versao_prompt: string
+        }
+        Insert: {
+          created_at?: string
+          hash_lote: string
+          resposta_json: Json
+          versao_prompt: string
+        }
+        Update: {
+          created_at?: string
+          hash_lote?: string
+          resposta_json?: Json
+          versao_prompt?: string
+        }
+        Relationships: []
+      }
       helpdesk_mensagens: {
         Row: {
           anexos: Json

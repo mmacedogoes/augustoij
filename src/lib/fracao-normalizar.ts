@@ -35,13 +35,24 @@ export function numeroBrasileiro(valor: string): number | null {
   return Number.isFinite(numero) ? numero : null;
 }
 
+/**
+ * Converte para a fração canônica. NÃO descarta valores fora de [0,1]:
+ * a célula do quadro costuma trazer "1,9956" com o "%" apenas no cabeçalho
+ * da coluna, e quem decide a escala é `detectarEscalaFracoes`, pelo somatório.
+ */
 export function normalizarFracao(valorBruto: string, escala: EscalaFracao): number | null {
   const numero = numeroBrasileiro(valorBruto);
   if (numero == null) return null;
   const canonica =
     escala === "percentual" ? numero / 100 : escala === "milesimo" ? numero / 1000 : numero;
-  return canonica >= 0 && canonica <= 1 ? arredondar8(canonica) : null;
+  return Number.isFinite(canonica) ? arredondar8(canonica) : null;
 }
+
+/** Validação de faixa aplicada somente depois de escolhida a escala global. */
+export function fracaoNaFaixa(valor: number | null | undefined): valor is number {
+  return valor != null && valor >= 0 && valor <= 1;
+}
+
 
 export function inferirEscalaLiteral(valorBruto: string): EscalaFracao | null {
   if (/\//.test(valorBruto)) return "fracao_ordinaria";

@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ExternalLink,
   RefreshCw,
+  ListRestart,
   X as XIcon,
 
 } from "lucide-react";
@@ -51,6 +52,7 @@ import {
   getDocumentoViewUrl,
   reprocessarDocumento,
 } from "@/lib/documentos.functions";
+import { extrairUnidadesDaConvencao } from "@/lib/unidades-ia.functions";
 
 
 type Doc = {
@@ -369,6 +371,32 @@ export function DocumentosPanel({
     }
   };
 
+  /** Reinterpretar usa o texto já indexado: nunca refaz OCR. */
+  const [reinterpretando, setReinterpretando] = useState<string | null>(null);
+  const reinterpretar = useServerFn(extrairUnidadesDaConvencao);
+  const handleReinterpretar = async (id: string) => {
+    setReinterpretando(id);
+    try {
+      const r = (await reinterpretar({ data: { documentoId: id } })) as {
+        status: "gerada" | "incompleta";
+        unidades: unknown[];
+        mensagem?: string;
+      };
+      if (r.status === "gerada") {
+        toast.success("Unidades reinterpretadas", {
+          description: `${r.unidades.length} unidade(s) para revisar.`,
+        });
+      } else {
+        toast.warning("A leitura precisa de revisão", { description: r.mensagem });
+      }
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao reinterpretar unidades");
+    } finally {
+      setReinterpretando(null);
+    }
+  };
+
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este documento e todos os seus trechos?")) return;
@@ -624,7 +652,7 @@ export function DocumentosPanel({
                   variant="ghost"
                   disabled={reprocessando === d.id}
                   onClick={() => handleReprocessar(d.id)}
-                  title="Reler documento (OCR completo)"
+                  title="Reler o arquivo do zero (refaz o OCR — etapa mais cara e demorada)"
                 >
                   {reprocessando === d.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -633,6 +661,22 @@ export function DocumentosPanel({
                   )}
                 </Button>
               )}
+              {!readOnly && d.tipo === "convencao" && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  disabled={reinterpretando === d.id}
+                  onClick={() => handleReinterpretar(d.id)}
+                  title="Reinterpretar unidades a partir do texto já lido (não refaz OCR — custo baixo)"
+                >
+                  {reinterpretando === d.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ListRestart className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+
               {!readOnly && (
                 <Button
                   size="icon"

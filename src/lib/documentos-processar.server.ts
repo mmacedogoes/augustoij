@@ -122,6 +122,8 @@ export async function processarDocumentoCore(
         model: EMBEDDING_MODEL,
         tokensInput: totalTokens,
         meta: {
+          etapa: "embedding",
+
           documento_id: documento.id,
           chunks: chunks.length,
           arquivo: documento.nome_arquivo,
@@ -285,6 +287,26 @@ export async function processarDocumentoCore(
     );
 
     const blocosProntos = prontos.size;
+    try {
+      const { registrarEventoIa } = await import("./uso-ia.server");
+      await registrarEventoIa({
+        userId,
+        condominioId: documento.condominio_id,
+        origem: "ocr_visao_documento",
+        model: "ocr",
+        meta: {
+          etapa: "ocr",
+          documento_id: documento.id,
+          total_paginas: totalPaginas,
+          blocos_lidos: blocosProntos,
+          paginas_falhas: falhas.length,
+          duracao_ms: Date.now() - inicio,
+        },
+      });
+    } catch (err) {
+      console.error("[uso-ia] ocr:", err);
+    }
+
     if (blocosProntos === 0) {
       throw new IngestError(
         "ocr",
