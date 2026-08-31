@@ -311,9 +311,26 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
     }
   }
 
-  // --- escala das frações: (a) é a conferência mestre ------------------------
+  // --- escala das frações ----------------------------------------------------
+  // Primeiro por VALOR: quando a maioria já está em decimal, o valor solto acima
+  // de 1 é percentual cujo "%" o OCR perdeu. Só depois o somatório global decide.
+  const regrasAplicadas: string[] = [];
+  const comFracao = unidades.filter((u) => u.fracao_ideal != null);
+  const menores = comFracao.filter((u) => (u.fracao_ideal ?? 0) < 1).length;
+  if (comFracao.length > 0 && menores > comFracao.length / 2) {
+    let corrigidas = 0;
+    for (const u of comFracao) {
+      if ((u.fracao_ideal ?? 0) > 1) {
+        u.fracao_ideal = (u.fracao_ideal as number) / 100;
+        corrigidas += 1;
+      }
+    }
+    if (corrigidas > 0)
+      regrasAplicadas.push(`escala_por_valor: ${corrigidas} fração(ões) acima de 1 divididas por 100`);
+  }
   const brutas = unidades.map((u) => u.fracao_ideal).filter((v): v is number => v != null);
   let escala = "decimal";
+
   if (brutas.length > 0) {
     const soma = brutas.reduce((a, b) => a + b, 0);
     const melhor = ESCALAS.map((e) => ({ e, erro: Math.abs(soma * e.fator - 1) })).sort(
