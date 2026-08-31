@@ -919,7 +919,52 @@ async function carregarTodosChunks(supabase: SupabaseClient, documentoId: string
   }
 }
 
+export async function hashLote(texto: string) {
+  const bytes = new TextEncoder().encode(texto);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function lerCacheExtracao(supabase: SupabaseClient, hash: string) {
+  const { data } = await supabase
+    .from("extracao_cache")
+    .select("resposta_json")
+    .eq("hash_lote", hash)
+    .eq("versao_prompt", VERSAO_PROMPT)
+    .maybeSingle();
+  return (data?.resposta_json as unknown) ?? null;
+}
+
+async function gravarCacheExtracao(supabase: SupabaseClient, hash: string, resposta: unknown) {
+  await supabase
+    .from("extracao_cache")
+    .upsert(
+      { hash_lote: hash, versao_prompt: VERSAO_PROMPT, resposta_json: resposta as never },
+      { onConflict: "hash_lote,versao_prompt" },
+    );
+}
+
+/** A IA devolve `linha_id`; o texto vem da nossa própria cópia do lote. */
+function resolverLinhas(unidade: UnidadeExtraida, linhas: Record<string, LinhaLote>) {
+  return {
+    ...unidade,
+    medidas: (unidade.medidas ?? []).map((medida) => {
+      const linha = medida.linha_id ? linhas[medida.linha_id] : undefined;
+      if (!linha) return medida;
+      return {
+        ...medida,
+        trecho: linha.texto,
+        pagina: linha.pagina ?? medida.pagina ?? null,
+        bloco: linha.bloco ?? medida.bloco ?? null,
+        fonte: linha.fonte,
+        bloco_contexto: linha.bloco_contexto,
+      };
+    }),
+  };
+}
+
 export async function extrairESalvarSugestaoUnidades(
+
   supabase: SupabaseClient,
   documentoId: string,
   apiKey: string,
