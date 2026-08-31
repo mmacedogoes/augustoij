@@ -420,6 +420,41 @@ export function montarLotes(chunks: ChunkRow[], tamanho = TAMANHO_LOTE): Lote[] 
   return lotes;
 }
 
+/**
+ * Monta lotes com LINHAS SOLTAS (as que ninguém leu), já numeradas pelo
+ * `linha_id` estável do censo. É mais barato que reenviar trechos inteiros.
+ */
+export function montarLotesDeLinhas(linhas: LinhaCenso[], tamanho = TAMANHO_LOTE): Lote[] {
+  const lotes: Lote[] = [];
+  let partes: string[] = [];
+  let fontes: string[] = [];
+  let mapa: Record<string, LinhaLote> = {};
+  let tamanhoAtual = 0;
+  for (const linha of linhas) {
+    const parte = `${linha.linha_id}${linha.bloco_contexto ? ` [bloco ${linha.bloco_contexto}]` : ""}: ${linha.texto}`;
+    if (partes.length > 0 && tamanhoAtual + parte.length > tamanho) {
+      lotes.push({ texto: partes.join("\n"), fontes, linhas: mapa });
+      partes = [];
+      fontes = [];
+      mapa = {};
+      tamanhoAtual = 0;
+    }
+    partes.push(parte);
+    tamanhoAtual += parte.length + 1;
+    if (!fontes.includes(linha.fonte)) fontes.push(linha.fonte);
+    mapa[linha.linha_id] = {
+      texto: linha.texto,
+      pagina: linha.pagina,
+      bloco: linha.bloco,
+      fonte: linha.fonte,
+      bloco_contexto: linha.bloco_contexto,
+    };
+  }
+  if (partes.length) lotes.push({ texto: partes.join("\n"), fontes, linhas: mapa });
+  return lotes;
+}
+
+
 function escaparRegex(valor: string) {
   return valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
