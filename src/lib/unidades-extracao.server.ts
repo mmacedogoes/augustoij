@@ -1087,19 +1087,21 @@ export async function extrairESalvarSugestaoUnidades(
   const inicio = Date.now();
   const chunks = await carregarTodosChunks(supabase, doc.id);
 
-  // 1) Parser determinístico: quadros em Markdown não precisam de IA.
-  const { extrairUnidadesDeQuadros } = await import("./quadro-parser");
-  const quadro = extrairUnidadesDeQuadros(chunks);
+  // 1) Censo determinístico: a meta da extração é a lista de linhas candidatas.
+  const censo = construirCenso(doc.id, chunks);
 
-  // 2) Pré-filtro: só vai para a IA o que pode conter unidade.
-  const restantes = chunks.filter((c) => !quadro.chunksResolvidos.has(c.id));
-  const { chunks: selecionados, prefiltro } = selecionarChunksRelevantes(restantes);
-  const lotes = quadro.linhasLidas > 0 && selecionados.length === 0 ? [] : montarLotes(selecionados);
+  // 2) Parser determinístico: quadros em Markdown não precisam de IA.
+  const { extrairUnidadesDeQuadros } = await import("./quadro-parser");
+  const quadro = extrairUnidadesDeQuadros(censo);
+
+  // 3) Para a IA vão apenas as LINHAS que ninguém leu — nunca trechos inteiros.
+  const naoLidas = censo.candidatas.filter((l) => !quadro.linhasLidas.has(l.linha_id));
+  const lotes = montarLotesDeLinhas(naoLidas);
   const diagnostico: DiagnosticoExtracao = {
     total_trechos: chunks.length,
-    trechos_selecionados: selecionados.length,
-    prefiltro,
-    linhas_do_quadro: quadro.linhasLidas,
+    trechos_selecionados: new Set(naoLidas.map((l) => l.chunk_id)).size,
+    prefiltro: `linhas candidatas ${censo.candidatas.length}; para a IA ${naoLidas.length}`,
+    linhas_do_quadro: quadro.linhasLidas.size,
     total_lotes: lotes.length,
     lotes_processados: 0,
     lotes_com_erro: 0,
@@ -1107,12 +1109,13 @@ export async function extrairESalvarSugestaoUnidades(
     chamadas_em_cache: 0,
     erros: [],
   };
-  if (lotes.length === 0 && quadro.linhasLidas === 0) {
+  if (censo.candidatas.length === 0) {
     const mensagem =
       "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
     await persistirFalha(supabase, doc, mensagem, diagnostico);
     throw new ExtracaoIncompletaError(mensagem, diagnostico);
   }
+
 
   const categoria = getCategoriaMeta(normalizeCategoria(cond?.categoria as string | null));
   const system =
