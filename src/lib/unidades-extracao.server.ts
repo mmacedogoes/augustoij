@@ -432,9 +432,10 @@ export function trechoContemIdentidade(
   // O bloco pode vir de um título acima da tabela, não da própria linha.
   if (numeroNaLinha && normalizarParte(blocoContexto ?? "") === bloco) return true;
   const padroes = [
-    `(?<![0-9])${numero}(?![0-9])[\\s\\-/,.]*${ABREV_BLOCO}(?<![a-z])${bloco}(?![a-z])`,
-    `${ABREV_BLOCO}(?<![a-z])${bloco}(?![a-z])[\\s\\-/,.]*${ABREV_UNIDADE}(?<![0-9])${numero}(?![0-9])`,
+    `(?<![0-9])${numero}(?![0-9])[\\s\\-–—/,.]*${ABREV_BLOCO}(?<![a-z])${bloco}(?![a-z])`,
+    `${ABREV_BLOCO}(?<![a-z])${bloco}(?![a-z])[\\s\\-–—/,.]*${ABREV_UNIDADE}(?<![0-9])${numero}(?![0-9])`,
     `(?<![0-9])${numero}(?![0-9])\\s+(?:do|da)\\s+(?:bloco|torre|quadra)\\s+${bloco}(?![a-z])`,
+
   ];
   return padroes.some((padrao) => new RegExp(padrao, "i").test(texto));
 }
