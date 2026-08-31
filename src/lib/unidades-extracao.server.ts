@@ -693,8 +693,34 @@ export function consolidar(
   conhecidas: Array<{ bloco: string | null; numero: string }>,
 ) {
   const grupos = new Map<string, UnidadeExtraida[]>();
+  const orfas: NonNullable<DiagnosticoExtracao["orfas"]> = [];
   for (const bruta of candidatas) {
-    const atualizada = validarProveniencia(normalizarParaCadastro({ ...bruta }, conhecidas));
+    const referencia = bruta.medidas?.find((m) => m.bloco_contexto || m.linha_id);
+    const identidade = resolverIdentidade(
+      {
+        bloco: bruta.bloco ?? null,
+        numero: bruta.numero,
+        bloco_contexto: bruta.medidas?.find((m) => m.bloco_contexto)?.bloco_contexto ?? null,
+      },
+      conhecidas as Conhecida[],
+    );
+    if (identidade.status === "sem_correspondencia") {
+      // Nunca cria chave nova e nunca agrupa: vai para a revisão como órfã.
+      orfas.push({
+        numero: bruta.numero,
+        bloco: bruta.bloco ?? null,
+        texto: referencia?.trecho ?? bruta.medidas?.[0]?.trecho ?? "",
+        pagina: referencia?.pagina ?? null,
+        linha_id: referencia?.linha_id ?? null,
+      });
+      continue;
+    }
+    const atualizada = validarProveniencia({
+      ...bruta,
+      bloco: identidade.bloco,
+      numero: identidade.numero,
+      regras_aplicadas: [...(bruta.regras_aplicadas ?? []), identidade.regra],
+    });
     const key = chaveUnidade(atualizada.bloco ?? null, atualizada.numero);
     grupos.set(key, [...(grupos.get(key) ?? []), atualizada]);
   }
