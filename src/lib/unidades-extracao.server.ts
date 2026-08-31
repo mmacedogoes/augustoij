@@ -1132,95 +1132,116 @@ export async function extrairESalvarSugestaoUnidades(
     'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
 
   const candidatas: UnidadeExtraida[] = [...quadro.unidades];
+  const lidasPelaIa = new Set<string>();
   let tokensInput = 0;
   let tokensOutput = 0;
   let ultimoLogId: string | null = null;
   let ultimoRunId: string | null = null;
-  const resultados = new Array<{
-    unidades: UnidadeExtraida[];
-    diagnostico?: DiagnosticoExtracao;
-    usage: { prompt_tokens: number; completion_tokens: number };
-    cache: boolean;
-    aigLogId: string | null;
-    aigRunId: string | null;
-  } | null>(lotes.length).fill(null);
-  let cursor = 0;
-  const worker = async () => {
-    for (;;) {
-      const i = cursor++;
-      if (i >= lotes.length) return;
-      const lote = lotes[i];
-      try {
-        const hash = await hashLote(lote.texto);
-        const cacheado = await lerCacheExtracao(supabase, hash);
-        const bruto =
-          cacheado ??
-          (await (async () => {
-            const chamada = await chamarIaJson(
-              apiKey,
-              system,
-              `Arquivo: ${doc.nome_arquivo}\nLote ${i + 1}/${lotes.length}:\n${lote.texto}`,
+
+  const processarLotes = async (grupo: Lote[], rotulo: string) => {
+    if (grupo.length === 0) return;
+    const resultados = new Array<{
+      unidades: UnidadeExtraida[];
+      diagnostico?: DiagnosticoExtracao;
+      cache: boolean;
+    } | null>(grupo.length).fill(null);
+    let cursor = 0;
+    const worker = async () => {
+      for (;;) {
+        const i = cursor++;
+        if (i >= grupo.length) return;
+        const lote = grupo[i];
+        try {
+          const hash = await hashLote(lote.texto);
+          const cacheado = await lerCacheExtracao(supabase, hash);
+          const bruto =
+            cacheado ??
+            (await (async () => {
+              const chamada = await chamarIaJson(
+                apiKey,
+                system,
+                `Arquivo: ${doc.nome_arquivo}\n${rotulo} ${i + 1}/${grupo.length}:\n${lote.texto}`,
+              );
+              tokensInput += chamada.usage.prompt_tokens;
+              tokensOutput += chamada.usage.completion_tokens;
+              ultimoLogId = chamada.aigLogId;
+              ultimoRunId = chamada.aigRunId;
+              await gravarCacheExtracao(supabase, hash, chamada.data);
+              return chamada.data;
+            })());
+          const parsed = bruto as { unidades?: unknown[]; diagnostico?: DiagnosticoExtracao };
+          const resultado = z.array(UnidadeExtraidaSchema).safeParse(parsed.unidades ?? []);
+          if (!resultado.success) {
+            throw new Error(
+              `JSON incompatível no lote ${i + 1}: ${resultado.error.issues[0]?.message ?? "formato inválido"}`,
             );
-            tokensInput += chamada.usage.prompt_tokens;
-            tokensOutput += chamada.usage.completion_tokens;
-            ultimoLogId = chamada.aigLogId;
-            ultimoRunId = chamada.aigRunId;
-            await gravarCacheExtracao(supabase, hash, chamada.data);
-            return chamada.data;
-          })());
-        const parsed = bruto as { unidades?: unknown[]; diagnostico?: DiagnosticoExtracao };
-        const resultado = z.array(UnidadeExtraidaSchema).safeParse(parsed.unidades ?? []);
-        if (!resultado.success) {
-          throw new Error(
-            `JSON incompatível no lote ${i + 1}: ${resultado.error.issues[0]?.message ?? "formato inválido"}`,
+          }
+          resultados[i] = {
+            unidades: resultado.data.map((u) => resolverLinhas(u, lote.linhas)),
+            diagnostico: parsed.diagnostico,
+            cache: Boolean(cacheado),
+          };
+        } catch (errorLote) {
+          diagnostico.lotes_com_erro = (diagnostico.lotes_com_erro ?? 0) + 1;
+          diagnostico.erros?.push(
+            `${rotulo} ${i + 1}: ${errorLote instanceof Error ? errorLote.message : "falha desconhecida"}`,
           );
         }
-        resultados[i] = {
-          unidades: resultado.data.map((u) => resolverLinhas(u, lote.linhas)),
-          diagnostico: parsed.diagnostico,
-          usage: { prompt_tokens: 0, completion_tokens: 0 },
-          cache: Boolean(cacheado),
-          aigLogId: ultimoLogId,
-          aigRunId: ultimoRunId,
-        };
-      } catch (errorLote) {
-        diagnostico.lotes_com_erro = (diagnostico.lotes_com_erro ?? 0) + 1;
-        diagnostico.erros?.push(
-          `Lote ${i + 1}: ${errorLote instanceof Error ? errorLote.message : "falha desconhecida"}`,
-        );
+        await supabase
+          .from("documentos")
+          .update({
+            processamento_meta: {
+              etapa: "interpretacao_unidades",
+              lotes_concluidos: resultados.filter(Boolean).length,
+              total_lotes: grupo.length,
+              lotes_com_erro: diagnostico.lotes_com_erro,
+              atualizado_em: new Date().toISOString(),
+            },
+          })
+          .eq("id", doc.id);
       }
-      await supabase
-        .from("documentos")
-        .update({
-          processamento_meta: {
-            etapa: "interpretacao_unidades",
-            lotes_concluidos: resultados.filter(Boolean).length,
-            total_lotes: lotes.length,
-            lotes_com_erro: diagnostico.lotes_com_erro,
-            atualizado_em: new Date().toISOString(),
-          },
-        })
-        .eq("id", doc.id);
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(CONCORRENCIA, Math.max(1, grupo.length)) }, () => worker()),
+    );
+    for (const resultado of resultados) {
+      if (!resultado) continue;
+      candidatas.push(...resultado.unidades);
+      for (const unidade of resultado.unidades) {
+        for (const medida of unidade.medidas ?? []) {
+          if (medida.linha_id && censo.porId.has(medida.linha_id)) lidasPelaIa.add(medida.linha_id);
+        }
+      }
+      diagnostico.lotes_processados = (diagnostico.lotes_processados ?? 0) + 1;
+      if (resultado.cache) diagnostico.chamadas_em_cache = (diagnostico.chamadas_em_cache ?? 0) + 1;
+      else diagnostico.chamadas_ia = (diagnostico.chamadas_ia ?? 0) + 1;
+      diagnostico.total_declarado_no_texto ??=
+        resultado.diagnostico?.total_declarado_no_texto ?? null;
+      diagnostico.quadro_fracoes_encontrado =
+        diagnostico.quadro_fracoes_encontrado === true ||
+        quadro.linhasLidas.size > 0 ||
+        resultado.diagnostico?.quadro_fracoes_encontrado === true;
     }
   };
-  await Promise.all(
-    Array.from({ length: Math.min(CONCORRENCIA, Math.max(1, lotes.length)) }, () => worker()),
-  );
-  for (const resultado of resultados) {
-    if (!resultado) continue;
-    candidatas.push(...resultado.unidades);
-    diagnostico.lotes_processados = (diagnostico.lotes_processados ?? 0) + 1;
-    if (resultado.cache) diagnostico.chamadas_em_cache = (diagnostico.chamadas_em_cache ?? 0) + 1;
-    else diagnostico.chamadas_ia = (diagnostico.chamadas_ia ?? 0) + 1;
-    diagnostico.total_declarado_no_texto ??=
-      resultado.diagnostico?.total_declarado_no_texto ?? null;
-    diagnostico.quadro_fracoes_encontrado =
-      diagnostico.quadro_fracoes_encontrado === true ||
-      quadro.linhasLidas > 0 ||
-      resultado.diagnostico?.quadro_fracoes_encontrado === true;
+
+  await processarLotes(lotes, "Lote");
+
+  // Reconciliação: uma segunda passada só com as linhas que continuam sem leitura.
+  const pendentesReconciliacao = naoLidas.filter((l) => !lidasPelaIa.has(l.linha_id));
+  if (pendentesReconciliacao.length > 0 && lotes.length > 0) {
+    await processarLotes(montarLotesDeLinhas(pendentesReconciliacao), "Reconciliação");
   }
+  const semLeitura = censo.candidatas.filter(
+    (l) => !quadro.linhasLidas.has(l.linha_id) && !lidasPelaIa.has(l.linha_id),
+  );
+  diagnostico.linhas_nao_lidas = semLeitura.map((l) => ({
+    linha_id: l.linha_id,
+    texto: l.texto,
+    pagina: l.pagina,
+  }));
   diagnostico.tokens_input = tokensInput;
   diagnostico.tokens_output = tokensOutput;
+
 
 
   const { unidades, conflitos, escala, somasHipoteses, regras, medidasDescartadas } = consolidar(
