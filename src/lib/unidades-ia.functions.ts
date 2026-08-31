@@ -87,9 +87,32 @@ export const extrairUnidadesDaConvencao = createServerFn({ method: "POST" })
       throw new Error("Documento ainda não foi processado.");
     }
 
-    const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-    const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey);
-    return { unidades, documentoId: doc.id, condominioId: doc.condominio_id };
+    try {
+      const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+      const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey);
+      return {
+        status: "gerada" as const,
+        unidades,
+        documentoId: doc.id,
+        condominioId: doc.condominio_id,
+      };
+    } catch (err: unknown) {
+      const controlado =
+        typeof err === "object" &&
+        err !== null &&
+        "codigo" in err &&
+        (err as { codigo?: unknown }).codigo === "extracao_incompleta";
+      if (controlado) {
+        return {
+          status: "incompleta" as const,
+          unidades: [] as UnidadeSugerida[],
+          documentoId: doc.id,
+          condominioId: doc.condominio_id,
+          mensagem: err instanceof Error ? err.message : "A extração requer revisão.",
+        };
+      }
+      throw err;
+    }
   });
 
 export const listSugestoesUnidades = createServerFn({ method: "POST" })
@@ -284,10 +307,27 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
       if (existente) return { status: "ja_processada" as const };
     }
 
-    const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-    const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
-      force: data.force,
-    });
+    let unidades: UnidadeSugerida[];
+    try {
+      const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+      unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
+        force: data.force,
+      });
+    } catch (err: unknown) {
+      const controlado =
+        typeof err === "object" &&
+        err !== null &&
+        "codigo" in err &&
+        (err as { codigo?: unknown }).codigo === "extracao_incompleta";
+      if (controlado) {
+        return {
+          status: "incompleta" as const,
+          documentoId: doc.id,
+          mensagem: err instanceof Error ? err.message : "A extração requer revisão.",
+        };
+      }
+      throw err;
+    }
     if (unidades.length === 0) {
       return { status: "vazio" as const, documentoId: doc.id };
     }

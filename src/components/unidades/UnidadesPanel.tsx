@@ -383,9 +383,13 @@ export function UnidadesPanel({
       )}
 
       {isOwner &&
-        sugestoes.some((item) => item.status === "pendente") &&
+        sugestoes.some(
+          (item) => item.status === "pendente" || item.status === "pendente_revisao",
+        ) &&
         (() => {
-          const sugestao = sugestoes.find((item) => item.status === "pendente");
+          const sugestao = sugestoes.find(
+            (item) => item.status === "pendente_revisao" || item.status === "pendente",
+          );
           if (!sugestao) return null;
           return (
             <Card className="app-card p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
@@ -396,7 +400,9 @@ export function UnidadesPanel({
                   detectada(s) na convenção
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Revise antes de importar para a lista de {vocab.unidade.toLowerCase()}s.
+                  {sugestao.status === "pendente_revisao"
+                    ? "Os campos de alta confiança já preencheram apenas valores vazios. Revise os demais antes de aplicar."
+                    : `Revise antes de importar para a lista de ${vocab.unidade.toLowerCase()}s.`}
                 </p>
                 {sugestao.payload.diagnostico?.observacao && (
                   <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
