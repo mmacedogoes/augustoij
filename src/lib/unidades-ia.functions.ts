@@ -29,6 +29,18 @@ const UnidadeSugestao = z.object({
   vagas_garagem: z.number().int().min(0).max(50).optional(),
   fracao_origem: z.enum(["documento", "ausente"]).nullable().optional(),
   area_origem: z.enum(["documento", "ausente"]).nullable().optional(),
+  confianca: z.enum(["alta", "media", "conflito"]).optional(),
+  medidas: z.array(z.object({
+    campo: z.string(),
+    valor_bruto: z.string(),
+    escala: z.string(),
+    trecho: z.string(),
+    pagina: z.number().nullable().optional(),
+    bloco: z.number().nullable().optional(),
+    fonte: z.string().nullable().optional(),
+  })).optional(),
+  candidatos: z.record(z.string(), z.array(z.unknown())).optional(),
+  regras_aplicadas: z.array(z.string()).optional(),
 });
 
 const CondominoSugestao = z.object({
@@ -97,7 +109,7 @@ export const listSugestoesUnidades = createServerFn({ method: "POST" })
       .from("sugestoes_unidades")
       .select("id, documento_id, payload, status, created_at")
       .eq("condominio_id", data.condominioId)
-      .in("status", ["pendente", "falhou"])
+      .in("status", ["pendente", "pendente_revisao", "falhou"])
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return rows ?? [];

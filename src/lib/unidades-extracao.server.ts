@@ -361,7 +361,7 @@ export function resolverValorComEvidencia(
   campo: CampoMedida,
   escalaGlobal: EscalaFracao | null,
   coerentes = new Set<Medida>(),
-+) {
+) {
   const candidatas = medidas.filter((medida) => medida.campo === campo)
     .map((medida) => ({ medida, valor: valorCanonico(medida, escalaGlobal) }))
     .filter((item): item is { medida: Medida; valor: number } => item.valor != null);
@@ -705,7 +705,15 @@ export async function extrairESalvarSugestaoUnidades(
         area_m2: unidade.area_m2 ?? null, vagas_garagem: unidade.vagas_garagem ?? 0,
       });
     } else {
-      const { data: atual } = await supabase.from("unidades").select("id, fracao_ideal, area_m2").eq("condominio_id", doc.condominio_id).eq("numero", existente.numero).filter("bloco", existente.bloco == null ? "is" : "eq", existente.bloco).maybeSingle();
+      let atualQuery = supabase
+        .from("unidades")
+        .select("id, fracao_ideal, area_m2")
+        .eq("condominio_id", doc.condominio_id)
+        .eq("numero", existente.numero);
+      atualQuery = existente.bloco == null
+        ? atualQuery.is("bloco", null)
+        : atualQuery.eq("bloco", existente.bloco);
+      const { data: atual } = await atualQuery.maybeSingle();
       if (atual) {
         const patch: Record<string, number> = {};
         if (atual.fracao_ideal == null && unidade.fracao_ideal != null) patch.fracao_ideal = unidade.fracao_ideal;

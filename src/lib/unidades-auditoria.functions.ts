@@ -153,7 +153,7 @@ export const auditarCondominio = createServerFn({ method: "POST" })
       return { ...base, status: "sem_convencao", mensagem: "Sem convenção processada." };
     }
 
-    const { chaveUnidade, ExtracaoIncompletaError, extrairESalvarSugestaoUnidades } = await import(
+    const { chaveUnidade, extrairESalvarSugestaoUnidades } = await import(
       "@/lib/unidades-extracao.server"
     );
     let extraidas;
@@ -175,7 +175,11 @@ export const auditarCondominio = createServerFn({ method: "POST" })
       const msg = e instanceof Error ? e.message : "Falha na leitura da convenção.";
       return {
         ...base,
-        status: e instanceof ExtracaoIncompletaError ? "leitura_incompleta" : "erro",
+        status:
+          typeof e === "object" && e !== null && "codigo" in e &&
+          (e as { codigo?: unknown }).codigo === "extracao_incompleta"
+            ? "leitura_incompleta"
+            : "erro",
         mensagem: msg,
       };
     }
@@ -189,6 +193,15 @@ export const auditarCondominio = createServerFn({ method: "POST" })
 
     const novas: Record<string, unknown>[] = [];
     for (const e of extraidas) {
+      if (e.confianca !== "alta") {
+        base.pendencias.push({
+          unidade: chaveUnidade(e.bloco ?? null, e.numero),
+          campo: "existencia",
+          cadastro: "aguardando revisão",
+          convencao: e.confianca === "conflito" ? "medidas conflitantes" : "medidas incompletas",
+        });
+        continue;
+      }
       const key = chaveUnidade(e.bloco ?? null, e.numero);
       chavesConvencao.add(key);
       const atual = porChave.get(key);
