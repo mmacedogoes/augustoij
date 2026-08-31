@@ -376,7 +376,7 @@ export function UnidadesPanel({
       {isOwner && erroExtracao && (
         <Card className="app-card p-4 border-destructive/40 bg-destructive/5">
           <p className="text-sm font-medium text-destructive">
-            Leitura da convenção incompleta — nada foi importado
+            Leitura da convenção requer revisão
           </p>
           <p className="mt-1 text-xs text-muted-foreground">{erroExtracao}</p>
         </Card>

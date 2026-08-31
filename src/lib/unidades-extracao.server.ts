@@ -465,13 +465,30 @@ export function resolverValorComEvidencia(
 
 function detectarEscalaGlobal(grupos: Map<string, UnidadeExtraida[]>) {
   const valores: string[] = [];
-  for (const candidatas of grupos.values()) {
+  for (const [, candidatas] of [...grupos.entries()].sort(([a], [b]) =>
+    a.localeCompare(b, "pt-BR", { numeric: true }),
+  )) {
     const medidas = candidatas
       .flatMap((item) => item.medidas)
       .filter(
         (medida) => medida.campo === "fracao_terreno" || medida.campo === "coeficiente_rateio",
+      )
+      .sort(
+        (a, b) =>
+          a.campo.localeCompare(b.campo) ||
+          a.valor_bruto.localeCompare(b.valor_bruto, "pt-BR", { numeric: true }),
       );
-    const unica = medidas[0];
+    const contagens = new Map<string, { medida: Medida; total: number }>();
+    for (const medida of medidas) {
+      const chave = `${medida.campo}|${medida.valor_bruto}`;
+      const atual = contagens.get(chave);
+      contagens.set(chave, { medida, total: (atual?.total ?? 0) + 1 });
+    }
+    const unica = [...contagens.values()].sort(
+      (a, b) =>
+        b.total - a.total ||
+        a.medida.valor_bruto.localeCompare(b.medida.valor_bruto, "pt-BR", { numeric: true }),
+    )[0]?.medida;
     if (unica) valores.push(unica.valor_bruto);
   }
   return detectarEscalaFracoes(valores);

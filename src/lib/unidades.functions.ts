@@ -226,13 +226,13 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
     (input: {
       condominioId: string;
       linhas: z.infer<typeof ImportLinha>[];
-      estrategiaConflito?: "manter" | "preencher" | "substituir";
+      estrategiaConflito?: "manter" | "preencher";
     }) =>
       z
         .object({
           condominioId: z.string().uuid(),
           linhas: z.array(ImportLinha).min(1).max(2000),
-          estrategiaConflito: z.enum(["manter", "preencher", "substituir"]).optional().default("preencher"),
+          estrategiaConflito: z.enum(["manter", "preencher"]).optional().default("preencher"),
         })
         .parse(input),
   )
@@ -334,7 +334,7 @@ export const importUnidadesLote = createServerFn({ method: "POST" })
       }
     }
 
-    // 2) UPDATE das existentes (apenas em modo "substituir")
+    // 2) Atualiza somente campos vazios; valores existentes nunca são substituídos.
     if (data.estrategiaConflito !== "manter") {
       const existentesParaAtualizar = linhas.filter((l) =>
         existentesMap.has(chave(l.bloco ?? null, l.numero)),
