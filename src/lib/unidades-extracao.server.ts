@@ -1149,6 +1149,87 @@ export async function extrairESalvarSugestaoUnidades(
   const inicio = Date.now();
   const chunks = await carregarTodosChunks(supabase, doc.id);
 
+  // 0) SEÇÃO DESCRITIVA — a fonte de verdade da convenção. Rol do Artigo 2,
+  //    segmentação por bloco descritivo, rótulos com preenchimento por pontos e
+  //    as quatro conferências: tudo regex e aritmética, ZERO token de IA.
+  const textoIntegral = ordenarChunks(chunks)
+    .map((c) => c.conteudo)
+    .join("\n");
+  const descritiva = interpretarConvencaoDescritiva(textoIntegral);
+  if (descritiva.ok) {
+    const unidades = unidadesDaLeituraDescritiva(descritiva, conhecidas);
+    const diagnostico: DiagnosticoExtracao = {
+      leitura: "secao_descritiva",
+      total_trechos: chunks.length,
+      trechos_selecionados: 0,
+      prefiltro: "seção descritiva lida sem IA",
+      chamadas_ia: 0,
+      chamadas_em_cache: 0,
+      tokens_input: 0,
+      tokens_output: 0,
+      total_lotes: 0,
+      lotes_processados: 0,
+      lotes_com_erro: 0,
+      erros: [],
+      conflitos: [],
+      escala_fracao: "decimal",
+      regra_area: "area_real_privativa",
+      total_declarado_no_texto: descritiva.rol?.total_declarado ?? null,
+      quadro_fracoes_encontrado: true,
+      rol_artigo_2: descritiva.rol
+        ? {
+            total_declarado: descritiva.rol.total_declarado,
+            identificadores: descritiva.rol.identificadores,
+          }
+        : null,
+      conferencias: descritiva.conferencias,
+      balanco_descritivo: descritiva.balanco,
+      balanco: {
+        linhas_candidatas: descritiva.balanco.identificadores_no_rol || descritiva.unidades.length,
+        lidas_pelo_parser: descritiva.unidades.length,
+        lidas_pela_ia: 0,
+        nao_lidas: descritiva.faltando.length,
+        unidades_resolvidas: unidades.length,
+        sem_correspondencia: descritiva.sobrando.length,
+        soma_fracoes: descritiva.balanco.soma_fracoes,
+        fecha: descritiva.balanco.fecha,
+      },
+      linhas_nao_lidas: descritiva.faltando.map((id) => ({
+        linha_id: id,
+        texto: `Identificador ${id} consta do rol do Artigo 2 e não foi lido na seção descritiva.`,
+        pagina: null,
+      })),
+      orfas: descritiva.sobrando.map((id) => ({
+        numero: id,
+        bloco: null,
+        texto: `Unidade ${id} descrita no documento e ausente do rol do Artigo 2.`,
+        pagina: null,
+        linha_id: null,
+      })),
+      unidades_encontradas: unidades.length,
+      unidades_com_fracao: unidades.filter((u) => u.fracao_ideal != null).length,
+      unidades_com_area: unidades.filter((u) => u.area_m2 != null).length,
+      unidades_confianca_alta: unidades.filter((u) => u.confianca === "alta").length,
+      unidades_pendentes_revisao: unidades.filter((u) => u.confianca !== "alta").length,
+      duracao_ms: Date.now() - inicio,
+      observacao: `Leitura determinística da seção descritiva: ${descritiva.balanco.blocos_descritivos} blocos descritivos, ${unidades.length} unidades após expansão.`,
+    };
+    return persistirExtracao({
+      supabase,
+      doc,
+      unidades,
+      diagnostico,
+      conhecidas,
+      escala: "decimal",
+      qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
+      force: Boolean(opts.force),
+      pendenciasExtras:
+        descritiva.faltando.length + descritiva.sobrando.length + descritiva.duplicadas.length,
+    });
+  }
+
+
+
   // 1) Censo determinístico: a meta da extração é a lista de linhas candidatas.
   const censo = construirCenso(doc.id, chunks);
 
