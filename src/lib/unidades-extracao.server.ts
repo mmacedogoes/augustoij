@@ -173,7 +173,7 @@ const TAMANHO_LOTE = 80_000;
 const CONCORRENCIA = 6;
 const MAX_TENTATIVAS = 3;
 /** Muda sempre que o prompt muda — invalida o cache de extração. */
-export const VERSAO_PROMPT = "2026-08-31.linha_id.v1";
+export const VERSAO_PROMPT = "2026-08-31.censo-linhas.v1";
 
 
 export class ExtracaoIncompletaError extends Error {
