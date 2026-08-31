@@ -22,6 +22,7 @@ import {
   type BalancoDescritivo,
   type Conferencia,
   type LeituraDescritiva,
+  type TentativaDescritiva,
 } from "./convencao-descritiva";
 
 
