@@ -11,6 +11,12 @@ import {
   numeroBrasileiro,
   type EscalaFracao,
 } from "./fracao-normalizar";
+import {
+  construirCenso,
+  resolverIdentidade,
+  type Conhecida,
+  type LinhaCenso,
+} from "./censo-linhas";
 
 
 export const CampoMedidaSchema = z.enum([
