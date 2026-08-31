@@ -311,23 +311,23 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
       const pdfCopy = new Uint8Array(buffer.byteLength);
       pdfCopy.set(buffer);
       const pdf = await getDocumentProxy(pdfCopy);
-      const { text, totalPages } = await unpdfExtract(pdf, { mergePages: true });
-      const out = Array.isArray(text) ? text.join("\n\n") : text;
-      const limpo = (out ?? "").trim();
+      const { text, totalPages } = await unpdfExtract(pdf, { mergePages: false });
+      const paginasTexto = (Array.isArray(text) ? text : [text ?? ""]).map((p) => String(p ?? ""));
+      const out = paginasTexto.join("\n\n");
+      const limpo = out.trim();
       // OCR é caro: só vale quando a camada de texto é mesmo insuficiente.
-      // Critério por PALAVRAS (quadros têm poucos caracteres por página) e
+      // Critério por PALAVRAS (um quadro tem poucos caracteres por página) e
       // pela presença do vocabulário esperado de um documento condominial.
-      const paginas = Math.max(1, totalPages ?? 1);
-      const porPagina = (Array.isArray(text) ? text : [limpo]).map(
-        (p) => (String(p ?? "").match(/\p{L}[\p{L}\p{M}'-]*/gu) ?? []).length,
-      );
-      const paginasComTexto = porPagina.filter((n) => n >= 40).length;
+      const paginas = Math.max(1, totalPages ?? paginasTexto.length ?? 1);
+      const palavras = (p: string) => (p.match(/\p{L}[\p{L}\p{M}'-]*/gu) ?? []).length;
+      const paginasComTexto = paginasTexto.filter((p) => palavras(p) >= 40).length;
       const vocabulario = /condom[ií]nio|artigo|fra[cç][aã]o|unidade/i.test(limpo);
       const suficiente =
         limpo.length > 0 && vocabulario && paginasComTexto >= Math.ceil(paginas * 0.6);
       if (!suficiente) {
         throw new Error("__NEEDS_VISION__");
       }
+
 
       return out;
     }
