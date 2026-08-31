@@ -281,7 +281,6 @@ describe("tentativa descritiva sempre registrada", () => {
     if (!leitura.soma_ok) {
       expect(leitura.tentativa.motivo_descarte).toContain("soma das frações");
     }
-    expect(leitura.tentativa.caminho_usado ?? "secao_descritiva").toBeDefined();
   });
 
   it("escala mista: fração sem % é normalizada por valor", () => {
