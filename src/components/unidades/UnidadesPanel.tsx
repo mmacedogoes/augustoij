@@ -151,6 +151,7 @@ export function UnidadesPanel({
           linhas_nao_lidas?: LinhaPendente[];
           orfas?: LinhaOrfa[];
           balanco_descritivo?: BalancoDescritivo | null;
+          tentativa_descritiva?: TentativaDescritiva | null;
           conferencias?: Conferencia[];
         };
       };
@@ -207,6 +208,7 @@ export function UnidadesPanel({
                 linhas_nao_lidas?: LinhaPendente[];
                 orfas?: LinhaOrfa[];
                 balanco_descritivo?: BalancoDescritivo | null;
+                tentativa_descritiva?: TentativaDescritiva | null;
                 conferencias?: Conferencia[];
                 unidades_confianca_alta?: number;
                 unidades_pendentes_revisao?: number;
