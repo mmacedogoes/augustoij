@@ -875,7 +875,7 @@ export function consolidar(
           p.medidas.filter((m) => m.campo === campo),
         ]),
       ),
-      regras_aplicadas: p.regras,
+      regras_aplicadas: [...new Set([...(p.base.regras_aplicadas ?? []), ...p.regras])],
     } satisfies UnidadeExtraida;
   });
 
@@ -893,6 +893,7 @@ export function consolidar(
     somasHipoteses: escala.somas,
     regras: [...regrasGlobais],
     medidasDescartadas,
+    orfas,
   };
 }
 
