@@ -145,7 +145,14 @@ export type DiagnosticoExtracao = {
     pagina: number | null;
     linha_id: string | null;
   }>;
+  /** Caminho de leitura efetivamente usado. */
+  leitura?: "secao_descritiva" | "quadro_ia";
+  /** As quatro conferências da seção descritiva. */
+  conferencias?: Conferencia[];
+  balanco_descritivo?: BalancoDescritivo;
+  rol_artigo_2?: { total_declarado: number | null; identificadores: string[] } | null;
 };
+
 
 
 type ChunkRow = {
