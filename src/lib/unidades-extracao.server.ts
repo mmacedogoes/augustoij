@@ -1337,19 +1337,45 @@ export async function extrairESalvarSugestaoUnidades(
     console.error("[uso-ia] importacao_convencao:", telemetryError);
   }
 
-  validarCoberturaExtracao(unidades, diagnostico, (cond?.qtd_unidades as number | null) ?? null);
+  return persistirExtracao({
+    supabase,
+    doc,
+    unidades,
+    diagnostico,
+    conhecidas,
+    escala,
+    qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
+    force: Boolean(opts.force),
+    pendenciasExtras: semLeitura.length + orfas.length + (diagnostico.lotes_com_erro ?? 0),
+  });
+}
+
+/**
+ * Persistência comum aos dois caminhos de leitura (descritivo determinístico e
+ * IA por linha): sugestão, preenchimento de campos vazios, perfil documental e
+ * estado do documento. Nunca sobrescreve dado já preenchido manualmente.
+ */
+async function persistirExtracao(entrada: {
+  supabase: SupabaseClient;
+  doc: { id: string; condominio_id: string };
+  unidades: UnidadeExtraida[];
+  diagnostico: DiagnosticoExtracao;
+  conhecidas: Array<{ bloco: string | null; numero: string }>;
+  escala: EscalaFracao | null;
+  qtdEsperada: number | null;
+  force: boolean;
+  pendenciasExtras: number;
+}): Promise<UnidadeExtraida[]> {
+  const { supabase, doc, unidades, diagnostico, conhecidas, escala } = entrada;
+  validarCoberturaExtracao(unidades, diagnostico, entrada.qtdEsperada);
   const deleteQuery = supabase.from("sugestoes_unidades").delete().eq("documento_id", doc.id);
-  await (opts.force
+  await (entrada.force
     ? deleteQuery
     : deleteQuery.in("status", ["pendente", "pendente_revisao", "falhou"]));
   const pendentes = unidades.filter((u) => u.confianca !== "alta");
   const balancoFinal = diagnostico.balanco;
   const status =
-    pendentes.length > 0 ||
-    (diagnostico.lotes_com_erro ?? 0) > 0 ||
-    semLeitura.length > 0 ||
-    orfas.length > 0 ||
-    balancoFinal?.fecha === false
+    pendentes.length > 0 || entrada.pendenciasExtras > 0 || balancoFinal?.fecha === false
       ? "pendente_revisao"
       : "pendente";
   if (balancoFinal?.fecha === false) {
@@ -1432,3 +1458,4 @@ export async function extrairESalvarSugestaoUnidades(
     .eq("id", doc.id);
   return unidades;
 }
+
