@@ -54,7 +54,7 @@ const PROMPT_OCR =
 
 const OCR_MODEL = "google/gemini-3.7-flash";
 /** Páginas por bloco de OCR (documentos longos são lidos em partes). */
-const PAGINAS_POR_BLOCO = 12;
+const PAGINAS_POR_BLOCO = 6;
 /** Chamadas simultâneas ao gateway. */
 const CONCORRENCIA_OCR = 3;
 

@@ -4,6 +4,7 @@ import {
   type LinhaOrfa,
   type LinhaPendente,
 } from "./BalancoExtracao";
+import type { BalancoDescritivo, Conferencia } from "@/lib/convencao-descritiva";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp, History } from "lucide-react";
@@ -149,6 +150,8 @@ export function UnidadesPanel({
           balanco?: BalancoLeitura;
           linhas_nao_lidas?: LinhaPendente[];
           orfas?: LinhaOrfa[];
+          balanco_descritivo?: BalancoDescritivo | null;
+          conferencias?: Conferencia[];
         };
       };
     }[]
@@ -203,6 +206,8 @@ export function UnidadesPanel({
                 balanco?: BalancoLeitura;
                 linhas_nao_lidas?: LinhaPendente[];
                 orfas?: LinhaOrfa[];
+                balanco_descritivo?: BalancoDescritivo | null;
+                conferencias?: Conferencia[];
                 unidades_confianca_alta?: number;
                 unidades_pendentes_revisao?: number;
                 escala_fracao?: string | null;
@@ -424,8 +429,11 @@ export function UnidadesPanel({
                 {sugestao.payload.diagnostico?.balanco && (
                   <BalancoExtracao
                     balanco={sugestao.payload.diagnostico.balanco}
+                    balancoDescritivo={sugestao.payload.diagnostico.balanco_descritivo}
+                    conferencias={sugestao.payload.diagnostico.conferencias}
                     naoLidas={sugestao.payload.diagnostico.linhas_nao_lidas}
                     orfas={sugestao.payload.diagnostico.orfas}
+
                   />
                 )}
               </div>

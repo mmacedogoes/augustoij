@@ -17,6 +17,13 @@ import {
   type Conhecida,
   type LinhaCenso,
 } from "./censo-linhas";
+import {
+  interpretarConvencaoDescritiva,
+  type BalancoDescritivo,
+  type Conferencia,
+  type LeituraDescritiva,
+} from "./convencao-descritiva";
+
 
 
 export const CampoMedidaSchema = z.enum([
@@ -145,7 +152,14 @@ export type DiagnosticoExtracao = {
     pagina: number | null;
     linha_id: string | null;
   }>;
+  /** Caminho de leitura efetivamente usado. */
+  leitura?: "secao_descritiva" | "quadro_ia";
+  /** As quatro conferências da seção descritiva. */
+  conferencias?: Conferencia[];
+  balanco_descritivo?: BalancoDescritivo;
+  rol_artigo_2?: { total_declarado: number | null; identificadores: string[] } | null;
 };
+
 
 
 type ChunkRow = {
@@ -933,38 +947,40 @@ export function validarCoberturaExtracao(
     ok: Math.abs(soma - 1) <= 0.005,
     valor: Number(soma.toFixed(8)),
   });
-  const identidadesInvalidas = unidades.filter((u) => {
-    const p = u.medidas.find((m) => m.campo === "area_privativa");
-    const c = u.medidas.find((m) => m.campo === "area_comum");
-    const g = u.medidas.find((m) => m.campo === "area_global");
-    const pv = p ? numeroBrasileiro(p.valor_bruto) : null;
-    const cv = c ? numeroBrasileiro(c.valor_bruto) : null;
-    const gv = g ? numeroBrasileiro(g.valor_bruto) : null;
-    return pv != null && cv != null && gv != null && !dentroTolerancia(gv, pv + cv, 0.05);
-  });
-  validacoes.push({
-    regra: "area_global_privativa_comum",
-    ok: identidadesInvalidas.length === 0,
-    unidades: identidadesInvalidas.map((u) => chaveUnidade(u.bloco ?? null, u.numero)),
-  });
+  // A identidade "global = privativa + comum" NÃO vale em convenções que somam
+  // a vaga de garagem à área total. A conferência correta é a (c) da leitura
+  // descritiva: total = privativa + comum + vagas x constante derivada.
   const somaAreaPrivativa = unidades.reduce((total, unidade) => total + (unidade.area_m2 ?? 0), 0);
   validacoes.push({
     regra: "soma_area_privativa",
     ok: somaAreaPrivativa > 0,
     valor: Number(somaAreaPrivativa.toFixed(2)),
   });
-  const proporcionais = unidades.filter((u) => u.area_m2 != null && u.fracao_ideal != null);
-  const ratios = proporcionais.map((u) => (u.fracao_ideal ?? 0) / (u.area_m2 ?? 1));
+  // A fração é proporcional à ÁREA EQUIVALENTE DE CONSTRUÇÃO, não à privativa.
+  const areaEquivalente = (u: UnidadeExtraida) => {
+    const m = u.medidas.find((item) => item.campo === "area_equivalente");
+    return m ? numeroBrasileiro(m.valor_bruto) : null;
+  };
+  const usaEquivalente = unidades.some((u) => areaEquivalente(u) != null);
+  const proporcionais = unidades.filter(
+    (u) => u.fracao_ideal != null && (usaEquivalente ? areaEquivalente(u) != null : u.area_m2 != null),
+  );
+  const base = (u: UnidadeExtraida) => (usaEquivalente ? (areaEquivalente(u) ?? 1) : (u.area_m2 ?? 1));
+  const ratios = proporcionais.map((u) => (u.fracao_ideal ?? 0) / base(u));
   const mediaRatio = ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
+  // Sem a área equivalente a proporcionalidade é só um indício: tolerância larga.
+  const limite = usaEquivalente ? 0.0005 : 0.25;
   const foraProporcao = proporcionais.filter((u) => {
-    const ratio = (u.fracao_ideal ?? 0) / (u.area_m2 ?? 1);
-    return mediaRatio > 0 && Math.abs(ratio - mediaRatio) / mediaRatio > 0.25;
+    const ratio = (u.fracao_ideal ?? 0) / base(u);
+    return mediaRatio > 0 && Math.abs(ratio - mediaRatio) / mediaRatio > limite;
   });
   validacoes.push({
     regra: "proporcionalidade_area_fracao",
     ok: foraProporcao.length === 0,
+    detalhe: usaEquivalente ? "base: área equivalente" : "base: área privativa (indício)",
     unidades: foraProporcao.map((u) => chaveUnidade(u.bloco ?? null, u.numero)),
   });
+
   const declarado = diagnostico.total_declarado_no_texto ?? qtdEsperada;
   validacoes.push({
     regra: "quantidade_unidades",
@@ -1097,6 +1113,76 @@ function resolverLinhas(unidade: UnidadeExtraida, linhas: Record<string, LinhaLo
   };
 }
 
+const decimalBr = (valor: number, casas = 2) => valor.toFixed(casas).replace(".", ",");
+
+/** Converte a leitura determinística da seção descritiva no formato de sugestão. */
+export function unidadesDaLeituraDescritiva(
+  leitura: LeituraDescritiva,
+  conhecidas: Array<{ bloco: string | null; numero: string }>,
+): UnidadeExtraida[] {
+  const pendentes = new Set(leitura.pendentes);
+  return leitura.unidades.map((u) => {
+    const identidade = resolverIdentidade(
+      { bloco: u.bloco, numero: u.numero, bloco_contexto: u.bloco },
+      conhecidas as Conhecida[],
+    );
+    const bloco = identidade.status === "resolvida" ? identidade.bloco : u.bloco;
+    const numero = identidade.status === "resolvida" ? identidade.numero : u.numero;
+    const trecho = u.corpo.slice(0, 600);
+    const medidas: UnidadeExtraida["medidas"] = [];
+    const push = (
+      campo: z.infer<typeof CampoMedidaSchema>,
+      valor: number | null,
+      escala: z.infer<typeof EscalaMedidaSchema>,
+      casas = 2,
+    ) => {
+      if (valor == null) return;
+      medidas.push({
+        campo,
+        valor_bruto: decimalBr(valor, casas),
+        escala,
+        trecho,
+        linha_id: null,
+        pagina: null,
+        bloco: null,
+        fonte: `seção descritiva, bloco ${u.bloco_descritivo + 1}`,
+        bloco_contexto: u.bloco,
+      });
+    };
+    push("area_privativa", u.area_privativa, "m2");
+    push("area_comum", u.area_comum, "m2");
+    push("area_global", u.area_total, "m2");
+    push("area_equivalente", u.area_equivalente, "m2");
+    push("fracao_terreno", u.fracao_ideal, "decimal", 8);
+    const completa = u.area_privativa != null && u.fracao_ideal != null;
+    return {
+      bloco,
+      numero,
+      tipo: "apartamento" as const,
+      vagas_garagem: u.vagas ?? undefined,
+      medidas,
+      medidas_descartadas: [],
+      fonte: "secao_descritiva",
+      fracao_ideal: u.fracao_ideal,
+      fracao_origem: u.fracao_ideal != null ? ("documento" as const) : ("ausente" as const),
+      fracao_trecho: trecho,
+      area_m2: u.area_privativa,
+      area_origem: u.area_privativa != null ? ("documento" as const) : ("ausente" as const),
+      area_trecho: trecho,
+      confianca:
+        completa && !pendentes.has(u.identificador) ? ("alta" as const) : ("media" as const),
+      regras_aplicadas: [
+        "secao_descritiva",
+        "area_real_privativa",
+        "fracao_ideal_declarada",
+        identidade.regra,
+      ],
+    } satisfies UnidadeExtraida;
+  });
+}
+
+
+
 export async function extrairESalvarSugestaoUnidades(
 
   supabase: SupabaseClient,
@@ -1132,6 +1218,87 @@ export async function extrairESalvarSugestaoUnidades(
 
   const inicio = Date.now();
   const chunks = await carregarTodosChunks(supabase, doc.id);
+
+  // 0) SEÇÃO DESCRITIVA — a fonte de verdade da convenção. Rol do Artigo 2,
+  //    segmentação por bloco descritivo, rótulos com preenchimento por pontos e
+  //    as quatro conferências: tudo regex e aritmética, ZERO token de IA.
+  const textoIntegral = ordenarChunks(chunks)
+    .map((c) => c.conteudo)
+    .join("\n");
+  const descritiva = interpretarConvencaoDescritiva(textoIntegral);
+  if (descritiva.ok) {
+    const unidades = unidadesDaLeituraDescritiva(descritiva, conhecidas);
+    const diagnostico: DiagnosticoExtracao = {
+      leitura: "secao_descritiva",
+      total_trechos: chunks.length,
+      trechos_selecionados: 0,
+      prefiltro: "seção descritiva lida sem IA",
+      chamadas_ia: 0,
+      chamadas_em_cache: 0,
+      tokens_input: 0,
+      tokens_output: 0,
+      total_lotes: 0,
+      lotes_processados: 0,
+      lotes_com_erro: 0,
+      erros: [],
+      conflitos: [],
+      escala_fracao: "decimal",
+      regra_area: "area_real_privativa",
+      total_declarado_no_texto: descritiva.rol?.total_declarado ?? null,
+      quadro_fracoes_encontrado: true,
+      rol_artigo_2: descritiva.rol
+        ? {
+            total_declarado: descritiva.rol.total_declarado,
+            identificadores: descritiva.rol.identificadores,
+          }
+        : null,
+      conferencias: descritiva.conferencias,
+      balanco_descritivo: descritiva.balanco,
+      balanco: {
+        linhas_candidatas: descritiva.balanco.identificadores_no_rol || descritiva.unidades.length,
+        lidas_pelo_parser: descritiva.unidades.length,
+        lidas_pela_ia: 0,
+        nao_lidas: descritiva.faltando.length,
+        unidades_resolvidas: unidades.length,
+        sem_correspondencia: descritiva.sobrando.length,
+        soma_fracoes: descritiva.balanco.soma_fracoes,
+        fecha: descritiva.balanco.fecha,
+      },
+      linhas_nao_lidas: descritiva.faltando.map((id) => ({
+        linha_id: id,
+        texto: `Identificador ${id} consta do rol do Artigo 2 e não foi lido na seção descritiva.`,
+        pagina: null,
+      })),
+      orfas: descritiva.sobrando.map((id) => ({
+        numero: id,
+        bloco: null,
+        texto: `Unidade ${id} descrita no documento e ausente do rol do Artigo 2.`,
+        pagina: null,
+        linha_id: null,
+      })),
+      unidades_encontradas: unidades.length,
+      unidades_com_fracao: unidades.filter((u) => u.fracao_ideal != null).length,
+      unidades_com_area: unidades.filter((u) => u.area_m2 != null).length,
+      unidades_confianca_alta: unidades.filter((u) => u.confianca === "alta").length,
+      unidades_pendentes_revisao: unidades.filter((u) => u.confianca !== "alta").length,
+      duracao_ms: Date.now() - inicio,
+      observacao: `Leitura determinística da seção descritiva: ${descritiva.balanco.blocos_descritivos} blocos descritivos, ${unidades.length} unidades após expansão.`,
+    };
+    return persistirExtracao({
+      supabase,
+      doc,
+      unidades,
+      diagnostico,
+      conhecidas,
+      escala: "decimal",
+      qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
+      force: Boolean(opts.force),
+      pendenciasExtras:
+        descritiva.faltando.length + descritiva.sobrando.length + descritiva.duplicadas.length,
+    });
+  }
+
+
 
   // 1) Censo determinístico: a meta da extração é a lista de linhas candidatas.
   const censo = construirCenso(doc.id, chunks);
@@ -1335,19 +1502,45 @@ export async function extrairESalvarSugestaoUnidades(
     console.error("[uso-ia] importacao_convencao:", telemetryError);
   }
 
-  validarCoberturaExtracao(unidades, diagnostico, (cond?.qtd_unidades as number | null) ?? null);
+  return persistirExtracao({
+    supabase,
+    doc,
+    unidades,
+    diagnostico,
+    conhecidas,
+    escala,
+    qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
+    force: Boolean(opts.force),
+    pendenciasExtras: semLeitura.length + orfas.length + (diagnostico.lotes_com_erro ?? 0),
+  });
+}
+
+/**
+ * Persistência comum aos dois caminhos de leitura (descritivo determinístico e
+ * IA por linha): sugestão, preenchimento de campos vazios, perfil documental e
+ * estado do documento. Nunca sobrescreve dado já preenchido manualmente.
+ */
+async function persistirExtracao(entrada: {
+  supabase: SupabaseClient;
+  doc: { id: string; condominio_id: string };
+  unidades: UnidadeExtraida[];
+  diagnostico: DiagnosticoExtracao;
+  conhecidas: Array<{ bloco: string | null; numero: string }>;
+  escala: EscalaFracao | null;
+  qtdEsperada: number | null;
+  force: boolean;
+  pendenciasExtras: number;
+}): Promise<UnidadeExtraida[]> {
+  const { supabase, doc, unidades, diagnostico, conhecidas, escala } = entrada;
+  validarCoberturaExtracao(unidades, diagnostico, entrada.qtdEsperada);
   const deleteQuery = supabase.from("sugestoes_unidades").delete().eq("documento_id", doc.id);
-  await (opts.force
+  await (entrada.force
     ? deleteQuery
     : deleteQuery.in("status", ["pendente", "pendente_revisao", "falhou"]));
   const pendentes = unidades.filter((u) => u.confianca !== "alta");
   const balancoFinal = diagnostico.balanco;
   const status =
-    pendentes.length > 0 ||
-    (diagnostico.lotes_com_erro ?? 0) > 0 ||
-    semLeitura.length > 0 ||
-    orfas.length > 0 ||
-    balancoFinal?.fecha === false
+    pendentes.length > 0 || entrada.pendenciasExtras > 0 || balancoFinal?.fecha === false
       ? "pendente_revisao"
       : "pendente";
   if (balancoFinal?.fecha === false) {
@@ -1430,3 +1623,4 @@ export async function extrairESalvarSugestaoUnidades(
     .eq("id", doc.id);
   return unidades;
 }
+
