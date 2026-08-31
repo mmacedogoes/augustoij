@@ -73,12 +73,22 @@ export async function processarDocumentoCore(
     }
     const { embeddings, totalTokens } = await embedChunksParallel(apiKey, chunks, 5);
     const blocoBase = typeof metaBase.bloco === "number" ? metaBase.bloco * 100_000 : 0;
+    // O título "BLOCO A"/"TORRE B" vigente é propriedade da ordem de leitura.
+    const { REGEX_TITULO_BLOCO } = await import("./censo-linhas");
+    let blocoContexto: string | null = null;
+    const contextos = chunks.map((c) => {
+      for (const linha of c.split("\n")) {
+        const titulo = REGEX_TITULO_BLOCO.exec(linha);
+        if (titulo && !/^\s*\|/.test(linha)) blocoContexto = titulo[1].toUpperCase();
+      }
+      return blocoContexto;
+    });
     const rows = chunks.map((c, i) => ({
       condominio_id: documento.condominio_id,
       documento_id: documento.id,
       conteudo: c,
       embedding: `[${embeddings[i].join(",")}]`,
-      metadata: { ...metaBase, trecho: i, ordem_global: blocoBase + i },
+      metadata: { ...metaBase, trecho: i, ordem_global: blocoBase + i, bloco_contexto: contextos[i] },
     }));
     const bloco = typeof metaBase.bloco === "number" ? metaBase.bloco : null;
     if (bloco != null) {

@@ -1,50 +1,26 @@
 /**
  * Parser determinístico de quadros (tabelas Markdown) de convenções.
  *
- * Quando o quadro de áreas e frações já está transcrito em Markdown com
- * cabeçalho, não é preciso IA nenhuma: as colunas são mapeadas por
- * palavra-chave e as linhas viram exatamente a mesma estrutura que a IA
- * devolveria (`UnidadeExtraida[]`), reaproveitando toda a consolidação.
+ * Trabalha sobre o censo de linhas: cada linha convertida em unidade é
+ * registrada pelo seu `linha_id`. O parser NUNCA declara um trecho resolvido —
+ * ele só marca o que efetivamente leu (invariante 1).
  */
 import type { UnidadeExtraida } from "./unidades-extracao.server";
+import { tokenizarIdentificador, celulasDaLinha, semAcento, type Censo } from "./censo-linhas";
 
 type Medida = NonNullable<UnidadeExtraida["medidas"]>[number];
 type CampoMedida = Medida["campo"];
 
-export type ChunkParser = {
-  id: string;
-  conteudo: string;
-  metadata: {
-    bloco?: number;
-    pagina_inicio?: number;
-    pagina_fim?: number;
-  } | null;
-};
-
 export type ResultadoQuadro = {
   unidades: UnidadeExtraida[];
-  chunksResolvidos: Set<string>;
-  linhasLidas: number;
+  /** `linha_id` de cada linha efetivamente convertida em unidade. */
+  linhasLidas: Set<string>;
 };
 
-const sem = (texto: string) =>
-  texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+const sem = (texto: string) => semAcento(texto).toLowerCase().trim();
 
 const ehLinhaTabela = (linha: string) => /^\s*\|.*\|\s*$/.test(linha);
 const ehSeparador = (linha: string) => /^\s*\|?[\s:|-]*-{3,}[\s:|-]*\|?\s*$/.test(linha);
-
-function celulas(linha: string) {
-  return linha
-    .trim()
-    .replace(/^\|/, "")
-    .replace(/\|$/, "")
-    .split("|")
-    .map((c) => c.trim());
-}
 
 type Coluna =
   | { tipo: "medida"; campo: CampoMedida; percentualNoCabecalho: boolean; areaEmM2: boolean }
@@ -57,7 +33,10 @@ export function classificarColuna(cabecalho: string): Coluna {
   if (!t) return { tipo: "ignorar" };
   const percentual = /%|percent/.test(t);
   if (/(bloco|torre|quadra)/.test(t) && !/fracao|area/.test(t)) return { tipo: "bloco" };
-  if (/(unidade|unid|apto|apartamento|apart|n\.?o?\b|numero|lote|sala|loja|casa|imovel)/.test(t) && !/area|fracao|coeficiente/.test(t))
+  if (
+    /(unidade|unid|apto|apartamento|apart|n\.?o?\b|numero|lote|sala|loja|casa|imovel)/.test(t) &&
+    !/area|fracao|coeficiente/.test(t)
+  )
     return { tipo: "identificador" };
   const medida = (campo: CampoMedida, areaEmM2: boolean): Coluna => ({
     tipo: "medida",
@@ -77,9 +56,6 @@ export function classificarColuna(cabecalho: string): Coluna {
   return { tipo: "ignorar" };
 }
 
-const REGEX_TITULO_BLOCO = /\b(?:bloco|torre|quadra)\s+([a-z0-9]{1,3})\b/i;
-const REGEX_NUMERO = /^([a-z]{0,3}\.?\s*)?(\d{1,5})\s*([a-z]{0,2})$/i;
-
 function escalaDaCelula(valor: string, percentualNoCabecalho: boolean): Medida["escala"] {
   if (/\//.test(valor)) return "fracao_ordinaria";
   if (/%/.test(valor)) return "percentual";
@@ -87,43 +63,40 @@ function escalaDaCelula(valor: string, percentualNoCabecalho: boolean): Medida["
   return percentualNoCabecalho ? "percentual" : "decimal";
 }
 
-/** Lê todas as tabelas Markdown dos trechos indexados. */
-export function extrairUnidadesDeQuadros(chunks: ChunkParser[]): ResultadoQuadro {
+/**
+ * Lê todas as tabelas Markdown do censo. Cabeçalho de coluna e título de bloco
+ * atravessam a fronteira de trecho, porque a leitura é sequencial.
+ */
+export function extrairUnidadesDeQuadros(censo: Censo): ResultadoQuadro {
   const unidades: UnidadeExtraida[] = [];
-  const chunksResolvidos = new Set<string>();
-  let linhasLidas = 0;
+  const linhasLidas = new Set<string>();
+  let colunas: Coluna[] | null = null;
 
-  for (const chunk of chunks) {
-    const linhas = chunk.conteudo.split("\n");
-    let colunas: Coluna[] | null = null;
-    let blocoContexto: string | null = null;
-    let resolveuAlgo = false;
-
+  for (const { linhas } of censo.porChunk) {
     for (let i = 0; i < linhas.length; i++) {
-      const linha = linhas[i];
-      const titulo = REGEX_TITULO_BLOCO.exec(linha);
-      if (titulo && !ehLinhaTabela(linha)) blocoContexto = titulo[1].toUpperCase();
+      const atual = linhas[i];
+      const linha = atual.texto;
       if (!ehLinhaTabela(linha)) continue;
       if (ehSeparador(linha)) continue;
-      if (ehSeparador(linhas[i + 1] ?? "")) {
-        colunas = celulas(linha).map(classificarColuna);
+      if (ehSeparador(linhas[i + 1]?.texto ?? "")) {
+        colunas = celulasDaLinha(linha).map(classificarColuna);
         continue;
       }
       if (!colunas) continue;
-      const valores = celulas(linha);
+      const valores = celulasDaLinha(linha);
       if (valores.length < 2) continue;
       let numero: string | null = null;
-      let bloco: string | null = blocoContexto;
+      let bloco: string | null = atual.bloco_contexto;
       const medidas: Medida[] = [];
       for (let c = 0; c < valores.length && c < colunas.length; c++) {
         const coluna = colunas[c];
         const valor = valores[c];
         if (!valor || /^-+$/.test(valor)) continue;
         if (coluna.tipo === "identificador") {
-          const m = REGEX_NUMERO.exec(valor.replace(/\s+/g, " ").trim());
-          if (m) {
-            numero = m[2];
-            if (m[3]) bloco = m[3].toUpperCase();
+          const token = tokenizarIdentificador(valor);
+          if (token) {
+            numero = token.numero;
+            if (token.sufixoBloco) bloco = token.sufixoBloco.toUpperCase();
           }
           continue;
         }
@@ -139,19 +112,24 @@ export function extrairUnidadesDeQuadros(chunks: ChunkParser[]): ResultadoQuadro
           valor_bruto: valor.replace(/m²|m2/gi, "").trim(),
           escala: coluna.areaEmM2 ? "m2" : escalaDaCelula(valor, coluna.percentualNoCabecalho),
           trecho: linha.trim(),
-          pagina: chunk.metadata?.pagina_inicio ?? null,
-          bloco: chunk.metadata?.bloco ?? null,
-          fonte: `quadro; trecho ${chunk.id}`,
-          bloco_contexto: blocoContexto,
+          linha_id: atual.linha_id,
+          pagina: atual.pagina,
+          bloco: atual.bloco,
+          fonte: `quadro; ${atual.fonte}`,
+          bloco_contexto: atual.bloco_contexto,
         });
       }
+      // Linha que o parser não entendeu não é descartada: fica para a IA.
       if (!numero || medidas.length === 0) continue;
-      unidades.push({ bloco, numero, medidas, fonte: `quadro; trecho ${chunk.id}` });
-      linhasLidas++;
-      resolveuAlgo = true;
+      unidades.push({
+        bloco,
+        numero,
+        medidas,
+        fonte: `quadro; ${atual.fonte}`,
+      });
+      linhasLidas.add(atual.linha_id);
     }
-    if (resolveuAlgo) chunksResolvidos.add(chunk.id);
   }
 
-  return { unidades, chunksResolvidos, linhasLidas };
+  return { unidades, linhasLidas };
 }

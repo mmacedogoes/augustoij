@@ -1,3 +1,9 @@
+import {
+  BalancoExtracao,
+  type BalancoLeitura,
+  type LinhaOrfa,
+  type LinhaPendente,
+} from "./BalancoExtracao";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp, History } from "lucide-react";
@@ -140,6 +146,9 @@ export function UnidadesPanel({
           unidades_encontradas?: number;
           unidades_com_fracao?: number;
           unidades_com_area?: number;
+          balanco?: BalancoLeitura;
+          linhas_nao_lidas?: LinhaPendente[];
+          orfas?: LinhaOrfa[];
         };
       };
     }[]
@@ -191,6 +200,9 @@ export function UnidadesPanel({
                 unidades_encontradas?: number;
                 unidades_com_fracao?: number;
                 unidades_com_area?: number;
+                balanco?: BalancoLeitura;
+                linhas_nao_lidas?: LinhaPendente[];
+                orfas?: LinhaOrfa[];
                 unidades_confianca_alta?: number;
                 unidades_pendentes_revisao?: number;
                 escala_fracao?: string | null;
@@ -408,6 +420,13 @@ export function UnidadesPanel({
                   <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
                     {sugestao.payload.diagnostico.observacao}
                   </p>
+                )}
+                {sugestao.payload.diagnostico?.balanco && (
+                  <BalancoExtracao
+                    balanco={sugestao.payload.diagnostico.balanco}
+                    naoLidas={sugestao.payload.diagnostico.linhas_nao_lidas}
+                    orfas={sugestao.payload.diagnostico.orfas}
+                  />
                 )}
               </div>
               <Button
