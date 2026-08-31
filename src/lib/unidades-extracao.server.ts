@@ -1164,7 +1164,7 @@ export async function extrairESalvarSugestaoUnidades(
       tokensOutput,
       aigLogId: ultimoLogId,
       aigRunId: ultimoRunId,
-      meta: { documento_id: doc.id, ...diagnostico },
+      meta: { etapa: "extracao", documento_id: doc.id, ...diagnostico },
     });
   } catch (telemetryError) {
     console.error("[uso-ia] importacao_convencao:", telemetryError);
