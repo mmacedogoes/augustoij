@@ -1113,6 +1113,76 @@ function resolverLinhas(unidade: UnidadeExtraida, linhas: Record<string, LinhaLo
   };
 }
 
+const decimalBr = (valor: number, casas = 2) => valor.toFixed(casas).replace(".", ",");
+
+/** Converte a leitura determinística da seção descritiva no formato de sugestão. */
+export function unidadesDaLeituraDescritiva(
+  leitura: LeituraDescritiva,
+  conhecidas: Array<{ bloco: string | null; numero: string }>,
+): UnidadeExtraida[] {
+  const pendentes = new Set(leitura.pendentes);
+  return leitura.unidades.map((u) => {
+    const identidade = resolverIdentidade(
+      { bloco: u.bloco, numero: u.numero, bloco_contexto: u.bloco },
+      conhecidas as Conhecida[],
+    );
+    const bloco = identidade.status === "resolvida" ? identidade.bloco : u.bloco;
+    const numero = identidade.status === "resolvida" ? identidade.numero : u.numero;
+    const trecho = u.corpo.slice(0, 600);
+    const medidas: UnidadeExtraida["medidas"] = [];
+    const push = (
+      campo: z.infer<typeof CampoMedidaSchema>,
+      valor: number | null,
+      escala: z.infer<typeof EscalaMedidaSchema>,
+      casas = 2,
+    ) => {
+      if (valor == null) return;
+      medidas.push({
+        campo,
+        valor_bruto: decimalBr(valor, casas),
+        escala,
+        trecho,
+        linha_id: null,
+        pagina: null,
+        bloco: null,
+        fonte: `seção descritiva, bloco ${u.bloco_descritivo + 1}`,
+        bloco_contexto: u.bloco,
+      });
+    };
+    push("area_privativa", u.area_privativa, "m2");
+    push("area_comum", u.area_comum, "m2");
+    push("area_global", u.area_total, "m2");
+    push("area_equivalente", u.area_equivalente, "m2");
+    push("fracao_terreno", u.fracao_ideal, "decimal", 8);
+    const completa = u.area_privativa != null && u.fracao_ideal != null;
+    return {
+      bloco,
+      numero,
+      tipo: "apartamento" as const,
+      vagas_garagem: u.vagas ?? undefined,
+      medidas,
+      medidas_descartadas: [],
+      fonte: "secao_descritiva",
+      fracao_ideal: u.fracao_ideal,
+      fracao_origem: u.fracao_ideal != null ? ("documento" as const) : ("ausente" as const),
+      fracao_trecho: trecho,
+      area_m2: u.area_privativa,
+      area_origem: u.area_privativa != null ? ("documento" as const) : ("ausente" as const),
+      area_trecho: trecho,
+      confianca:
+        completa && !pendentes.has(u.identificador) ? ("alta" as const) : ("media" as const),
+      regras_aplicadas: [
+        "secao_descritiva",
+        "area_real_privativa",
+        "fracao_ideal_declarada",
+        identidade.regra,
+      ],
+    } satisfies UnidadeExtraida;
+  });
+}
+
+
+
 export async function extrairESalvarSugestaoUnidades(
 
   supabase: SupabaseClient,
