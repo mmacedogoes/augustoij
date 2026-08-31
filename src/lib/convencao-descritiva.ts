@@ -193,9 +193,9 @@ export function extrairRolArtigo2(prosa: string): RolArtigo2 | null {
 // ---------------------------------------------------------------------------
 
 const REGEX_SINGULAR =
-  /A\s+unidade\s+aut[oô]noma\s+de\s+N\.?\s*[º°o]?\s*([0-9]{1,5}\s*[A-Z]?)\s+possui/gi;
+  /A\s+unidade\s+aut[oôó]noma\s+de\s+N\.?\s*[º°o]?\s*([0-9]{1,5}\s*[A-Z]?)\s+possui/gi;
 const REGEX_PLURAL =
-  /As\s+unidades\s+aut[oô]nomas\s+de\s+N\.?\s*[º°o]?\s*(.+?)\s+possuem/gi;
+  /As\s+unidades\s+aut[oôó]nomas\s+de\s+N\.?\s*[º°o]?\s*(.+?)\s+possuem/gi;
 
 export function expandirIdentificadores(lista: string): string[] {
   return lista
@@ -551,7 +551,7 @@ export function localizarFaixaDescritiva(paginas: string[]): { inicio: number; f
   const marcada = paginas.map((p) => {
     const prosa = normalizarProsa(p);
     return (
-      /unidade[s]?\s+aut[oô]noma[s]?\s+de\s+N/i.test(prosa) ||
+      /unidade[s]?\s+aut[oôó]noma[s]?\s+de\s+N/i.test(prosa) ||
       /[ÁA]REA\s+REAL\s+PRIVATIVA/i.test(prosa) ||
       REGEX_ROL.test(prosa)
     );
