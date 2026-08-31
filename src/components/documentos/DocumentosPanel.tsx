@@ -624,7 +624,7 @@ export function DocumentosPanel({
                   variant="ghost"
                   disabled={reprocessando === d.id}
                   onClick={() => handleReprocessar(d.id)}
-                  title="Reler documento (OCR completo)"
+                  title="Reler o arquivo do zero (refaz o OCR — etapa mais cara e demorada)"
                 >
                   {reprocessando === d.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -633,6 +633,22 @@ export function DocumentosPanel({
                   )}
                 </Button>
               )}
+              {!readOnly && d.tipo === "convencao" && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  disabled={reinterpretando === d.id}
+                  onClick={() => handleReinterpretar(d.id)}
+                  title="Reinterpretar unidades a partir do texto já lido (não refaz OCR — custo baixo)"
+                >
+                  {reinterpretando === d.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ListRestart className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+
               {!readOnly && (
                 <Button
                   size="icon"
