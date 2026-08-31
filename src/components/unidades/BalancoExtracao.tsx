@@ -181,7 +181,8 @@ export function BalancoExtracao({
             alerta={!balanco.fecha}
           />
         </div>
-      )}
+      ) : null}
+
 
       {conferencias.length > 0 && (
         <div className="mt-3">
