@@ -5,11 +5,13 @@ import {
   detectarEscalaFracoes,
   dentroTolerancia,
   extrairNumerais,
+  fracaoNaFaixa,
   inferirEscalaLiteral,
   normalizarFracao,
   numeroBrasileiro,
   type EscalaFracao,
 } from "./fracao-normalizar";
+
 
 export const CampoMedidaSchema = z.enum([
   "area_privativa",
@@ -34,11 +36,21 @@ export const MedidaExtraidaSchema = z.object({
   campo: CampoMedidaSchema,
   valor_bruto: z.string().min(1),
   escala: EscalaMedidaSchema,
-  trecho: z.string().min(1),
+  /** Preenchido pelo servidor quando a IA devolve apenas `linha_id`. */
+  trecho: z.string().default(""),
+  linha_id: z.string().nullable().optional(),
   pagina: z.number().int().positive().nullable().optional(),
   bloco: z.number().int().min(0).nullable().optional(),
   fonte: z.string().nullable().optional(),
+  /** Título "BLOCO A"/"TORRE B" vigente acima da linha do quadro. */
+  bloco_contexto: z.string().nullable().optional(),
 });
+
+export const MedidaDescartadaSchema = z.object({
+  medida: MedidaExtraidaSchema,
+  motivo: z.enum(["escala_invalida", "identidade_nao_confere", "valor_nao_confere"]),
+});
+
 
 const UnidadeExtraidaSchema = z.object({
   bloco: z.string().nullable().optional(),
@@ -68,6 +80,7 @@ const UnidadeExtraidaSchema = z.object({
   area_trecho: z.string().nullable().optional(),
   confianca: z.enum(["alta", "media", "conflito"]).optional(),
   candidatos: z.record(z.string(), z.array(MedidaExtraidaSchema)).optional(),
+  medidas_descartadas: z.array(MedidaDescartadaSchema).optional(),
   regras_aplicadas: z.array(z.string()).optional(),
 });
 
@@ -78,6 +91,14 @@ export type DiagnosticoExtracao = {
   quadro_fracoes_encontrado?: boolean | null;
   observacao?: string | null;
   total_trechos?: number;
+  trechos_selecionados?: number;
+  prefiltro?: string | null;
+  linhas_do_quadro?: number;
+  chamadas_ia?: number;
+  chamadas_em_cache?: number;
+  tokens_input?: number;
+  tokens_output?: number;
+  duracao_ms?: number;
   total_lotes?: number;
   lotes_processados?: number;
   lotes_com_erro?: number;
@@ -89,6 +110,7 @@ export type DiagnosticoExtracao = {
   escala_fracao?: EscalaFracao | null;
   somas_hipoteses?: Record<string, number>;
   regra_area?: string | null;
+  medidas_descartadas?: Record<string, number>;
   validacoes?: Array<{
     regra: string;
     ok: boolean;
@@ -99,6 +121,7 @@ export type DiagnosticoExtracao = {
   unidades_confianca_alta?: number;
   unidades_pendentes_revisao?: number;
 };
+
 
 type ChunkRow = {
   id: string;
@@ -121,8 +144,12 @@ type ChamadaIA = {
 };
 
 const MODELO = "google/gemini-3.7-flash";
-const TAMANHO_LOTE = 18_000;
+const TAMANHO_LOTE = 80_000;
+const CONCORRENCIA = 6;
 const MAX_TENTATIVAS = 3;
+/** Muda sempre que o prompt muda — invalida o cache de extração. */
+export const VERSAO_PROMPT = "2026-08-31.linha_id.v1";
+
 
 export class ExtracaoIncompletaError extends Error {
   readonly codigo = "extracao_incompleta";
@@ -277,44 +304,100 @@ function ordenarChunks(chunks: ChunkRow[]) {
   });
 }
 
-export function montarLotes(chunks: ChunkRow[], tamanho = TAMANHO_LOTE) {
+const REGEX_TITULO_BLOCO = /\b(?:bloco|torre|quadra)\s+([a-z0-9]{1,3})\b/i;
+const temLinhaTabela = (texto: string) => /^\s*\|.*\|\s*$/m.test(texto);
+
+export type LinhaLote = {
+  texto: string;
+  pagina: number | null;
+  bloco: number | null;
+  fonte: string;
+  bloco_contexto: string | null;
+};
+
+export type Lote = {
+  texto: string;
+  fontes: string[];
+  linhas: Record<string, LinhaLote>;
+};
+
+/**
+ * Pontua cada trecho sem IA: só vai para o modelo o que pode conter unidade.
+ * Vizinhos imediatos entram junto para não cortar a continuação de um quadro.
+ */
+export function selecionarChunksRelevantes<T extends { conteudo: string }>(chunks: T[]) {
+  const pontuar = (texto: string) => {
+    let pontos = 0;
+    if (temLinhaTabela(texto)) pontos += 3;
+    if (/fra[cç][aã]o ideal|[aá]rea privativa|quadro|coeficiente/i.test(texto)) pontos += 2;
+    if (/^.*?\d+,\d+.*?\d+,\d+.*?\d+,\d+.*$/m.test(texto)) pontos += 2;
+    if (/\b(?:unidade|apto\.?|apartamento|bloco|lote|sala|loja)\s*\d/i.test(texto)) pontos += 1;
+    return pontos;
+  };
+  const marcados = chunks.map((c) => pontuar(c.conteudo) > 0);
+  const selecionados = chunks.filter(
+    (_, i) => marcados[i] || marcados[i - 1] === true || marcados[i + 1] === true,
+  );
+  if (selecionados.length === 0) return { chunks, prefiltro: "sem_sinal_caiu_para_documento" };
+  return { chunks: selecionados, prefiltro: `selecionados ${selecionados.length}/${chunks.length}` };
+}
+
+export function montarLotes(chunks: ChunkRow[], tamanho = TAMANHO_LOTE): Lote[] {
   const ordenados = ordenarChunks(chunks);
-  const lotes: Array<{ texto: string; fontes: string[] }> = [];
+  const lotes: Lote[] = [];
   let partes: string[] = [];
   let fontes: string[] = [];
-  let ultimaLinha = "";
+  let linhas: Record<string, LinhaLote> = {};
   let contextoQuadro = "";
+  let blocoContexto: string | null = null;
+  let contador = 0;
   const cabecalho = (texto: string) => {
-    const linhas = texto.split("\n");
-    const indice = linhas.findIndex(
-      (linha, i) => /^\s*\|.*\|\s*$/.test(linha) && /^\s*\|?\s*:?-{3,}/.test(linhas[i + 1] ?? ""),
+    const linhasTexto = texto.split("\n");
+    const indice = linhasTexto.findIndex(
+      (linha, i) =>
+        /^\s*\|.*\|\s*$/.test(linha) && /^\s*\|?\s*:?-{3,}/.test(linhasTexto[i + 1] ?? ""),
     );
     if (indice < 0) return "";
-    return linhas.slice(Math.max(0, indice - 2), indice + 2).join("\n");
+    return linhasTexto.slice(Math.max(0, indice - 2), indice + 2).join("\n");
   };
   for (const chunk of ordenados) {
     const meta = chunk.metadata ?? {};
     const quadro = cabecalho(chunk.conteudo);
     if (quadro) contextoQuadro = quadro;
+    // O cabeçalho do quadro só vale enquanto ainda houver tabela no trecho.
+    else if (!temLinhaTabela(chunk.conteudo)) contextoQuadro = "";
     const ref = `bloco ${meta.bloco ?? "?"}, páginas ${meta.pagina_inicio ?? "?"}-${meta.pagina_fim ?? "?"}, trecho ${meta.trecho ?? "?"}, ordem ${meta.ordem_global ?? "?"}`;
     const contexto =
       contextoQuadro && !chunk.conteudo.includes(contextoQuadro)
         ? `\n[CONTEXTO DO QUADRO]\n${contextoQuadro}`
         : "";
-    const sobreposicao =
-      partes.length === 0 && ultimaLinha ? `\n[LINHA ANTERIOR]\n${ultimaLinha}` : "";
-    const parte = `${sobreposicao}${contexto}\n\n[FONTE: ${ref}; id ${chunk.id}]\n${chunk.conteudo}`;
+    const numeradas: string[] = [];
+    for (const linha of chunk.conteudo.split("\n")) {
+      const titulo = REGEX_TITULO_BLOCO.exec(linha);
+      if (titulo && !/^\s*\|/.test(linha)) blocoContexto = titulo[1].toUpperCase();
+      if (!linha.trim()) continue;
+      contador += 1;
+      const id = `L${String(contador).padStart(4, "0")}`;
+      numeradas.push(`${id}: ${linha}`);
+      linhas[id] = {
+        texto: linha.trim(),
+        pagina: meta.pagina_inicio ?? null,
+        bloco: meta.bloco ?? null,
+        fonte: ref,
+        bloco_contexto: blocoContexto,
+      };
+    }
+    const parte = `${contexto}\n\n[FONTE: ${ref}; id ${chunk.id}${blocoContexto ? `; bloco_contexto ${blocoContexto}` : ""}]\n${numeradas.join("\n")}`;
     if (partes.length > 0 && partes.join("").length + parte.length > tamanho) {
-      const texto = partes.join("");
-      lotes.push({ texto, fontes });
-      ultimaLinha = texto.split("\n").filter(Boolean).at(-1) ?? "";
+      lotes.push({ texto: partes.join(""), fontes, linhas });
       partes = [];
       fontes = [];
+      linhas = {};
     }
     partes.push(parte);
     fontes.push(ref);
   }
-  if (partes.length) lotes.push({ texto: partes.join(""), fontes });
+  if (partes.length) lotes.push({ texto: partes.join(""), fontes, linhas });
   return lotes;
 }
 
@@ -322,36 +405,50 @@ function escaparRegex(valor: string) {
   return valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** Colapsa separadores de tabela para que o layout não interfira no casamento. */
+function normalizarTrecho(trecho: string) {
+  return trecho
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[|\t]+/g, " ")
+    .replace(/\s{2,}/g, " ");
+}
+
+const ABREV_UNIDADE = "(?:unid\\.?|un\\.?|ap\\.?|apto\\.?|apartamento|unidade|casa|sala|loja|lote)?\\s*";
+const ABREV_BLOCO = "(?:bl\\.?|bloco|torre|qd\\.?|quadra)?\\s*";
+
 export function trechoContemIdentidade(
   unidade: Pick<UnidadeExtraida, "bloco" | "numero">,
   trecho: string | null | undefined,
+  blocoContexto?: string | null,
 ) {
   if (!trecho) return false;
   const numero = escaparRegex(normalizarParte(unidade.numero));
   const bloco = escaparRegex(normalizarParte(unidade.bloco ?? ""));
-  const texto = trecho
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  if (!bloco) return new RegExp(`(^|\\D)${numero}(?=\\D|$)`, "i").test(texto);
+  const texto = normalizarTrecho(trecho);
+  const numeroNaLinha = new RegExp(`(?<![0-9])${numero}(?![0-9])`, "i").test(texto);
+  if (!bloco) return numeroNaLinha;
+  // O bloco pode vir de um título acima da tabela, não da própria linha.
+  if (numeroNaLinha && normalizarParte(blocoContexto ?? "") === bloco) return true;
   const padroes = [
-    `(^|\\W)${numero}\\s*[-/]?\\s*${bloco}(?=\\W|$)`,
-    `(^|\\W)${bloco}\\s*[-/]?\\s*${numero}(?=\\W|$)`,
-    `(^|\\W)${numero}\\s+(?:do|da)\\s+bloco\\s+${bloco}(?=\\W|$)`,
-    `bloco\\s+${bloco}\\s*[,;:-]?\\s*(?:apartamento|apto\\.?|unidade)?\\s*${numero}(?=\\W|$)`,
-    `(?:apartamento|apto\\.?|unidade)\\s*${numero}\\s*[,;—-]?\\s*bloco\\s+${bloco}(?=\\W|$)`,
+    `(?<![0-9])${numero}(?![0-9])[\\s\\-/,.]*${ABREV_BLOCO}(?<![a-z])${bloco}(?![a-z])`,
+    `${ABREV_BLOCO}(?<![a-z])${bloco}(?![a-z])[\\s\\-/,.]*${ABREV_UNIDADE}(?<![0-9])${numero}(?![0-9])`,
+    `(?<![0-9])${numero}(?![0-9])\\s+(?:do|da)\\s+(?:bloco|torre|quadra)\\s+${bloco}(?![a-z])`,
   ];
   return padroes.some((padrao) => new RegExp(padrao, "i").test(texto));
 }
 
 function valorApareceNoTrecho(medida: z.infer<typeof MedidaExtraidaSchema>) {
-  if (!medida.trecho.includes(medida.valor_bruto.trim())) return false;
+  // A comparação é NUMÉRICA com tolerância: a transcrição literal pode
+  // divergir por espaço do OCR ou por ponto/vírgula.
   const alvo =
     medida.escala === "m2"
       ? numeroBrasileiro(medida.valor_bruto)
       : normalizarFracao(medida.valor_bruto, medida.escala as EscalaFracao);
   if (alvo == null) return false;
-  return extrairNumerais(medida.trecho).some((literal) => {
+  const trechoLimpo = medida.trecho.replace(/(\d)\s+(\d)/g, "$1$2");
+  return extrairNumerais(trechoLimpo).some((literal) => {
     if (medida.escala === "m2") {
       const valor = numeroBrasileiro(literal);
       return valor != null && dentroTolerancia(valor, alvo, 0.02);
@@ -362,14 +459,26 @@ function valorApareceNoTrecho(medida: z.infer<typeof MedidaExtraidaSchema>) {
   });
 }
 
+/** Nunca apaga em silêncio: reprovadas vão para `medidas_descartadas` com o motivo. */
 function validarProveniencia(unidade: UnidadeExtraida) {
-  return {
-    ...unidade,
-    medidas: (unidade.medidas ?? []).filter(
-      (medida) => valorApareceNoTrecho(medida) && trechoContemIdentidade(unidade, medida.trecho),
-    ),
-  };
+  const medidas: UnidadeExtraida["medidas"] = [];
+  const descartadas: NonNullable<UnidadeExtraida["medidas_descartadas"]> = [
+    ...(unidade.medidas_descartadas ?? []),
+  ];
+  for (const medida of unidade.medidas ?? []) {
+    if (!trechoContemIdentidade(unidade, medida.trecho, medida.bloco_contexto)) {
+      descartadas.push({ medida, motivo: "identidade_nao_confere" });
+      continue;
+    }
+    if (!valorApareceNoTrecho(medida)) {
+      descartadas.push({ medida, motivo: "valor_nao_confere" });
+      continue;
+    }
+    medidas.push(medida);
+  }
+  return { ...unidade, medidas, medidas_descartadas: descartadas };
 }
+
 
 export function normalizarParaCadastro(
   unidade: UnidadeExtraida,
@@ -413,18 +522,37 @@ function precedenciaFonte(medida: Medida) {
   );
 }
 
+const CAMPOS_FRACAO: CampoMedida[] = [
+  "fracao_terreno",
+  "coeficiente_rateio",
+  "fracao_coisas_comuns",
+];
+
 export function resolverValorComEvidencia(
   medidas: Medida[],
   campo: CampoMedida,
   escalaGlobal: EscalaFracao | null,
   coerentes = new Set<Medida>(),
 ) {
+  const invalidas: Medida[] = [];
+  const ehFracao = CAMPOS_FRACAO.includes(campo);
   const candidatas = medidas
     .filter((medida) => medida.campo === campo)
     .map((medida) => ({ medida, valor: valorCanonico(medida, escalaGlobal) }))
-    .filter((item): item is { medida: Medida; valor: number } => item.valor != null);
+    .filter((item): item is { medida: Medida; valor: number } => {
+      if (item.valor == null) {
+        invalidas.push(item.medida);
+        return false;
+      }
+      // A faixa só é cobrada DEPOIS de escolhida a escala global.
+      if (ehFracao && !fracaoNaFaixa(item.valor)) {
+        invalidas.push(item.medida);
+        return false;
+      }
+      return true;
+    });
   if (candidatas.length === 0)
-    return { medida: null, valor: null, conflito: false, candidatas: [] as Medida[] };
+    return { medida: null, valor: null, conflito: false, candidatas: [] as Medida[], invalidas };
   const absoluto = campo.startsWith("area_") ? 0.02 : 1e-6;
   const grupos: Array<Array<(typeof candidatas)[number]>> = [];
   for (const candidata of candidatas) {
@@ -460,6 +588,7 @@ export function resolverValorComEvidencia(
     valor: empate ? null : primeira.grupo[0].valor,
     conflito: Boolean(empate),
     candidatas: candidatas.map(({ medida }) => medida),
+    invalidas,
   };
 }
 
@@ -470,8 +599,12 @@ function detectarEscalaGlobal(grupos: Map<string, UnidadeExtraida[]>) {
   )) {
     const medidas = candidatas
       .flatMap((item) => item.medidas)
+      // A amostra precisa incluir todas as medidas de fração — inclusive as
+      // rotuladas como indeterminado — senão o somatório nunca fecha.
       .filter(
-        (medida) => medida.campo === "fracao_terreno" || medida.campo === "coeficiente_rateio",
+        (medida) =>
+          CAMPOS_FRACAO.includes(medida.campo) ||
+          (medida.campo === "indeterminado" && medida.escala !== "m2"),
       )
       .sort(
         (a, b) =>
@@ -506,12 +639,15 @@ export function consolidar(
   }
   const escala = detectarEscalaGlobal(grupos);
   const conflitos: string[] = [];
-  const regras = new Set<string>();
-  const unidades = [...grupos.entries()]
+  const regrasGlobais = new Set<string>();
+
+  const parciais = [...grupos.entries()]
     .sort(([a], [b]) => a.localeCompare(b, "pt-BR", { numeric: true }))
     .map(([key, grupo]) => {
       const base = grupo[0];
       const medidas = grupo.flatMap((item) => item.medidas);
+      const descartadas = grupo.flatMap((item) => item.medidas_descartadas ?? []);
+      const regras: string[] = [];
       const coerentes = new Set<Medida>();
       for (const global of medidas.filter((m) => m.campo === "area_global")) {
         const vg = valorCanonico(global, escala.escala);
@@ -525,6 +661,9 @@ export function consolidar(
           if (comum) coerentes.add(comum);
         }
       }
+      const registrarInvalidas = (lista: Medida[]) => {
+        for (const medida of lista) descartadas.push({ medida, motivo: "escala_invalida" });
+      };
       const privativa = resolverValorComEvidencia(
         medidas,
         "area_privativa",
@@ -538,51 +677,138 @@ export function consolidar(
       if (area == null && !privativa.conflito && global.valor != null && comum.valor != null) {
         area = Number((global.valor - comum.valor).toFixed(2));
         areaMedida = global.medida;
-        regras.add("area_global_menos_comum");
-      } else if (area != null) regras.add("area_privativa");
+        regras.push("area_global_menos_comum");
+      } else if (area != null) regras.push("area_privativa");
+
       const terreno = resolverValorComEvidencia(medidas, "fracao_terreno", escala.escala);
       const rateio = resolverValorComEvidencia(medidas, "coeficiente_rateio", escala.escala);
-      const fracao = terreno.valor ?? (terreno.conflito ? null : rateio.valor);
-      const fracaoMedida = terreno.medida ?? (terreno.conflito ? null : rateio.medida);
-      if (terreno.valor != null) regras.add("fracao_terreno");
-      else if (rateio.valor != null) regras.add("coeficiente_rateio");
+      const coisasComuns = resolverValorComEvidencia(
+        medidas,
+        "fracao_coisas_comuns",
+        escala.escala,
+      );
+      registrarInvalidas([
+        ...privativa.invalidas,
+        ...global.invalidas,
+        ...comum.invalidas,
+        ...terreno.invalidas,
+        ...rateio.invalidas,
+        ...coisasComuns.invalidas,
+      ]);
+      let fracao = terreno.valor;
+      let fracaoMedida = terreno.medida;
+      if (fracao == null && !terreno.conflito) {
+        fracao = rateio.valor ?? coisasComuns.valor;
+        fracaoMedida = rateio.medida ?? coisasComuns.medida;
+      }
+      if (terreno.valor != null) regras.push("fracao_terreno");
+      else if (rateio.valor != null) regras.push("coeficiente_rateio");
+      else if (coisasComuns.valor != null) regras.push("fracao_coisas_comuns");
+
+      // Candidatas a promoção quando o rótulo não estava visível no trecho.
+      const indeterminadas = medidas.filter((m) => m.campo === "indeterminado");
+      const indetArea = indeterminadas.filter((m) => m.escala === "m2");
+      const indetFracao = indeterminadas.filter((m) => m.escala !== "m2");
+      if (area == null && indetArea.length === 1) {
+        const valor = valorCanonico(indetArea[0], escala.escala);
+        if (valor != null) {
+          area = valor;
+          areaMedida = indetArea[0];
+          regras.push("promovido_de_indeterminado_area");
+        }
+      }
+      let promocaoFracao: { valor: number; medida: Medida } | null = null;
+      if (fracao == null && !terreno.conflito && indetFracao.length === 1) {
+        const valor = valorCanonico(indetFracao[0], escala.escala);
+        if (fracaoNaFaixa(valor)) promocaoFracao = { valor, medida: indetFracao[0] };
+      }
+
       if (privativa.conflito) conflitos.push(`${key}: área privativa divergente`);
       if (terreno.conflito) conflitos.push(`${key}: fração do terreno divergente`);
-      const conflito = privativa.conflito || terreno.conflito;
-      const completa = area != null && fracao != null;
+      for (const regra of regras) regrasGlobais.add(regra);
       return {
-        ...base,
+        key,
+        base,
+        grupo,
         medidas,
-        tipo: grupo.find((item) => item.tipo)?.tipo,
-        vagas_garagem: grupo.find((item) => item.vagas_garagem != null)?.vagas_garagem,
-        fracao_ideal: fracao,
-        fracao_origem: fracaoMedida ? ("documento" as const) : ("ausente" as const),
-        fracao_trecho: fracaoMedida?.trecho ?? null,
-        area_m2: area,
-        area_origem: areaMedida ? ("documento" as const) : ("ausente" as const),
-        area_trecho: areaMedida?.trecho ?? null,
-        confianca: conflito
-          ? ("conflito" as const)
-          : completa
-            ? ("alta" as const)
-            : ("media" as const),
-        candidatos: Object.fromEntries(
-          [...new Set(medidas.map((m) => m.campo))].map((campo) => [
-            campo,
-            medidas.filter((m) => m.campo === campo),
-          ]),
-        ),
-        regras_aplicadas: [...regras],
-      } satisfies UnidadeExtraida;
+        descartadas,
+        regras,
+        area,
+        areaMedida,
+        fracao,
+        fracaoMedida,
+        promocaoFracao,
+        conflito: privativa.conflito || terreno.conflito,
+      };
     });
+
+  // A promoção de frações indeterminadas só vale se o somatório fechar.
+  const promovidas = parciais.filter((p) => p.promocaoFracao);
+  if (promovidas.length > 0) {
+    const somaSem = parciais.reduce((total, p) => total + (p.fracao ?? 0), 0);
+    const somaCom = somaSem + promovidas.reduce((t, p) => t + (p.promocaoFracao?.valor ?? 0), 0);
+    const aceitar =
+      Math.abs(somaCom - 1) <= 0.005 || Math.abs(somaCom - 1) < Math.abs(somaSem - 1);
+    for (const parcial of promovidas) {
+      if (aceitar) {
+        parcial.fracao = parcial.promocaoFracao?.valor ?? null;
+        parcial.fracaoMedida = parcial.promocaoFracao?.medida ?? null;
+        parcial.regras.push("promovido_de_indeterminado_fracao");
+        regrasGlobais.add("promovido_de_indeterminado_fracao");
+      } else {
+        parcial.regras.push("promocao_desfeita_soma_nao_fecha");
+        regrasGlobais.add("promocao_desfeita_soma_nao_fecha");
+      }
+    }
+  }
+
+  const unidades = parciais.map((p) => {
+    const completa = p.area != null && p.fracao != null;
+    const pendentePromocao = p.regras.includes("promocao_desfeita_soma_nao_fecha");
+    return {
+      ...p.base,
+      medidas: p.medidas,
+      medidas_descartadas: p.descartadas,
+      tipo: p.grupo.find((item) => item.tipo)?.tipo,
+      vagas_garagem: p.grupo.find((item) => item.vagas_garagem != null)?.vagas_garagem,
+      fracao_ideal: p.fracao,
+      fracao_origem: p.fracaoMedida ? ("documento" as const) : ("ausente" as const),
+      fracao_trecho: p.fracaoMedida?.trecho ?? null,
+      area_m2: p.area,
+      area_origem: p.areaMedida ? ("documento" as const) : ("ausente" as const),
+      area_trecho: p.areaMedida?.trecho ?? null,
+      confianca: p.conflito
+        ? ("conflito" as const)
+        : completa && !pendentePromocao
+          ? ("alta" as const)
+          : ("media" as const),
+      candidatos: Object.fromEntries(
+        [...new Set(p.medidas.map((m) => m.campo))].map((campo) => [
+          campo,
+          p.medidas.filter((m) => m.campo === campo),
+        ]),
+      ),
+      regras_aplicadas: p.regras,
+    } satisfies UnidadeExtraida;
+  });
+
+  const medidasDescartadas: Record<string, number> = {};
+  for (const unidade of unidades) {
+    for (const item of unidade.medidas_descartadas ?? []) {
+      medidasDescartadas[item.motivo] = (medidasDescartadas[item.motivo] ?? 0) + 1;
+    }
+  }
+
   return {
     unidades,
     conflitos,
     escala: escala.escala,
     somasHipoteses: escala.somas,
-    regras: [...regras],
+    regras: [...regrasGlobais],
+    medidasDescartadas,
   };
 }
+
 
 export function validarCoberturaExtracao(
   unidades: UnidadeExtraida[],
