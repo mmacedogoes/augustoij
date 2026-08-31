@@ -977,6 +977,29 @@ export function validarCoberturaExtracao(
     ok: !diagnostico.lotes_com_erro,
     valor: diagnostico.lotes_com_erro ?? 0,
   });
+  const balanco = diagnostico.balanco;
+  if (balanco) {
+    validacoes.push({
+      regra: "linhas_nao_lidas",
+      ok: balanco.nao_lidas === 0,
+      valor: balanco.nao_lidas,
+      detalhe: (diagnostico.linhas_nao_lidas ?? [])
+        .slice(0, 5)
+        .map((l) => `p.${l.pagina ?? "?"}: ${l.texto}`)
+        .join(" | "),
+    });
+    validacoes.push({
+      regra: "linhas_sem_correspondencia",
+      ok: balanco.sem_correspondencia === 0,
+      valor: balanco.sem_correspondencia,
+    });
+    validacoes.push({
+      regra: "balanco_fecha",
+      ok: balanco.fecha,
+      valor: balanco.linhas_candidatas,
+      detalhe: `parser ${balanco.lidas_pelo_parser} + ia ${balanco.lidas_pela_ia} + não lidas ${balanco.nao_lidas}`,
+    });
+  }
   diagnostico.validacoes = validacoes;
   return validacoes;
 }
@@ -1318,8 +1341,18 @@ export async function extrairESalvarSugestaoUnidades(
     ? deleteQuery
     : deleteQuery.in("status", ["pendente", "pendente_revisao", "falhou"]));
   const pendentes = unidades.filter((u) => u.confianca !== "alta");
+  const balancoFinal = diagnostico.balanco;
   const status =
-    pendentes.length > 0 || (diagnostico.lotes_com_erro ?? 0) > 0 ? "pendente_revisao" : "pendente";
+    pendentes.length > 0 ||
+    (diagnostico.lotes_com_erro ?? 0) > 0 ||
+    semLeitura.length > 0 ||
+    orfas.length > 0 ||
+    balancoFinal?.fecha === false
+      ? "pendente_revisao"
+      : "pendente";
+  if (balancoFinal?.fecha === false) {
+    console.error("[extracao] balanço não fecha", { documento_id: doc.id, balanco: balancoFinal });
+  }
   const { error: insertError } = await supabase.from("sugestoes_unidades").insert({
     condominio_id: doc.condominio_id,
     documento_id: doc.id,
