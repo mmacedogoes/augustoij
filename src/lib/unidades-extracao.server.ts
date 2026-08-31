@@ -898,6 +898,29 @@ export function consolidar(
 }
 
 
+/** Invariante 4 — o balanço tem que fechar aritmeticamente. */
+export function montarBalanco(entrada: {
+  linhasCandidatas: number;
+  lidasPeloParser: number;
+  lidasPelaIa: number;
+  naoLidas: number;
+  unidades: UnidadeExtraida[];
+  semCorrespondencia: number;
+}): NonNullable<DiagnosticoExtracao["balanco"]> {
+  const soma = entrada.unidades.reduce((total, u) => total + (u.fracao_ideal ?? 0), 0);
+  return {
+    linhas_candidatas: entrada.linhasCandidatas,
+    lidas_pelo_parser: entrada.lidasPeloParser,
+    lidas_pela_ia: entrada.lidasPelaIa,
+    nao_lidas: entrada.naoLidas,
+    unidades_resolvidas: entrada.unidades.length,
+    sem_correspondencia: entrada.semCorrespondencia,
+    soma_fracoes: Number(soma.toFixed(6)),
+    fecha:
+      entrada.lidasPeloParser + entrada.lidasPelaIa + entrada.naoLidas === entrada.linhasCandidatas,
+  };
+}
+
 export function validarCoberturaExtracao(
   unidades: UnidadeExtraida[],
   diagnostico: DiagnosticoExtracao,
