@@ -1244,10 +1244,17 @@ export async function extrairESalvarSugestaoUnidades(
 
 
 
-  const { unidades, conflitos, escala, somasHipoteses, regras, medidasDescartadas } = consolidar(
-    candidatas,
-    conhecidas,
-  );
+  const { unidades, conflitos, escala, somasHipoteses, regras, medidasDescartadas, orfas } =
+    consolidar(candidatas, conhecidas);
+  diagnostico.orfas = orfas;
+  diagnostico.balanco = montarBalanco({
+    linhasCandidatas: censo.candidatas.length,
+    lidasPeloParser: censo.candidatas.filter((l) => quadro.linhasLidas.has(l.linha_id)).length,
+    lidasPelaIa: censo.candidatas.filter((l) => lidasPelaIa.has(l.linha_id)).length,
+    naoLidas: semLeitura.length,
+    unidades,
+    semCorrespondencia: orfas.length,
+  });
   diagnostico.conflitos = conflitos;
   diagnostico.escala_fracao = escala;
   diagnostico.somas_hipoteses = somasHipoteses;
