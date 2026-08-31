@@ -1285,7 +1285,15 @@ export async function extrairESalvarSugestaoUnidades(
       unidades_confianca_alta: unidades.filter((u) => u.confianca === "alta").length,
       unidades_pendentes_revisao: unidades.filter((u) => u.confianca !== "alta").length,
       duracao_ms: Date.now() - inicio,
-      observacao: `Leitura determinística da seção descritiva: ${descritiva.balanco.blocos_descritivos} blocos descritivos, ${unidades.length} unidades após expansão.`,
+      tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "secao_descritiva" },
+      observacao:
+        `Leitura determinística da seção descritiva: ${descritiva.balanco.blocos_descritivos} blocos descritivos, ${unidades.length} unidades após expansão` +
+        (descritiva.soma_ok
+          ? "."
+          : `; a soma das frações deu ${descritiva.balanco.soma_fracoes} e a sugestão foi marcada para revisão.`) +
+        (descritiva.regras_aplicadas.length
+          ? ` Regras de escala: ${descritiva.regras_aplicadas.join("; ")}.`
+          : ""),
     };
     return persistirExtracao({
       supabase,
@@ -1297,7 +1305,10 @@ export async function extrairESalvarSugestaoUnidades(
       qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
       force: Boolean(opts.force),
       pendenciasExtras:
-        descritiva.faltando.length + descritiva.sobrando.length + descritiva.duplicadas.length,
+        descritiva.faltando.length +
+        descritiva.sobrando.length +
+        descritiva.duplicadas.length +
+        (descritiva.soma_ok ? 0 : 1),
     });
   }
 
@@ -1314,6 +1325,15 @@ export async function extrairESalvarSugestaoUnidades(
   const naoLidas = censo.candidatas.filter((l) => !quadro.linhasLidas.has(l.linha_id));
   const lotes = montarLotesDeLinhas(naoLidas);
   const diagnostico: DiagnosticoExtracao = {
+    leitura: "quadro_ia",
+    // A tentativa descritiva aparece mesmo quando o caminho não foi usado.
+    tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "censo_de_linhas" },
+    rol_artigo_2: descritiva.rol
+      ? {
+          total_declarado: descritiva.rol.total_declarado,
+          identificadores: descritiva.rol.identificadores,
+        }
+      : null,
     total_trechos: chunks.length,
     trechos_selecionados: new Set(naoLidas.map((l) => l.chunk_id)).size,
     prefiltro: `linhas candidatas ${censo.candidatas.length}; para a IA ${naoLidas.length}`,
@@ -1325,6 +1345,7 @@ export async function extrairESalvarSugestaoUnidades(
     chamadas_em_cache: 0,
     erros: [],
   };
+
   if (censo.candidatas.length === 0) {
     const mensagem =
       "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
