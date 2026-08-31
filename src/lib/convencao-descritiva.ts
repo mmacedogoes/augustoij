@@ -137,20 +137,20 @@ const mediana = (valores: number[]) => {
 // 1. O rol do Artigo 2 é o censo
 // ---------------------------------------------------------------------------
 
-const REGEX_ROL =
-  /totalizando\s+(\d+)\s*\([^)]*\)\s*(?:apartamentos?|unidades?|casas?|salas?|lojas?)[^.]{0,200}?assim\s+distribu[ií]d[oa]s?\s*:?/i;
+/**
+ * O parêntese com o número por extenso é OPCIONAL — no Altavista o rol é
+ * "totalizando 56 unidades autônomas, assim distribuídas: Bloco A :101A...".
+ * Aceita também "compõe-se de", "é composto de", "assim discriminadas" etc.
+ */
+export const REGEX_ROL =
+  /(?:totalizando|comp[õo]e[m]?-se\s+de|[ée]\s+composto\s+(?:de|por)|num?\s+total\s+de|no\s+total\s+de|perfazendo)\s+(\d+)(?:\s*\([^)]*\))?\s*(?:apartamentos?|unidades?(?:\s+aut[oôó]nomas?)?|casas?|salas?|lojas?)[^.]{0,240}?(?:assim\s+distribu[ií]d[oa]s?|assim\s+discriminad[oa]s?|assim\s+descrit[oa]s?|assim\s+dispost[oa]s?|a\s+saber)\s*:?/i;
 
-export function extrairRolArtigo2(prosa: string): RolArtigo2 | null {
-  const m = REGEX_ROL.exec(prosa);
-  if (!m) return null;
-  const inicio = m.index + m[0].length;
-  let corpo = prosa.slice(inicio, inicio + 4000);
-  const corte = /\bArt(?:igo)?\.?\s*\d|\bPar[áa]grafo\b|\bunidade\s+aut[oô]noma\s+de\s+N/i.exec(corpo);
-  if (corte) corpo = corpo.slice(0, corte.index);
+const REGEX_ROL_GLOBAL = new RegExp(REGEX_ROL.source, "gi");
 
+function identificadoresDoCorpo(corpo: string) {
   const identificadores: string[] = [];
   let blocoAtual: string | null = null;
-  const token = /(?:bloco|torre|quadra)\s+([A-Za-z0-9]{1,3})\s*:?|(\d{2,5})\s*([A-Za-z])?(?![\d.,])/gi;
+  const token = /(?:bloco|torre|quadra)\s*:?\s*([A-Za-z0-9]{1,3})\s*:?|(\d{2,5})\s*([A-Za-z])?(?![\d.,])/gi;
   for (let t = token.exec(corpo); t; t = token.exec(corpo)) {
     if (t[1]) {
       blocoAtual = t[1].toUpperCase();
@@ -161,12 +161,32 @@ export function extrairRolArtigo2(prosa: string): RolArtigo2 | null {
     const bloco = (t[3] ?? blocoAtual ?? "").toUpperCase();
     identificadores.push(`${numero}${bloco}`);
   }
-  return {
-    total_declarado: Number(m[1]) || null,
-    identificadores: [...new Set(identificadores)],
-    trecho: m[0] + corpo,
-  };
+  return [...new Set(identificadores)];
 }
+
+export function extrairRolArtigo2(prosa: string): RolArtigo2 | null {
+  REGEX_ROL_GLOBAL.lastIndex = 0;
+  const candidatos: RolArtigo2[] = [];
+  for (let m = REGEX_ROL_GLOBAL.exec(prosa); m; m = REGEX_ROL_GLOBAL.exec(prosa)) {
+    const inicio = m.index + m[0].length;
+    let corpo = prosa.slice(inicio, inicio + 4000);
+    const corte = /\bArt(?:igo)?\.?\s*\d|\bPar[áa]grafo\b|\bunidades?\s+aut[oôó]nomas?\s+de\s+N/i.exec(
+      corpo,
+    );
+    if (corte) corpo = corpo.slice(0, corte.index);
+    candidatos.push({
+      total_declarado: Number(m[1]) || null,
+      identificadores: identificadoresDoCorpo(corpo),
+      trecho: m[0] + corpo,
+    });
+  }
+  if (candidatos.length === 0) return null;
+  // Prefere a frase seguida da lista longa: é o rol de verdade, não uma menção.
+  const longos = candidatos.filter((c) => c.identificadores.length > 10);
+  const pool = longos.length ? longos : candidatos;
+  return [...pool].sort((a, b) => b.identificadores.length - a.identificadores.length)[0];
+}
+
 
 // ---------------------------------------------------------------------------
 // 2. Segmentar por bloco descritivo
