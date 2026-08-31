@@ -42,12 +42,14 @@ const ROTULO_CONFERENCIA: Record<string, string> = {
 export function BalancoExtracao({
   balanco,
   balancoDescritivo,
+  tentativa,
   conferencias = [],
   naoLidas = [],
   orfas = [],
 }: {
-  balanco: BalancoLeitura;
+  balanco?: BalancoLeitura | null;
   balancoDescritivo?: BalancoDescritivo | null;
+  tentativa?: TentativaDescritiva | null;
   conferencias?: Conferencia[];
   naoLidas?: LinhaPendente[];
   orfas?: LinhaOrfa[];
@@ -55,9 +57,75 @@ export function BalancoExtracao({
   const d = balancoDescritivo;
   return (
     <div className="mt-3 w-full rounded-lg border border-border/60 bg-background/60 p-3">
+      {tentativa && (
+        <div className="mb-3 rounded-md border border-border/60 p-2">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Tentativa de leitura da seção descritiva
+          </p>
+          <div className="grid gap-x-8 gap-y-1 text-xs sm:grid-cols-2">
+            <Item
+              rotulo="Rol do Artigo 2 localizado"
+              valor={tentativa.rol_localizado ? "sim" : "não"}
+              alerta={!tentativa.rol_localizado}
+            />
+            <Item
+              rotulo="Identificadores no rol"
+              valor={String(tentativa.identificadores_no_rol)}
+            />
+            <Item
+              rotulo="Blocos descritivos"
+              valor={String(tentativa.blocos_descritivos)}
+              alerta={tentativa.blocos_descritivos === 0}
+            />
+            <Item rotulo="Unidades após expansão" valor={String(tentativa.unidades_apos_expansao)} />
+            <Item rotulo="Com área privativa" valor={String(tentativa.com_area_privativa)} />
+            <Item rotulo="Com fração ideal" valor={String(tentativa.com_fracao_ideal)} />
+            <Item
+              rotulo={`Soma das frações (escala ${tentativa.escala_aplicada})`}
+              valor={formatarFracao(tentativa.soma_fracoes)}
+              alerta={!tentativa.soma_ok}
+            />
+            <Item
+              rotulo="Caminho usado"
+              valor={
+                tentativa.caminho_usado === "secao_descritiva"
+                  ? "seção descritiva"
+                  : "censo de linhas"
+              }
+              alerta={tentativa.caminho_usado !== "secao_descritiva"}
+            />
+          </div>
+          {tentativa.motivo_descarte && (
+            <p className="mt-1 text-xs text-destructive">
+              Motivo: {tentativa.motivo_descarte}
+            </p>
+          )}
+          {tentativa.amostras?.some((a) => a.ocorrencias.length > 0) && (
+            <div className="mt-2 space-y-1">
+              {tentativa.amostras.map((a) => (
+                <div key={a.termo} className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{a.termo}</span>
+                  {a.ocorrencias.length === 0 ? (
+                    <span> — não aparece no texto indexado</span>
+                  ) : (
+                    <ul className="mt-0.5 space-y-0.5">
+                      {a.ocorrencias.map((o, i) => (
+                        <li key={i} className="font-mono">
+                          …{o}…
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Balanço da leitura
       </p>
+
       {d ? (
         <div className="grid gap-x-8 gap-y-1 text-xs sm:grid-cols-2">
           <Item
