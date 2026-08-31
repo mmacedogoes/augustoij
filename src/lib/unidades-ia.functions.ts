@@ -8,6 +8,16 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * o payload para o usuário revisar e depois confirmar via importUnidadesLote.
  */
 
+const MedidaSugestao = z.object({
+  campo: z.string(),
+  valor_bruto: z.string(),
+  escala: z.string(),
+  trecho: z.string(),
+  pagina: z.number().nullable().optional(),
+  bloco: z.number().nullable().optional(),
+  fonte: z.string().nullable().optional(),
+});
+
 const UnidadeSugestao = z.object({
   bloco: z.string().nullable().optional(),
   numero: z.string(),
@@ -30,16 +40,8 @@ const UnidadeSugestao = z.object({
   fracao_origem: z.enum(["documento", "ausente"]).nullable().optional(),
   area_origem: z.enum(["documento", "ausente"]).nullable().optional(),
   confianca: z.enum(["alta", "media", "conflito"]).optional(),
-  medidas: z.array(z.object({
-    campo: z.string(),
-    valor_bruto: z.string(),
-    escala: z.string(),
-    trecho: z.string(),
-    pagina: z.number().nullable().optional(),
-    bloco: z.number().nullable().optional(),
-    fonte: z.string().nullable().optional(),
-  })).optional(),
-  candidatos: z.record(z.string(), z.array(z.unknown())).optional(),
+  medidas: z.array(MedidaSugestao).optional(),
+  candidatos: z.record(z.string(), z.array(MedidaSugestao)).optional(),
   regras_aplicadas: z.array(z.string()).optional(),
 });
 

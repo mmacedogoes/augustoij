@@ -316,7 +316,7 @@ function valorApareceNoTrecho(medida: z.infer<typeof MedidaExtraidaSchema>) {
 function validarProveniencia(unidade: UnidadeExtraida) {
   return {
     ...unidade,
-    medidas: unidade.medidas.filter((medida) =>
+    medidas: (unidade.medidas ?? []).filter((medida) =>
       valorApareceNoTrecho(medida) && trechoContemIdentidade(unidade, medida.trecho),
     ),
   };
@@ -424,7 +424,9 @@ export function consolidar(
       const vp = priv ? valorCanonico(priv, escala.escala) : null;
       const vc = comum ? valorCanonico(comum, escala.escala) : null;
       if (vg != null && vp != null && vc != null && dentroTolerancia(vg, vp + vc, 0.05)) {
-        coerentes.add(global); coerentes.add(priv); coerentes.add(comum);
+        coerentes.add(global);
+        if (priv) coerentes.add(priv);
+        if (comum) coerentes.add(comum);
       }
     }
     const privativa = resolverValorComEvidencia(medidas, "area_privativa", escala.escala, coerentes);
@@ -484,6 +486,16 @@ export function validarCoberturaExtracao(
     return pv != null && cv != null && gv != null && !dentroTolerancia(gv, pv + cv, 0.05);
   });
   validacoes.push({ regra: "area_global_privativa_comum", ok: identidadesInvalidas.length === 0, unidades: identidadesInvalidas.map((u) => chaveUnidade(u.bloco ?? null, u.numero)) });
+  const somaAreaPrivativa = unidades.reduce((total, unidade) => total + (unidade.area_m2 ?? 0), 0);
+  validacoes.push({ regra: "soma_area_privativa", ok: somaAreaPrivativa > 0, valor: Number(somaAreaPrivativa.toFixed(2)) });
+  const proporcionais = unidades.filter((u) => u.area_m2 != null && u.fracao_ideal != null);
+  const ratios = proporcionais.map((u) => (u.fracao_ideal ?? 0) / (u.area_m2 ?? 1));
+  const mediaRatio = ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
+  const foraProporcao = proporcionais.filter((u) => {
+    const ratio = (u.fracao_ideal ?? 0) / (u.area_m2 ?? 1);
+    return mediaRatio > 0 && Math.abs(ratio - mediaRatio) / mediaRatio > 0.25;
+  });
+  validacoes.push({ regra: "proporcionalidade_area_fracao", ok: foraProporcao.length === 0, unidades: foraProporcao.map((u) => chaveUnidade(u.bloco ?? null, u.numero)) });
   const declarado = diagnostico.total_declarado_no_texto ?? qtdEsperada;
   validacoes.push({ regra: "quantidade_unidades", ok: !declarado || declarado === unidades.length, valor: unidades.length, detalhe: declarado ? `declarado: ${declarado}` : "não declarado" });
   validacoes.push({ regra: "lotes_processados", ok: !diagnostico.lotes_com_erro, valor: diagnostico.lotes_com_erro ?? 0 });
