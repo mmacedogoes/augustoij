@@ -326,12 +326,16 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
         { force: true },
       );
     } catch (err: unknown) {
-      const { ExtracaoIncompletaError } = await import("./unidades-extracao.server");
-      if (err instanceof ExtracaoIncompletaError) {
+      const erroControlado =
+        typeof err === "object" &&
+        err !== null &&
+        "codigo" in err &&
+        (err as { codigo?: unknown }).codigo === "extracao_incompleta";
+      if (erroControlado) {
         return {
           status: "incompleta" as const,
           documentoId: doc.id,
-          mensagem: err.message,
+          mensagem: err instanceof Error ? err.message : "A extração ficou incompleta.",
           modo: "indice_completo",
           chunks: 0,
         };
