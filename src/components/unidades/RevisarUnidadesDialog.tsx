@@ -20,6 +20,16 @@ export type UnidadeSugerida = {
   fracao_ideal: number | null;
   area_m2: number | null;
   vagas_garagem?: number;
+  confianca?: "alta" | "media" | "conflito";
+  medidas?: Array<{
+    campo: string;
+    valor_bruto: string;
+    escala: string;
+    trecho: string;
+    pagina?: number | null;
+    bloco?: number | null;
+  }>;
+  regras_aplicadas?: string[];
 };
 
 type Linha = {
@@ -29,6 +39,9 @@ type Linha = {
   fracao_ideal: string;
   area_m2: string;
   vagas_garagem: string;
+  confianca: "alta" | "media" | "conflito";
+  medidas: NonNullable<UnidadeSugerida["medidas"]>;
+  regrasAplicadas: string[];
 };
 
 function toLinha(u: UnidadeSugerida): Linha {
@@ -39,6 +52,9 @@ function toLinha(u: UnidadeSugerida): Linha {
     fracao_ideal: u.fracao_ideal != null ? String(u.fracao_ideal) : "",
     area_m2: u.area_m2 != null ? String(u.area_m2) : "",
     vagas_garagem: String(u.vagas_garagem ?? 0),
+    confianca: u.confianca ?? "media",
+    medidas: u.medidas ?? [],
+    regrasAplicadas: u.regras_aplicadas ?? [],
   };
 }
 
@@ -70,7 +86,7 @@ export function RevisarUnidadesDialog({
   onClose: () => void;
   onConfirmar: (
     linhas: Record<string, unknown>[],
-    estrategia: "manter" | "preencher" | "substituir",
+    estrategia: "manter" | "preencher",
   ) => Promise<void>;
 }) {
   const tipoPadrao = vocab.tipoPadrao;
@@ -88,11 +104,13 @@ export function RevisarUnidadesDialog({
         const na = parseNum(a.numero);
         const nb = parseNum(b.numero);
         if (na !== nb) return na - nb;
-        return String(a.numero ?? "").localeCompare(String(b.numero ?? ""), "pt-BR", { numeric: true });
+        return String(a.numero ?? "").localeCompare(String(b.numero ?? ""), "pt-BR", {
+          numeric: true,
+        });
       });
   });
   const [saving, setSaving] = useState(false);
-  const [estrategia, setEstrategia] = useState<"manter" | "preencher" | "substituir">("preencher");
+  const [estrategia, setEstrategia] = useState<"manter" | "preencher">("preencher");
 
   const chaveExistentes = new Set(
     existentes.map((e) => `${(e.bloco ?? "").trim().toLowerCase()}::${e.numero.trim()}`),
@@ -104,9 +122,7 @@ export function RevisarUnidadesDialog({
   // Só bloqueia se a convenção declarar um total explícito (> 0).
   // qtdMaxima null ou 0 = "não informado no cadastro" → sem limite.
   const excedeConvencao =
-    qtdMaxima != null &&
-    qtdMaxima > 0 &&
-    totalValidas - conflitos + existentes.length > qtdMaxima;
+    qtdMaxima != null && qtdMaxima > 0 && totalValidas - conflitos + existentes.length > qtdMaxima;
 
   function update(i: number, patch: Partial<Linha>) {
     setLinhas((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
@@ -117,7 +133,17 @@ export function RevisarUnidadesDialog({
   function add() {
     setLinhas((prev) => [
       ...prev,
-      { bloco: "", numero: "", tipo: tipoPadrao, fracao_ideal: "", area_m2: "", vagas_garagem: "0" },
+      {
+        bloco: "",
+        numero: "",
+        tipo: tipoPadrao,
+        fracao_ideal: "",
+        area_m2: "",
+        vagas_garagem: "0",
+        confianca: "media",
+        medidas: [],
+        regrasAplicadas: [],
+      },
     ]);
   }
 
@@ -176,9 +202,20 @@ export function RevisarUnidadesDialog({
             </div>
             <div className="divide-y divide-[var(--landing-rule)]">
               {linhas.map((l, i) => (
-                <div key={i} className="grid grid-cols-[80px_100px_140px_120px_100px_80px_40px] gap-2 py-2 items-center">
-                  <Input value={l.bloco} onChange={(e) => update(i, { bloco: e.target.value })} className="h-9" />
-                  <Input value={l.numero} onChange={(e) => update(i, { numero: e.target.value })} className="h-9" />
+                <div
+                  key={i}
+                  className="grid grid-cols-[80px_100px_140px_120px_100px_80px_40px] gap-2 py-2 items-center"
+                >
+                  <Input
+                    value={l.bloco}
+                    onChange={(e) => update(i, { bloco: e.target.value })}
+                    className="h-9"
+                  />
+                  <Input
+                    value={l.numero}
+                    onChange={(e) => update(i, { numero: e.target.value })}
+                    className="h-9"
+                  />
                   <select
                     value={l.tipo}
                     onChange={(e) => update(i, { tipo: e.target.value })}
@@ -199,19 +236,67 @@ export function RevisarUnidadesDialog({
                     onChange={(e) => update(i, { fracao_ideal: e.target.value })}
                     className={`h-9 ${l.fracao_ideal ? "" : "border-destructive/60 bg-destructive/5"}`}
                     placeholder="não identificada"
-                    title={l.fracao_ideal ? undefined : "Fração ideal não identificada na convenção — preencha manualmente."}
+                    title={
+                      l.fracao_ideal
+                        ? undefined
+                        : "Fração ideal não identificada na convenção — preencha manualmente."
+                    }
                   />
                   <Input
                     value={l.area_m2}
                     onChange={(e) => update(i, { area_m2: e.target.value })}
                     className={`h-9 ${l.area_m2 ? "" : "border-destructive/60 bg-destructive/5"}`}
                     placeholder="não identificada"
-                    title={l.area_m2 ? undefined : "Área não identificada na convenção — preencha manualmente."}
+                    title={
+                      l.area_m2
+                        ? undefined
+                        : "Área não identificada na convenção — preencha manualmente."
+                    }
                   />
-                  <Input type="number" min={0} value={l.vagas_garagem} onChange={(e) => update(i, { vagas_garagem: e.target.value })} className="h-9" />
-                  <Button size="icon" variant="ghost" onClick={() => remove(i)} className="text-red-500 hover:text-red-600 transition-colors">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={l.vagas_garagem}
+                    onChange={(e) => update(i, { vagas_garagem: e.target.value })}
+                    className="h-9"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => remove(i)}
+                    className="text-red-500 hover:text-red-600 transition-colors"
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  <div className="col-span-7 text-xs text-muted-foreground">
+                    <span
+                      className={
+                        l.confianca === "conflito"
+                          ? "text-destructive"
+                          : l.confianca === "alta"
+                            ? "text-primary"
+                            : "text-amber-600"
+                      }
+                    >
+                      Confiança {l.confianca}
+                    </span>
+                    {l.regrasAplicadas.length > 0 && ` · ${l.regrasAplicadas.join(" · ")}`}
+                    {l.medidas.length > 0 && (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer">
+                          Ver {l.medidas.length} medida(s) e fontes
+                        </summary>
+                        <ul className="mt-1 space-y-1 border-l pl-3">
+                          {l.medidas.map((m, medidaIndex) => (
+                            <li key={`${m.campo}-${medidaIndex}`}>
+                              <strong>{m.campo.replaceAll("_", " ")}:</strong> {m.valor_bruto}
+                              {m.pagina ? ` · pág. ${m.pagina}` : ""} — “{m.trecho}”
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -225,18 +310,31 @@ export function RevisarUnidadesDialog({
                   <span className="text-xs text-muted-foreground">
                     {vocab.unidade} #{i + 1}
                   </span>
-                  <Button size="icon" variant="ghost" onClick={() => remove(i)} className="h-7 w-7 text-red-500">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => remove(i)}
+                    className="h-7 w-7 text-red-500"
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">{vocab.bloco}</Label>
-                    <Input value={l.bloco} onChange={(e) => update(i, { bloco: e.target.value })} className="h-9" />
+                    <Input
+                      value={l.bloco}
+                      onChange={(e) => update(i, { bloco: e.target.value })}
+                      className="h-9"
+                    />
                   </div>
                   <div>
                     <Label className="text-xs">{vocab.numero}*</Label>
-                    <Input value={l.numero} onChange={(e) => update(i, { numero: e.target.value })} className="h-9" />
+                    <Input
+                      value={l.numero}
+                      onChange={(e) => update(i, { numero: e.target.value })}
+                      className="h-9"
+                    />
                   </div>
                   <div className="col-span-2">
                     <Label className="text-xs">Tipo</Label>
@@ -258,15 +356,29 @@ export function RevisarUnidadesDialog({
                   </div>
                   <div>
                     <Label className="text-xs">Fração</Label>
-                    <Input value={l.fracao_ideal} onChange={(e) => update(i, { fracao_ideal: e.target.value })} className="h-9" />
+                    <Input
+                      value={l.fracao_ideal}
+                      onChange={(e) => update(i, { fracao_ideal: e.target.value })}
+                      className="h-9"
+                    />
                   </div>
                   <div>
                     <Label className="text-xs">Área m²</Label>
-                    <Input value={l.area_m2} onChange={(e) => update(i, { area_m2: e.target.value })} className="h-9" />
+                    <Input
+                      value={l.area_m2}
+                      onChange={(e) => update(i, { area_m2: e.target.value })}
+                      className="h-9"
+                    />
                   </div>
                   <div>
                     <Label className="text-xs">Vagas</Label>
-                    <Input type="number" min={0} value={l.vagas_garagem} onChange={(e) => update(i, { vagas_garagem: e.target.value })} className="h-9" />
+                    <Input
+                      type="number"
+                      min={0}
+                      value={l.vagas_garagem}
+                      onChange={(e) => update(i, { vagas_garagem: e.target.value })}
+                      className="h-9"
+                    />
                   </div>
                 </div>
               </div>
@@ -292,7 +404,9 @@ export function RevisarUnidadesDialog({
                       Escolha como tratar as duplicatas antes de importar.
                     </p>
                     <div className="mt-2 inline-flex rounded-md border overflow-hidden text-xs">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => setEstrategia("manter")}
                         className={`px-3 py-1.5 transition-colors ${
@@ -302,8 +416,10 @@ export function RevisarUnidadesDialog({
                         }`}
                       >
                         Manter existentes
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => setEstrategia("preencher")}
                         className={`px-3 py-1.5 border-l transition-colors ${
@@ -313,48 +429,36 @@ export function RevisarUnidadesDialog({
                         }`}
                       >
                         Preencher campos vazios
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEstrategia("substituir")}
-                        className={`px-3 py-1.5 border-l transition-colors ${
-                          estrategia === "substituir"
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
-                        }`}
-                      >
-                        Substituir pelos da convenção
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
               )}
               {excedeConvencao && (
                 <p className="text-xs text-amber-700 dark:text-amber-400">
-                  A convenção prevê {qtdMaxima} {vocab.unidade.toLowerCase()}(s). Você está
-                  tentando cadastrar mais que isso — ajuste as linhas ou o total no cadastro do
-                  condomínio.
+                  A convenção prevê {qtdMaxima} {vocab.unidade.toLowerCase()}(s). Você está tentando
+                  cadastrar mais que isso — ajuste as linhas ou o total no cadastro do condomínio.
                 </p>
               )}
             </div>
           )}
           <DialogFooter className="p-0">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancelar
-          </Button>
+            <Button variant="outline" onClick={onClose} disabled={saving}>
+              Cancelar
+            </Button>
             <Button
               onClick={confirmar}
               disabled={saving || linhas.length === 0 || excedeConvencao}
               className="transition-all"
             >
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando…
-              </>
-            ) : (
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando…
+                </>
+              ) : (
                 `Importar ${totalValidas} ${vocab.unidade.toLowerCase()}(s)`
-            )}
-          </Button>
+              )}
+            </Button>
           </DialogFooter>
         </div>
       </DialogContent>

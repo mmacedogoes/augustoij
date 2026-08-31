@@ -171,7 +171,6 @@ export async function ocrBloco(
   return ocrComRetry(apiKey, fileName, mime, bytes);
 }
 
-
 /** Divide o PDF em sub-PDFs de N páginas (JS puro, sem renderização). */
 async function fatiarPdf(buffer: Uint8Array, porBloco: number) {
   const { PDFDocument } = await import("pdf-lib");
@@ -294,7 +293,6 @@ export async function extractTextWithVision(
   return (await extractTextWithVisionDetalhado(apiKey, buffer, fileName)).texto;
 }
 
-
 export async function extractText(buffer: Uint8Array, fileName: string): Promise<string> {
   const lower = fileName.toLowerCase();
   if (buffer.byteLength === 0) {
@@ -324,7 +322,6 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
         throw new Error("__NEEDS_VISION__");
       }
       return out;
-
     }
     if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
       const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
@@ -348,9 +345,7 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
       try {
         wb = XLSX.read(buffer, { type: "array" });
       } catch {
-        throw new Error(
-          "Não foi possível ler a planilha. Salve como CSV e reenvie.",
-        );
+        throw new Error("Não foi possível ler a planilha. Salve como CSV e reenvie.");
       }
       const partes: string[] = [];
       for (const name of wb.SheetNames) {
@@ -390,18 +385,37 @@ export function chunkText(text: string, size = 1800, overlap = 200): string[] {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   if (clean.length <= size) return clean ? [clean] : [];
+  const linhas = clean.split("\n");
   const chunks: string[] = [];
-  let i = 0;
-  while (i < clean.length) {
-    let end = Math.min(i + size, clean.length);
-    if (end < clean.length) {
-      const janela = clean.lastIndexOf("\n", end);
-      if (janela > i + size * 0.5) end = janela;
+  let atuais: string[] = [];
+  let cabecalhoTabela: string[] = [];
+  const ehTabela = (linha: string) => /^\s*\|.*\|\s*$/.test(linha);
+  const ehSeparador = (linha: string) => /^\s*\|?\s*:?-{3,}/.test(linha);
+  const tamanho = (itens: string[]) => itens.join("\n").length;
+
+  for (let indice = 0; indice < linhas.length; indice++) {
+    const linha = linhas[indice];
+    if (ehTabela(linha) && ehSeparador(linhas[indice + 1] ?? "")) {
+      cabecalhoTabela = [linha, linhas[indice + 1]];
     }
-    const parte = clean.slice(i, end).trim();
-    if (parte) chunks.push(parte);
-    if (end >= clean.length) break;
-    i = Math.max(end - overlap, i + 1);
+    const prefixo =
+      ehTabela(linha) && cabecalhoTabela.length > 0 && atuais.length === 0 ? cabecalhoTabela : [];
+    if (atuais.length > 0 && tamanho([...atuais, linha]) > size) {
+      chunks.push(atuais.join("\n").trim());
+      const anteriores: string[] = [];
+      let acumulado = 0;
+      for (let i = atuais.length - 1; i >= 0 && acumulado < overlap; i--) {
+        anteriores.unshift(atuais[i]);
+        acumulado += atuais[i].length + 1;
+      }
+      atuais = ehTabela(linha)
+        ? [...cabecalhoTabela, ...anteriores.filter((item) => !cabecalhoTabela.includes(item))]
+        : anteriores;
+    }
+    if (atuais.length === 0 && prefixo.length) atuais.push(...prefixo);
+    if (!atuais.includes(linha) || !cabecalhoTabela.includes(linha)) atuais.push(linha);
+    if (!ehTabela(linha) && linha.trim()) cabecalhoTabela = [];
   }
+  if (atuais.length) chunks.push(atuais.join("\n").trim());
   return chunks;
 }

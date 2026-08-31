@@ -1,0 +1,31 @@
+REVOKE EXECUTE ON FUNCTION public.assembleia_verificar_integridade(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.assembleia_verificar_integridade(uuid) TO service_role;
+
+REVOKE EXECUTE ON FUNCTION public.condominio_ambiente_owner(uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.conta_master(uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.get_papel_sistema(uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.has_papel_sistema(uuid, public.papel_sistema[]) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.is_any_admin(uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.is_condominio_member(uuid, uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.is_super_admin(uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.pode_no_condominio(uuid, uuid, text) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.match_document_chunks(uuid, extensions.vector, integer, double precision) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.match_kb_chunks(extensions.vector, integer, double precision) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION public.delete_email(text, bigint) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_email(text, bigint) TO service_role;
+REVOKE EXECUTE ON FUNCTION public.email_queue_dispatch() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.email_queue_dispatch() TO service_role;
+REVOKE EXECUTE ON FUNCTION public.email_queue_wake() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.email_queue_wake() TO service_role;
+REVOKE EXECUTE ON FUNCTION public.enqueue_email(text, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.enqueue_email(text, jsonb) TO service_role;
+REVOKE EXECUTE ON FUNCTION public.move_to_dlq(text, text, bigint, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.move_to_dlq(text, text, bigint, jsonb) TO service_role;
+REVOKE EXECUTE ON FUNCTION public.read_email_batch(text, integer, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.read_email_batch(text, integer, integer) TO service_role;
+REVOKE EXECUTE ON FUNCTION public.tg_helpdesk_mensagem_after_insert() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.tg_helpdesk_mensagem_after_insert() TO service_role;
+REVOKE EXECUTE ON FUNCTION public.gerar_protocolo_helpdesk() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.gerar_protocolo_helpdesk() TO service_role;

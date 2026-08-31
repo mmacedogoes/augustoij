@@ -13,13 +13,7 @@ export type PendenciaAuditoria = {
 export type ResultadoAuditoria = {
   condominioId: string;
   nome: string;
-  status:
-    | "ok"
-    | "sem_convencao"
-    | "leitura_incompleta"
-    | "corrigido"
-    | "pendencias"
-    | "erro";
+  status: "ok" | "sem_convencao" | "leitura_incompleta" | "corrigido" | "pendencias" | "erro";
   mensagem?: string;
   declarado: number | null;
   cadastradas: number;
@@ -142,20 +136,15 @@ export const auditarCondominio = createServerFn({ method: "POST" })
     base.cadastradas = cadastro.length;
     base.somaFracoes =
       cadastro.length > 0
-        ? Number(
-            cadastro
-              .reduce((acc, u) => acc + (Number(u.fracao_ideal) || 0), 0)
-              .toFixed(6),
-          )
+        ? Number(cadastro.reduce((acc, u) => acc + (Number(u.fracao_ideal) || 0), 0).toFixed(6))
         : null;
 
     if (!doc) {
       return { ...base, status: "sem_convencao", mensagem: "Sem convenção processada." };
     }
 
-    const { chaveUnidade, ExtracaoIncompletaError, extrairESalvarSugestaoUnidades } = await import(
-      "@/lib/unidades-extracao.server"
-    );
+    const { chaveUnidade, extrairESalvarSugestaoUnidades } =
+      await import("@/lib/unidades-extracao.server");
     let extraidas;
     try {
       extraidas = await extrairESalvarSugestaoUnidades(
@@ -164,18 +153,17 @@ export const auditarCondominio = createServerFn({ method: "POST" })
         apiKey,
         { force: true },
       );
-      // A auditoria já aplica/relata o resultado — a sugestão pendente criada
-      // pelo pipeline seria um caminho duplicado na tela de unidades.
-      await supabaseAdmin
-        .from("sugestoes_unidades")
-        .delete()
-        .eq("documento_id", doc.id)
-        .eq("status", "pendente");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha na leitura da convenção.";
       return {
         ...base,
-        status: e instanceof ExtracaoIncompletaError ? "leitura_incompleta" : "erro",
+        status:
+          typeof e === "object" &&
+          e !== null &&
+          "codigo" in e &&
+          (e as { codigo?: unknown }).codigo === "extracao_incompleta"
+            ? "leitura_incompleta"
+            : "erro",
         mensagem: msg,
       };
     }
@@ -189,6 +177,15 @@ export const auditarCondominio = createServerFn({ method: "POST" })
 
     const novas: Record<string, unknown>[] = [];
     for (const e of extraidas) {
+      if (e.confianca !== "alta") {
+        base.pendencias.push({
+          unidade: chaveUnidade(e.bloco ?? null, e.numero),
+          campo: "existencia",
+          cadastro: "aguardando revisão",
+          convencao: e.confianca === "conflito" ? "medidas conflitantes" : "medidas incompletas",
+        });
+        continue;
+      }
       const key = chaveUnidade(e.bloco ?? null, e.numero);
       chavesConvencao.add(key);
       const atual = porChave.get(key);
@@ -274,19 +271,13 @@ export const auditarCondominio = createServerFn({ method: "POST" })
     base.somaFracoes =
       base.cadastradas > 0
         ? Number(
-            (finais ?? [])
-              .reduce((acc, u) => acc + (Number(u.fracao_ideal) || 0), 0)
-              .toFixed(6),
+            (finais ?? []).reduce((acc, u) => acc + (Number(u.fracao_ideal) || 0), 0).toFixed(6),
           )
         : null;
 
     const houveCorrecao =
       base.criadas > 0 || base.fracoesPreenchidas > 0 || base.areasPreenchidas > 0;
-    base.status = houveCorrecao
-      ? "corrigido"
-      : base.pendencias.length > 0
-        ? "pendencias"
-        : "ok";
+    base.status = houveCorrecao ? "corrigido" : base.pendencias.length > 0 ? "pendencias" : "ok";
 
     try {
       const { logAdminAction } = await import("@/lib/audit.server");

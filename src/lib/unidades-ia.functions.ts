@@ -8,6 +8,16 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * o payload para o usuário revisar e depois confirmar via importUnidadesLote.
  */
 
+const MedidaSugestao = z.object({
+  campo: z.string(),
+  valor_bruto: z.string(),
+  escala: z.string(),
+  trecho: z.string(),
+  pagina: z.number().nullable().optional(),
+  bloco: z.number().nullable().optional(),
+  fonte: z.string().nullable().optional(),
+});
+
 const UnidadeSugestao = z.object({
   bloco: z.string().nullable().optional(),
   numero: z.string(),
@@ -29,6 +39,10 @@ const UnidadeSugestao = z.object({
   vagas_garagem: z.number().int().min(0).max(50).optional(),
   fracao_origem: z.enum(["documento", "ausente"]).nullable().optional(),
   area_origem: z.enum(["documento", "ausente"]).nullable().optional(),
+  confianca: z.enum(["alta", "media", "conflito"]).optional(),
+  medidas: z.array(MedidaSugestao).optional(),
+  candidatos: z.record(z.string(), z.array(MedidaSugestao)).optional(),
+  regras_aplicadas: z.array(z.string()).optional(),
 });
 
 const CondominoSugestao = z.object({
@@ -39,9 +53,7 @@ const CondominoSugestao = z.object({
   cpf: z.string().nullable().optional(),
   email: z.string().nullable().optional(),
   telefone: z.string().nullable().optional(),
-  tipo_condomino: z
-    .enum(["proprietario", "inquilino", "morador", "responsavel_legal"])
-    .optional(),
+  tipo_condomino: z.enum(["proprietario", "inquilino", "morador", "responsavel_legal"]).optional(),
   match_status: z.enum(["ok", "ambiguo", "sem_match"]).optional(),
 });
 
@@ -75,13 +87,32 @@ export const extrairUnidadesDaConvencao = createServerFn({ method: "POST" })
       throw new Error("Documento ainda não foi processado.");
     }
 
-    const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-    const unidades = await extrairESalvarSugestaoUnidades(
-      supabaseAdmin,
-      doc.id,
-      apiKey,
-    );
-    return { unidades, documentoId: doc.id, condominioId: doc.condominio_id };
+    try {
+      const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+      const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey);
+      return {
+        status: "gerada" as const,
+        unidades,
+        documentoId: doc.id,
+        condominioId: doc.condominio_id,
+      };
+    } catch (err: unknown) {
+      const controlado =
+        typeof err === "object" &&
+        err !== null &&
+        "codigo" in err &&
+        (err as { codigo?: unknown }).codigo === "extracao_incompleta";
+      if (controlado) {
+        return {
+          status: "incompleta" as const,
+          unidades: [] as UnidadeSugerida[],
+          documentoId: doc.id,
+          condominioId: doc.condominio_id,
+          mensagem: err instanceof Error ? err.message : "A extração requer revisão.",
+        };
+      }
+      throw err;
+    }
   });
 
 export const listSugestoesUnidades = createServerFn({ method: "POST" })
@@ -97,7 +128,7 @@ export const listSugestoesUnidades = createServerFn({ method: "POST" })
       .from("sugestoes_unidades")
       .select("id, documento_id, payload, status, created_at")
       .eq("condominio_id", data.condominioId)
-      .in("status", ["pendente", "falhou"])
+      .in("status", ["pendente", "pendente_revisao", "falhou"])
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return rows ?? [];
@@ -276,13 +307,27 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
       if (existente) return { status: "ja_processada" as const };
     }
 
-    const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-    const unidades = await extrairESalvarSugestaoUnidades(
-      supabaseAdmin,
-      doc.id,
-      apiKey,
-      { force: data.force },
-    );
+    let unidades: UnidadeSugerida[];
+    try {
+      const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+      unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
+        force: data.force,
+      });
+    } catch (err: unknown) {
+      const controlado =
+        typeof err === "object" &&
+        err !== null &&
+        "codigo" in err &&
+        (err as { codigo?: unknown }).codigo === "extracao_incompleta";
+      if (controlado) {
+        return {
+          status: "incompleta" as const,
+          documentoId: doc.id,
+          mensagem: err instanceof Error ? err.message : "A extração requer revisão.",
+        };
+      }
+      throw err;
+    }
     if (unidades.length === 0) {
       return { status: "vazio" as const, documentoId: doc.id };
     }
@@ -319,12 +364,9 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
     let unidades: UnidadeSugerida[] = [];
     try {
       const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-      unidades = await extrairESalvarSugestaoUnidades(
-        supabaseAdmin,
-        doc.id,
-        apiKey,
-        { force: true },
-      );
+      unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
+        force: true,
+      });
     } catch (err: unknown) {
       const erroControlado =
         typeof err === "object" &&
