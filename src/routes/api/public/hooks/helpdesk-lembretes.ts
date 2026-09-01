@@ -1,10 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+/** Autoriza apenas chamadas com o token de cron configurado nos secrets. */
+function autorizado(request: Request): boolean {
+  const esperados = [process.env.CRON_SECRET, process.env.CRON_LEMBRETES_TOKEN].filter(
+    (v): v is string => !!v,
+  );
+  if (esperados.length === 0) return false;
+  const auth = request.headers.get("authorization") ?? "";
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  const provided =
+    request.headers.get("x-cron-token") ?? request.headers.get("x-cron-secret") ?? bearer ?? "";
+  return !!provided && esperados.includes(provided);
+}
+
 // Cron: verifica tickets aguardando resposta do admin há mais de 12h e reenvia lembrete.
 export const Route = createFileRoute("/api/public/hooks/helpdesk-lembretes")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        if (!autorizado(request)) {
+          return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+        }
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const RESEND_API_KEY = process.env.RESEND_API_KEY;

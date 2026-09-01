@@ -9,12 +9,15 @@ export const Route = createFileRoute('/api/public/resend-webhook')({
         const body = await request.text()
         const secret = process.env['RESEND_WEBHOOK_SECRET']
 
-        // 1. Verificar assinatura
-        if (secret && signature) {
-          const expected = createHmac('sha256', secret).update(body).digest('hex')
-          if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
-            return new Response('Unauthorized', { status: 401 })
-          }
+        // 1. Assinatura obrigatória
+        if (!secret || !signature) {
+          return new Response('Unauthorized', { status: 401 })
+        }
+        const expected = createHmac('sha256', secret).update(body).digest('hex')
+        const a = Buffer.from(signature)
+        const b = Buffer.from(expected)
+        if (a.length !== b.length || !timingSafeEqual(a, b)) {
+          return new Response('Unauthorized', { status: 401 })
         }
 
         const payload = JSON.parse(body)
