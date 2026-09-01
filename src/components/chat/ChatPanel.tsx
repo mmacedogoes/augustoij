@@ -667,7 +667,7 @@ export function ChatPanel({
   return (
     <div className="flex flex-col h-full min-h-[520px] border border-border rounded-lg overflow-hidden bg-card">
       <Conversation className="flex-1">
-        <ConversationContent className="gap-7 px-4 pb-2 sm:px-6">
+        <ConversationContent data-testid="chat-messages-list" className="gap-7 px-4 pb-2 sm:px-6">
           {!historyLoaded ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -883,6 +883,7 @@ export function ChatPanel({
             />
             <PromptInput onSubmit={handleSubmit} className="landing-focus">
               <PromptInputTextarea
+                data-testid="chat-input"
                 autoFocus
                 className="max-h-[200px] overflow-y-auto"
                 placeholder={
@@ -922,6 +923,7 @@ export function ChatPanel({
                   />
                 </div>
                 <PromptInputSubmit
+                  data-testid="chat-send-btn"
                   status={status}
                   disabled={!inputEnabled || isLoading}
                   className="h-[38px] w-[38px] rounded-full bg-augusto-green p-0 text-primary-foreground transition-transform duration-150 hover:bg-augusto-green/90 active:scale-[0.94]"

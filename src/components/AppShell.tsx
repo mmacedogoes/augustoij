@@ -396,6 +396,7 @@ function SidebarInner({ compacto, nav, ehAtivo, onSignOut, onToggle, identidade 
               key={n.to}
               to={n.to as "/app"}
               data-tour={n.tour}
+              data-testid={n.tour}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "app-nav-item group",
@@ -462,6 +463,7 @@ function SidebarInner({ compacto, nav, ehAtivo, onSignOut, onToggle, identidade 
           </div>
         )}
         <button
+          data-testid="btn-logout"
           onClick={onSignOut}
           className={cn("app-nav-item w-full", compacto && "justify-center px-0 pl-0")}
         >

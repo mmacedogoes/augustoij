@@ -349,18 +349,18 @@ function SignupPage() {
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="nome" className="text-xs uppercase tracking-wide text-muted-foreground">Nome completo</Label>
-            <Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
+            <Input id="nome" data-testid="signup-nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
             <FieldError name="nome" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-xs uppercase tracking-wide text-muted-foreground">E-mail</Label>
-            <Input id="email" type="email" autoComplete="email" value={form.email}
+            <Input id="email" data-testid="signup-email" type="email" autoComplete="email" value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             <FieldError name="email" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="tel" className="text-xs uppercase tracking-wide text-muted-foreground">Telefone</Label>
-            <Input id="tel" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} required
+            <Input id="tel" data-testid="signup-telefone" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} required
               placeholder="(11) 99999-0000" />
             <FieldError name="telefone" />
           </div>
@@ -383,7 +383,7 @@ function SignupPage() {
             <Label htmlFor="doc" className="text-xs uppercase tracking-wide text-muted-foreground">
               {tipo === "pf" ? "CPF" : "CNPJ"}
             </Label>
-            <Input id="doc" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })} required
+            <Input id="doc" data-testid="signup-cpf" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })} required
               />
             <FieldError name="cpf_cnpj" />
           </div>
@@ -402,6 +402,7 @@ function SignupPage() {
             </Label>
             <select
               id="perfil"
+              data-testid="signup-perfil"
               value={form.perfil_atuacao}
               onChange={(e) =>
                 setForm({ ...form, perfil_atuacao: e.target.value as typeof form.perfil_atuacao })
@@ -421,7 +422,7 @@ function SignupPage() {
 
           <div className="space-y-1.5">
             <Label htmlFor="password" className="text-xs uppercase tracking-wide text-muted-foreground">Senha</Label>
-            <Input id="password" type="password" autoComplete="new-password" value={form.password}
+            <Input id="password" data-testid="signup-password" type="password" autoComplete="new-password" value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })} required />
             <ul className="mt-1 space-y-0.5">
               <ReqItem ok={checks.len}>Pelo menos 8 caracteres</ReqItem>
@@ -435,7 +436,7 @@ function SignupPage() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="conf" className="text-xs uppercase tracking-wide text-muted-foreground">Confirmar senha</Label>
-            <Input id="conf" type="password" autoComplete="new-password" value={form.confirmar}
+            <Input id="conf" data-testid="signup-confirmar" type="password" autoComplete="new-password" value={form.confirmar}
               onChange={(e) => setForm({ ...form, confirmar: e.target.value })} required />
             {form.confirmar.length > 0 && (
               <ReqItem ok={checks.match}>Senhas coincidem</ReqItem>
@@ -444,7 +445,7 @@ function SignupPage() {
           </div>
 
           <label className="flex items-start gap-2 text-sm">
-            <Checkbox checked={lgpd} onCheckedChange={(c) => setLgpd(c === true)} className="mt-0.5" />
+            <Checkbox data-testid="signup-lgpd" checked={lgpd} onCheckedChange={(c) => setLgpd(c === true)} className="mt-0.5" />
             <span className="text-muted-foreground">
               Li e aceito os{" "}
               <Link to="/termos" target="_blank" rel="noopener" className="text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm transition-colors duration-150">
@@ -470,7 +471,7 @@ function SignupPage() {
             </span>
           </label>
 
-          <Button type="submit" className="w-full font-semibold"
+          <Button type="submit" data-testid="signup-submit" className="w-full font-semibold"
             disabled={loading || !lgpd} aria-busy={loading}>
             {loading ? "Criando conta..." : "Criar conta"}
           </Button>

@@ -113,7 +113,7 @@ function CondominiosPage() {
           <Dialog open={open} onOpenChange={(v) => podeCriar && setOpen(v)}>
             {podeCriar ? (
               <DialogTrigger asChild>
-                <Button variant="augusto"><Plus className="h-4 w-4" /> Novo condomínio</Button>
+                <Button variant="augusto" data-testid="btn-novo-condominio"><Plus className="h-4 w-4" /> Novo condomínio</Button>
               </DialogTrigger>
             ) : (
               <Button
@@ -130,11 +130,12 @@ function CondominiosPage() {
             <DialogContent>
               <DialogHeader><DialogTitle>Cadastrar condomínio</DialogTitle></DialogHeader>
               <form onSubmit={onCreate} className="space-y-4">
-                <div className="space-y-2"><Label htmlFor="nome">Nome *</Label><Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+                <div className="space-y-2"><Label htmlFor="nome">Nome *</Label><Input id="nome" data-testid="input-condo-nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
                 <div className="space-y-2">
                   <Label htmlFor="categoria">Tipo de condomínio *</Label>
                   <select
                     id="categoria"
+                    data-testid="select-condo-categoria"
                     value={form.categoria}
                     onChange={(e) =>
                       setForm({ ...form, categoria: e.target.value as CategoriaCondominio })
@@ -152,13 +153,14 @@ function CondominiosPage() {
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} /></div>
-                  <div className="space-y-2"><Label htmlFor="uf">UF</Label><Input id="uf" value={form.uf} maxLength={2} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} placeholder="SP" /></div>
+                  <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" data-testid="input-condo-cnpj" value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="uf">UF</Label><Input id="uf" data-testid="input-condo-uf" value={form.uf} maxLength={2} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} placeholder="SP" /></div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cidade">Cidade *</Label>
                   <Input
                     id="cidade"
+                    data-testid="input-condo-cidade"
                     value={form.cidade}
                     onChange={(e) => setForm({ ...form, cidade: e.target.value })}
                     placeholder="Ex.: João Pessoa"
@@ -168,7 +170,7 @@ function CondominiosPage() {
                 <p className="text-[11px] leading-relaxed text-muted-foreground">
                   O número de unidades será extraído automaticamente da convenção do condomínio.
                 </p>
-                <Button type="submit" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Cadastrar"}</Button>
+                <Button type="submit" data-testid="btn-salvar-condominio" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Cadastrar"}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -221,7 +223,7 @@ function CondominiosPage() {
               params={{ id: c.id }}
               className="group focus-visible:outline-none"
             >
-              <Card className="app-card-interactive p-5 group-focus-visible:ring-2 group-focus-visible:ring-augusto-gold/70">
+              <Card data-testid="condominio-card" className="app-card-interactive p-5 group-focus-visible:ring-2 group-focus-visible:ring-augusto-gold/70">
                 <div className="flex items-center gap-3.5">
                   <span className="app-icon-frame group-hover:bg-augusto-gold/20 group-hover:border-augusto-gold/50">
                     <Building className="h-5 w-5" strokeWidth={1.6} />
