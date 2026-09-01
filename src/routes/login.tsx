@@ -92,15 +92,16 @@ function LoginPage() {
         <form onSubmit={onSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">E-mail</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+              <Input id="email" data-testid="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password" className="text-xs font-medium tracking-wide uppercase text-muted-foreground">Senha</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+              <Input id="password" data-testid="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
                 id="remember"
+                data-testid="login-remember"
                 checked={remember}
                 onCheckedChange={(v) => setRemember(v === true)}
                 disabled={loading}
@@ -109,7 +110,8 @@ function LoginPage() {
                 Manter-me conectado
               </Label>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</Button>
+            <Button type="submit" data-testid="login-submit" className="w-full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</Button>
+
         </form>
         <p className="mt-4 text-center text-sm">
           <Link to="/esqueci-senha" className="text-primary font-medium hover:underline">Esqueci minha senha</Link>
