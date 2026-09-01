@@ -151,18 +151,9 @@ export const Route = createFileRoute("/api/public/demo-chat")({
           );
         }
 
-        // Increment usage (upsert)
-        const nextCount = currentCount + 1;
-        await db
-          .from("demo_chat_usage")
-          .upsert(
-            { ip, count: nextCount, last_at: new Date().toISOString() },
-            { onConflict: "ip" },
-          );
-
         return Response.json({
           answer,
-          remaining: MAX_QUESTIONS - nextCount,
+          remaining: restante,
         });
       },
     },

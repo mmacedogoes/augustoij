@@ -39,6 +39,33 @@ export const Route = createFileRoute("/api/voz/falar")({
           if (authErr || !userRes?.user) {
             return Response.json({ error: "Sessão inválida." }, { status: 401 });
           }
+          const userId = userRes.user.id;
+
+          // Voz é recurso pago: exige plano ativo, trial válido ou cortesia/admin.
+          const [{ getSubscriptionEfetiva }, { isAdminInternoServer }, { resolvePlanId, isTrialExpired }] =
+            await Promise.all([
+              import("@/lib/conta-master.server"),
+              import("@/lib/admin-bypass"),
+              import("@/lib/plan-gates"),
+            ]);
+          const [sub, admin] = await Promise.all([
+            getSubscriptionEfetiva(userId),
+            isAdminInternoServer(supabase, userId),
+          ]);
+          const cortesia = sub?.cortesia === true || admin;
+          const planoId = resolvePlanId(sub?.plano_config_id ?? null);
+          const statusOk = !sub?.status || ["active", "trialing"].includes(sub.status);
+          const liberado =
+            cortesia || (statusOk && !isTrialExpired(planoId, sub?.trial_end ?? null));
+          if (!liberado) {
+            return Response.json(
+              {
+                error:
+                  "A resposta em voz requer um plano ativo. Assine ou renove seu plano para usar este recurso.",
+              },
+              { status: 403 },
+            );
+          }
 
           let payload: z.infer<typeof Body>;
           try {

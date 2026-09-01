@@ -122,6 +122,10 @@ export const createDocumento = createServerFn({ method: "POST" })
         /** Documentos gerados pelo próprio Augusto não precisam de indexação. */
         indexar: z.boolean().optional(),
       })
+      .refine((d) => d.storagePath.startsWith(`${d.condominioId}/`), {
+        message: "storagePath inválido para o condomínio informado.",
+        path: ["storagePath"],
+      })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
