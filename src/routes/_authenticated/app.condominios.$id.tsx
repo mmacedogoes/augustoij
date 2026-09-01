@@ -297,14 +297,14 @@ function CondominioDetail() {
 
         <Tabs value={tab} onValueChange={setTab} className="mt-6">
           <TabsList>
-            <TabsTrigger value="chat">Interação com a IA</TabsTrigger>
-            <TabsTrigger value="historico">Histórico de Conversas</TabsTrigger>
-            <TabsTrigger value="documentos">Documentos</TabsTrigger>
-            <TabsTrigger value="unidades">Unidades</TabsTrigger>
+            <TabsTrigger value="chat" data-testid="tab-chat">Interação com a IA</TabsTrigger>
+            <TabsTrigger value="historico" data-testid="tab-historico">Histórico de Conversas</TabsTrigger>
+            <TabsTrigger value="documentos" data-testid="tab-documentos">Documentos</TabsTrigger>
+            <TabsTrigger value="unidades" data-testid="tab-unidades">Unidades</TabsTrigger>
             {(canEdit || isAdmin) ? (
-              <TabsTrigger value="contratos">Gestão de Contratos</TabsTrigger>
+              <TabsTrigger value="contratos" data-testid="tab-contratos">Gestão de Contratos</TabsTrigger>
             ) : null}
-            <TabsTrigger value="config">Configurações</TabsTrigger>
+            <TabsTrigger value="config" data-testid="tab-dados">Configurações</TabsTrigger>
           </TabsList>
           <TabsContent value="chat">
             {tab === "chat" && (
