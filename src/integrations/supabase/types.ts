@@ -5054,6 +5054,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      incrementar_demo_usage: {
+        Args: { p_ip: string; p_max: number }
+        Returns: {
+          bloqueado: boolean
+          restante: number
+          total_usado: number
+        }[]
+      }
       is_any_admin: { Args: { _user_id: string }; Returns: boolean }
       is_condominio_member: {
         Args: { _condominio_id: string; _user_id: string }
