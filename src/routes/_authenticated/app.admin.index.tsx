@@ -63,16 +63,16 @@ function AdminDashboardPage() {
 
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
           <Kpi
-            label="MRR"
+            label="MRR Real"
             value={d ? brl(d.mrr) : null}
-            hint="Receita mensal recorrente"
+            hint={d ? `ARR: ${brl(d.arr)} · Ticket: ${brl(d.arpu)}` : "—"}
             icon={Wallet}
             tone="primary"
           />
           <Kpi
-            label="Assinaturas ativas"
-            value={d ? d.assinaturas.ativas.toString() : null}
-            hint={d ? `${d.assinaturas.trialing} em trial · ${d.assinaturas.cortesia} cortesia` : "—"}
+            label="Clientes Pagantes"
+            value={d ? d.assinaturas.pagantes.toString() : null}
+            hint={d ? `${d.assinaturas.cortesia} cortesia · ${d.assinaturas.trialing} trial · ${d.assinaturas.vinculados} equipe` : "—"}
             icon={Users}
           />
           <Kpi
@@ -82,11 +82,11 @@ function AdminDashboardPage() {
             icon={UserPlus}
           />
           <Kpi
-            label="Margem (mês)"
+            label={`Margem Líquida (${d?.margem_percentual ?? 0}%)`}
             value={d ? brl(d.margem_mes) : null}
             hint={
               d
-                ? `Custo Lovable ${compactBrl(d.custo_lovable_mes)} · Despesas ${compactBrl(d.despesas_mes)}`
+                ? `Custos IA ${compactBrl(d.custo_lovable_mes)} · Despesas ${compactBrl(d.despesas_mes)}`
                 : "—"
             }
             icon={d && d.margem_mes >= 0 ? TrendingUp : TrendingDown}
@@ -105,34 +105,34 @@ function AdminDashboardPage() {
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
           <MiniStat
             icon={Building2}
-            label="Condomínios"
+            label="Carteira de Condomínios"
             value={d ? String(d.operacional.condominios_total) : null}
-            hint={d ? `${d.operacional.condominios_ativos_mes} ativos no mês` : "—"}
+            hint={d ? `${d.operacional.unidades_total.toLocaleString("pt-BR")} unidades · média ${(d.operacional.media_condominios_por_cliente || 0)}/cliente` : "—"}
           />
           <MiniStat
             icon={FileWarning}
-            label="Documentos"
+            label="Documentos Processados"
             value={d ? String(d.operacional.documentos_total) : null}
             hint={
               d
                 ? d.operacional.documentos_erro > 0
                   ? `${d.operacional.documentos_erro} com erro`
-                  : "sem erros"
+                  : "todos processados com sucesso"
                 : "—"
             }
             tone={d && d.operacional.documentos_erro > 0 ? "danger" : "muted"}
           />
           <MiniStat
             icon={Library}
-            label="Base de conhecimento"
+            label="Base de Conhecimento"
             value={d ? `${d.operacional.kb_prontos}/${d.operacional.kb_total}` : null}
-            hint="documentos indexados"
+            hint="jurisprudência & minutas ativas"
           />
           <MiniStat
             icon={HardDrive}
-            label="Storage"
+            label="Storage em Nuvem"
             value={d ? `${d.operacional.storage_mb.toFixed(1)} MB` : null}
-            hint="uso total"
+            hint="armazenamento de arquivos"
           />
         </section>
 

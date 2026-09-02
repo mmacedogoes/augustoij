@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
 import { logAdminAction } from "./audit.server";
+import { PLANS, type PlanId } from "@/config/plans";
+import { calcularReceitaMensalSub } from "./admin.functions";
 
 export const getFinanceiroResumo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -10,49 +12,142 @@ export const getFinanceiroResumo = createServerFn({ method: "GET" })
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Receita: somar preço dos planos ativos por assinatura
+    // 1) Busca todas as assinaturas
     const { data: subs } = await supabaseAdmin
       .from("subscriptions")
-      .select("plano_id, status");
-    const planoIds = Array.from(new Set((subs ?? []).map((s) => s.plano_id).filter(Boolean) as string[]));
-    let planosMap: Record<string, number> = {};
-    if (planoIds.length) {
-      const { data: planos } = await supabaseAdmin
-        .from("planos")
-        .select("id, preco_mensal")
-        .in("id", planoIds);
-      planosMap = Object.fromEntries((planos ?? []).map((p) => [p.id, Number(p.preco_mensal ?? 0)]));
+      .select("user_id, plano_config_id, status, cortesia, custom_preco, custom_ciclo, vinculado_a_user_id, created_at");
+
+    let mrr = 0;
+    let ativos = 0;
+    let cortesiaCount = 0;
+    let vinculadosCount = 0;
+
+    for (const s of subs ?? []) {
+      if (s.vinculado_a_user_id) {
+        vinculadosCount++;
+      } else if (s.cortesia) {
+        cortesiaCount++;
+      } else if (s.status === "active") {
+        ativos++;
+        mrr += calcularReceitaMensalSub(s);
+      }
     }
-    const mrr = (subs ?? [])
-      .filter((s) => s.status === "active" || s.status === "trialing")
-      .reduce((acc, s) => acc + (planosMap[s.plano_id ?? ""] ?? 0), 0);
-    const ativos = (subs ?? []).filter((s) => s.status === "active").length;
+
+    const arr = mrr * 12;
     const ticket = ativos > 0 ? mrr / ativos : 0;
 
-    const mes = new Date().toISOString().slice(0, 7);
-    const { data: custos } = await supabaseAdmin
-      .from("custos_cliente_mensal")
-      .select("custo_tokens_openai, custo_embeddings, custo_storage, user_id, margem_estimada")
-      .gte("mes_ano", `${mes}-01`);
-    const custoTotal = (custos ?? []).reduce(
-      (acc, c) => acc + Number(c.custo_tokens_openai) + Number(c.custo_embeddings) + Number(c.custo_storage),
+    const now = new Date();
+    const mes = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+
+    // 2) Busca custos de IA e consumo em uso_mensal
+    const { data: usoMes } = await supabaseAdmin
+      .from("uso_mensal")
+      .select("custo_estimado_brl")
+      .eq("mes_ano", mes);
+
+    const custoTotal = (usoMes ?? []).reduce(
+      (acc, c) => acc + Number(c.custo_estimado_brl ?? 0),
       0,
     );
+
+    // 3) Busca despesas operacionais do mês
     const { data: despesas } = await supabaseAdmin
       .from("despesas")
-      .select("valor")
+      .select("valor, data")
       .gte("data", `${mes}-01`)
-      .eq("owner_admin_id", context.userId);
-    const despesasTotal = (despesas ?? []).reduce((a, d) => a + Number(d.valor), 0);
+      .lte("data", `${mes}-31`);
+
+    const despesasTotal = (despesas ?? []).reduce((a, d) => a + Number(d.valor ?? 0), 0);
+    const margemMes = mrr - custoTotal - despesasTotal;
+    const margemPercentual = mrr > 0 ? Number(((margemMes / mrr) * 100).toFixed(1)) : 0;
 
     return {
-      mrr,
-      ticket_medio: ticket,
+      mrr: Number(mrr.toFixed(2)),
+      arr: Number(arr.toFixed(2)),
+      ticket_medio: Number(ticket.toFixed(2)),
       assinaturas_ativas: ativos,
-      custos_clientes_mes: custoTotal,
-      despesas_mes: despesasTotal,
-      margem_mes: mrr - custoTotal - despesasTotal,
+      assinaturas_cortesia: cortesiaCount,
+      assinaturas_vinculadas: vinculadosCount,
+      custos_clientes_mes: Number(custoTotal.toFixed(2)),
+      despesas_mes: Number(despesasTotal.toFixed(2)),
+      margem_mes: Number(margemMes.toFixed(2)),
+      margem_percentual: margemPercentual,
     };
+  });
+
+export type AssinaturaReceitaRow = {
+  user_id: string;
+  profile: {
+    nome: string | null;
+    email: string | null;
+    telefone: string | null;
+    cpf_cnpj: string | null;
+    razao_social: string | null;
+    tipo_pessoa: string | null;
+  } | null;
+  plano_config_id: string;
+  plano_nome: string;
+  valor_mensal: number;
+  ciclo: "mensal" | "anual";
+  dia_vencimento: number | null;
+  status: string;
+  cortesia: boolean;
+  vinculado_a_id: string | null;
+  vinculado_a_nome: string | null;
+  asaas_subscription_id: string | null;
+  created_at: string;
+};
+
+export const listAssinaturasReceita = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AssinaturaReceitaRow[]> => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [subsRes, profsRes] = await Promise.all([
+      supabaseAdmin
+        .from("subscriptions")
+        .select("user_id, plano_config_id, status, cortesia, custom_preco, custom_ciclo, custom_dia_vencimento, vinculado_a_user_id, asaas_subscription_id, created_at")
+        .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("profiles")
+        .select("id, nome, email, telefone, cpf_cnpj, razao_social, tipo_pessoa"),
+    ]);
+
+    const profMap = new Map((profsRes.data ?? []).map((p) => [p.id, p]));
+
+    return (subsRes.data ?? []).map((s) => {
+      const planoId = (s.plano_config_id as PlanId) ?? "gratuito";
+      const planoDef = PLANS[planoId];
+      const p = profMap.get(s.user_id) ?? null;
+      const owner = s.vinculado_a_user_id ? profMap.get(s.vinculado_a_user_id) : null;
+      const valorMensal = calcularReceitaMensalSub(s);
+
+      return {
+        user_id: s.user_id,
+        profile: p
+          ? {
+              nome: p.nome,
+              email: p.email,
+              telefone: p.telefone,
+              cpf_cnpj: p.cpf_cnpj,
+              razao_social: p.razao_social,
+              tipo_pessoa: p.tipo_pessoa,
+            }
+          : null,
+        plano_config_id: planoId,
+        plano_nome: s.cortesia ? "Cortesia" : (planoDef?.nome ?? planoId),
+        valor_mensal: valorMensal,
+        ciclo: (s.custom_ciclo as "mensal" | "anual") ?? "mensal",
+        dia_vencimento: s.custom_dia_vencimento ?? 10,
+        status: s.status,
+        cortesia: s.cortesia ?? false,
+        vinculado_a_id: s.vinculado_a_user_id ?? null,
+        vinculado_a_nome: owner?.nome || owner?.email || null,
+        asaas_subscription_id: s.asaas_subscription_id ?? null,
+        created_at: s.created_at,
+      };
+    });
   });
 
 export const listCustosClientes = createServerFn({ method: "GET" })
@@ -60,21 +155,50 @@ export const listCustosClientes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const mes = new Date().toISOString().slice(0, 7);
-    const { data, error } = await supabaseAdmin
-      .from("custos_cliente_mensal")
-      .select("user_id, custo_tokens_openai, custo_embeddings, custo_storage, total_mensagens, margem_estimada")
-      .gte("mes_ano", `${mes}-01`)
-      .order("custo_tokens_openai", { ascending: false })
-      .limit(100);
-    if (error) throw new Error(error.message);
-    const ids = Array.from(new Set((data ?? []).map((d) => d.user_id)));
-    let nomes: Record<string, { nome: string | null; email: string | null }> = {};
-    if (ids.length) {
-      const { data: p } = await supabaseAdmin.from("profiles").select("id, nome, email").in("id", ids);
-      nomes = Object.fromEntries((p ?? []).map((x) => [x.id, { nome: x.nome, email: x.email }]));
-    }
-    return (data ?? []).map((r) => ({ ...r, profile: nomes[r.user_id] ?? null }));
+    const now = new Date();
+    const mes = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+
+    const [usoRes, subsRes, profsRes] = await Promise.all([
+      supabaseAdmin
+        .from("uso_mensal")
+        .select("user_id, total_mensagens, total_tokens, custo_estimado_brl, total_credits")
+        .eq("mes_ano", mes)
+        .order("custo_estimado_brl", { ascending: false })
+        .limit(150),
+      supabaseAdmin
+        .from("subscriptions")
+        .select("user_id, plano_config_id, status, cortesia, custom_preco, custom_ciclo, vinculado_a_user_id"),
+      supabaseAdmin
+        .from("profiles")
+        .select("id, nome, email, razao_social, tipo_pessoa"),
+    ]);
+
+    const subMap = new Map((subsRes.data ?? []).map((s) => [s.user_id, s]));
+    const profMap = new Map((profsRes.data ?? []).map((p) => [p.id, p]));
+
+    return (usoRes.data ?? []).map((u) => {
+      const sub = subMap.get(u.user_id);
+      const prof = profMap.get(u.user_id);
+      const planoId = (sub?.plano_config_id as PlanId) ?? "gratuito";
+      const planoNome = sub?.cortesia ? "Cortesia" : (PLANS[planoId]?.nome ?? planoId);
+      const receitaMensal = sub ? calcularReceitaMensalSub(sub) : 0;
+      const custoIA = Number(u.custo_estimado_brl ?? 0);
+      const margemBrl = receitaMensal - custoIA;
+      const margemPct = receitaMensal > 0 ? Number(((margemBrl / receitaMensal) * 100).toFixed(1)) : 0;
+
+      return {
+        user_id: u.user_id,
+        profile: prof ? { nome: prof.nome, email: prof.email, razao_social: prof.razao_social, tipo_pessoa: prof.tipo_pessoa } : null,
+        plano_config_id: planoId,
+        plano_nome: planoNome,
+        receita_mensal: receitaMensal,
+        total_mensagens: Number(u.total_mensagens ?? 0),
+        total_tokens: Number(u.total_tokens ?? 0),
+        custo_ia_brl: custoIA,
+        margem_brl: Number(margemBrl.toFixed(2)),
+        margem_pct: margemPct,
+      };
+    });
   });
 
 export const listDespesas = createServerFn({ method: "GET" })

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -13,9 +14,9 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { AdminOverview } from "@/lib/admin.functions";
 import { formatarMoeda } from "@/lib/formatters";
-
 
 const fmtMes = (m: string) => {
   const [y, mm] = m.split("-");
@@ -80,19 +81,25 @@ function EmptyState({ label }: { label: string }) {
 }
 
 export default function AdminDashboardCharts({ d }: { d: AdminOverview }) {
+  const [pieMode, setPieMode] = useState<"quantidade" | "receita">("receita");
+
+  const totalReceitaPlanos = d.distribuicao_planos.reduce((acc, p) => acc + (p.receita || 0), 0);
+  const totalQtdePlanos = d.distribuicao_planos.reduce((acc, p) => acc + (p.quantidade || 0), 0);
+
   return (
     <>
       <Card className="app-card p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
-              Receita e custo · últimos 6 meses
+              Receita, custos de IA e margem operacional · últimos 6 meses
             </p>
-            <h3 className="mt-1 text-lg font-semibold text-primary">Fluxo mensal</h3>
+            <h3 className="mt-1 text-lg font-semibold text-primary">Fluxo Financeiro Mensal</h3>
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <LegendDot className="bg-primary" label="Receita (MRR)" />
-            <LegendDot className="bg-accent" label="Custo Lovable" />
+            <LegendDot className="bg-destructive" label="Custos (IA/Infra)" />
+            <LegendDot className="bg-augusto-green" label="Margem Líquida" />
           </div>
         </div>
         <div className="mt-4 h-64">
@@ -104,8 +111,12 @@ export default function AdminDashboardCharts({ d }: { d: AdminOverview }) {
                   <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0.02} />
                 </linearGradient>
                 <linearGradient id="grad-custo" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.32} />
-                  <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0.02} />
+                  <stop offset="0%" stopColor="var(--color-destructive)" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="var(--color-destructive)" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="grad-lucro" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-augusto-green)" stopOpacity={0.30} />
+                  <stop offset="100%" stopColor="var(--color-augusto-green)" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
@@ -126,64 +137,104 @@ export default function AdminDashboardCharts({ d }: { d: AdminOverview }) {
                 content={<TooltipCard mode="currency" labelFormatter={fmtMes} />}
                 cursor={{ stroke: "var(--color-border)" }}
               />
-              <Area type="monotone" dataKey="receita" stroke="var(--color-primary)" strokeWidth={2} fill="url(#grad-receita)" />
-              <Area type="monotone" dataKey="custo" stroke="var(--color-accent)" strokeWidth={2} fill="url(#grad-custo)" />
+              <Area type="monotone" name="Receita" dataKey="receita" stroke="var(--color-primary)" strokeWidth={2} fill="url(#grad-receita)" />
+              <Area type="monotone" name="Custos" dataKey="custo" stroke="var(--color-destructive)" strokeWidth={1.75} fill="url(#grad-custo)" />
+              <Area type="monotone" name="Margem Líquida" dataKey="lucro" stroke="var(--color-augusto-green)" strokeWidth={2} fill="url(#grad-lucro)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </Card>
 
       <section className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <Card className="app-card p-5 sm:p-6 lg:col-span-2">
-          <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
-            Distribuição de assinaturas
-          </p>
-          <h3 className="mt-1 text-lg font-semibold text-primary">Por plano</h3>
-          <div className="mt-4 h-56">
-            {d.distribuicao_planos.length === 0 ? (
-              <EmptyState label="Sem assinaturas ainda." />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={d.distribuicao_planos}
-                    dataKey="quantidade"
-                    nameKey="plano"
-                    innerRadius={48}
-                    outerRadius={78}
-                    paddingAngle={2}
-                    stroke="var(--color-card)"
-                    strokeWidth={2}
-                  >
-                    {d.distribuicao_planos.map((_, i) => (
-                      <Cell key={i} fill={`var(--color-chart-${(i % 5) + 1})`} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<TooltipCard mode="number" />} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
+        <Card className="app-card p-5 sm:p-6 lg:col-span-2 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
+                  Composição da Base
+                </p>
+                <h3 className="mt-1 text-lg font-semibold text-primary">Por Plano</h3>
+              </div>
+              <div className="flex items-center rounded-md border border-border bg-muted/30 p-0.5 text-xs">
+                <Button
+                  size="sm"
+                  variant={pieMode === "receita" ? "default" : "ghost"}
+                  className="h-6 px-2 text-[11px]"
+                  onClick={() => setPieMode("receita")}
+                >
+                  Receita
+                </Button>
+                <Button
+                  size="sm"
+                  variant={pieMode === "quantidade" ? "default" : "ghost"}
+                  className="h-6 px-2 text-[11px]"
+                  onClick={() => setPieMode("quantidade")}
+                >
+                  Contas
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-4 h-52">
+              {d.distribuicao_planos.length === 0 ? (
+                <EmptyState label="Sem assinaturas cadastradas." />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={d.distribuicao_planos}
+                      dataKey={pieMode === "receita" ? "receita" : "quantidade"}
+                      nameKey="plano"
+                      innerRadius={46}
+                      outerRadius={76}
+                      paddingAngle={2}
+                      stroke="var(--color-card)"
+                      strokeWidth={2}
+                    >
+                      {d.distribuicao_planos.map((_, i) => (
+                        <Cell key={i} fill={`var(--color-chart-${(i % 5) + 1})`} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<TooltipCard mode={pieMode === "receita" ? "currency" : "number"} />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
+
           {d.distribuicao_planos.length > 0 && (
-            <ul className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-              {d.distribuicao_planos.map((p, i) => (
-                <li key={p.plano} className="flex items-center gap-2 min-w-0">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full shrink-0"
-                    style={{ background: `var(--color-chart-${(i % 5) + 1})` }}
-                  />
-                  <span className="truncate text-foreground">{p.plano}</span>
-                  <span className="ml-auto tabular-nums text-muted-foreground">{p.quantidade}</span>
-                </li>
-              ))}
+            <ul className="mt-3 divide-y divide-border/40 text-xs">
+              {d.distribuicao_planos.map((p, i) => {
+                const pct = pieMode === "receita"
+                  ? totalReceitaPlanos > 0 ? ((p.receita / totalReceitaPlanos) * 100).toFixed(0) : "0"
+                  : totalQtdePlanos > 0 ? ((p.quantidade / totalQtdePlanos) * 100).toFixed(0) : "0";
+
+                return (
+                  <li key={p.plano} className="py-1.5 flex items-center justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full shrink-0"
+                        style={{ background: `var(--color-chart-${(i % 5) + 1})` }}
+                      />
+                      <span className="truncate text-foreground font-medium">{p.plano}</span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="font-semibold text-foreground">
+                        {pieMode === "receita" ? formatarMoeda(p.receita) : `${p.quantidade} conta(s)`}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground ml-1.5">({pct}%)</span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Card>
 
         <Card className="app-card p-5 sm:p-6 lg:col-span-3">
-          <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Atividade</p>
-          <h3 className="mt-1 text-lg font-semibold text-primary">Mensagens · últimos 30 dias</h3>
-          <div className="mt-4 h-56">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Engajamento & Processamento IA</p>
+          <h3 className="mt-1 text-lg font-semibold text-primary">Mensagens Jurídicas · últimos 30 dias</h3>
+          <div className="mt-4 h-64">
             {d.serie_mensagens.length === 0 ? (
               <EmptyState label="Sem mensagens no período." />
             ) : (
@@ -208,7 +259,7 @@ export default function AdminDashboardCharts({ d }: { d: AdminOverview }) {
                     content={<TooltipCard mode="number" labelFormatter={fmtDia} />}
                     cursor={{ fill: "var(--color-muted)", opacity: 0.4 }}
                   />
-                  <Bar dataKey="mensagens" fill="var(--color-primary)" radius={[6, 6, 0, 0]} maxBarSize={18} />
+                  <Bar dataKey="mensagens" name="Mensagens IA" fill="var(--color-primary)" radius={[6, 6, 0, 0]} maxBarSize={18} />
                 </BarChart>
               </ResponsiveContainer>
             )}

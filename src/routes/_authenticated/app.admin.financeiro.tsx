@@ -1,22 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Plus, Trash2, Wallet } from "lucide-react";
+import { Plus, Trash2, Wallet, Users, TrendingUp, TrendingDown, Receipt, ArrowUpRight, ShieldCheck, Sparkles, Building2 } from "lucide-react";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getFinanceiroResumo,
+  listAssinaturasReceita,
   listCustosClientes,
   listDespesas,
   createDespesa,
   deleteDespesa,
   listCancelamentos,
+  type AssinaturaReceitaRow,
 } from "@/lib/admin-financeiro.functions";
 import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
@@ -33,23 +36,21 @@ type Resumo = Awaited<ReturnType<typeof getFinanceiroResumo>>;
 function FinanceiroPage() {
   return (
     <>
-      <div className="max-w-6xl">
+      <div className="max-w-6xl space-y-6">
         <header className="app-page-header">
-          <span className="app-eyebrow">Administração</span>
-          <h1 className="app-title">Financeiro</h1>
-          <p className="app-subtitle">Receita, custos, margem e despesas operacionais.</p>
+          <span className="app-eyebrow">Administração Executiva</span>
+          <h1 className="app-title">Financeiro & Unit Economics</h1>
+          <p className="app-subtitle">Gestão de receita, ARR, custos de IA por cliente, rentabilidade e despesas operacionais.</p>
         </header>
-        <div className="mt-6">
-          <AdminNav />
-        </div>
+        <AdminNav />
 
         <Tabs defaultValue="receita" className="mt-2">
           <TabsList>
-            <TabsTrigger value="receita">Receita</TabsTrigger>
-            <TabsTrigger value="custos">Custos</TabsTrigger>
-            <TabsTrigger value="margem">Margem</TabsTrigger>
-            <TabsTrigger value="despesas">Despesas</TabsTrigger>
-            <TabsTrigger value="cancelamentos">Cancelamentos</TabsTrigger>
+            <TabsTrigger value="receita">Receita & Assinaturas</TabsTrigger>
+            <TabsTrigger value="custos">Custos & Unit Economics</TabsTrigger>
+            <TabsTrigger value="margem">DRE & Margem Líquida</TabsTrigger>
+            <TabsTrigger value="despesas">Despesas Operacionais</TabsTrigger>
+            <TabsTrigger value="cancelamentos">Cancelamentos & Churn</TabsTrigger>
           </TabsList>
 
           <TabsContent value="receita" className="mt-4">
@@ -86,6 +87,19 @@ function useResumo() {
 
 function ReceitaTab() {
   const r = useResumo();
+  const listSubsFn = useServerFn(listAssinaturasReceita);
+  const [subs, setSubs] = useState<AssinaturaReceitaRow[]>([]);
+  const [loadingSubs, setLoadingSubs] = useState(true);
+
+  useEffect(() => {
+    listSubsFn({ data: undefined as never })
+      .then((data) => {
+        setSubs(data as AssinaturaReceitaRow[]);
+      })
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar assinaturas"))
+      .finally(() => setLoadingSubs(false));
+  }, [listSubsFn]);
+
   if (!r)
     return (
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -96,24 +110,127 @@ function ReceitaTab() {
         ))}
       </div>
     );
+
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
-      <Card className="app-card p-5">
-        <p className="text-xs uppercase text-muted-foreground">MRR projetado</p>
-        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
-      </Card>
-      <Card className="app-card p-5">
-        <p className="text-xs uppercase text-muted-foreground">Assinaturas ativas</p>
-        <p className="mt-2 text-2xl font-bold text-primary">{r.assinaturas_ativas}</p>
-      </Card>
-      <Card className="app-card p-5">
-        <p className="text-xs uppercase text-muted-foreground">Ticket médio</p>
-        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.ticket_medio)}</p>
-      </Card>
-      <Card className="app-card p-5">
-        <p className="text-xs uppercase text-muted-foreground">Receita do mês</p>
-        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
-        <p className="mt-1 text-xs text-muted-foreground">Estimativa baseada nas assinaturas ativas.</p>
+    <div className="space-y-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 app-stagger">
+        <Card className="app-card p-5">
+          <p className="text-xs uppercase font-medium text-muted-foreground">MRR Real</p>
+          <p className="mt-1 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Receita mensal recorrente</p>
+        </Card>
+        <Card className="app-card p-5">
+          <p className="text-xs uppercase font-medium text-muted-foreground">ARR Projetado</p>
+          <p className="mt-1 text-2xl font-bold text-primary">{brl(r.arr)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Projeção anual (MRR × 12)</p>
+        </Card>
+        <Card className="app-card p-5">
+          <p className="text-xs uppercase font-medium text-muted-foreground">Clientes Pagantes</p>
+          <p className="mt-1 text-2xl font-bold text-primary">{r.assinaturas_ativas}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            +{r.assinaturas_cortesia} cortesia · +{r.assinaturas_vinculadas} equipe
+          </p>
+        </Card>
+        <Card className="app-card p-5">
+          <p className="text-xs uppercase font-medium text-muted-foreground">Ticket Médio (ARPU)</p>
+          <p className="mt-1 text-2xl font-bold text-primary">{brl(r.ticket_medio)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Por cliente pagante</p>
+        </Card>
+      </div>
+
+      {/* Tabela de Assinantes e Receita */}
+      <Card className="app-card overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-foreground text-base">Carteira de Clientes & Assinaturas</h3>
+            <p className="text-xs text-muted-foreground">
+              Detalhamento de todos os titulares com plano ativo, valor, ciclo e status no Asaas.
+            </p>
+          </div>
+          <Badge variant="outline" className="border-border">
+            Total: {subs.length} contas
+          </Badge>
+        </div>
+
+        {loadingSubs ? (
+          <div className="p-5">
+            <AppSkeletonLines lines={6} />
+          </div>
+        ) : subs.length === 0 ? (
+          <AppEmptyState icon={<Receipt />} title="Nenhuma assinatura cadastrada" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-muted/40 text-xs font-semibold text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="py-3 px-4">Cliente / Razão Social</th>
+                  <th className="py-3 px-4">Plano</th>
+                  <th className="py-3 px-4 text-right">Valor Mensal</th>
+                  <th className="py-3 px-4">Vencimento</th>
+                  <th className="py-3 px-4">Status / Asaas</th>
+                  <th className="py-3 px-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {subs.map((s) => (
+                  <tr key={s.user_id} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-4">
+                      <p className="font-medium text-foreground">
+                        {s.profile?.razao_social || s.profile?.nome || "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{s.profile?.email}</p>
+                      {s.vinculado_a_nome && (
+                        <p className="text-[11px] text-primary mt-0.5">
+                          ↳ Vinculado à conta de {s.vinculado_a_nome}
+                        </p>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge variant="outline" className="capitalize text-xs font-medium">
+                        {s.plano_nome} {s.ciclo === "anual" ? "(Anual)" : ""}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 text-right font-semibold text-foreground">
+                      {s.cortesia || s.vinculado_a_id ? (
+                        <span className="text-xs text-muted-foreground font-normal">
+                          {s.cortesia ? "Cortesia (R$ 0)" : "Incluso na equipe"}
+                        </span>
+                      ) : (
+                        brl(s.valor_mensal)
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">
+                      {s.dia_vencimento ? `Todo dia ${s.dia_vencimento}` : "—"}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-md font-medium ${
+                          s.status === "active"
+                            ? "bg-augusto-green/10 text-augusto-green"
+                            : "bg-muted text-muted-foreground"
+                        }`}>
+                          {s.status === "active" ? "Ativo" : s.status}
+                        </span>
+                        {s.asaas_subscription_id && (
+                          <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/30">
+                            Asaas Sub
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <Button asChild size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:text-primary">
+                        <Link to="/app/admin/usuarios/$userId" params={{ userId: s.user_id }}>
+                          Ver detalhes <ArrowUpRight className="h-3 w-3 ml-1" />
+                        </Link>
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -123,50 +240,128 @@ function CustosTab() {
   const r = useResumo();
   const fn = useServerFn(listCustosClientes);
   const [rows, setRows] = useState<Awaited<ReturnType<typeof listCustosClientes>>>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     fn({ data: undefined as never })
       .then((x) => setRows(x as typeof rows))
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha"));
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao carregar custos"))
+      .finally(() => setLoading(false));
   }, [fn]);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="grid sm:grid-cols-3 gap-4 app-stagger">
         <Card className="app-card p-5">
-          <p className="text-xs uppercase text-muted-foreground">Custo clientes (mês)</p>
-          <p className="mt-2 text-2xl font-bold text-primary">{brl(r?.custos_clientes_mes ?? 0)}</p>
+          <p className="text-xs uppercase font-medium text-muted-foreground">Custo Total de IA (Mês)</p>
+          <p className="mt-1 text-2xl font-bold text-destructive">{brl(r?.custos_clientes_mes ?? 0)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Modelos de IA, tokens e embeddings</p>
         </Card>
         <Card className="app-card p-5">
-          <p className="text-xs uppercase text-muted-foreground">Despesas operacionais (mês)</p>
-          <p className="mt-2 text-2xl font-bold text-primary">{brl(r?.despesas_mes ?? 0)}</p>
+          <p className="text-xs uppercase font-medium text-muted-foreground">Despesas Operacionais</p>
+          <p className="mt-1 text-2xl font-bold text-primary">{brl(r?.despesas_mes ?? 0)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Servidores e ferramentas</p>
         </Card>
         <Card className="app-card p-5">
-          <p className="text-xs uppercase text-muted-foreground">Custo total</p>
-          <p className="mt-2 text-2xl font-bold text-primary">{brl((r?.custos_clientes_mes ?? 0) + (r?.despesas_mes ?? 0))}</p>
+          <p className="text-xs uppercase font-medium text-muted-foreground">Custo Total Consolidado</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">
+            {brl((r?.custos_clientes_mes ?? 0) + (r?.despesas_mes ?? 0))}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">Impacto direto na margem</p>
         </Card>
       </div>
-      <Card className="app-card divide-y divide-[var(--landing-rule)]">
-        <div className="p-4 text-xs uppercase text-muted-foreground grid grid-cols-12 gap-2">
-          <div className="col-span-5">Cliente</div>
-          <div className="col-span-2 text-right">Mensagens</div>
-          <div className="col-span-2 text-right">OpenAI</div>
-          <div className="col-span-1 text-right">Embed</div>
-          <div className="col-span-2 text-right">Storage</div>
+
+      {/* Tabela de Unit Economics por Cliente */}
+      <Card className="app-card overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-border">
+          <h3 className="font-semibold text-foreground text-base">Unit Economics por Cliente</h3>
+          <p className="text-xs text-muted-foreground">
+            Margem de contribuição individual de cada cliente (Receita contratada (-) Custo de Consumo de IA).
+          </p>
         </div>
-        {rows.length === 0 ? (
+
+        {loading ? (
+          <div className="p-5">
+            <AppSkeletonLines lines={6} />
+          </div>
+        ) : rows.length === 0 ? (
           <AppEmptyState icon={<Wallet />} title="Sem custos registrados neste mês" />
         ) : (
-          rows.map((r) => (
-            <div key={r.user_id} className="p-4 grid grid-cols-12 gap-2 items-center text-sm hover:bg-muted/40 transition-colors duration-[var(--dur-fast)]">
-              <div className="col-span-5">
-                <p className="font-medium text-primary">{r.profile?.nome ?? "—"}</p>
-                <p className="text-xs text-muted-foreground">{r.profile?.email ?? r.user_id}</p>
-              </div>
-              <div className="col-span-2 text-right">{r.total_mensagens}</div>
-              <div className="col-span-2 text-right">{brl(Number(r.custo_tokens_openai))}</div>
-              <div className="col-span-1 text-right">{brl(Number(r.custo_embeddings))}</div>
-              <div className="col-span-2 text-right">{brl(Number(r.custo_storage))}</div>
-            </div>
-          ))
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-muted/40 text-xs font-semibold text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="py-3 px-4">Cliente</th>
+                  <th className="py-3 px-4">Plano</th>
+                  <th className="py-3 px-4 text-right">Mensagens IA</th>
+                  <th className="py-3 px-4 text-right">Receita (R$)</th>
+                  <th className="py-3 px-4 text-right">Custo IA (R$)</th>
+                  <th className="py-3 px-4 text-right">Margem Líquida</th>
+                  <th className="py-3 px-4 text-center">Rentabilidade</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {rows.map((row) => {
+                  const isHighMargin = row.margem_pct >= 70;
+                  const isLowMargin = row.margem_brl < 0 || row.margem_pct < 30;
+
+                  return (
+                    <tr key={row.user_id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-4">
+                        <p className="font-medium text-foreground">
+                          {row.profile?.razao_social || row.profile?.nome || "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{row.profile?.email ?? row.user_id}</p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className="text-xs capitalize font-medium">
+                          {row.plano_nome}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-right tabular-nums text-muted-foreground">
+                        {row.total_mensagens.toLocaleString("pt-BR")}
+                      </td>
+                      <td className="py-3 px-4 text-right font-semibold text-foreground">
+                        {brl(row.receita_mensal)}
+                      </td>
+                      <td className="py-3 px-4 text-right tabular-nums text-destructive font-medium">
+                        {brl(row.custo_ia_brl)}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <p className={`font-semibold tabular-nums ${row.margem_brl >= 0 ? "text-augusto-green" : "text-destructive"}`}>
+                          {brl(row.margem_brl)}
+                        </p>
+                        {row.receita_mensal > 0 && (
+                          <p className="text-[11px] text-muted-foreground">
+                            {row.margem_pct}%
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {row.receita_mensal === 0 ? (
+                          <Badge variant="outline" className="text-[11px] text-muted-foreground">
+                            Cortesia / Free
+                          </Badge>
+                        ) : isHighMargin ? (
+                          <Badge className="bg-augusto-green/10 text-augusto-green border-0 text-[11px]">
+                            Alta Margem
+                          </Badge>
+                        ) : isLowMargin ? (
+                          <Badge className="bg-destructive/10 text-destructive border-0 text-[11px]">
+                            Alto Consumo
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[11px] text-amber-600 border-amber-500/30">
+                            Moderada
+                          </Badge>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </div>
@@ -185,25 +380,65 @@ function MargemTab() {
         ))}
       </div>
     );
-  const margem = r.margem_mes;
+
+  const margemContribuicao = r.mrr - r.custos_clientes_mes;
+  const margemContribuicaoPct = r.mrr > 0 ? Number(((margemContribuicao / r.mrr) * 100).toFixed(1)) : 0;
+  const margemLiquida = r.margem_mes;
+  const margemLiquidaPct = r.margem_percentual;
+
   return (
-    <div className="grid sm:grid-cols-3 gap-4 app-stagger">
-      <Card className="app-card p-5">
-        <p className="text-xs uppercase text-muted-foreground">Receita</p>
-        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
-      </Card>
-      <Card className="app-card p-5">
-        <p className="text-xs uppercase text-muted-foreground">Custo total</p>
-        <p className="mt-2 text-2xl font-bold text-primary">{brl(r.custos_clientes_mes + r.despesas_mes)}</p>
-      </Card>
-      <Card className="app-card p-5">
-        <p className="text-xs uppercase text-muted-foreground">Margem do mês</p>
-        <p className={`mt-2 text-2xl font-bold ${margem >= 0 ? "text-augusto-green" : "text-red-500"}`}>
-          {brl(margem)}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {r.mrr > 0 ? `${((margem / r.mrr) * 100).toFixed(1)}% sobre receita` : "Sem receita"}
-        </p>
+    <div className="space-y-6">
+      <div className="grid sm:grid-cols-3 gap-4 app-stagger">
+        <Card className="app-card p-5">
+          <p className="text-xs uppercase font-medium text-muted-foreground">Receita Operacional (MRR)</p>
+          <p className="mt-1 text-2xl font-bold text-primary">{brl(r.mrr)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Base ativa recorrente</p>
+        </Card>
+        <Card className="app-card p-5">
+          <p className="text-xs uppercase font-medium text-muted-foreground">Margem de Contribuição (IA)</p>
+          <p className="mt-1 text-2xl font-bold text-primary">{brl(margemContribuicao)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{margemContribuicaoPct}% após custos diretos de IA</p>
+        </Card>
+        <Card className="app-card p-5">
+          <p className="text-xs uppercase font-medium text-muted-foreground">Resultado Líquido Operacional</p>
+          <p className={`mt-1 text-2xl font-bold ${margemLiquida >= 0 ? "text-augusto-green" : "text-destructive"}`}>
+            {brl(margemLiquida)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {margemLiquidaPct}% de Margem Líquida
+          </p>
+        </Card>
+      </div>
+
+      {/* DRE Simplificado */}
+      <Card className="app-card p-6">
+        <h3 className="font-semibold text-foreground text-base mb-4">DRE Gerencial Simplificado (Mês Atual)</h3>
+        <div className="divide-y divide-border/60 text-sm">
+          <div className="py-3 flex items-center justify-between font-medium">
+            <span className="text-foreground">(+) Receita Bruta Recorrente (MRR)</span>
+            <span className="text-foreground font-semibold tabular-nums">{brl(r.mrr)}</span>
+          </div>
+          <div className="py-3 flex items-center justify-between text-muted-foreground pl-4">
+            <span>(-) Custos Variáveis de IA e Embeddings</span>
+            <span className="text-destructive tabular-nums font-medium">(-) {brl(r.custos_clientes_mes)}</span>
+          </div>
+          <div className="py-3 flex items-center justify-between font-medium bg-muted/20 px-2 rounded">
+            <span className="text-foreground">(=) Margem de Contribuição Bruta</span>
+            <span className="text-foreground font-semibold tabular-nums">
+              {brl(margemContribuicao)} <span className="text-xs text-muted-foreground font-normal">({margemContribuicaoPct}%)</span>
+            </span>
+          </div>
+          <div className="py-3 flex items-center justify-between text-muted-foreground pl-4">
+            <span>(-) Despesas Fixas e Operacionais</span>
+            <span className="text-destructive tabular-nums font-medium">(-) {brl(r.despesas_mes)}</span>
+          </div>
+          <div className="py-4 flex items-center justify-between font-bold text-base bg-primary/5 px-3 rounded-md border border-primary/20">
+            <span className="text-primary">(=) Lucro / Margem Líquida Operacional</span>
+            <span className={margemLiquida >= 0 ? "text-augusto-green" : "text-destructive"}>
+              {brl(margemLiquida)} <span className="text-xs font-normal">({margemLiquidaPct}%)</span>
+            </span>
+          </div>
+        </div>
       </Card>
     </div>
   );

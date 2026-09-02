@@ -577,25 +577,70 @@ export const getUsageTimeseries = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+export function calcularReceitaMensalSub(sub: {
+  plano_config_id?: string | null;
+  cortesia?: boolean | null;
+  vinculado_a_user_id?: string | null;
+  custom_preco?: number | null;
+  custom_ciclo?: string | null;
+  status?: string | null;
+}): number {
+  if (sub.cortesia || sub.vinculado_a_user_id) return 0;
+  if (sub.status !== "active" && sub.status !== "trialing") return 0;
+
+  const planoId = sub.plano_config_id as PlanId | undefined;
+  if (!planoId || planoId === "gratuito") return 0;
+
+  if (planoId === "personalizado") {
+    const valor = Number(sub.custom_preco ?? 0);
+    if (sub.custom_ciclo === "anual") {
+      return Number((valor / 12).toFixed(2));
+    }
+    return valor;
+  }
+
+  const precosPadrao: Record<string, number> = {
+    essencial: 97,
+    profissional: 247,
+    gestao: 447,
+    administradora: 997,
+  };
+  return precosPadrao[planoId] ?? 0;
+}
+
 /**
  * Visão geral do negócio para o dashboard admin.
- * Consolida receita (MRR estimada), custo Lovable, distribuição de assinaturas,
+ * Consolida receita (MRR/ARR oficial), custo Lovable/IA, unit economics,
  * atividade diária e saúde operacional em uma única chamada.
  */
 export type AdminOverview = {
   mes: string;
   mrr: number;
+  arr: number;
+  arpu: number;
   novos_usuarios_mes: number;
   margem_mes: number;
+  margem_percentual: number;
   custo_lovable_mes: number;
   despesas_mes: number;
-  assinaturas: { ativas: number; trialing: number; cortesia: number; canceladas: number };
-  distribuicao_planos: Array<{ plano: string; quantidade: number }>;
-  serie_receita_custo: Array<{ mes: string; receita: number; custo: number }>;
+  assinaturas: {
+    ativas: number;
+    pagantes: number;
+    trialing: number;
+    cortesia: number;
+    vinculados: number;
+    canceladas: number;
+    total: number;
+  };
+  distribuicao_planos: Array<{ plano: string; quantidade: number; receita: number }>;
+  serie_receita_custo: Array<{ mes: string; receita: number; custo: number; lucro: number }>;
   serie_mensagens: Array<{ dia: string; mensagens: number }>;
   operacional: {
     condominios_total: number;
     condominios_ativos_mes: number;
+    unidades_total: number;
+    media_unidades_por_condominio: number;
+    media_condominios_por_cliente: number;
     documentos_total: number;
     documentos_erro: number;
     kb_prontos: number;
@@ -624,7 +669,6 @@ export const getAdminOverview = createServerFn({ method: "GET" })
 
     const [
       subsRes,
-      planosRes,
       profilesMesRes,
       condosRes,
       docsRes,
@@ -636,13 +680,12 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     ] = await Promise.all([
       supabaseAdmin
         .from("subscriptions")
-        .select("plano_id, plano_config_id, status, cortesia, created_at, updated_at, current_period_end"),
-      supabaseAdmin.from("planos").select("id, nome, preco_mensal"),
+        .select("user_id, plano_config_id, status, cortesia, custom_preco, custom_ciclo, vinculado_a_user_id, created_at, updated_at, current_period_end"),
       supabaseAdmin
         .from("profiles")
         .select("id", { count: "exact", head: true })
         .gte("created_at", `${primeiroDiaAtual}T00:00:00Z`),
-      supabaseAdmin.from("condominios").select("owner_id"),
+      supabaseAdmin.from("condominios").select("id, owner_id, qtd_unidades"),
       supabaseAdmin.from("documentos").select("id, status_processamento"),
       supabaseAdmin.from("kb_documentos").select("id, status_processamento"),
       supabaseAdmin
@@ -657,26 +700,46 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       supabaseAdmin.rpc("admin_dashboard_metrics"),
     ]);
 
-    const planosById = Object.fromEntries(
-      (planosRes.data ?? []).map((p) => [p.id, { nome: p.nome as string, preco: Number(p.preco_mensal ?? 0) }]),
-    );
-
-    // MRR = soma dos preços dos planos das assinaturas ativas/trial
+    // MRR = soma da receita mensal dos planos ativos/trial dos titulares
     let mrr = 0;
-    const dist: Record<string, number> = {};
-    let ativas = 0, trialing = 0, cortesia = 0, canceladas = 0;
-    for (const s of subsRes.data ?? []) {
-      const plano = s.plano_id ? planosById[s.plano_id] : undefined;
-      const nomePlano = s.cortesia ? "Cortesia" : plano?.nome ?? (s.plano_config_id ?? "Trial");
-      dist[nomePlano] = (dist[nomePlano] ?? 0) + 1;
-      if (s.status === "active") { ativas++; mrr += plano?.preco ?? 0; }
-      else if (s.status === "trialing") trialing++;
-      else if (s.status === "canceled") canceladas++;
-      if (s.cortesia) cortesia++;
+    const distMap: Record<string, { quantidade: number; receita: number }> = {};
+    let pagantes = 0, trialing = 0, cortesia = 0, vinculados = 0, canceladas = 0;
+
+    const subs = subsRes.data ?? [];
+    for (const s of subs) {
+      const planoId = (s.plano_config_id as PlanId) ?? "gratuito";
+      const nomePlano = s.cortesia
+        ? "Cortesia"
+        : s.vinculado_a_user_id
+          ? "Vinculado (Equipe)"
+          : (PLANS[planoId]?.nome ?? planoId);
+
+      const rec = calcularReceitaMensalSub(s);
+
+      if (!distMap[nomePlano]) distMap[nomePlano] = { quantidade: 0, receita: 0 };
+      distMap[nomePlano].quantidade++;
+      distMap[nomePlano].receita += rec;
+
+      if (s.vinculado_a_user_id) {
+        vinculados++;
+      } else if (s.cortesia) {
+        cortesia++;
+      } else if (s.status === "active") {
+        pagantes++;
+        mrr += rec;
+      } else if (s.status === "trialing") {
+        trialing++;
+      } else if (s.status === "canceled") {
+        canceladas++;
+      }
     }
-    const distribuicao_planos = Object.entries(dist)
-      .map(([plano, quantidade]) => ({ plano, quantidade }))
-      .sort((a, b) => b.quantidade - a.quantidade);
+
+    const arr = mrr * 12;
+    const arpu = pagantes > 0 ? Number((mrr / pagantes).toFixed(2)) : 0;
+
+    const distribuicao_planos = Object.entries(distMap)
+      .map(([plano, d]) => ({ plano, quantidade: d.quantidade, receita: Number(d.receita.toFixed(2)) }))
+      .sort((a, b) => b.receita - a.receita || b.quantidade - a.quantidade);
 
     // Série receita × custo dos últimos 6 meses
     const custoPorMes: Record<string, number> = {};
@@ -684,18 +747,14 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       const m = String(u.mes_ano);
       custoPorMes[m] = (custoPorMes[m] ?? 0) + Number(u.custo_estimado_brl ?? 0);
     }
-    // Receita histórica: soma dos preços dos planos das assinaturas que estavam
-    // ativas em cada mês (aproximação — não temos histórico de mudanças de plano
-    // por assinatura). Considera-se ativa no mês m se a assinatura foi criada
-    // até o fim de m e ainda não estava cancelada no início de m.
-    const subs = subsRes.data ?? [];
+
     const serie_receita_custo = meses.map((m) => {
       const [yy, mm] = m.split("-").map((v) => Number(v));
       const inicioMes = new Date(Date.UTC(yy, mm - 1, 1));
       const fimMes = new Date(Date.UTC(yy, mm, 1));
       let receitaMes = 0;
       for (const s of subs) {
-        if (s.cortesia) continue;
+        if (s.cortesia || s.vinculado_a_user_id) continue;
         const criadoEm = s.created_at ? new Date(s.created_at) : null;
         if (!criadoEm || criadoEm >= fimMes) continue;
         if (s.status === "canceled") {
@@ -704,13 +763,15 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         } else if (s.status !== "active") {
           continue;
         }
-        const plano = s.plano_id ? planosById[s.plano_id] : undefined;
-        receitaMes += plano?.preco ?? 0;
+        receitaMes += calcularReceitaMensalSub(s);
       }
+      const c = Number((custoPorMes[m] ?? 0).toFixed(2));
+      const r = Number(receitaMes.toFixed(2));
       return {
         mes: m,
-        receita: Number(receitaMes.toFixed(2)),
-        custo: Number((custoPorMes[m] ?? 0).toFixed(2)),
+        receita: r,
+        custo: c,
+        lucro: Number((r - c).toFixed(2)),
       };
     });
 
@@ -719,9 +780,16 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       .filter((d) => String(d.data).startsWith(mesAtual))
       .reduce((a, d) => a + Number(d.valor ?? 0), 0);
     const margem_mes = mrr - custo_lovable_mes - despesas_mes;
+    const margem_percentual = mrr > 0 ? Number(((margem_mes / mrr) * 100).toFixed(1)) : 0;
 
-    // Storage total (sum por owner distinto)
-    const ownerIds = Array.from(new Set((condosRes.data ?? []).map((c) => c.owner_id).filter(Boolean)));
+    // Métricas operacionais e de condomínios
+    const condominios = condosRes.data ?? [];
+    const ownerIds = Array.from(new Set(condominios.map((c) => c.owner_id).filter(Boolean)));
+    const unidades_total = condominios.reduce((acc, c) => acc + Number(c.qtd_unidades || 0), 0);
+    const condominios_total = condominios.length;
+    const media_unidades_por_condominio = condominios_total > 0 ? Math.round(unidades_total / condominios_total) : 0;
+    const media_condominios_por_cliente = pagantes > 0 ? Number((condominios_total / pagantes).toFixed(1)) : 0;
+
     let storageBytes = 0;
     for (const uid of ownerIds) {
       const { data } = await supabaseAdmin.rpc("storage_bytes_by_user", { _user_id: uid });
@@ -733,18 +801,32 @@ export const getAdminOverview = createServerFn({ method: "GET" })
 
     return {
       mes: mesAtual,
-      mrr,
+      mrr: Number(mrr.toFixed(2)),
+      arr: Number(arr.toFixed(2)),
+      arpu,
       novos_usuarios_mes: profilesMesRes.count ?? 0,
-      margem_mes,
-      custo_lovable_mes,
-      despesas_mes,
-      assinaturas: { ativas, trialing, cortesia, canceladas },
+      margem_mes: Number(margem_mes.toFixed(2)),
+      margem_percentual,
+      custo_lovable_mes: Number(custo_lovable_mes.toFixed(2)),
+      despesas_mes: Number(despesas_mes.toFixed(2)),
+      assinaturas: {
+        ativas: pagantes,
+        pagantes,
+        trialing,
+        cortesia,
+        vinculados,
+        canceladas,
+        total: subs.length,
+      },
       distribuicao_planos,
       serie_receita_custo,
       serie_mensagens: metrics.map((r) => ({ dia: String(r.dia), mensagens: Number(r.mensagens) })),
       operacional: {
-        condominios_total: (condosRes.data ?? []).length,
+        condominios_total,
         condominios_ativos_mes: Number(opsMetrics.condominios_ativos_mes ?? 0),
+        unidades_total,
+        media_unidades_por_condominio,
+        media_condominios_por_cliente,
         documentos_total: (docsRes.data ?? []).length,
         documentos_erro: (docsRes.data ?? []).filter((d) => String(d.status_processamento ?? "").startsWith("erro")).length,
         kb_prontos: (kbRes.data ?? []).filter((k) => k.status_processamento === "pronto").length,
