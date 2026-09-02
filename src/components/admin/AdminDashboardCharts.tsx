@@ -14,6 +14,8 @@ import {
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import type { AdminOverview } from "@/lib/admin.functions";
+import { formatarMoeda } from "@/lib/formatters";
+
 
 const fmtMes = (m: string) => {
   const [y, mm] = m.split("-");

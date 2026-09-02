@@ -1582,44 +1582,10 @@ async function persistirExtracao(entrada: {
   });
   if (insertError) throw new Error(insertError.message);
 
-  // Preenche automaticamente somente campos vazios de unidades com confiança alta.
-  for (const unidade of unidades.filter((u) => u.confianca === "alta")) {
-    const existente = conhecidas.find(
-      (item) =>
-        chaveUnidade(item.bloco, item.numero) ===
-        chaveUnidade(unidade.bloco ?? null, unidade.numero),
-    );
-    if (!existente) {
-      await supabase.from("unidades").insert({
-        condominio_id: doc.condominio_id,
-        bloco: unidade.bloco ?? null,
-        numero: unidade.numero,
-        tipo: unidade.tipo ?? "apartamento",
-        fracao_ideal: unidade.fracao_ideal ?? null,
-        area_m2: unidade.area_m2 ?? null,
-        vagas_garagem: unidade.vagas_garagem ?? 0,
-      });
-    } else {
-      let atualQuery = supabase
-        .from("unidades")
-        .select("id, fracao_ideal, area_m2")
-        .eq("condominio_id", doc.condominio_id)
-        .eq("numero", existente.numero);
-      atualQuery =
-        existente.bloco == null
-          ? atualQuery.is("bloco", null)
-          : atualQuery.eq("bloco", existente.bloco);
-      const { data: atual } = await atualQuery.maybeSingle();
-      if (atual) {
-        const patch: Record<string, number> = {};
-        if (atual.fracao_ideal == null && unidade.fracao_ideal != null)
-          patch.fracao_ideal = unidade.fracao_ideal;
-        if (atual.area_m2 == null && unidade.area_m2 != null) patch.area_m2 = unidade.area_m2;
-        if (Object.keys(patch).length)
-          await supabase.from("unidades").update(patch).eq("id", atual.id);
-      }
-    }
-  }
+  // A leitura NUNCA cria nem altera unidades por conta própria. Tudo fica na
+  // sugestão até o usuário confirmar em "Revisar e importar", que aplica as
+  // regras de permissão e o limite de unidades do plano.
+
   await supabase.from("perfis_documentais_condominio").upsert(
     {
       condominio_id: doc.condominio_id,
