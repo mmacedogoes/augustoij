@@ -37,6 +37,7 @@ import {
   getUsuarioDetalheAdmin,
   adminUpdateSubscription,
   adminSalvarPlanoPersonalizado,
+  calcularProximoVencimento,
   type UsuarioDetalhe,
 } from "@/lib/admin.functions";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
@@ -399,8 +400,8 @@ function PlanoControls({
   const [customBillingType, setCustomBillingType] = useState<
     "UNDEFINED" | "PIX" | "BOLETO" | "CREDIT_CARD"
   >(detalhe.subscription.custom_billing_type ?? "UNDEFINED");
-  const [customDiasVencimento, setCustomDiasVencimento] = useState<number>(
-    detalhe.subscription.custom_vencimento_dias ?? 3,
+  const [customDiaVencimento, setCustomDiaVencimento] = useState<number>(
+    detalhe.subscription.custom_dia_vencimento ?? 10,
   );
   const [gerarCobrancaAsaas, setGerarCobrancaAsaas] = useState<boolean>(true);
   const [enviarEmailConfirmacao, setEnviarEmailConfirmacao] = useState<boolean>(true);
@@ -451,6 +452,10 @@ function PlanoControls({
 
   const isPersonalizado = plano === "personalizado";
 
+  const proximoVenc = calcularProximoVencimento(customDiaVencimento);
+  const [vencAno, vencMes, vencDia] = proximoVenc.split("-");
+  const proximoVencFormatado = `${vencDia}/${vencMes}/${vencAno}`;
+
   async function handleSalvarGeral() {
     setSaving(true);
     try {
@@ -461,7 +466,7 @@ function PlanoControls({
             valor: Number(customValor) || 0,
             ciclo: customCiclo,
             billing_type: customBillingType,
-            diasVencimento: Number(customDiasVencimento) || 3,
+            diaVencimento: Number(customDiaVencimento) || 10,
             gerarCobrancaAsaas,
             enviarEmailConfirmacao,
             limites: {
@@ -688,20 +693,32 @@ function PlanoControls({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Primeiro vencimento</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Dia do Vencimento *</Label>
+                <span className="text-[11px] text-primary font-semibold">
+                  Todo dia {customDiaVencimento}
+                </span>
+              </div>
               <select
-                value={customDiasVencimento}
-                onChange={(e) => setCustomDiasVencimento(Number(e.target.value))}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9"
+                value={customDiaVencimento}
+                onChange={(e) => setCustomDiaVencimento(Number(e.target.value))}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9 font-medium"
               >
-                <option value={1}>Em 1 dia (Amanhã)</option>
-                <option value={3}>Em 3 dias</option>
-                <option value={5}>Em 5 dias</option>
-                <option value={10}>Em 10 dias</option>
-                <option value={15}>Em 15 dias</option>
-                <option value={30}>Em 30 dias</option>
+                {[1, 2, 3, 5, 7, 10, 12, 15, 20, 25, 28, 30].map((dia) => (
+                  <option key={dia} value={dia}>
+                    Dia {dia} de cada mês
+                  </option>
+                ))}
               </select>
             </div>
+          </div>
+
+          {/* Banner de Previsão de Cobrança */}
+          <div className="flex items-center gap-2 p-2.5 rounded-md bg-background/80 border border-augusto-gold/30 text-xs text-muted-foreground">
+            <Calendar className="h-4 w-4 text-augusto-gold shrink-0" />
+            <span>
+              Cobranças mensais programadas para todo <strong>dia {customDiaVencimento}</strong>. Primeira fatura agendada para <strong>{proximoVencFormatado}</strong>.
+            </span>
           </div>
 
           {/* Switches de Automação */}

@@ -63,7 +63,7 @@ export type UsuarioDetalhe = {
     custom_preco?: number | null;
     custom_ciclo?: "mensal" | "anual" | null;
     custom_billing_type?: "UNDEFINED" | "PIX" | "BOLETO" | "CREDIT_CARD" | null;
-    custom_vencimento_dias?: number | null;
+    custom_dia_vencimento?: number | null;
     custom_limits?: {
       condominiosMax?: number | null;
       usuariosMax?: number | null;
@@ -123,7 +123,7 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
         "id, nome, email, telefone, oab, tipo_pessoa, cpf_cnpj, razao_social, papel_sistema, perfil_atuacao, ativo, created_at, ultimo_acesso",
       ).eq("id", data.userId).maybeSingle(),
       supabaseAdmin.from("subscriptions").select(
-        "plano_config_id, cortesia, cortesia_observacao, status, trial_end, current_period_end, creditos_mensagens_extras, custom_preco, custom_ciclo, custom_billing_type, custom_vencimento_dias, custom_limits, asaas_subscription_id, asaas_customer_id",
+        "plano_config_id, cortesia, cortesia_observacao, status, trial_end, current_period_end, creditos_mensagens_extras, custom_preco, custom_ciclo, custom_billing_type, custom_dia_vencimento, custom_limits, asaas_subscription_id, asaas_customer_id",
       ).eq("user_id", data.userId).maybeSingle(),
       supabaseAdmin.from("condominios").select("id, nome, uf, qtd_unidades, created_at").eq("owner_id", data.userId).order("created_at", { ascending: false }),
       supabaseAdmin.from("uso_mensal").select("total_mensagens, total_tokens, custo_estimado_brl").eq("user_id", data.userId).eq("mes_ano", mesAno).maybeSingle(),
@@ -307,12 +307,41 @@ export const adminUpdateSubscription = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export function calcularProximoVencimento(diaDoMes: number): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed
+  const todayDate = now.getDate();
+
+  const maxDaysThisMonth = new Date(year, month + 1, 0).getDate();
+  const diaValidoEsteMes = Math.min(Math.max(1, diaDoMes), maxDaysThisMonth);
+
+  let targetYear = year;
+  let targetMonth = month;
+  let targetDay = diaValidoEsteMes;
+
+  // Se o dia do vencimento já passou ou é hoje, agenda a 1ª fatura para o próximo mês
+  if (todayDate >= diaValidoEsteMes) {
+    targetMonth = month + 1;
+    if (targetMonth > 11) {
+      targetMonth = 0;
+      targetYear += 1;
+    }
+    const maxDaysNextMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+    targetDay = Math.min(Math.max(1, diaDoMes), maxDaysNextMonth);
+  }
+
+  const mm = String(targetMonth + 1).padStart(2, "0");
+  const dd = String(targetDay).padStart(2, "0");
+  return `${targetYear}-${mm}-${dd}`;
+}
+
 const salvarPlanoPersonalizadoSchema = z.object({
   userId: z.string().uuid(),
   valor: z.number().min(0),
   ciclo: z.enum(["mensal", "anual"]).default("mensal"),
   billing_type: z.enum(["UNDEFINED", "PIX", "BOLETO", "CREDIT_CARD"]).default("UNDEFINED"),
-  diasVencimento: z.number().int().min(1).max(90).default(3),
+  diaVencimento: z.number().int().min(1).max(31).default(10),
   gerarCobrancaAsaas: z.boolean().default(true),
   enviarEmailConfirmacao: z.boolean().default(true),
   limites: z.object({
@@ -351,6 +380,7 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
 
     let asaasCustomerId: string | null = null;
     let asaasSubscriptionId: string | null = null;
+    const nextDueDate = calcularProximoVencimento(data.diaVencimento);
 
     // 2) Se for gerar cobrança no Asaas e valor > 0
     if (data.gerarCobrancaAsaas && data.valor > 0) {
@@ -371,9 +401,6 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
 
       asaasCustomerId = customer.id;
 
-      // Calcula data do primeiro vencimento (hoje + diasVencimento)
-      const vencDate = new Date(Date.now() + data.diasVencimento * 86400_000);
-      const nextDueDate = vencDate.toISOString().slice(0, 10);
       const cycle: "MONTHLY" | "YEARLY" = data.ciclo === "anual" ? "YEARLY" : "MONTHLY";
 
       const subscription = await asaas.createSubscription({
@@ -382,7 +409,7 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
         cycle,
         billingType: data.billing_type,
         nextDueDate,
-        description: `Assinatura Plano Personalizado — Augusto.IJ (${data.ciclo})`,
+        description: `Assinatura Plano Personalizado (Vencimento todo dia ${data.diaVencimento}) — Augusto.IJ (${data.ciclo})`,
         externalReference: `${data.userId}:personalizado:${data.ciclo}`,
       });
 
@@ -398,7 +425,7 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
       custom_preco: data.valor,
       custom_ciclo: data.ciclo,
       custom_billing_type: data.billing_type,
-      custom_vencimento_dias: data.diasVencimento,
+      custom_dia_vencimento: data.diaVencimento,
       custom_limits: data.limites,
     };
 
@@ -421,6 +448,7 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
         custom_preco: data.valor,
         custom_ciclo: data.ciclo,
         custom_billing_type: data.billing_type,
+        custom_dia_vencimento: data.diaVencimento,
         custom_limits: data.limites,
       })
       .eq("vinculado_a_user_id", data.userId);
@@ -434,6 +462,9 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
             style: "currency",
             currency: "BRL",
           }).format(data.valor);
+
+          const [ano, mes, dia] = nextDueDate.split("-");
+          const primeiroVencFormatado = `${dia}/${mes}/${ano}`;
 
           const cicloTexto = data.ciclo === "anual" ? "Anual" : "Mensal";
           const condominiosTexto = data.limites.condominiosMax ? `${data.limites.condominiosMax} condomínio(s)` : "Ilimitado";
@@ -460,6 +491,7 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
         <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #0f2d25; text-transform: uppercase; letter-spacing: 0.5px;">Condições do Plano</h3>
         <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
           <tr><td style="padding: 4px 0; color: #64748b;">Investimento:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">${valorFormatado} / ${cicloTexto}</td></tr>
+          <tr><td style="padding: 4px 0; color: #64748b;">Vencimento:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">Todo dia ${data.diaVencimento} (1ª fatura: ${primeiroVencFormatado})</td></tr>
           <tr><td style="padding: 4px 0; color: #64748b;">Condomínios inclusos:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">${condominiosTexto}</td></tr>
           <tr><td style="padding: 4px 0; color: #64748b;">Membros da Equipe:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">${usuariosTexto}</td></tr>
           <tr><td style="padding: 4px 0; color: #64748b;">Mensagens IA:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">${mensagensTexto}</td></tr>
@@ -468,7 +500,7 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
       </div>
 
       <p style="font-size: 13px; line-height: 1.5; color: #64748b;">
-        As informações de pagamento e faturas serão enviadas com antecedência pelo sistema de cobrança antes de cada vencimento.
+        As informações de pagamento e faturas serão enviadas mensalmente com antecedência pelo sistema de cobrança dias antes de cada dia ${data.diaVencimento}.
       </p>
 
       <div style="text-align: center; margin-top: 28px;">
