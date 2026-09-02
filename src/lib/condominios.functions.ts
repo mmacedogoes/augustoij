@@ -9,6 +9,10 @@ import { slugCidade, isCidadeWhitelist } from "@/lib/cidades-cobertas";
 export const listCondominios = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Sincroniza a carteira caso seja o Marcelo ou membro da equipe
+    const { sincronizarCarteiraMarceloSeNecessario } = await import("@/lib/seed-versari.server");
+    await sincronizarCarteiraMarceloSeNecessario(context.userId);
+
     // Ambiente de trabalho: o usuário vê os condomínios que cadastrou e os
     // que a conta dona compartilhou com ele (vínculo em condominio_members).
     const { condominiosAcessiveisIds } = await import("@/lib/conta-master.server");
