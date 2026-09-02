@@ -22,6 +22,7 @@ import {
   FileCheck,
   Sliders,
   CheckCircle2,
+  Pencil,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -37,6 +38,7 @@ import {
   getUsuarioDetalheAdmin,
   adminUpdateSubscription,
   adminSalvarPlanoPersonalizado,
+  adminUpdateUsuarioPerfil,
   calcularProximoVencimento,
   type UsuarioDetalhe,
 } from "@/lib/admin.functions";
@@ -135,24 +137,8 @@ function AdminUsuarioDetalhePage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Dados pessoais */}
-          <Card className="app-card p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
-                <ShieldCheck className="h-4 w-4" strokeWidth={1.75} />
-              </div>
-              <h2 className="font-semibold">Dados pessoais</h2>
-            </div>
-            <dl className="grid grid-cols-3 gap-y-2.5 text-sm">
-              <Row label="Telefone" value={data.profile.telefone || "—"} />
-              <Row label="OAB" value={data.profile.oab || "—"} />
-              <Row label="Tipo" value={data.profile.tipo_pessoa?.toUpperCase() || "—"} />
-              <Row label="CPF/CNPJ" value={data.profile.cpf_cnpj || "—"} />
-              <Row label="Razão social" value={data.profile.razao_social || "—"} />
-              <Row label="Perfil" value={data.profile.perfil_atuacao || "—"} />
-              <Row label="Último acesso" value={DATE_BR(data.profile.ultimo_acesso)} />
-            </dl>
-          </Card>
+          {/* Dados pessoais com suporte à edição pelo Super Admin */}
+          <DadosPessoaisCard profile={data.profile} onSaved={() => refetch()} />
 
           {/* Financeiro */}
           <Card className="app-card p-5 space-y-3">
@@ -209,6 +195,282 @@ function AdminUsuarioDetalhePage() {
         <MembrosVinculadosCard membros={data.membrosVinculados} />
       </div>
     </>
+  );
+}
+
+function DadosPessoaisCard({
+  profile,
+  onSaved,
+}: {
+  profile: UsuarioDetalhe["profile"];
+  onSaved: () => void;
+}) {
+  const updatePerfilFn = useServerFn(adminUpdateUsuarioPerfil);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [nome, setNome] = useState(profile.nome || "");
+  const [email, setEmail] = useState(profile.email || "");
+  const [telefone, setTelefone] = useState(profile.telefone || "");
+  const [oab, setOab] = useState(profile.oab || "");
+  const [tipoPessoa, setTipoPessoa] = useState<"pf" | "pj">((profile.tipo_pessoa as "pf" | "pj") || "pf");
+  const [cpfCnpj, setCpfCnpj] = useState(profile.cpf_cnpj || "");
+  const [razaoSocial, setRazaoSocial] = useState(profile.razao_social || "");
+  const [perfilAtuacao, setPerfilAtuacao] = useState(profile.perfil_atuacao || "Síndico Profissional");
+  const [papelSistema, setPapelSistema] = useState<"usuario" | "super_admin" | "admin_operacional" | "admin_suporte">(
+    (profile.papel_sistema as any) || "usuario",
+  );
+  const [ativo, setAtivo] = useState(profile.ativo ?? true);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!nome.trim() || !email.trim()) {
+      toast.error("Nome e E-mail são obrigatórios.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updatePerfilFn({
+        data: {
+          userId: profile.id,
+          nome: nome.trim(),
+          email: email.trim(),
+          telefone: telefone.trim() || null,
+          oab: oab.trim() || null,
+          tipo_pessoa: tipoPessoa,
+          cpf_cnpj: cpfCnpj.trim() || null,
+          razao_social: tipoPessoa === "pj" ? (razaoSocial.trim() || null) : null,
+          perfil_atuacao: perfilAtuacao.trim() || null,
+          papel_sistema: papelSistema,
+          ativo,
+        },
+      });
+      toast.success("Dados do usuário atualizados com sucesso!");
+      setIsEditing(false);
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao salvar dados");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleCancel() {
+    setNome(profile.nome || "");
+    setEmail(profile.email || "");
+    setTelefone(profile.telefone || "");
+    setOab(profile.oab || "");
+    setTipoPessoa((profile.tipo_pessoa as "pf" | "pj") || "pf");
+    setCpfCnpj(profile.cpf_cnpj || "");
+    setRazaoSocial(profile.razao_social || "");
+    setPerfilAtuacao(profile.perfil_atuacao || "Síndico Profissional");
+    setPapelSistema((profile.papel_sistema as any) || "usuario");
+    setAtivo(profile.ativo ?? true);
+    setIsEditing(false);
+  }
+
+  return (
+    <Card className="app-card p-5 space-y-4">
+      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
+            <ShieldCheck className="h-4 w-4" strokeWidth={1.75} />
+          </div>
+          <div>
+            <h2 className="font-semibold text-foreground">Dados cadastrais</h2>
+            <p className="text-xs text-muted-foreground">Informações pessoais, fiscais e permissões.</p>
+          </div>
+        </div>
+        {!isEditing ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setIsEditing(true)}
+            className="h-8 text-xs gap-1.5 border-border hover:bg-muted"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Editar dados
+          </Button>
+        ) : (
+          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/30 text-xs">
+            Editando
+          </Badge>
+        )}
+      </div>
+
+      {!isEditing ? (
+        <dl className="grid grid-cols-3 gap-y-2.5 text-sm">
+          <Row label="Nome" value={profile.nome || "—"} />
+          <Row label="E-mail" value={profile.email || "—"} />
+          <Row label="Telefone" value={profile.telefone || "—"} />
+          <Row label="Tipo" value={profile.tipo_pessoa?.toUpperCase() || "—"} />
+          <Row label="CPF/CNPJ" value={profile.cpf_cnpj || "—"} />
+          {profile.tipo_pessoa === "pj" && (
+            <Row label="Razão social" value={profile.razao_social || "—"} />
+          )}
+          <Row label="OAB" value={profile.oab || "—"} />
+          <Row label="Perfil" value={profile.perfil_atuacao || "—"} />
+          <Row label="Papel no sistema" value={profile.papel_sistema?.replace(/_/g, " ").toUpperCase() || "USUÁRIO"} />
+          <Row label="Status da conta" value={profile.ativo ? "Ativa" : "Bloqueada"} />
+          <Row label="Último acesso" value={DATE_BR(profile.ultimo_acesso)} />
+        </dl>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-4 pt-1">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Nome Completo *</Label>
+              <Input
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Ex.: Marcelo Versari"
+                className="h-9 text-sm"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">E-mail de Acesso *</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Ex.: marcelo@versari.com.br"
+                className="h-9 text-sm"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Tipo de Pessoa</Label>
+              <select
+                value={tipoPessoa}
+                onChange={(e) => setTipoPessoa(e.target.value as "pf" | "pj")}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9"
+              >
+                <option value="pf">Pessoa Física (PF)</option>
+                <option value="pj">Pessoa Jurídica (PJ)</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">{tipoPessoa === "pj" ? "CNPJ" : "CPF"}</Label>
+              <Input
+                value={cpfCnpj}
+                onChange={(e) => setCpfCnpj(e.target.value)}
+                placeholder={tipoPessoa === "pj" ? "00.000.000/0000-00" : "000.000.000-00"}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Telefone / WhatsApp</Label>
+              <Input
+                value={telefone}
+                onChange={(e) => setTelefone(e.target.value)}
+                placeholder="(00) 00000-0000"
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+
+          {tipoPessoa === "pj" && (
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Razão Social</Label>
+              <Input
+                value={razaoSocial}
+                onChange={(e) => setRazaoSocial(e.target.value)}
+                placeholder="Razão Social da Empresa / Administradora"
+                className="h-9 text-sm"
+              />
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Inscrição OAB</Label>
+              <Input
+                value={oab}
+                onChange={(e) => setOab(e.target.value)}
+                placeholder="Ex.: 123456/SP"
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Perfil de Atuação</Label>
+              <select
+                value={perfilAtuacao}
+                onChange={(e) => setPerfilAtuacao(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9"
+              >
+                <option value="Síndico Profissional">Síndico Profissional</option>
+                <option value="Síndico Morador">Síndico Morador</option>
+                <option value="Administradora">Administradora de Condomínio</option>
+                <option value="Advogado">Advogado / Jurídico</option>
+                <option value="Gestor Predial">Gestor Predial</option>
+                <option value="Membro do Conselho">Membro do Conselho</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Papel no Sistema</Label>
+              <select
+                value={papelSistema}
+                onChange={(e) => setPapelSistema(e.target.value as any)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9 font-medium"
+              >
+                <option value="usuario">Usuário Padrão</option>
+                <option value="super_admin">Super Admin (Acesso Total)</option>
+                <option value="admin_operacional">Admin Operacional</option>
+                <option value="admin_suporte">Admin Suporte</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-md bg-muted/30 border border-border">
+            <div className="space-y-0.5">
+              <Label htmlFor="usuario-ativo" className="text-xs font-medium cursor-pointer">
+                Conta Ativa no Sistema
+              </Label>
+              <p className="text-[11px] text-muted-foreground">
+                Desative caso queira suspender temporariamente o acesso deste usuário à plataforma.
+              </p>
+            </div>
+            <Switch
+              id="usuario-ativo"
+              checked={ativo}
+              onCheckedChange={setAtivo}
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              disabled={saving}
+              className="h-8 text-xs"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={saving}
+              className="h-8 text-xs gap-1.5"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Salvando…
+                </>
+              ) : (
+                <>
+                  <Save className="h-3.5 w-3.5" /> Salvar Dados
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      )}
+    </Card>
   );
 }
 

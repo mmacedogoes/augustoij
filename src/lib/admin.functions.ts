@@ -237,6 +237,85 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
     };
   });
 
+export const adminUpdateUsuarioPerfil = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      userId: z.string().uuid(),
+      nome: z.string().trim().min(1, "Nome não pode ficar em branco").max(200),
+      email: z.string().trim().email("E-mail inválido"),
+      telefone: z.string().trim().max(30).nullable().optional(),
+      oab: z.string().trim().max(30).nullable().optional(),
+      tipo_pessoa: z.enum(["pf", "pj"]).default("pf"),
+      cpf_cnpj: z.string().trim().max(30).nullable().optional(),
+      razao_social: z.string().trim().max(200).nullable().optional(),
+      perfil_atuacao: z.string().trim().max(100).nullable().optional(),
+      papel_sistema: z.enum(["usuario", "super_admin", "admin_operacional", "admin_suporte"]).default("usuario"),
+      ativo: z.boolean().default(true),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1) Busca o perfil atual
+    const { data: current, error: curErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email, nome, papel_sistema")
+      .eq("id", data.userId)
+      .maybeSingle();
+
+    if (curErr || !current) throw new Error("Usuário não encontrado.");
+
+    const emailLimpo = data.email.toLowerCase().trim();
+
+    // 2) Se o email mudou, atualiza no auth.users também
+    if (emailLimpo && emailLimpo !== (current.email || "").toLowerCase().trim()) {
+      try {
+        const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+          email: emailLimpo,
+          email_confirm: true,
+        });
+        if (authErr) {
+          console.warn("[adminUpdateUsuarioPerfil] Aviso ao atualizar auth.users:", authErr.message);
+        }
+      } catch (authE) {
+        console.warn("[adminUpdateUsuarioPerfil] Falha ao atualizar auth.users:", authE);
+      }
+    }
+
+    // 3) Atualiza o registro em profiles
+    const patch: Record<string, unknown> = {
+      nome: data.nome.trim(),
+      email: emailLimpo,
+      telefone: data.telefone?.trim() || null,
+      oab: data.oab?.trim() || null,
+      tipo_pessoa: data.tipo_pessoa,
+      cpf_cnpj: data.cpf_cnpj?.trim() || null,
+      razao_social: data.tipo_pessoa === "pj" ? (data.razao_social?.trim() || null) : null,
+      perfil_atuacao: data.perfil_atuacao?.trim() || null,
+      papel_sistema: data.papel_sistema,
+      ativo: data.ativo,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: profErr } = await supabaseAdmin
+      .from("profiles")
+      .update(patch)
+      .eq("id", data.userId);
+
+    if (profErr) throw new Error(`Falha ao salvar dados do perfil: ${profErr.message}`);
+
+    await logAdminAction({
+      actorUserId: context.userId,
+      action: "profile.admin_update",
+      targetUserId: data.userId,
+      metadata: patch,
+    });
+
+    return { ok: true };
+  });
+
 export const adminUpdateSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
