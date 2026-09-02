@@ -163,6 +163,30 @@ export async function createCustomer(input: {
   });
 }
 
+export async function updateCustomer(
+  id: string,
+  input: {
+    name?: string;
+    email?: string;
+    cpfCnpj?: string | null;
+    mobilePhone?: string | null;
+    externalReference?: string;
+  },
+): Promise<AsaasCustomer> {
+  const cpfLimpo = input.cpfCnpj ? apenasDigitos(input.cpfCnpj) : undefined;
+  const phoneLimpo = input.mobilePhone ? apenasDigitos(input.mobilePhone) : undefined;
+  return asaasFetch<AsaasCustomer>(`/customers/${id}`, {
+    method: "POST",
+    body: {
+      ...(input.name ? { name: input.name } : {}),
+      ...(input.email ? { email: input.email } : {}),
+      ...(cpfLimpo ? { cpfCnpj: cpfLimpo } : {}),
+      ...(phoneLimpo ? { mobilePhone: phoneLimpo } : {}),
+      ...(input.externalReference ? { externalReference: input.externalReference } : {}),
+    },
+  });
+}
+
 export async function ensureCustomer(input: {
   name: string;
   email: string;
@@ -171,14 +195,42 @@ export async function ensureCustomer(input: {
   externalReference?: string;
 }): Promise<AsaasCustomer> {
   const cpfLimpo = input.cpfCnpj ? apenasDigitos(input.cpfCnpj) : "";
+  let existing: AsaasCustomer | null = null;
+
   if (cpfLimpo) {
-    const existing = await findCustomerByCpfCnpj(cpfLimpo);
-    if (existing) return existing;
+    existing = await findCustomerByCpfCnpj(cpfLimpo);
   }
-  if (input.email) {
-    const existingByEmail = await findCustomerByEmail(input.email);
-    if (existingByEmail) return existingByEmail;
+  if (!existing && input.email) {
+    existing = await findCustomerByEmail(input.email);
   }
+
+  if (existing) {
+    // Se o cliente já existia no Asaas mas estava sem CPF/CNPJ ou com dados desatualizados,
+    // atualiza imediatamente no Asaas para que a criação da assinatura não seja rejeitada.
+    const precisaAtualizarCpf = Boolean(cpfLimpo && (!existing.cpfCnpj || apenasDigitos(existing.cpfCnpj) !== cpfLimpo));
+    const precisaAtualizarNome = Boolean(input.name && existing.name !== input.name);
+    const precisaAtualizarTelefone = Boolean(
+      input.mobilePhone &&
+        (!existing.mobilePhone || apenasDigitos(existing.mobilePhone) !== apenasDigitos(input.mobilePhone)),
+    );
+
+    if (precisaAtualizarCpf || precisaAtualizarNome || precisaAtualizarTelefone) {
+      try {
+        return await updateCustomer(existing.id, {
+          name: input.name || existing.name,
+          email: input.email || existing.email,
+          cpfCnpj: cpfLimpo || existing.cpfCnpj,
+          mobilePhone: input.mobilePhone || existing.mobilePhone,
+          externalReference: input.externalReference,
+        });
+      } catch (updateErr) {
+        console.warn("[ensureCustomer] Falha ao atualizar dados do cliente existente no Asaas:", updateErr);
+        return existing;
+      }
+    }
+    return existing;
+  }
+
   return createCustomer(input);
 }
 

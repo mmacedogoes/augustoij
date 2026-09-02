@@ -552,10 +552,15 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
             ? profile.razao_social
             : profile.nome || profile.email;
 
+        const cpfCnpjInformado = profile.cpf_cnpj ? profile.cpf_cnpj.trim() : "";
+        if (!cpfCnpjInformado) {
+          throw new Error("Para gerar cobrança no Asaas, é obrigatório preencher o CPF ou CNPJ nos Dados Cadastrais do usuário.");
+        }
+
         const customer = await asaas.ensureCustomer({
           name: nomeCliente,
           email: profile.email,
-          cpfCnpj: profile.cpf_cnpj ?? undefined,
+          cpfCnpj: cpfCnpjInformado,
           mobilePhone: profile.telefone ?? undefined,
           externalReference: data.userId,
         });
