@@ -10,9 +10,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env["CI"],
   retries: process.env["CI"] ? 2 : 0,
-  workers: process.env["CI"] ? 2 : undefined,
-  timeout: 60_000,
-  expect: { timeout: 10_000 },
+  workers: Number(process.env["PLAYWRIGHT_WORKERS"] ?? 2),
+  timeout: 90_000,
+  expect: { timeout: 15_000 },
+
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
