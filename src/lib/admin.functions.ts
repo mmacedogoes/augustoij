@@ -60,6 +60,23 @@ export type UsuarioDetalhe = {
     trial_end: string | null;
     current_period_end: string | null;
     creditos_mensagens_extras: number;
+    custom_preco?: number | null;
+    custom_ciclo?: "mensal" | "anual" | null;
+    custom_billing_type?: "UNDEFINED" | "PIX" | "BOLETO" | "CREDIT_CARD" | null;
+    custom_vencimento_dias?: number | null;
+    custom_limits?: {
+      condominiosMax?: number | null;
+      usuariosMax?: number | null;
+      mensagensPorMes?: number | null;
+      contratosGestaoAtiva?: number | null;
+      documentosMax?: number | null;
+      minutasAtaConvencao?: boolean;
+      painelConsolidado?: boolean;
+      relatoriosPorCondominio?: boolean;
+      suportePrioritario?: boolean;
+    } | null;
+    asaas_subscription_id?: string | null;
+    asaas_customer_id?: string | null;
   };
   condominios: Array<{ id: string; nome: string; uf: string | null; qtd_unidades: number | null; created_at: string }>;
   usoMes: { mensagens: number; tokens: number; custo_brl: number; mes_ano: string };
@@ -106,7 +123,7 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
         "id, nome, email, telefone, oab, tipo_pessoa, cpf_cnpj, razao_social, papel_sistema, perfil_atuacao, ativo, created_at, ultimo_acesso",
       ).eq("id", data.userId).maybeSingle(),
       supabaseAdmin.from("subscriptions").select(
-        "plano_config_id, cortesia, cortesia_observacao, status, trial_end, current_period_end, creditos_mensagens_extras",
+        "plano_config_id, cortesia, cortesia_observacao, status, trial_end, current_period_end, creditos_mensagens_extras, custom_preco, custom_ciclo, custom_billing_type, custom_vencimento_dias, custom_limits, asaas_subscription_id, asaas_customer_id",
       ).eq("user_id", data.userId).maybeSingle(),
       supabaseAdmin.from("condominios").select("id, nome, uf, qtd_unidades, created_at").eq("owner_id", data.userId).order("created_at", { ascending: false }),
       supabaseAdmin.from("uso_mensal").select("total_mensagens, total_tokens, custo_estimado_brl").eq("user_id", data.userId).eq("mes_ano", mesAno).maybeSingle(),
@@ -275,6 +292,209 @@ export const adminUpdateSubscription = createServerFn({ method: "POST" })
     });
 
     return { ok: true };
+  });
+
+const salvarPlanoPersonalizadoSchema = z.object({
+  userId: z.string().uuid(),
+  valor: z.number().min(0),
+  ciclo: z.enum(["mensal", "anual"]).default("mensal"),
+  billing_type: z.enum(["UNDEFINED", "PIX", "BOLETO", "CREDIT_CARD"]).default("UNDEFINED"),
+  diasVencimento: z.number().int().min(1).max(90).default(3),
+  gerarCobrancaAsaas: z.boolean().default(true),
+  enviarEmailConfirmacao: z.boolean().default(true),
+  limites: z.object({
+    condominiosMax: z.number().int().min(1).nullable().default(null),
+    usuariosMax: z.number().int().min(1).nullable().default(null),
+    mensagensPorMes: z.number().int().min(1).nullable().default(null),
+    contratosGestaoAtiva: z.number().int().min(1).nullable().default(null),
+    documentosMax: z.number().int().min(1).nullable().default(null),
+    minutasAtaConvencao: z.boolean().default(true),
+    painelConsolidado: z.boolean().default(true),
+    relatoriosPorCondominio: z.boolean().default(true),
+    suportePrioritario: z.boolean().default(true),
+  }),
+});
+
+export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => salvarPlanoPersonalizadoSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1) Busca perfil do usuário alvo
+    const { data: profile, error: profErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, nome, email, cpf_cnpj, telefone, razao_social, tipo_pessoa")
+      .eq("id", data.userId)
+      .maybeSingle();
+
+    if (profErr || !profile) {
+      throw new Error("Perfil do usuário não encontrado.");
+    }
+    if (!profile.email) {
+      throw new Error("Usuário não possui e-mail cadastrado.");
+    }
+
+    let asaasCustomerId: string | null = null;
+    let asaasSubscriptionId: string | null = null;
+
+    // 2) Se for gerar cobrança no Asaas e valor > 0
+    if (data.gerarCobrancaAsaas && data.valor > 0) {
+      const asaas = await import("./asaas.server");
+
+      const nomeCliente =
+        profile.tipo_pessoa === "pj" && profile.razao_social
+          ? profile.razao_social
+          : profile.nome || profile.email;
+
+      const customer = await asaas.ensureCustomer({
+        name: nomeCliente,
+        email: profile.email,
+        cpfCnpj: profile.cpf_cnpj ?? undefined,
+        mobilePhone: profile.telefone ?? undefined,
+        externalReference: data.userId,
+      });
+
+      asaasCustomerId = customer.id;
+
+      // Calcula data do primeiro vencimento (hoje + diasVencimento)
+      const vencDate = new Date(Date.now() + data.diasVencimento * 86400_000);
+      const nextDueDate = vencDate.toISOString().slice(0, 10);
+      const cycle: "MONTHLY" | "YEARLY" = data.ciclo === "anual" ? "YEARLY" : "MONTHLY";
+
+      const subscription = await asaas.createSubscription({
+        customerId: customer.id,
+        value: data.valor,
+        cycle,
+        billingType: data.billing_type,
+        nextDueDate,
+        description: `Assinatura Plano Personalizado — Augusto.IJ (${data.ciclo})`,
+        externalReference: `${data.userId}:personalizado:${data.ciclo}`,
+      });
+
+      asaasSubscriptionId = subscription.id;
+    }
+
+    // 3) Atualiza o registro em public.subscriptions
+    const patchSub: Record<string, unknown> = {
+      user_id: data.userId,
+      plano_config_id: "personalizado",
+      status: "active",
+      cortesia: false,
+      custom_preco: data.valor,
+      custom_ciclo: data.ciclo,
+      custom_billing_type: data.billing_type,
+      custom_vencimento_dias: data.diasVencimento,
+      custom_limits: data.limites,
+    };
+
+    if (asaasCustomerId) patchSub.asaas_customer_id = asaasCustomerId;
+    if (asaasSubscriptionId) patchSub.asaas_subscription_id = asaasSubscriptionId;
+
+    const { error: subErr } = await supabaseAdmin
+      .from("subscriptions")
+      .upsert(patchSub, { onConflict: "user_id" });
+
+    if (subErr) throw new Error(subErr.message);
+
+    // 4) Disparo do e-mail de confirmação ao usuário
+    if (data.enviarEmailConfirmacao) {
+      const RESEND_API_KEY = process.env.RESEND_API_KEY;
+      if (RESEND_API_KEY) {
+        try {
+          const valorFormatado = new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }).format(data.valor);
+
+          const cicloTexto = data.ciclo === "anual" ? "Anual" : "Mensal";
+          const condominiosTexto = data.limites.condominiosMax ? `${data.limites.condominiosMax} condomínio(s)` : "Ilimitado";
+          const usuariosTexto = data.limites.usuariosMax ? `${data.limites.usuariosMax} usuário(s)` : "Ilimitado";
+          const mensagensTexto = data.limites.mensagensPorMes ? `${data.limites.mensagensPorMes.toLocaleString("pt-BR")} mensagens/mês` : "Ilimitadas";
+          const contratosTexto = data.limites.contratosGestaoAtiva ? `${data.limites.contratosGestaoAtiva} contratos ativos` : "Ilimitados";
+
+          const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1e293b; background-color: #f8fafc; padding: 24px; margin: 0;">
+  <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+    <div style="background: #0f2d25; padding: 28px 32px; text-align: center;">
+      <h1 style="color: #c5a880; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px;">Augusto.IJ</h1>
+      <p style="color: #cbd5e1; margin: 6px 0 0 0; font-size: 13px;">Inteligência Jurídica & Gestão Condominial</p>
+    </div>
+    <div style="padding: 32px;">
+      <h2 style="color: #0f172a; margin-top: 0; font-size: 20px;">Plano Personalizado Ativado!</h2>
+      <p style="font-size: 14px; line-height: 1.6; color: #475569;">
+        Olá, <strong>${profile.nome || "Cliente"}</strong>. Seu <strong>Plano Personalizado</strong> foi configurado e ativado com sucesso em sua conta.
+      </p>
+
+      <div style="background: #f1f5f9; border-radius: 8px; padding: 18px; margin: 20px 0;">
+        <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #0f2d25; text-transform: uppercase; letter-spacing: 0.5px;">Condições do Plano</h3>
+        <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+          <tr><td style="padding: 4px 0; color: #64748b;">Investimento:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">${valorFormatado} / ${cicloTexto}</td></tr>
+          <tr><td style="padding: 4px 0; color: #64748b;">Condomínios inclusos:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">${condominiosTexto}</td></tr>
+          <tr><td style="padding: 4px 0; color: #64748b;">Membros da Equipe:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">${usuariosTexto}</td></tr>
+          <tr><td style="padding: 4px 0; color: #64748b;">Mensagens IA:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">${mensagensTexto}</td></tr>
+          <tr><td style="padding: 4px 0; color: #64748b;">Gestão Contínua de Contratos:</td><td style="padding: 4px 0; font-weight: 600; text-align: right; color: #0f172a;">${contratosTexto}</td></tr>
+        </table>
+      </div>
+
+      <p style="font-size: 13px; line-height: 1.5; color: #64748b;">
+        As informações de pagamento e faturas serão enviadas com antecedência pelo sistema de cobrança antes de cada vencimento.
+      </p>
+
+      <div style="text-align: center; margin-top: 28px;">
+        <a href="https://augustoij.com.br/app/condominios" style="display: inline-block; background: #0f2d25; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+          Acessar Meu Painel
+        </a>
+      </div>
+    </div>
+    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 32px; text-align: center; font-size: 12px; color: #94a3b8;">
+      Augusto.IJ · Inteligência Artificial Jurídica para Condomínios
+    </div>
+  </div>
+</body>
+</html>`;
+
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${RESEND_API_KEY}`,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "Augusto.IJ <naoresponda@mail.augustoij.com.br>",
+              to: [profile.email],
+              subject: "Confirmação do seu Plano Personalizado — Augusto.IJ",
+              html,
+            }),
+          });
+        } catch (mailErr) {
+          console.error("[adminSalvarPlanoPersonalizado] Falha ao enviar e-mail:", mailErr);
+        }
+      }
+    }
+
+    // 5) Auditoria administrativa
+    await logAdminAction({
+      actorUserId: context.userId,
+      action: "subscription.custom_plan_configured",
+      targetUserId: data.userId,
+      metadata: {
+        valor: data.valor,
+        ciclo: data.ciclo,
+        billing_type: data.billing_type,
+        limites: data.limites,
+        asaas_subscription_id: asaasSubscriptionId,
+      },
+    });
+
+    return {
+      ok: true,
+      asaas_subscription_id: asaasSubscriptionId,
+      asaas_customer_id: asaasCustomerId,
+    };
   });
 
 export const getAdminMetrics = createServerFn({ method: "GET" })

@@ -69,23 +69,37 @@ export const getPlanContext = createServerFn({ method: "GET" })
     const planoV2Efetivo = cortesia ? PLANOS.personalizado : PLANOS[planoV2Id];
     const trialEndIso = sub?.trial_end ?? null;
 
+    const custom = (planoId === "personalizado" && sub?.custom_limits) ? sub.custom_limits : null;
+
+    const condominiosMax = custom?.condominiosMax !== undefined ? custom.condominiosMax : planoEfetivo.condomíniosMax;
+    const usuariosMax = custom?.usuariosMax !== undefined ? custom.usuariosMax : planoEfetivo.usuariosMax;
+    const contratosGestaoAtivaMax = custom?.contratosGestaoAtiva !== undefined ? custom.contratosGestaoAtiva : planoV2Efetivo.limites.contratosGestaoAtiva;
+    const documentosMax = custom?.documentosMax !== undefined ? custom.documentosMax : planoEfetivo.documentosMax;
+
+    const recursos: PlanRecursos = {
+      ...planoEfetivo.recursos,
+      ...(custom?.minutasAtaConvencao !== undefined ? { minutasAtaConvencao: custom.minutasAtaConvencao } : {}),
+      ...(custom?.relatoriosPorCondominio !== undefined ? { relatoriosPorCondominio: custom.relatoriosPorCondominio } : {}),
+      ...(custom?.suportePrioritario !== undefined ? { suportePrioritario: custom.suportePrioritario } : {}),
+    };
+
     return {
       planoId,
       planoNome: plano.nome,
       cortesia,
       status: sub?.status ?? "active",
-      recursos: planoEfetivo.recursos,
-      condominiosMax: planoEfetivo.condomíniosMax,
-      documentosMax: planoEfetivo.documentosMax,
-      usuariosMax: planoEfetivo.usuariosMax,
+      recursos,
+      condominiosMax,
+      documentosMax,
+      usuariosMax,
       historicosDias: planoEfetivo.historicosDias,
       condominiosCount: ambiente.length,
       trialEndIso,
       trialExpirado: cortesia ? false : isTrialExpired(planoId, trialEndIso),
-      contratosGestaoAtivaMax: planoV2Efetivo.limites.contratosGestaoAtiva,
+      contratosGestaoAtivaMax,
       contratosGestaoAtivaCount: contratosRes.count ?? 0,
-      documentosIlimitados: planoV2Efetivo.limites.documentosIlimitados === true,
-      painelConsolidado: planoV2Efetivo.recursos.painelConsolidado === true,
+      documentosIlimitados: documentosMax === null || planoV2Efetivo.limites.documentosIlimitados === true,
+      painelConsolidado: custom?.painelConsolidado !== undefined ? custom.painelConsolidado : (planoV2Efetivo.recursos.painelConsolidado === true),
       analisesContratoMax: planoV2Efetivo.limites.analisesContrato,
       analisesContratoUsadas: analisesRes.count ?? 0,
     };

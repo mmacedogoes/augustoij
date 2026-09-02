@@ -16,6 +16,12 @@ import {
   Loader2,
   Users,
   Link2,
+  CreditCard,
+  Mail,
+  Receipt,
+  FileCheck,
+  Sliders,
+  CheckCircle2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -25,10 +31,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   getUsuarioDetalheAdmin,
   adminUpdateSubscription,
+  adminSalvarPlanoPersonalizado,
   type UsuarioDetalhe,
 } from "@/lib/admin.functions";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
@@ -372,6 +380,8 @@ function PlanoControls({
   updateSub: ReturnType<typeof useServerFn<typeof adminUpdateSubscription>>;
   onSaved: () => void;
 }) {
+  const salvarPersonalizadoFn = useServerFn(adminSalvarPlanoPersonalizado);
+
   const [plano, setPlano] = useState<PlanId>(detalhe.subscription.plano_config_id);
   const [cortesia, setCortesia] = useState<boolean>(detalhe.subscription.cortesia);
   const [obs, setObs] = useState(detalhe.subscription.cortesia_observacao ?? "");
@@ -379,60 +389,154 @@ function PlanoControls({
   const [creditos, setCreditos] = useState<string>(
     String(detalhe.subscription.creditos_mensagens_extras ?? 0),
   );
+
+  // Estados específicos do Plano Personalizado
+  const initialLimits = detalhe.subscription.custom_limits;
+  const [customValor, setCustomValor] = useState<number>(detalhe.subscription.custom_preco ?? 1490);
+  const [customCiclo, setCustomCiclo] = useState<"mensal" | "anual">(
+    detalhe.subscription.custom_ciclo ?? "mensal",
+  );
+  const [customBillingType, setCustomBillingType] = useState<
+    "UNDEFINED" | "PIX" | "BOLETO" | "CREDIT_CARD"
+  >(detalhe.subscription.custom_billing_type ?? "UNDEFINED");
+  const [customDiasVencimento, setCustomDiasVencimento] = useState<number>(
+    detalhe.subscription.custom_vencimento_dias ?? 3,
+  );
+  const [gerarCobrancaAsaas, setGerarCobrancaAsaas] = useState<boolean>(true);
+  const [enviarEmailConfirmacao, setEnviarEmailConfirmacao] = useState<boolean>(true);
+
+  // Limites do Plano Personalizado
+  const [condosIlimitados, setCondosIlimitados] = useState<boolean>(
+    initialLimits?.condominiosMax === null,
+  );
+  const [customCondos, setCustomCondos] = useState<number>(
+    initialLimits?.condominiosMax ?? 30,
+  );
+
+  const [usersIlimitados, setUsersIlimitados] = useState<boolean>(
+    initialLimits?.usuariosMax === null,
+  );
+  const [customUsers, setCustomUsers] = useState<number>(
+    initialLimits?.usuariosMax ?? 5,
+  );
+
+  const [mensagensIlimitadas, setMensagensIlimitadas] = useState<boolean>(
+    initialLimits?.mensagensPorMes === null,
+  );
+  const [customMensagens, setCustomMensagens] = useState<number>(
+    initialLimits?.mensagensPorMes ?? 2000,
+  );
+
+  const [contratosIlimitados, setContratosIlimitados] = useState<boolean>(
+    initialLimits?.contratosGestaoAtiva === null,
+  );
+  const [customContratos, setCustomContratos] = useState<number>(
+    initialLimits?.contratosGestaoAtiva ?? 80,
+  );
+
+  const [minutasAtaConvencao, setMinutasAtaConvencao] = useState<boolean>(
+    initialLimits?.minutasAtaConvencao ?? true,
+  );
+  const [painelConsolidado, setPainelConsolidado] = useState<boolean>(
+    initialLimits?.painelConsolidado ?? true,
+  );
+  const [relatoriosPorCondominio, setRelatoriosPorCondominio] = useState<boolean>(
+    initialLimits?.relatoriosPorCondominio ?? true,
+  );
+  const [suportePrioritario, setSuportePrioritario] = useState<boolean>(
+    initialLimits?.suportePrioritario ?? true,
+  );
+
   const [saving, setSaving] = useState(false);
 
-  const changed =
-    plano !== detalhe.subscription.plano_config_id ||
-    cortesia !== detalhe.subscription.cortesia ||
-    obs !== (detalhe.subscription.cortesia_observacao ?? "") ||
-    diasExtras.trim() !== "" ||
-    Number(creditos) !== (detalhe.subscription.creditos_mensagens_extras ?? 0);
+  const isPersonalizado = plano === "personalizado";
 
-  async function save() {
+  async function handleSalvarGeral() {
     setSaving(true);
     try {
-      const payload: {
-        userId: string;
-        plano_config_id?: PlanId;
-        cortesia?: boolean;
-        cortesia_observacao?: string | null;
-        diasExtras?: number;
-        creditos_mensagens_extras?: number;
-      } = { userId: detalhe.profile.id };
-      if (plano !== detalhe.subscription.plano_config_id) payload.plano_config_id = plano;
-      if (cortesia !== detalhe.subscription.cortesia) payload.cortesia = cortesia;
-      if (obs !== (detalhe.subscription.cortesia_observacao ?? ""))
-        payload.cortesia_observacao = obs || null;
-      const dias = Number(diasExtras);
-      if (diasExtras.trim() !== "" && Number.isFinite(dias) && dias !== 0)
-        payload.diasExtras = dias;
-      const cn = Number(creditos);
-      if (Number.isFinite(cn) && cn !== detalhe.subscription.creditos_mensagens_extras)
-        payload.creditos_mensagens_extras = cn;
+      if (isPersonalizado) {
+        const res = await salvarPersonalizadoFn({
+          data: {
+            userId: detalhe.profile.id,
+            valor: Number(customValor) || 0,
+            ciclo: customCiclo,
+            billing_type: customBillingType,
+            diasVencimento: Number(customDiasVencimento) || 3,
+            gerarCobrancaAsaas,
+            enviarEmailConfirmacao,
+            limites: {
+              condominiosMax: condosIlimitados ? null : Number(customCondos),
+              usuariosMax: usersIlimitados ? null : Number(customUsers),
+              mensagensPorMes: mensagensIlimitadas ? null : Number(customMensagens),
+              contratosGestaoAtiva: contratosIlimitados ? null : Number(customContratos),
+              documentosMax: null,
+              minutasAtaConvencao,
+              painelConsolidado,
+              relatoriosPorCondominio,
+              suportePrioritario,
+            },
+          },
+        });
 
-      await updateSub({ data: payload });
-      toast.success("Assinatura atualizada");
+        if (res.asaas_subscription_id) {
+          toast.success("Plano Personalizado salvo e assinatura criada no Asaas!");
+        } else {
+          toast.success("Plano Personalizado e limites atualizados com sucesso!");
+        }
+      } else {
+        const payload: {
+          userId: string;
+          plano_config_id?: PlanId;
+          cortesia?: boolean;
+          cortesia_observacao?: string | null;
+          diasExtras?: number;
+          creditos_mensagens_extras?: number;
+        } = { userId: detalhe.profile.id };
+
+        payload.plano_config_id = plano;
+        payload.cortesia = cortesia;
+        payload.cortesia_observacao = obs || null;
+        const dias = Number(diasExtras);
+        if (diasExtras.trim() !== "" && Number.isFinite(dias) && dias !== 0) {
+          payload.diasExtras = dias;
+        }
+        const cn = Number(creditos);
+        if (Number.isFinite(cn)) {
+          payload.creditos_mensagens_extras = cn;
+        }
+
+        await updateSub({ data: payload });
+        toast.success("Assinatura atualizada com sucesso!");
+      }
+
       setDiasExtras("");
       onSaved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha");
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar assinatura");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Card className="app-card p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
-          <Unlock className="h-4 w-4" strokeWidth={1.75} />
+    <Card className="app-card p-5 space-y-5">
+      <div className="flex items-center justify-between gap-4 pb-2 border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <div className="grid place-items-center h-8 w-8 rounded-md bg-primary/10 text-primary">
+            <Unlock className="h-4 w-4" strokeWidth={1.75} />
+          </div>
+          <div>
+            <h2 className="font-semibold text-foreground">Plano e permissões</h2>
+            <p className="text-xs text-muted-foreground">
+              Ajuste o plano, personalize métricas, gere cobranças no Asaas ou conceda cortesia.
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="font-semibold">Plano e permissões</h2>
-          <p className="text-xs text-muted-foreground">
-            Ajuste o plano, conceda cortesia sem limites, estenda o trial ou libere créditos extras.
-          </p>
-        </div>
+        {detalhe.subscription.asaas_subscription_id && (
+          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs py-1">
+            <Receipt className="h-3.5 w-3.5 mr-1" /> Asaas Sub: {detalhe.subscription.asaas_subscription_id.slice(0, 14)}…
+          </Badge>
+        )}
       </div>
 
       {/* Cortesia — destaque */}
@@ -471,17 +575,16 @@ function PlanoControls({
         </div>
       </div>
 
-      <Separator className="my-5" />
-
+      {/* Seleção do Plano Base */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="plano">Plano</Label>
+          <Label htmlFor="plano" className="text-xs font-medium">Plano do Usuário</Label>
           <select
             id="plano"
             className={cn(
-              "w-full rounded-md border bg-background px-3 py-2 text-sm",
+              "w-full rounded-md border bg-background px-3 py-2 text-sm font-medium",
               "transition-colors duration-150",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             )}
             value={plano}
             onChange={(e) => setPlano(e.target.value as PlanId)}
@@ -493,52 +596,293 @@ function PlanoControls({
             ))}
           </select>
           <p className="text-[11px] text-muted-foreground">
-            Ao mudar para um plano pago sem cortesia, o usuário verá o checkout no próximo login.
+            {isPersonalizado
+              ? "Configuração personalizada ativa com valores e métricas sob medida."
+              : "Ao mudar para um plano pago sem cortesia, o usuário verá o checkout no próximo login."}
           </p>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="dias">Estender validade (dias)</Label>
-          <Input
-            id="dias"
-            type="number"
-            inputMode="numeric"
-            placeholder="Ex.: 30"
-            value={diasExtras}
-            onChange={(e) => setDiasExtras(e.target.value)}
-          />
-          <p className="text-[11px] text-muted-foreground">
-            Fim atual: <span className="font-medium text-foreground">{DATE_BR(detalhe.subscription.trial_end)}</span>
-          </p>
-        </div>
+        {!isPersonalizado && (
+          <div className="space-y-1.5">
+            <Label htmlFor="dias" className="text-xs font-medium">Estender validade (dias)</Label>
+            <Input
+              id="dias"
+              type="number"
+              inputMode="numeric"
+              placeholder="Ex.: 30"
+              value={diasExtras}
+              onChange={(e) => setDiasExtras(e.target.value)}
+              className="h-9 text-sm"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Fim atual: <span className="font-medium text-foreground">{DATE_BR(detalhe.subscription.trial_end)}</span>
+            </p>
+          </div>
+        )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="creditos">Créditos avulsos de mensagens</Label>
-          <Input
-            id="creditos"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={creditos}
-            onChange={(e) => setCreditos(e.target.value)}
-          />
-          <p className="text-[11px] text-muted-foreground">Somados ao limite mensal do plano.</p>
-        </div>
+        {!isPersonalizado && (
+          <div className="space-y-1.5">
+            <Label htmlFor="creditos" className="text-xs font-medium">Créditos avulsos de mensagens</Label>
+            <Input
+              id="creditos"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={creditos}
+              onChange={(e) => setCreditos(e.target.value)}
+              className="h-9 text-sm"
+            />
+            <p className="text-[11px] text-muted-foreground">Somados ao limite mensal do plano.</p>
+          </div>
+        )}
       </div>
 
-      <div className="mt-5 flex items-center justify-end gap-2">
+      {/* PAINEL DEDICADO: CONFIGURAÇÃO DO PLANO PERSONALIZADO */}
+      {isPersonalizado && (
+        <div className="space-y-5 rounded-lg border border-augusto-gold/40 bg-augusto-gold/5 p-5 mt-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-augusto-gold/20">
+            <Sliders className="h-4 w-4 text-augusto-gold" />
+            <h3 className="font-serif text-sm font-semibold text-foreground">
+              Configurações Comerciais & Asaas (Plano Personalizado)
+            </h3>
+          </div>
+
+          {/* 1. Condições Comerciais & Pagamento Asaas */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Valor acordado (R$) *</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={customValor}
+                onChange={(e) => setCustomValor(Number(e.target.value))}
+                className="h-9 text-sm bg-background font-medium"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Ciclo de cobrança</Label>
+              <select
+                value={customCiclo}
+                onChange={(e) => setCustomCiclo(e.target.value as "mensal" | "anual")}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9"
+              >
+                <option value="mensal">Mensal (recorrente)</option>
+                <option value="anual">Anual (recorrente)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Forma de pagamento</Label>
+              <select
+                value={customBillingType}
+                onChange={(e) => setCustomBillingType(e.target.value as any)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9"
+              >
+                <option value="UNDEFINED">Indefinido (Cliente escolhe)</option>
+                <option value="BOLETO">Boleto Bancário</option>
+                <option value="PIX">PIX Dinâmico</option>
+                <option value="CREDIT_CARD">Cartão de Crédito</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Primeiro vencimento</Label>
+              <select
+                value={customDiasVencimento}
+                onChange={(e) => setCustomDiasVencimento(Number(e.target.value))}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9"
+              >
+                <option value={1}>Em 1 dia (Amanhã)</option>
+                <option value={3}>Em 3 dias</option>
+                <option value={5}>Em 5 dias</option>
+                <option value={10}>Em 10 dias</option>
+                <option value={15}>Em 15 dias</option>
+                <option value={30}>Em 30 dias</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Switches de Automação */}
+          <div className="grid sm:grid-cols-2 gap-3 pt-2">
+            <label className="flex items-center justify-between gap-3 p-3 rounded-md bg-background border border-border/70 cursor-pointer">
+              <div className="space-y-0.5">
+                <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                  <CreditCard className="h-3.5 w-3.5 text-augusto-green" /> Gerar cobrança automática no Asaas
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  Cria a assinatura no Asaas e envia faturas por e-mail antes do vencimento.
+                </span>
+              </div>
+              <Switch checked={gerarCobrancaAsaas} onCheckedChange={setGerarCobrancaAsaas} />
+            </label>
+
+            <label className="flex items-center justify-between gap-3 p-3 rounded-md bg-background border border-border/70 cursor-pointer">
+              <div className="space-y-0.5">
+                <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-augusto-gold" /> Enviar e-mail oficial de confirmação
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  Dispara e-mail de boas-vindas com o resumo dos limites e condições contratadas.
+                </span>
+              </div>
+              <Switch checked={enviarEmailConfirmacao} onCheckedChange={setEnviarEmailConfirmacao} />
+            </label>
+          </div>
+
+          {/* 2. Métricas e Limites Operacionais */}
+          <div className="space-y-3 pt-3 border-t border-augusto-gold/20">
+            <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5 text-augusto-gold" /> Métricas e Limites Operacionais do Plano
+            </h4>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Condomínios */}
+              <div className="space-y-1.5 p-3 rounded-md bg-background border border-border/70">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Condomínios</Label>
+                  <label className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={condosIlimitados}
+                      onCheckedChange={(v) => setCondosIlimitados(!!v)}
+                    />
+                    Ilimitado
+                  </label>
+                </div>
+                {!condosIlimitados ? (
+                  <Input
+                    type="number"
+                    min={1}
+                    value={customCondos}
+                    onChange={(e) => setCustomCondos(Number(e.target.value))}
+                    className="h-8 text-xs font-medium"
+                  />
+                ) : (
+                  <p className="text-xs text-augusto-green font-medium py-1.5">Sem limite de condomínios</p>
+                )}
+              </div>
+
+              {/* Membros da Equipe */}
+              <div className="space-y-1.5 p-3 rounded-md bg-background border border-border/70">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Usuários / Equipe</Label>
+                  <label className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={usersIlimitados}
+                      onCheckedChange={(v) => setUsersIlimitados(!!v)}
+                    />
+                    Ilimitado
+                  </label>
+                </div>
+                {!usersIlimitados ? (
+                  <Input
+                    type="number"
+                    min={1}
+                    value={customUsers}
+                    onChange={(e) => setCustomUsers(Number(e.target.value))}
+                    className="h-8 text-xs font-medium"
+                  />
+                ) : (
+                  <p className="text-xs text-augusto-green font-medium py-1.5">Usuários ilimitados</p>
+                )}
+              </div>
+
+              {/* Mensagens IA */}
+              <div className="space-y-1.5 p-3 rounded-md bg-background border border-border/70">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Mensagens IA/mês</Label>
+                  <label className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={mensagensIlimitadas}
+                      onCheckedChange={(v) => setMensagensIlimitadas(!!v)}
+                    />
+                    Ilimitado
+                  </label>
+                </div>
+                {!mensagensIlimitadas ? (
+                  <Input
+                    type="number"
+                    min={10}
+                    step={100}
+                    value={customMensagens}
+                    onChange={(e) => setCustomMensagens(Number(e.target.value))}
+                    className="h-8 text-xs font-medium"
+                  />
+                ) : (
+                  <p className="text-xs text-augusto-green font-medium py-1.5">Mensagens ilimitadas</p>
+                )}
+              </div>
+
+              {/* Contratos Ativos */}
+              <div className="space-y-1.5 p-3 rounded-md bg-background border border-border/70">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Gestão Contratos</Label>
+                  <label className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={contratosIlimitados}
+                      onCheckedChange={(v) => setContratosIlimitados(!!v)}
+                    />
+                    Ilimitado
+                  </label>
+                </div>
+                {!contratosIlimitados ? (
+                  <Input
+                    type="number"
+                    min={1}
+                    value={customContratos}
+                    onChange={(e) => setCustomContratos(Number(e.target.value))}
+                    className="h-8 text-xs font-medium"
+                  />
+                ) : (
+                  <p className="text-xs text-augusto-green font-medium py-1.5">Contratos ilimitados</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Recursos Desbloqueados */}
+          <div className="space-y-2 pt-2 border-t border-augusto-gold/20">
+            <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <FileCheck className="h-3.5 w-3.5 text-augusto-green" /> Recursos Adicionais Inclusos
+            </h4>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+              <label className="flex items-center justify-between gap-2 p-2 rounded bg-background border border-border/60">
+                <span>Minutas de Ata & Convenção</span>
+                <Switch checked={minutasAtaConvencao} onCheckedChange={setMinutasAtaConvencao} />
+              </label>
+              <label className="flex items-center justify-between gap-2 p-2 rounded bg-background border border-border/60">
+                <span>Painel Consolidado da Carteira</span>
+                <Switch checked={painelConsolidado} onCheckedChange={setPainelConsolidado} />
+              </label>
+              <label className="flex items-center justify-between gap-2 p-2 rounded bg-background border border-border/60">
+                <span>Relatórios por Condomínio</span>
+                <Switch checked={relatoriosPorCondominio} onCheckedChange={setRelatoriosPorCondominio} />
+              </label>
+              <label className="flex items-center justify-between gap-2 p-2 rounded bg-background border border-border/60">
+                <span>Suporte Prioritário Dedicado</span>
+                <Switch checked={suportePrioritario} onCheckedChange={setSuportePrioritario} />
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Botão de Salvar */}
+      <div className="pt-3 flex items-center justify-end gap-2 border-t border-border/50">
         <Button
-          onClick={save}
-          disabled={!changed || saving}
-          className="min-w-32 transition-all duration-200"
+          onClick={handleSalvarGeral}
+          disabled={saving}
+          variant="augusto"
+          className="min-w-40 transition-all duration-200"
         >
           {saving ? (
             <>
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Salvando…
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Processando…
             </>
           ) : (
             <>
-              <Save className="h-4 w-4 mr-1.5" /> Salvar alterações
+              <Save className="h-4 w-4 mr-1.5" /> Salvar e Aplicar
             </>
           )}
         </Button>

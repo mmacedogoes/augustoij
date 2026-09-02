@@ -12,6 +12,21 @@ export type SubscriptionEfetiva = {
   trial_end: string | null;
   cortesia: boolean | null;
   status: string | null;
+  custom_limits?: {
+    condominiosMax?: number | null;
+    usuariosMax?: number | null;
+    mensagensPorMes?: number | null;
+    contratosGestaoAtiva?: number | null;
+    documentosMax?: number | null;
+    minutasAtaConvencao?: boolean;
+    painelConsolidado?: boolean;
+    relatoriosPorCondominio?: boolean;
+    suportePrioritario?: boolean;
+  } | null;
+  custom_preco?: number | null;
+  custom_ciclo?: string | null;
+  custom_billing_type?: string | null;
+  asaas_subscription_id?: string | null;
   /** Usuário cuja assinatura foi utilizada (o próprio ou a conta master). */
   origem_user_id: string;
 };
@@ -32,7 +47,7 @@ export async function getContaMasterId(userId: string): Promise<string> {
 async function lerSub(userId: string) {
   const { data } = await supabaseAdmin
     .from("subscriptions")
-    .select("plano_config_id, trial_end, cortesia, status")
+    .select("plano_config_id, trial_end, cortesia, status, custom_limits, custom_preco, custom_ciclo, custom_billing_type, asaas_subscription_id")
     .eq("user_id", userId)
     .maybeSingle();
   return data ?? null;
