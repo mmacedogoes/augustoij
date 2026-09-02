@@ -393,7 +393,9 @@ function PlanoControls({
 
   // Estados específicos do Plano Personalizado
   const initialLimits = detalhe.subscription.custom_limits;
-  const [customValor, setCustomValor] = useState<number>(detalhe.subscription.custom_preco ?? 1490);
+  const [customValor, setCustomValor] = useState<number>(
+    detalhe.subscription.custom_preco ?? 1490,
+  );
   const [customCiclo, setCustomCiclo] = useState<"mensal" | "anual">(
     detalhe.subscription.custom_ciclo ?? "mensal",
   );
@@ -450,6 +452,41 @@ function PlanoControls({
 
   const [saving, setSaving] = useState(false);
 
+  // Sincroniza estados caso os dados do usuário sejam atualizados
+  useEffect(() => {
+    setPlano(detalhe.subscription.plano_config_id);
+    setCortesia(detalhe.subscription.cortesia);
+    setObs(detalhe.subscription.cortesia_observacao ?? "");
+    setCreditos(String(detalhe.subscription.creditos_mensagens_extras ?? 0));
+    if (detalhe.subscription.custom_preco !== null && detalhe.subscription.custom_preco !== undefined) {
+      setCustomValor(Number(detalhe.subscription.custom_preco));
+    }
+    if (detalhe.subscription.custom_ciclo) {
+      setCustomCiclo(detalhe.subscription.custom_ciclo);
+    }
+    if (detalhe.subscription.custom_billing_type) {
+      setCustomBillingType(detalhe.subscription.custom_billing_type);
+    }
+    if (detalhe.subscription.custom_dia_vencimento) {
+      setCustomDiaVencimento(Number(detalhe.subscription.custom_dia_vencimento));
+    }
+    const lim = detalhe.subscription.custom_limits;
+    if (lim) {
+      setCondosIlimitados(lim.condominiosMax === null);
+      if (lim.condominiosMax !== null && lim.condominiosMax !== undefined) setCustomCondos(lim.condominiosMax);
+      setUsersIlimitados(lim.usuariosMax === null);
+      if (lim.usuariosMax !== null && lim.usuariosMax !== undefined) setCustomUsers(lim.usuariosMax);
+      setMensagensIlimitadas(lim.mensagensPorMes === null);
+      if (lim.mensagensPorMes !== null && lim.mensagensPorMes !== undefined) setCustomMensagens(lim.mensagensPorMes);
+      setContratosIlimitados(lim.contratosGestaoAtiva === null);
+      if (lim.contratosGestaoAtiva !== null && lim.contratosGestaoAtiva !== undefined) setCustomContratos(lim.contratosGestaoAtiva);
+      if (lim.minutasAtaConvencao !== undefined) setMinutasAtaConvencao(lim.minutasAtaConvencao);
+      if (lim.painelConsolidado !== undefined) setPainelConsolidado(lim.painelConsolidado);
+      if (lim.relatoriosPorCondominio !== undefined) setRelatoriosPorCondominio(lim.relatoriosPorCondominio);
+      if (lim.suportePrioritario !== undefined) setSuportePrioritario(lim.suportePrioritario);
+    }
+  }, [detalhe.subscription]);
+
   const isPersonalizado = plano === "personalizado";
 
   const proximoVenc = calcularProximoVencimento(customDiaVencimento);
@@ -467,6 +504,8 @@ function PlanoControls({
             ciclo: customCiclo,
             billing_type: customBillingType,
             diaVencimento: Number(customDiaVencimento) || 10,
+            cortesia,
+            cortesia_observacao: obs || null,
             gerarCobrancaAsaas,
             enviarEmailConfirmacao,
             limites: {
@@ -484,7 +523,9 @@ function PlanoControls({
         });
 
         if (res.asaas_subscription_id) {
-          toast.success("Plano Personalizado salvo e assinatura criada no Asaas!");
+          toast.success("Plano Personalizado salvo e assinatura criada no Asaas com sucesso!");
+        } else if (res.asaas_error) {
+          toast.warning(`Plano Personalizado salvo no sistema! Atenção Asaas: ${res.asaas_error}`);
         } else {
           toast.success("Plano Personalizado e limites atualizados com sucesso!");
         }

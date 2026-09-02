@@ -132,20 +132,31 @@ export async function findCustomerByCpfCnpj(cpfCnpj: string): Promise<AsaasCusto
   return data.data?.[0] ?? null;
 }
 
+export async function findCustomerByEmail(email: string): Promise<AsaasCustomer | null> {
+  const emailLimpo = email?.trim();
+  if (!emailLimpo) return null;
+  const data = await asaasFetch<{ data: AsaasCustomer[] }>(`/customers`, {
+    query: { email: emailLimpo, limit: "1" },
+  });
+  return data.data?.[0] ?? null;
+}
+
 export async function createCustomer(input: {
   name: string;
   email: string;
-  cpfCnpj: string;
+  cpfCnpj?: string | null;
   mobilePhone?: string | null;
   externalReference?: string;
 }): Promise<AsaasCustomer> {
+  const cpfLimpo = input.cpfCnpj ? apenasDigitos(input.cpfCnpj) : "";
+  const phoneLimpo = input.mobilePhone ? apenasDigitos(input.mobilePhone) : "";
   return asaasFetch<AsaasCustomer>(`/customers`, {
     method: "POST",
     body: {
       name: input.name,
       email: input.email,
-      cpfCnpj: apenasDigitos(input.cpfCnpj),
-      mobilePhone: input.mobilePhone ?? undefined,
+      cpfCnpj: cpfLimpo || undefined,
+      mobilePhone: phoneLimpo || undefined,
       externalReference: input.externalReference,
       notificationDisabled: false,
     },
@@ -155,12 +166,19 @@ export async function createCustomer(input: {
 export async function ensureCustomer(input: {
   name: string;
   email: string;
-  cpfCnpj: string;
+  cpfCnpj?: string | null;
   mobilePhone?: string | null;
   externalReference?: string;
 }): Promise<AsaasCustomer> {
-  const existing = await findCustomerByCpfCnpj(input.cpfCnpj);
-  if (existing) return existing;
+  const cpfLimpo = input.cpfCnpj ? apenasDigitos(input.cpfCnpj) : "";
+  if (cpfLimpo) {
+    const existing = await findCustomerByCpfCnpj(cpfLimpo);
+    if (existing) return existing;
+  }
+  if (input.email) {
+    const existingByEmail = await findCustomerByEmail(input.email);
+    if (existingByEmail) return existingByEmail;
+  }
   return createCustomer(input);
 }
 

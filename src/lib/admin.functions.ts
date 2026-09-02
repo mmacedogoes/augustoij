@@ -207,12 +207,19 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
       profile: profRes.data,
       subscription: {
         plano_config_id: planoConfigId,
-        cortesia: subRes.data?.cortesia ?? true,
+        cortesia: subRes.data?.cortesia ?? (planoConfigId === "gratuito"),
         cortesia_observacao: subRes.data?.cortesia_observacao ?? null,
         status: subRes.data?.status ?? "active",
         trial_end: subRes.data?.trial_end ?? null,
         current_period_end: subRes.data?.current_period_end ?? null,
         creditos_mensagens_extras: subRes.data?.creditos_mensagens_extras ?? 0,
+        custom_preco: subRes.data?.custom_preco !== undefined && subRes.data?.custom_preco !== null ? Number(subRes.data.custom_preco) : null,
+        custom_ciclo: (subRes.data?.custom_ciclo as "mensal" | "anual") ?? "mensal",
+        custom_billing_type: (subRes.data?.custom_billing_type as "UNDEFINED" | "PIX" | "BOLETO" | "CREDIT_CARD") ?? "UNDEFINED",
+        custom_dia_vencimento: subRes.data?.custom_dia_vencimento !== undefined && subRes.data?.custom_dia_vencimento !== null ? Number(subRes.data.custom_dia_vencimento) : 10,
+        custom_limits: subRes.data?.custom_limits ?? null,
+        asaas_subscription_id: subRes.data?.asaas_subscription_id ?? null,
+        asaas_customer_id: subRes.data?.asaas_customer_id ?? null,
       },
       condominios: condosRes.data ?? [],
       usoMes: {
@@ -342,6 +349,8 @@ const salvarPlanoPersonalizadoSchema = z.object({
   ciclo: z.enum(["mensal", "anual"]).default("mensal"),
   billing_type: z.enum(["UNDEFINED", "PIX", "BOLETO", "CREDIT_CARD"]).default("UNDEFINED"),
   diaVencimento: z.number().int().min(1).max(31).default(10),
+  cortesia: z.boolean().default(false),
+  cortesia_observacao: z.string().trim().max(500).nullable().optional(),
   gerarCobrancaAsaas: z.boolean().default(true),
   enviarEmailConfirmacao: z.boolean().default(true),
   limites: z.object({
@@ -378,65 +387,28 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
       throw new Error("Usuário não possui e-mail cadastrado.");
     }
 
-    let asaasCustomerId: string | null = null;
-    let asaasSubscriptionId: string | null = null;
     const nextDueDate = calcularProximoVencimento(data.diaVencimento);
 
-    // 2) Se for gerar cobrança no Asaas e valor > 0
-    if (data.gerarCobrancaAsaas && data.valor > 0) {
-      const asaas = await import("./asaas.server");
-
-      const nomeCliente =
-        profile.tipo_pessoa === "pj" && profile.razao_social
-          ? profile.razao_social
-          : profile.nome || profile.email;
-
-      const customer = await asaas.ensureCustomer({
-        name: nomeCliente,
-        email: profile.email,
-        cpfCnpj: profile.cpf_cnpj ?? undefined,
-        mobilePhone: profile.telefone ?? undefined,
-        externalReference: data.userId,
-      });
-
-      asaasCustomerId = customer.id;
-
-      const cycle: "MONTHLY" | "YEARLY" = data.ciclo === "anual" ? "YEARLY" : "MONTHLY";
-
-      const subscription = await asaas.createSubscription({
-        customerId: customer.id,
-        value: data.valor,
-        cycle,
-        billingType: data.billing_type,
-        nextDueDate,
-        description: `Assinatura Plano Personalizado (Vencimento todo dia ${data.diaVencimento}) — Augusto.IJ (${data.ciclo})`,
-        externalReference: `${data.userId}:personalizado:${data.ciclo}`,
-      });
-
-      asaasSubscriptionId = subscription.id;
-    }
-
-    // 3) Atualiza o registro em public.subscriptions
+    // 2) Salva o plano no banco PRIMEIRO (garante que métricas e limites sejam atualizados)
     const patchSub: Record<string, unknown> = {
       user_id: data.userId,
       plano_config_id: "personalizado",
       status: "active",
-      cortesia: false,
+      cortesia: data.cortesia,
+      cortesia_observacao: data.cortesia_observacao ?? null,
       custom_preco: data.valor,
       custom_ciclo: data.ciclo,
       custom_billing_type: data.billing_type,
       custom_dia_vencimento: data.diaVencimento,
       custom_limits: data.limites,
+      updated_at: new Date().toISOString(),
     };
-
-    if (asaasCustomerId) patchSub.asaas_customer_id = asaasCustomerId;
-    if (asaasSubscriptionId) patchSub.asaas_subscription_id = asaasSubscriptionId;
 
     const { error: subErr } = await supabaseAdmin
       .from("subscriptions")
       .upsert(patchSub, { onConflict: "user_id" });
 
-    if (subErr) throw new Error(subErr.message);
+    if (subErr) throw new Error(`Falha ao salvar no banco: ${subErr.message}`);
 
     // Sincroniza plano personalizado para todos os usuários vinculados a este titular
     await supabaseAdmin
@@ -444,7 +416,7 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
       .update({
         plano_config_id: "personalizado",
         status: "active",
-        cortesia: false,
+        cortesia: data.cortesia,
         custom_preco: data.valor,
         custom_ciclo: data.ciclo,
         custom_billing_type: data.billing_type,
@@ -452,6 +424,58 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
         custom_limits: data.limites,
       })
       .eq("vinculado_a_user_id", data.userId);
+
+    let asaasCustomerId: string | null = null;
+    let asaasSubscriptionId: string | null = null;
+    let asaasError: string | null = null;
+
+    // 3) Se for gerar cobrança no Asaas, valor > 0 e não for cortesia
+    if (data.gerarCobrancaAsaas && data.valor > 0 && !data.cortesia) {
+      try {
+        const asaas = await import("./asaas.server");
+
+        const nomeCliente =
+          profile.tipo_pessoa === "pj" && profile.razao_social
+            ? profile.razao_social
+            : profile.nome || profile.email;
+
+        const customer = await asaas.ensureCustomer({
+          name: nomeCliente,
+          email: profile.email,
+          cpfCnpj: profile.cpf_cnpj ?? undefined,
+          mobilePhone: profile.telefone ?? undefined,
+          externalReference: data.userId,
+        });
+
+        asaasCustomerId = customer.id;
+
+        const cycle: "MONTHLY" | "YEARLY" = data.ciclo === "anual" ? "YEARLY" : "MONTHLY";
+
+        const subscription = await asaas.createSubscription({
+          customerId: customer.id,
+          value: data.valor,
+          cycle,
+          billingType: data.billing_type,
+          nextDueDate,
+          description: `Assinatura Plano Personalizado (Vencimento todo dia ${data.diaVencimento}) — Augusto.IJ (${data.ciclo})`,
+          externalReference: `${data.userId}:personalizado:${data.ciclo}`,
+        });
+
+        asaasSubscriptionId = subscription.id;
+
+        // Atualiza os IDs do Asaas na assinatura salva
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({
+            asaas_customer_id: asaasCustomerId,
+            asaas_subscription_id: asaasSubscriptionId,
+          })
+          .eq("user_id", data.userId);
+      } catch (err) {
+        console.error("[adminSalvarPlanoPersonalizado] Erro na automação Asaas:", err);
+        asaasError = err instanceof Error ? err.message : String(err);
+      }
+    }
 
     // 4) Disparo do e-mail de confirmação ao usuário
     if (data.enviarEmailConfirmacao) {
@@ -499,18 +523,15 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
         </table>
       </div>
 
-      <p style="font-size: 13px; line-height: 1.5; color: #64748b;">
-        As informações de pagamento e faturas serão enviadas mensalmente com antecedência pelo sistema de cobrança dias antes de cada dia ${data.diaVencimento}.
+      <p style="font-size: 13px; color: #64748b; line-height: 1.5;">
+        As faturas e opções de pagamento (PIX, Boleto ou Cartão) serão encaminhadas automaticamente antes de cada vencimento.
       </p>
 
-      <div style="text-align: center; margin-top: 28px;">
-        <a href="https://augustoij.com.br/app/condominios" style="display: inline-block; background: #0f2d25; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
-          Acessar Meu Painel
+      <div style="margin-top: 28px; text-align: center;">
+        <a href="https://augustoij.com.br/login" style="display: inline-block; background: #0f2d25; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600;">
+          Acessar a Plataforma
         </a>
       </div>
-    </div>
-    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 32px; text-align: center; font-size: 12px; color: #94a3b8;">
-      Augusto.IJ · Inteligência Artificial Jurídica para Condomínios
     </div>
   </div>
 </body>
@@ -519,40 +540,40 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
           await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
+              "Content-Type": "application/json",
               Authorization: `Bearer ${RESEND_API_KEY}`,
-              "content-type": "application/json",
             },
             body: JSON.stringify({
-              from: "Augusto.IJ <naoresponda@mail.augustoij.com.br>",
+              from: "Augusto.IJ <notificacoes@augustoij.com.br>",
               to: [profile.email],
-              subject: "Confirmação do seu Plano Personalizado — Augusto.IJ",
+              subject: "Seu Plano Personalizado Augusto.IJ foi Ativado!",
               html,
             }),
           });
         } catch (mailErr) {
-          console.error("[adminSalvarPlanoPersonalizado] Falha ao enviar e-mail:", mailErr);
+          console.error("[adminSalvarPlanoPersonalizado] Falha ao disparar e-mail:", mailErr);
         }
       }
     }
 
-    // 5) Auditoria administrativa
     await logAdminAction({
       actorUserId: context.userId,
-      action: "subscription.custom_plan_configured",
+      action: "subscription.custom_plan_saved",
       targetUserId: data.userId,
       metadata: {
         valor: data.valor,
         ciclo: data.ciclo,
-        billing_type: data.billing_type,
-        limites: data.limites,
+        diaVencimento: data.diaVencimento,
+        cortesia: data.cortesia,
         asaas_subscription_id: asaasSubscriptionId,
+        asaas_error: asaasError,
       },
     });
 
     return {
       ok: true,
       asaas_subscription_id: asaasSubscriptionId,
-      asaas_customer_id: asaasCustomerId,
+      asaas_error: asaasError,
     };
   });
 
