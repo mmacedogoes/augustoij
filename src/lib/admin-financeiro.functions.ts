@@ -15,7 +15,7 @@ export const getFinanceiroResumo = createServerFn({ method: "GET" })
     // 1) Busca todas as assinaturas
     const { data: subs } = await supabaseAdmin
       .from("subscriptions")
-      .select("user_id, plano_config_id, status, cortesia, custom_preco, custom_ciclo, vinculado_a_user_id, created_at");
+      .select("user_id, plano_config_id, status, cortesia, cortesia_observacao, asaas_ciclo, vinculado_a_user_id, created_at");
 
     let mrr = 0;
     let ativos = 0;
@@ -107,7 +107,7 @@ export const listAssinaturasReceita = createServerFn({ method: "GET" })
     const [subsRes, profsRes] = await Promise.all([
       supabaseAdmin
         .from("subscriptions")
-        .select("user_id, plano_config_id, status, cortesia, custom_preco, custom_ciclo, custom_dia_vencimento, vinculado_a_user_id, asaas_subscription_id, created_at")
+        .select("user_id, plano_config_id, status, cortesia, cortesia_observacao, asaas_ciclo, asaas_subscription_id, vinculado_a_user_id, created_at")
         .order("created_at", { ascending: false }),
       supabaseAdmin
         .from("profiles")
@@ -122,6 +122,16 @@ export const listAssinaturasReceita = createServerFn({ method: "GET" })
       const p = profMap.get(s.user_id) ?? null;
       const owner = s.vinculado_a_user_id ? profMap.get(s.vinculado_a_user_id) : null;
       const valorMensal = calcularReceitaMensalSub(s);
+
+      let customCiclo: "mensal" | "anual" = s.asaas_ciclo === "YEARLY" ? "anual" : "mensal";
+      let diaVencimento = 10;
+      if (s.cortesia_observacao && s.cortesia_observacao.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(s.cortesia_observacao);
+          if (parsed.custom_ciclo) customCiclo = parsed.custom_ciclo;
+          if (parsed.custom_dia_vencimento) diaVencimento = Number(parsed.custom_dia_vencimento);
+        } catch {}
+      }
 
       return {
         user_id: s.user_id,
@@ -138,8 +148,8 @@ export const listAssinaturasReceita = createServerFn({ method: "GET" })
         plano_config_id: planoId,
         plano_nome: s.cortesia ? "Cortesia" : (planoDef?.nome ?? planoId),
         valor_mensal: valorMensal,
-        ciclo: (s.custom_ciclo as "mensal" | "anual") ?? "mensal",
-        dia_vencimento: s.custom_dia_vencimento ?? 10,
+        ciclo: customCiclo,
+        dia_vencimento: diaVencimento,
         status: s.status,
         cortesia: s.cortesia ?? false,
         vinculado_a_id: s.vinculado_a_user_id ?? null,
@@ -167,7 +177,7 @@ export const listCustosClientes = createServerFn({ method: "GET" })
         .limit(150),
       supabaseAdmin
         .from("subscriptions")
-        .select("user_id, plano_config_id, status, cortesia, custom_preco, custom_ciclo, vinculado_a_user_id"),
+        .select("user_id, plano_config_id, status, cortesia, cortesia_observacao, asaas_ciclo, vinculado_a_user_id"),
       supabaseAdmin
         .from("profiles")
         .select("id, nome, email, razao_social, tipo_pessoa"),

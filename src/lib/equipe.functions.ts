@@ -194,7 +194,7 @@ export const criarUsuarioEquipe = createServerFn({ method: "POST" })
 
     const { data: ownerSub } = await supabaseAdmin
       .from("subscriptions")
-      .select("plano_config_id, cortesia, cortesia_observacao, custom_limits, custom_preco, custom_ciclo, custom_billing_type, custom_vencimento_dias")
+      .select("plano_config_id, cortesia, cortesia_observacao, asaas_billing_type, asaas_ciclo")
       .eq("user_id", context.userId)
       .maybeSingle();
 
@@ -231,11 +231,8 @@ export const criarUsuarioEquipe = createServerFn({ method: "POST" })
         status: "active",
         cortesia: ownerSub?.cortesia ?? false,
         cortesia_observacao: ownerSub?.cortesia_observacao ?? "Usuário vinculado",
-        custom_limits: ownerSub?.custom_limits ?? null,
-        custom_preco: ownerSub?.custom_preco ?? null,
-        custom_ciclo: ownerSub?.custom_ciclo ?? null,
-        custom_billing_type: ownerSub?.custom_billing_type ?? null,
-        custom_vencimento_dias: ownerSub?.custom_vencimento_dias ?? null,
+        asaas_billing_type: ownerSub?.asaas_billing_type ?? null,
+        asaas_ciclo: ownerSub?.asaas_ciclo ?? null,
         vinculado_a_user_id: context.userId,
       },
       { onConflict: "user_id" },

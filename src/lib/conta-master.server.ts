@@ -47,10 +47,33 @@ export async function getContaMasterId(userId: string): Promise<string> {
 async function lerSub(userId: string) {
   const { data } = await supabaseAdmin
     .from("subscriptions")
-    .select("plano_config_id, trial_end, cortesia, status, custom_limits, custom_preco, custom_ciclo, custom_billing_type, asaas_subscription_id")
+    .select("plano_config_id, trial_end, cortesia, cortesia_observacao, status, asaas_subscription_id, asaas_ciclo, asaas_billing_type")
     .eq("user_id", userId)
     .maybeSingle();
-  return data ?? null;
+  if (!data) return null;
+
+  let custom_limits = undefined;
+  let custom_preco = undefined;
+  let custom_ciclo = data.asaas_ciclo === "YEARLY" ? "anual" : "mensal";
+  let custom_billing_type = data.asaas_billing_type;
+
+  if (data.cortesia_observacao && data.cortesia_observacao.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(data.cortesia_observacao);
+      if (parsed.custom_limits) custom_limits = parsed.custom_limits;
+      if (parsed.custom_preco !== undefined) custom_preco = parsed.custom_preco;
+      if (parsed.custom_ciclo) custom_ciclo = parsed.custom_ciclo;
+      if (parsed.custom_billing_type) custom_billing_type = parsed.custom_billing_type;
+    } catch {}
+  }
+
+  return {
+    ...data,
+    custom_limits,
+    custom_preco,
+    custom_ciclo,
+    custom_billing_type,
+  };
 }
 
 /**

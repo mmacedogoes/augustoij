@@ -69,7 +69,13 @@ export const getPlanContext = createServerFn({ method: "GET" })
     const planoV2Efetivo = cortesia ? PLANOS.personalizado : PLANOS[planoV2Id];
     const trialEndIso = sub?.trial_end ?? null;
 
-    const custom = (planoId === "personalizado" && sub?.custom_limits) ? sub.custom_limits : null;
+    let custom = null;
+    if (planoId === "personalizado" && sub?.cortesia_observacao && sub.cortesia_observacao.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(sub.cortesia_observacao);
+        if (parsed.custom_limits) custom = parsed.custom_limits;
+      } catch {}
+    }
 
     const condominiosMax = custom?.condominiosMax !== undefined ? custom.condominiosMax : planoEfetivo.condomíniosMax;
     const usuariosMax = custom?.usuariosMax !== undefined ? custom.usuariosMax : planoEfetivo.usuariosMax;

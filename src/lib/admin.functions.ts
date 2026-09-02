@@ -123,7 +123,7 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
         "id, nome, email, telefone, oab, tipo_pessoa, cpf_cnpj, razao_social, papel_sistema, perfil_atuacao, ativo, created_at, ultimo_acesso",
       ).eq("id", data.userId).maybeSingle(),
       supabaseAdmin.from("subscriptions").select(
-        "plano_config_id, cortesia, cortesia_observacao, status, trial_end, current_period_end, creditos_mensagens_extras, custom_preco, custom_ciclo, custom_billing_type, custom_dia_vencimento, custom_limits, asaas_subscription_id, asaas_customer_id",
+        "plano_config_id, cortesia, cortesia_observacao, status, trial_end, current_period_end, creditos_mensagens_extras, asaas_subscription_id, asaas_customer_id, asaas_billing_type, asaas_ciclo",
       ).eq("user_id", data.userId).maybeSingle(),
       supabaseAdmin.from("condominios").select("id, nome, uf, qtd_unidades, created_at").eq("owner_id", data.userId).order("created_at", { ascending: false }),
       supabaseAdmin.from("uso_mensal").select("total_mensagens, total_tokens, custo_estimado_brl").eq("user_id", data.userId).eq("mes_ano", mesAno).maybeSingle(),
@@ -203,21 +203,43 @@ export const getUsuarioDetalheAdmin = createServerFn({ method: "GET" })
       };
     }
 
+    let customPreco: number | null = null;
+    let customCiclo: "mensal" | "anual" = subRes.data?.asaas_ciclo === "YEARLY" ? "anual" : "mensal";
+    let customBillingType: "UNDEFINED" | "PIX" | "BOLETO" | "CREDIT_CARD" =
+      (subRes.data?.asaas_billing_type as any) || "UNDEFINED";
+    let customDiaVencimento = 10;
+    let customLimits: any = null;
+    let cortesiaObsExibicao = subRes.data?.cortesia_observacao ?? null;
+
+    if (subRes.data?.cortesia_observacao && subRes.data.cortesia_observacao.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(subRes.data.cortesia_observacao);
+        if (parsed.custom_preco !== undefined) customPreco = Number(parsed.custom_preco);
+        if (parsed.custom_ciclo) customCiclo = parsed.custom_ciclo;
+        if (parsed.custom_billing_type) customBillingType = parsed.custom_billing_type;
+        if (parsed.custom_dia_vencimento !== undefined) customDiaVencimento = Number(parsed.custom_dia_vencimento);
+        if (parsed.custom_limits) customLimits = parsed.custom_limits;
+        cortesiaObsExibicao = parsed.observacao ?? null;
+      } catch {
+        // not json
+      }
+    }
+
     return {
       profile: profRes.data,
       subscription: {
         plano_config_id: planoConfigId,
         cortesia: subRes.data?.cortesia ?? (planoConfigId === "gratuito"),
-        cortesia_observacao: subRes.data?.cortesia_observacao ?? null,
+        cortesia_observacao: cortesiaObsExibicao,
         status: subRes.data?.status ?? "active",
         trial_end: subRes.data?.trial_end ?? null,
         current_period_end: subRes.data?.current_period_end ?? null,
         creditos_mensagens_extras: subRes.data?.creditos_mensagens_extras ?? 0,
-        custom_preco: subRes.data?.custom_preco !== undefined && subRes.data?.custom_preco !== null ? Number(subRes.data.custom_preco) : null,
-        custom_ciclo: (subRes.data?.custom_ciclo as "mensal" | "anual") ?? "mensal",
-        custom_billing_type: (subRes.data?.custom_billing_type as "UNDEFINED" | "PIX" | "BOLETO" | "CREDIT_CARD") ?? "UNDEFINED",
-        custom_dia_vencimento: subRes.data?.custom_dia_vencimento !== undefined && subRes.data?.custom_dia_vencimento !== null ? Number(subRes.data.custom_dia_vencimento) : 10,
-        custom_limits: subRes.data?.custom_limits ?? null,
+        custom_preco: customPreco,
+        custom_ciclo: customCiclo,
+        custom_billing_type: customBillingType,
+        custom_dia_vencimento: customDiaVencimento,
+        custom_limits: customLimits,
         asaas_subscription_id: subRes.data?.asaas_subscription_id ?? null,
         asaas_customer_id: subRes.data?.asaas_customer_id ?? null,
       },
@@ -475,18 +497,24 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
 
     const nextDueDate = calcularProximoVencimento(data.diaVencimento);
 
+    const customMeta = {
+      custom_preco: data.valor,
+      custom_ciclo: data.ciclo,
+      custom_billing_type: data.billing_type,
+      custom_dia_vencimento: data.diaVencimento,
+      custom_limits: data.limites,
+      observacao: data.cortesia_observacao ?? null,
+    };
+
     // 2) Salva o plano no banco PRIMEIRO (garante que métricas e limites sejam atualizados)
     const patchSub: Record<string, unknown> = {
       user_id: data.userId,
       plano_config_id: "personalizado",
       status: "active",
       cortesia: data.cortesia,
-      cortesia_observacao: data.cortesia_observacao ?? null,
-      custom_preco: data.valor,
-      custom_ciclo: data.ciclo,
-      custom_billing_type: data.billing_type,
-      custom_dia_vencimento: data.diaVencimento,
-      custom_limits: data.limites,
+      cortesia_observacao: JSON.stringify(customMeta),
+      asaas_billing_type: data.billing_type,
+      asaas_ciclo: data.ciclo === "anual" ? "YEARLY" : "MONTHLY",
       updated_at: new Date().toISOString(),
     };
 
@@ -503,11 +531,10 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
         plano_config_id: "personalizado",
         status: "active",
         cortesia: data.cortesia,
-        custom_preco: data.valor,
-        custom_ciclo: data.ciclo,
-        custom_billing_type: data.billing_type,
-        custom_dia_vencimento: data.diaVencimento,
-        custom_limits: data.limites,
+        cortesia_observacao: JSON.stringify(customMeta),
+        asaas_billing_type: data.billing_type,
+        asaas_ciclo: data.ciclo === "anual" ? "YEARLY" : "MONTHLY",
+        updated_at: new Date().toISOString(),
       })
       .eq("vinculado_a_user_id", data.userId);
 
@@ -687,9 +714,11 @@ export const getUsageTimeseries = createServerFn({ method: "GET" })
 export function calcularReceitaMensalSub(sub: {
   plano_config_id?: string | null;
   cortesia?: boolean | null;
+  cortesia_observacao?: string | null;
   vinculado_a_user_id?: string | null;
   custom_preco?: number | null;
   custom_ciclo?: string | null;
+  asaas_ciclo?: string | null;
   status?: string | null;
 }): number {
   if (sub.cortesia || sub.vinculado_a_user_id) return 0;
@@ -699,8 +728,17 @@ export function calcularReceitaMensalSub(sub: {
   if (!planoId || planoId === "gratuito") return 0;
 
   if (planoId === "personalizado") {
-    const valor = Number(sub.custom_preco ?? 0);
-    if (sub.custom_ciclo === "anual") {
+    let valor = Number(sub.custom_preco ?? 0);
+    let ciclo = sub.custom_ciclo || (sub.asaas_ciclo === "YEARLY" ? "anual" : "mensal");
+    if (!valor && sub.cortesia_observacao && sub.cortesia_observacao.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(sub.cortesia_observacao);
+        if (parsed.custom_preco) valor = Number(parsed.custom_preco);
+        if (parsed.custom_ciclo) ciclo = parsed.custom_ciclo;
+      } catch {}
+    }
+    if (!valor) valor = 1490;
+    if (ciclo === "anual") {
       return Number((valor / 12).toFixed(2));
     }
     return valor;
@@ -787,7 +825,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     ] = await Promise.all([
       supabaseAdmin
         .from("subscriptions")
-        .select("user_id, plano_config_id, status, cortesia, custom_preco, custom_ciclo, vinculado_a_user_id, created_at, updated_at, current_period_end"),
+        .select("user_id, plano_config_id, status, cortesia, cortesia_observacao, asaas_ciclo, vinculado_a_user_id, created_at, updated_at, current_period_end"),
       supabaseAdmin
         .from("profiles")
         .select("id", { count: "exact", head: true })
