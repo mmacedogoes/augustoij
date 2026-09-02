@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { apenasDigitos } from "./formatters";
 
 const schema = z.object({
   nome: z.string().trim().min(2, "Informe seu nome").max(120),
@@ -36,7 +37,7 @@ export const enviarContatoPersonalizado = createServerFn({ method: "POST" })
     const email = esc(data.email);
     const telefone = esc(data.telefone);
     const mensagem = esc(data.mensagem).replace(/\n/g, "<br>");
-    const telDigits = data.telefone.replace(/\D/g, "");
+    const telDigits = apenasDigitos(data.telefone);
     const quando = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
     const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f7f5ef;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1f2a24;">

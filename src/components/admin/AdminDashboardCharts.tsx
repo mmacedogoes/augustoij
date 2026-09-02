@@ -54,7 +54,7 @@ function TooltipCard({
             <span className="text-muted-foreground capitalize">{p.name ?? p.dataKey}</span>
             <span className="ml-2 font-medium tabular-nums text-foreground">
               {mode === "currency"
-                ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(p.value) || 0)
+                ? formatarMoeda(Number(p.value))
                 : Number(p.value).toLocaleString("pt-BR")}
             </span>
           </li>

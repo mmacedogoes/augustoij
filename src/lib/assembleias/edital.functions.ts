@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ensureAcessoAssembleias } from "./guard.server";
 import { paraRomano } from "./romanos";
 import { logAdminAction } from "@/lib/audit.server";
+import { formatarDataBR } from "@/lib/formatters";
 
 export const montarEdital = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -50,7 +51,7 @@ export const montarEdital = createServerFn({ method: "GET" })
     
     texto += `PROCURAÇÕES: Os condôminos poderão se fazer representar por procuradores devidamente constituídos.\n\n`;
     
-    texto += `${assembleia.condominio.cidade || "Local"}, ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+    texto += `${assembleia.condominio.cidade || "Local"}, ${formatarDataBR(new Date())}\n\n`;
     texto += `_________________________________\n`;
     texto += `Administração / Síndico\n`;
 

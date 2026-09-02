@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sparkles, Download, PencilLine, MailX, Trash2, Shield, ExternalLink, Loader2, XCircle, CreditCard } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AppSkeletonLines } from "@/components/ui/app-skeleton";
+import { formatarMoeda } from "@/lib/formatters";
 import { Card } from "@/components/ui/card";
 import { ListaMeusChamados } from "@/components/helpdesk/ListaMeusChamados";
 import { UsuariosEquipePanel } from "@/components/conta/UsuariosEquipePanel";
@@ -605,9 +606,7 @@ function PrivacyRow({
 }
 
 const brl = (n: number | null | undefined) =>
-  typeof n === "number"
-    ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
-    : "—";
+  typeof n === "number" ? formatarMoeda(n) : "—";
 
 const billingLabel: Record<string, string> = {
   UNDEFINED: "Cliente escolhe no boleto",

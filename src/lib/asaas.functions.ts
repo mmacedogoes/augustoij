@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { PLANOS, type PlanoId } from "@/config/planos";
+import { temCpfCnpjValido } from "@/lib/formatters";
 
 const criarSchema = z.object({
   plano_id: z.enum([
@@ -30,7 +31,7 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
       .maybeSingle();
     if (profileErr) throw new Error(profileErr.message);
     if (!profile) throw new Error("Perfil não encontrado.");
-    if (!profile.cpf_cnpj || profile.cpf_cnpj.replace(/\D/g, "").length < 11) {
+    if (!temCpfCnpjValido(profile.cpf_cnpj)) {
       throw new Error(
         "Informe seu CPF ou CNPJ na página Conta antes de assinar um plano.",
       );

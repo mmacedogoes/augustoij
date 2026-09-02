@@ -20,13 +20,13 @@ import {
 } from "@/lib/admin-financeiro.functions";
 import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
+import { formatarMoeda } from "@/lib/formatters";
 
 export const Route = createFileRoute("/_authenticated/app/admin/financeiro")({
   component: FinanceiroPage,
 });
 
-const brl = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+const brl = (n: number) => formatarMoeda(n);
 
 type Resumo = Awaited<ReturnType<typeof getFinanceiroResumo>>;
 

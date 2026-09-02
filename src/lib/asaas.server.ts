@@ -6,6 +6,8 @@
  * `ASAAS_ENV` = `sandbox` (padrão) → usa `ASAAS_API_KEY_SANDBOX` + api-sandbox.asaas.com
  */
 
+import { apenasDigitos } from "./formatters";
+
 export type AsaasEnv = "production" | "sandbox";
 
 export function getAsaasEnv(): AsaasEnv {
@@ -122,7 +124,7 @@ export type AsaasPayment = {
 // ============================================================
 
 export async function findCustomerByCpfCnpj(cpfCnpj: string): Promise<AsaasCustomer | null> {
-  const cpfLimpo = cpfCnpj.replace(/\D/g, "");
+  const cpfLimpo = apenasDigitos(cpfCnpj);
   if (!cpfLimpo) return null;
   const data = await asaasFetch<{ data: AsaasCustomer[] }>(`/customers`, {
     query: { cpfCnpj: cpfLimpo, limit: "1" },
@@ -142,7 +144,7 @@ export async function createCustomer(input: {
     body: {
       name: input.name,
       email: input.email,
-      cpfCnpj: input.cpfCnpj.replace(/\D/g, ""),
+      cpfCnpj: apenasDigitos(input.cpfCnpj),
       mobilePhone: input.mobilePhone ?? undefined,
       externalReference: input.externalReference,
       notificationDisabled: false,

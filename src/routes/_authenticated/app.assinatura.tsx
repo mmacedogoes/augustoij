@@ -17,6 +17,7 @@ import {
   getAssinaturaPendente,
   getPerfilParaAssinatura,
 } from "@/lib/asaas.functions";
+import { temCpfCnpjValido } from "@/lib/formatters";
 
 const PLAN_PRICES: Record<
   Exclude<PlanId, "gratuito" | "personalizado">,
@@ -111,8 +112,7 @@ function AssinaturaPage() {
   const perfilCompleto = Boolean(
     perfil.data?.nome &&
       perfil.data?.email &&
-      perfil.data?.cpf_cnpj &&
-      perfil.data.cpf_cnpj.replace(/\D/g, "").length >= 11,
+      temCpfCnpjValido(perfil.data?.cpf_cnpj),
   );
 
   return (

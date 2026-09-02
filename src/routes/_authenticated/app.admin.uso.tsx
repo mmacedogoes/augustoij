@@ -43,13 +43,13 @@ import {
 } from "@/lib/admin-uso.functions";
 import { AppSkeletonLines } from "@/components/ui/app-skeleton";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
+import { formatarMoeda } from "@/lib/formatters";
 
 export const Route = createFileRoute("/_authenticated/app/admin/uso")({
   component: UsoPage,
 });
 
-const brl = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+const brl = (n: number) => formatarMoeda(n);
 const compact = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;

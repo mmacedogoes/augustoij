@@ -33,13 +33,13 @@ import {
 } from "@/lib/admin.functions";
 import { AppEmptyState } from "@/components/ui/app-empty-state";
 import { PLANS, PLAN_IDS, CLASSIFICACAO_VINCULADO, type PlanId } from "@/config/plans";
+import { formatarMoeda } from "@/lib/formatters";
 
 export const Route = createFileRoute("/_authenticated/app/admin/usuarios/$userId")({
   component: AdminUsuarioDetalhePage,
 });
 
-const BRL = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+const BRL = (v: number) => formatarMoeda(v);
 const DATE_BR = (iso: string | null) =>
   iso
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(iso))

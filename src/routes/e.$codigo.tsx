@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { formatarDataHoraBR } from '@/lib/formatters'
 
 const getEditalPublico = createServerFn({ method: 'GET' })
   .inputValidator(z.object({ codigo: z.string() }))
@@ -67,7 +68,7 @@ function EditalPublicoPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
               <div>
                 <span className="block font-bold text-[#00512B] uppercase text-xs mb-1">Data e Hora</span>
-                {date.toLocaleDateString('pt-BR')} às {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                {formatarDataHoraBR(date)}
               </div>
               <div>
                 <span className="block font-bold text-[#00512B] uppercase text-xs mb-1">Local</span>
