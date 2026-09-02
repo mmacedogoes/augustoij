@@ -62,7 +62,7 @@ export const criarAssinaturaAsaas = createServerFn({ method: "POST" })
     const customer = await asaas.ensureCustomer({
       name: nomeCliente,
       email: profile.email,
-      cpfCnpj: profile.cpf_cnpj,
+      cpfCnpj: profile.cpf_cnpj as string,
       mobilePhone: profile.telefone ?? undefined,
       externalReference: userId,
     });
