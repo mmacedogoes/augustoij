@@ -23,7 +23,7 @@ export const listCondominios = createServerFn({ method: "GET" })
       .from("condominios")
       .select("id, nome, cnpj, uf, cidade, qtd_unidades, created_at")
       .in("id", ids)
-      .order("created_at", { ascending: false });
+      .order("nome", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
   });

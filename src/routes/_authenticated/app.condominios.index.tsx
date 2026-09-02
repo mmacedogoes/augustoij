@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Building, Plus, Lock, Sparkles } from "lucide-react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { Building, Plus, Lock, Sparkles, Search, X, ArrowDownAZ, MapPin, ChevronRight } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
@@ -41,11 +41,23 @@ const schema = z.object({
   categoria: z.enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"]),
 });
 
+function normalizarTexto(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 function CondominiosPage() {
   const fetchList = useServerFn(listCondominios);
   const create = useServerFn(createCondominio);
   const { data: plano, refetch: refetchPlano } = usePlanContext();
   const [items, setItems] = useState<Array<{ id: string; nome: string; uf: string | null; cidade: string | null; qtd_unidades: number | null; cnpj: string | null }>>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
   const [open, setOpen] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [form, setForm] = useState<{
@@ -62,6 +74,51 @@ function CondominiosPage() {
     setItems(r as typeof items);
   }
   useEffect(() => { reload().catch(() => {}); }, []);
+
+  // Fechar dropdown de autocomplete ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
+        setIsAutocompleteOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Ordenação Alfabética A-Z estrita com locale pt-BR
+  const sortedItems = useMemo(() => {
+    return [...items].sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }),
+    );
+  }, [items]);
+
+  // Filtragem dinâmica por termo de busca
+  const filteredItems = useMemo(() => {
+    if (!searchTerm.trim()) return sortedItems;
+    const term = normalizarTexto(searchTerm);
+    const digitosTerm = searchTerm.replace(/\D/g, "");
+
+    return sortedItems.filter((c) => {
+      const matchNome = normalizarTexto(c.nome).includes(term);
+      const matchCidade = c.cidade ? normalizarTexto(c.cidade).includes(term) : false;
+      const matchUf = c.uf ? normalizarTexto(c.uf).includes(term) : false;
+      const matchCnpj = c.cnpj
+        ? c.cnpj.includes(term) || (digitosTerm.length > 0 && c.cnpj.replace(/\D/g, "").includes(digitosTerm))
+        : false;
+
+      return matchNome || matchCidade || matchUf || matchCnpj;
+    });
+  }, [sortedItems, searchTerm]);
+
+  // Sugestões para preenchimento automático
+  const autocompleteSuggestions = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    return filteredItems.slice(0, 6);
+  }, [filteredItems, searchTerm]);
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -208,6 +265,105 @@ function CondominiosPage() {
           </div>
         )}
 
+        {/* Barra de Pesquisa com Autocomplete e Ordenação A-Z */}
+        {items.length > 0 && (
+          <div className="mt-4 mb-5" ref={searchContainerRef}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="text"
+                    data-testid="input-busca-condominio"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setIsAutocompleteOpen(true);
+                    }}
+                    onFocus={() => setIsAutocompleteOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setIsAutocompleteOpen(false);
+                      }
+                    }}
+                    placeholder="Buscar por condomínio, cidade, UF ou CNPJ..."
+                    className="pl-10 pr-10 h-10 bg-card border-border/80 text-sm shadow-sm transition-all focus:border-augusto-gold focus:ring-augusto-gold/30"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setIsAutocompleteOpen(false);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors"
+                      title="Limpar busca"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Dropdown de Preenchimento Automático / Sugestões Rápidas */}
+                {isAutocompleteOpen && autocompleteSuggestions.length > 0 && searchTerm.trim().length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1.5 bg-popover/95 backdrop-blur-md border border-border/80 rounded-lg shadow-xl overflow-hidden animate-in fade-in-50 slide-in-from-top-1 duration-150">
+                    <div className="px-3 py-1.5 bg-muted/50 border-b border-border/40 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                      <span>Sugestões de preenchimento</span>
+                      <span>{filteredItems.length} encontrado(s)</span>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto divide-y divide-border/30">
+                      {autocompleteSuggestions.map((c) => (
+                        <div
+                          key={`sugg-${c.id}`}
+                          className="px-3.5 py-2.5 hover:bg-augusto-gold/10 cursor-pointer flex items-center justify-between group transition-colors"
+                          onClick={() => {
+                            setSearchTerm(c.nome);
+                            setIsAutocompleteOpen(false);
+                          }}
+                        >
+                          <div className="min-w-0 flex-1 pr-2">
+                            <p className="text-sm font-medium text-foreground group-hover:text-augusto-green truncate">
+                              {c.nome}
+                            </p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                              {c.cidade && (
+                                <span className="flex items-center gap-0.5">
+                                  <MapPin className="h-3 w-3 inline text-muted-foreground/70" />
+                                  {c.cidade}{c.uf ? `/${c.uf}` : ""}
+                                </span>
+                              )}
+                              {c.cnpj && <span>• {c.cnpj}</span>}
+                            </p>
+                          </div>
+                          <Link
+                            to="/app/condominios/$id"
+                            params={{ id: c.id }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="shrink-0 p-1.5 rounded-md hover:bg-augusto-gold/20 text-muted-foreground group-hover:text-augusto-green transition-colors"
+                            title="Acessar condomínio diretamente"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Indicador de Ordem Alfabética e Contagem */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0 self-end sm:self-center px-1">
+                <span className="flex items-center gap-1.5 font-medium bg-muted/60 px-2.5 py-1.5 rounded-md border border-border/50">
+                  <ArrowDownAZ className="h-3.5 w-3.5 text-augusto-gold" />
+                  {searchTerm.trim()
+                    ? `${filteredItems.length} de ${items.length} condomínios`
+                    : `${items.length} condomínios (A-Z)`}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-2 grid sm:grid-cols-2 gap-4 app-stagger">
           {items.length === 0 ? (
             <Card className="app-card p-10 border-dashed border-[var(--landing-rule)] col-span-full bg-gradient-to-b from-card to-muted/30">
@@ -216,28 +372,52 @@ function CondominiosPage() {
                 title="Nenhum condomínio cadastrado ainda"
               />
             </Card>
-          ) : items.map((c) => (
-            <Link
-              key={c.id}
-              to="/app/condominios/$id"
-              params={{ id: c.id }}
-              className="group focus-visible:outline-none"
-            >
-              <Card data-testid="condominio-card" className="app-card-interactive p-5 group-focus-visible:ring-2 group-focus-visible:ring-augusto-gold/70">
-                <div className="flex items-center gap-3.5">
-                  <span className="app-icon-frame group-hover:bg-augusto-gold/20 group-hover:border-augusto-gold/50">
-                    <Building className="h-5 w-5" strokeWidth={1.6} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-augusto-green truncate leading-tight">{c.nome}</p>
-                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                      {c.cidade ? `${c.cidade}${c.uf ? "/" + c.uf : ""}` : c.uf ?? "—"} • {c.qtd_unidades != null ? `${c.qtd_unidades} unidades` : "unidades via convenção"} {c.cnpj ? `• ${c.cnpj}` : ""}
-                    </p>
-                  </div>
+          ) : filteredItems.length === 0 ? (
+            <Card className="app-card p-8 border-dashed border-[var(--landing-rule)] col-span-full bg-gradient-to-b from-card to-muted/20 text-center">
+              <div className="flex flex-col items-center justify-center gap-3">
+                <span className="grid place-items-center h-10 w-10 rounded-full bg-muted text-muted-foreground">
+                  <Search className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-medium text-foreground">Nenhum condomínio encontrado</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Não encontramos condomínios correspondentes a "{searchTerm}".
+                  </p>
                 </div>
-              </Card>
-            </Link>
-          ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearchTerm("")}
+                  className="mt-2 gap-1.5"
+                >
+                  <X className="h-3.5 w-3.5" /> Limpar busca
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            filteredItems.map((c) => (
+              <Link
+                key={c.id}
+                to="/app/condominios/$id"
+                params={{ id: c.id }}
+                className="group focus-visible:outline-none"
+              >
+                <Card data-testid="condominio-card" className="app-card-interactive p-5 group-focus-visible:ring-2 group-focus-visible:ring-augusto-gold/70">
+                  <div className="flex items-center gap-3.5">
+                    <span className="app-icon-frame group-hover:bg-augusto-gold/20 group-hover:border-augusto-gold/50">
+                      <Building className="h-5 w-5" strokeWidth={1.6} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-augusto-green truncate leading-tight">{c.nome}</p>
+                      <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                        {c.cidade ? `${c.cidade}${c.uf ? "/" + c.uf : ""}` : c.uf ?? "—"} • {c.qtd_unidades != null ? `${c.qtd_unidades} unidades` : "unidades via convenção"} {c.cnpj ? `• ${c.cnpj}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </>
