@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -221,6 +221,19 @@ function DadosPessoaisCard({
     (profile.papel_sistema as any) || "usuario",
   );
   const [ativo, setAtivo] = useState(profile.ativo ?? true);
+
+  useEffect(() => {
+    setNome(profile.nome || "");
+    setEmail(profile.email || "");
+    setTelefone(profile.telefone || "");
+    setOab(profile.oab || "");
+    setTipoPessoa((profile.tipo_pessoa as "pf" | "pj") || "pf");
+    setCpfCnpj(profile.cpf_cnpj || "");
+    setRazaoSocial(profile.razao_social || "");
+    setPerfilAtuacao(profile.perfil_atuacao || "Síndico Profissional");
+    setPapelSistema((profile.papel_sistema as any) || "usuario");
+    setAtivo(profile.ativo ?? true);
+  }, [profile]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
