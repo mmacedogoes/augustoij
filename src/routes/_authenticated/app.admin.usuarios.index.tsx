@@ -3,13 +3,14 @@ import { useCallback, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX, ChevronRight, Sparkles, Loader2, Users } from "lucide-react";
+import { ShieldCheck, ShieldOff, Search, UserPlus, UserCheck, UserX, ChevronRight, Sparkles, Loader2, Users, Link2 } from "lucide-react";
 import { Link, MatchRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { listUsuariosAdmin, setUserRole, adminCreateUser, setUserAtivo } from "@/lib/admin.functions";
 import {
   Dialog,
@@ -33,6 +34,11 @@ type UserRow = {
   nome: string;
   oab: string | null;
   plano: string;
+  plano_config_id?: string;
+  cortesia?: boolean;
+  vinculado_a_id?: string | null;
+  vinculado_a_nome?: string | null;
+  vinculado_a_email?: string | null;
   total_condominios: number;
   mensagens_mes: number;
   is_admin: boolean;
@@ -338,13 +344,27 @@ function AdminUsuariosPage() {
                 className={`p-4 flex flex-wrap items-center gap-3 hover:bg-muted/40 transition-colors duration-[var(--dur-fast)] ${u.ativo ? "" : "opacity-70"}`}
               >
                 <div className="flex-1 min-w-[220px]">
-                  <p className="font-medium text-primary">{u.nome || "—"}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-primary">{u.nome || "—"}</p>
+                    {u.vinculado_a_id && (
+                      <Badge
+                        className="bg-primary/10 text-primary hover:bg-primary/15 border-0 text-[11px] py-0"
+                        title={`Usuário vinculado à conta de ${u.vinculado_a_nome || u.vinculado_a_email || "Titular"}`}
+                      >
+                        <Link2 className="h-3 w-3 mr-1" /> Vinculado a {u.vinculado_a_nome || u.vinculado_a_email || "Titular"}
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">{u.email}</p>
                   {u.oab && <p className="text-xs text-muted-foreground">OAB: {u.oab}</p>}
                 </div>
-                <div className="text-xs text-muted-foreground min-w-[110px]">
-                  <p>{u.total_condominios} condomínio(s)</p>
-                  <p>{u.mensagens_mes} msg(s) no mês</p>
+                <div className="text-xs text-muted-foreground min-w-[130px] space-y-0.5">
+                  <div className="flex items-center gap-1">
+                    <Badge variant="outline" className="text-[11px] font-medium capitalize border-border/80 py-0">
+                      {u.plano_config_id || u.plano} {u.cortesia ? "(Cortesia)" : ""}
+                    </Badge>
+                  </div>
+                  <p>{u.total_condominios} condomínio(s) · {u.mensagens_mes} msg(s)/mês</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {u.is_admin ? (

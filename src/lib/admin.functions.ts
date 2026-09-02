@@ -284,6 +284,19 @@ export const adminUpdateSubscription = createServerFn({ method: "POST" })
       .upsert({ user_id: data.userId, ...patch }, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
 
+    // Sincroniza o plano com os usuários vinculados a este titular
+    const syncPatch: Record<string, unknown> = {};
+    if (patch.plano_config_id !== undefined) syncPatch.plano_config_id = patch.plano_config_id;
+    if (patch.cortesia !== undefined) syncPatch.cortesia = patch.cortesia;
+    if (patch.cortesia_observacao !== undefined) syncPatch.cortesia_observacao = patch.cortesia_observacao;
+    if (patch.status !== undefined) syncPatch.status = patch.status;
+    if (Object.keys(syncPatch).length > 0) {
+      await supabaseAdmin
+        .from("subscriptions")
+        .update(syncPatch)
+        .eq("vinculado_a_user_id", data.userId);
+    }
+
     await logAdminAction({
       actorUserId: context.userId,
       action: "subscription.update",
@@ -397,6 +410,20 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
       .upsert(patchSub, { onConflict: "user_id" });
 
     if (subErr) throw new Error(subErr.message);
+
+    // Sincroniza plano personalizado para todos os usuários vinculados a este titular
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        plano_config_id: "personalizado",
+        status: "active",
+        cortesia: false,
+        custom_preco: data.valor,
+        custom_ciclo: data.ciclo,
+        custom_billing_type: data.billing_type,
+        custom_limits: data.limites,
+      })
+      .eq("vinculado_a_user_id", data.userId);
 
     // 4) Disparo do e-mail de confirmação ao usuário
     if (data.enviarEmailConfirmacao) {
@@ -713,7 +740,62 @@ export const listUsuariosAdmin = createServerFn({ method: "GET" })
       _offset: data.offset,
     });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+
+    // Hidrata dados de vinculação e planos herdados
+    const userRows = (rows ?? []) as Array<any>;
+    if (userRows.length === 0) return [];
+
+    const userIds = userRows.map((r) => r.id);
+
+    // Busca profiles para pegar criado_por e memberships
+    const [profRes, memRes] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, criado_por").in("id", userIds),
+      supabaseAdmin.from("condominio_members").select("user_id, criado_por").in("user_id", userIds),
+    ]);
+
+    const criadoPorMap = new Map<string, string>();
+    for (const p of profRes.data ?? []) {
+      if (p.criado_por && p.criado_por !== p.id) criadoPorMap.set(p.id, p.criado_por);
+    }
+    for (const m of memRes.data ?? []) {
+      if (m.criado_por && m.criado_por !== m.user_id && !criadoPorMap.has(m.user_id)) {
+        criadoPorMap.set(m.user_id, m.criado_por);
+      }
+    }
+
+    const ownerIds = Array.from(new Set(Array.from(criadoPorMap.values()).filter(Boolean)));
+
+    let ownersMap: Record<string, { nome: string | null; email: string | null; plano_config_id: string | null }> = {};
+    if (ownerIds.length > 0) {
+      const [ownersProf, ownersSub] = await Promise.all([
+        supabaseAdmin.from("profiles").select("id, nome, email").in("id", ownerIds),
+        supabaseAdmin.from("subscriptions").select("user_id, plano_config_id").in("user_id", ownerIds),
+      ]);
+      const subByOwner = new Map((ownersSub.data ?? []).map((s) => [s.user_id, s.plano_config_id]));
+      for (const op of ownersProf.data ?? []) {
+        ownersMap[op.id] = {
+          nome: op.nome,
+          email: op.email,
+          plano_config_id: subByOwner.get(op.id) ?? "gestao",
+        };
+      }
+    }
+
+    return userRows.map((u) => {
+      const ownerId = u.vinculado_a_id || criadoPorMap.get(u.id);
+      const ownerInfo = ownerId ? ownersMap[ownerId] : null;
+
+      const planoFinal = ownerInfo?.plano_config_id || u.plano_config_id || u.plano || "gratuito";
+
+      return {
+        ...u,
+        plano: planoFinal,
+        plano_config_id: planoFinal,
+        vinculado_a_id: ownerId ?? null,
+        vinculado_a_nome: ownerInfo?.nome || u.vinculado_a_nome || null,
+        vinculado_a_email: ownerInfo?.email || u.vinculado_a_email || null,
+      };
+    });
   });
 
 export const listCondominiosAdmin = createServerFn({ method: "GET" })

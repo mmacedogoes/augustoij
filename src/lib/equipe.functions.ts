@@ -192,6 +192,12 @@ export const criarUsuarioEquipe = createServerFn({ method: "POST" })
       .ilike("email", emailNorm)
       .maybeSingle();
 
+    const { data: ownerSub } = await supabaseAdmin
+      .from("subscriptions")
+      .select("plano_config_id, cortesia, cortesia_observacao, custom_limits, custom_preco, custom_ciclo, custom_billing_type, custom_vencimento_dias")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+
     let userId = (existing?.id as string | undefined) ?? null;
     if (!userId) {
       const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
@@ -203,17 +209,37 @@ export const criarUsuarioEquipe = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       userId = created?.user?.id ?? null;
       if (!userId) throw new Error("Falha ao criar usuário.");
-      await supabaseAdmin.from("profiles").upsert(
-        {
-          id: userId,
-          email: emailNorm,
-          nome: data.nome,
-          papel_sistema: "cliente_pj_operador",
-          onboarding_completo: true,
-        },
-        { onConflict: "id" },
-      );
     }
+
+    await supabaseAdmin.from("profiles").upsert(
+      {
+        id: userId,
+        email: emailNorm,
+        nome: data.nome,
+        papel_sistema: "cliente_pj_operador",
+        onboarding_completo: true,
+        criado_por: context.userId,
+      },
+      { onConflict: "id" },
+    );
+
+    // Replica a assinatura e plano do titular na conta do usuário vinculado
+    await supabaseAdmin.from("subscriptions").upsert(
+      {
+        user_id: userId,
+        plano_config_id: ownerSub?.plano_config_id ?? "gestao",
+        status: "active",
+        cortesia: ownerSub?.cortesia ?? false,
+        cortesia_observacao: ownerSub?.cortesia_observacao ?? "Usuário vinculado",
+        custom_limits: ownerSub?.custom_limits ?? null,
+        custom_preco: ownerSub?.custom_preco ?? null,
+        custom_ciclo: ownerSub?.custom_ciclo ?? null,
+        custom_billing_type: ownerSub?.custom_billing_type ?? null,
+        custom_vencimento_dias: ownerSub?.custom_vencimento_dias ?? null,
+        vinculado_a_user_id: context.userId,
+      },
+      { onConflict: "user_id" },
+    );
 
     const linhas = alvo.map((condominio_id) => ({
       condominio_id,
