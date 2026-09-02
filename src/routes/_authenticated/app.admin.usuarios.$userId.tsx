@@ -198,6 +198,23 @@ function AdminUsuarioDetalhePage() {
   );
 }
 
+const PAPEL_SISTEMA_LABELS: Record<string, string> = {
+  cliente_pf: "Cliente Pessoa Física",
+  cliente_pj_dono: "Cliente PJ (Titular)",
+  cliente_pj_operador: "Cliente PJ (Operador)",
+  super_admin: "Super Admin (Acesso Total)",
+  admin_operacional: "Admin Operacional",
+  admin_suporte: "Admin Suporte",
+};
+
+const PERFIL_ATUACAO_LABELS: Record<string, string> = {
+  sindico: "Síndico",
+  advogado: "Advogado / Jurídico",
+  administradora: "Administradora de Condomínio",
+  conselheiro: "Membro do Conselho",
+  outro: "Outro",
+};
+
 function DadosPessoaisCard({
   profile,
   onSaved,
@@ -216,10 +233,12 @@ function DadosPessoaisCard({
   const [tipoPessoa, setTipoPessoa] = useState<"pf" | "pj">((profile.tipo_pessoa as "pf" | "pj") || "pf");
   const [cpfCnpj, setCpfCnpj] = useState(profile.cpf_cnpj || "");
   const [razaoSocial, setRazaoSocial] = useState(profile.razao_social || "");
-  const [perfilAtuacao, setPerfilAtuacao] = useState(profile.perfil_atuacao || "Síndico Profissional");
-  const [papelSistema, setPapelSistema] = useState<"usuario" | "super_admin" | "admin_operacional" | "admin_suporte">(
-    (profile.papel_sistema as any) || "usuario",
+  const [perfilAtuacao, setPerfilAtuacao] = useState<"sindico" | "advogado" | "administradora" | "conselheiro" | "outro">(
+    (profile.perfil_atuacao as any) || "sindico",
   );
+  const [papelSistema, setPapelSistema] = useState<
+    "super_admin" | "admin_operacional" | "admin_suporte" | "cliente_pf" | "cliente_pj_dono" | "cliente_pj_operador"
+  >((profile.papel_sistema as any) || (profile.tipo_pessoa === "pj" ? "cliente_pj_dono" : "cliente_pf"));
   const [ativo, setAtivo] = useState(profile.ativo ?? true);
 
   useEffect(() => {
@@ -230,8 +249,8 @@ function DadosPessoaisCard({
     setTipoPessoa((profile.tipo_pessoa as "pf" | "pj") || "pf");
     setCpfCnpj(profile.cpf_cnpj || "");
     setRazaoSocial(profile.razao_social || "");
-    setPerfilAtuacao(profile.perfil_atuacao || "Síndico Profissional");
-    setPapelSistema((profile.papel_sistema as any) || "usuario");
+    setPerfilAtuacao((profile.perfil_atuacao as any) || "sindico");
+    setPapelSistema((profile.papel_sistema as any) || (profile.tipo_pessoa === "pj" ? "cliente_pj_dono" : "cliente_pf"));
     setAtivo(profile.ativo ?? true);
   }, [profile]);
 
@@ -253,7 +272,7 @@ function DadosPessoaisCard({
           tipo_pessoa: tipoPessoa,
           cpf_cnpj: cpfCnpj.trim() || null,
           razao_social: tipoPessoa === "pj" ? (razaoSocial.trim() || null) : null,
-          perfil_atuacao: perfilAtuacao.trim() || null,
+          perfil_atuacao: perfilAtuacao,
           papel_sistema: papelSistema,
           ativo,
         },
@@ -276,8 +295,8 @@ function DadosPessoaisCard({
     setTipoPessoa((profile.tipo_pessoa as "pf" | "pj") || "pf");
     setCpfCnpj(profile.cpf_cnpj || "");
     setRazaoSocial(profile.razao_social || "");
-    setPerfilAtuacao(profile.perfil_atuacao || "Síndico Profissional");
-    setPapelSistema((profile.papel_sistema as any) || "usuario");
+    setPerfilAtuacao((profile.perfil_atuacao as any) || "sindico");
+    setPapelSistema((profile.papel_sistema as any) || (profile.tipo_pessoa === "pj" ? "cliente_pj_dono" : "cliente_pf"));
     setAtivo(profile.ativo ?? true);
     setIsEditing(false);
   }
@@ -321,8 +340,8 @@ function DadosPessoaisCard({
             <Row label="Razão social" value={profile.razao_social || "—"} />
           )}
           <Row label="OAB" value={profile.oab || "—"} />
-          <Row label="Perfil" value={profile.perfil_atuacao || "—"} />
-          <Row label="Papel no sistema" value={profile.papel_sistema?.replace(/_/g, " ").toUpperCase() || "USUÁRIO"} />
+          <Row label="Perfil" value={PERFIL_ATUACAO_LABELS[profile.perfil_atuacao || ""] || profile.perfil_atuacao || "—"} />
+          <Row label="Papel no sistema" value={PAPEL_SISTEMA_LABELS[profile.papel_sistema || ""] || profile.papel_sistema?.replace(/_/g, " ").toUpperCase() || "CLIENTE"} />
           <Row label="Status da conta" value={profile.ativo ? "Ativa" : "Bloqueada"} />
           <Row label="Último acesso" value={DATE_BR(profile.ultimo_acesso)} />
         </dl>
@@ -410,16 +429,14 @@ function DadosPessoaisCard({
               <Label className="text-xs font-medium">Perfil de Atuação</Label>
               <select
                 value={perfilAtuacao}
-                onChange={(e) => setPerfilAtuacao(e.target.value)}
+                onChange={(e) => setPerfilAtuacao(e.target.value as any)}
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9"
               >
-                <option value="Síndico Profissional">Síndico Profissional</option>
-                <option value="Síndico Morador">Síndico Morador</option>
-                <option value="Administradora">Administradora de Condomínio</option>
-                <option value="Advogado">Advogado / Jurídico</option>
-                <option value="Gestor Predial">Gestor Predial</option>
-                <option value="Membro do Conselho">Membro do Conselho</option>
-                <option value="Outro">Outro</option>
+                <option value="sindico">Síndico</option>
+                <option value="advogado">Advogado / Jurídico</option>
+                <option value="administradora">Administradora de Condomínio</option>
+                <option value="conselheiro">Membro do Conselho</option>
+                <option value="outro">Outro</option>
               </select>
             </div>
             <div className="space-y-1">
@@ -429,7 +446,9 @@ function DadosPessoaisCard({
                 onChange={(e) => setPapelSistema(e.target.value as any)}
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm h-9 font-medium"
               >
-                <option value="usuario">Usuário Padrão</option>
+                <option value="cliente_pj_dono">Cliente PJ (Titular / Dono)</option>
+                <option value="cliente_pf">Cliente Pessoa Física (PF)</option>
+                <option value="cliente_pj_operador">Cliente PJ (Operador / Equipe)</option>
                 <option value="super_admin">Super Admin (Acesso Total)</option>
                 <option value="admin_operacional">Admin Operacional</option>
                 <option value="admin_suporte">Admin Suporte</option>
