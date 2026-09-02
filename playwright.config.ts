@@ -23,11 +23,21 @@ export default defineConfig({
     timezoneId: "America/Sao_Paulo",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Permite apontar para um Chromium do sistema (sandbox/CI sem libs do Playwright).
+        ...(process.env["PLAYWRIGHT_CHROMIUM_PATH"]
+          ? { launchOptions: { executablePath: process.env["PLAYWRIGHT_CHROMIUM_PATH"] } }
+          : {}),
+      },
+    },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
     { name: "mobile-chrome", use: { ...devices["Pixel 7"] } },
   ],
+
   webServer: {
     command: "bun run dev",
     url: baseURL,
