@@ -135,7 +135,7 @@ export const listUsoPorUsuario = createServerFn({ method: "GET" })
       const planoId = (rawPlanoId in PLANS ? rawPlanoId : "gratuito") as PlanId;
       const planoDef = PLANS[planoId];
 
-      let planoNome = planoDef?.nome ?? "Gratuito";
+      let planoNome: string = planoDef?.nome ?? "Gratuito";
       let limMsgs: number | null = planoDef?.mensagensPorMes ?? null;
       let limMb: number | null = 500;
 
