@@ -18,7 +18,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "augustoij"
+const SITE_NAME = "Augusto.IJ"
 const ROOT_DOMAIN = "augustoij.com.br"
 
 // Sample data for preview mode ONLY (not used in actual email sending).
@@ -64,7 +64,7 @@ export const Route = createFileRoute("/lovable/email/auth/preview")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = process.env.LOVABLE_API_KEY
+        const apiKey = process.env['LOVABLE_API_KEY']
 
         if (!apiKey) {
           return Response.json(
