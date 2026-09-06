@@ -56,6 +56,11 @@ export const Route = createFileRoute("/api/public/auth-check")({
           return Response.json({ ok: false, message: MENSAGEM }, { status: 429 });
         }
         return Response.json({ ok: true });
+        } catch (erro) {
+          // Falha na contagem (ex.: backend indisponível) não pode bloquear login/cadastro.
+          console.error("[auth-check] falha ao registrar tentativa", erro);
+          return Response.json({ ok: true, skipped: true });
+        }
       },
     },
   },
