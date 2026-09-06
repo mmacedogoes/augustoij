@@ -4219,6 +4219,7 @@ export type Database = {
           convidado_por: string | null
           cpf_cnpj: string | null
           created_at: string
+          criado_por: string | null
           dicas_ativas: boolean
           email: string | null
           id: string
@@ -4244,6 +4245,7 @@ export type Database = {
           convidado_por?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          criado_por?: string | null
           dicas_ativas?: boolean
           email?: string | null
           id: string
@@ -4269,6 +4271,7 @@ export type Database = {
           convidado_por?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          criado_por?: string | null
           dicas_ativas?: boolean
           email?: string | null
           id?: string
@@ -4516,6 +4519,12 @@ export type Database = {
           created_at: string
           creditos_mensagens_extras: number
           current_period_end: string | null
+          custom_billing_type: string | null
+          custom_ciclo: string | null
+          custom_dia_vencimento: number | null
+          custom_limits: Json | null
+          custom_preco: number | null
+          custom_vencimento_dias: number | null
           id: string
           overdue_desde: string | null
           pending_desde: string | null
@@ -4531,6 +4540,7 @@ export type Database = {
           trial_end: string | null
           updated_at: string
           user_id: string
+          vinculado_a_user_id: string | null
         }
         Insert: {
           asaas_ambiente?: string | null
@@ -4548,6 +4558,12 @@ export type Database = {
           created_at?: string
           creditos_mensagens_extras?: number
           current_period_end?: string | null
+          custom_billing_type?: string | null
+          custom_ciclo?: string | null
+          custom_dia_vencimento?: number | null
+          custom_limits?: Json | null
+          custom_preco?: number | null
+          custom_vencimento_dias?: number | null
           id?: string
           overdue_desde?: string | null
           pending_desde?: string | null
@@ -4563,6 +4579,7 @@ export type Database = {
           trial_end?: string | null
           updated_at?: string
           user_id: string
+          vinculado_a_user_id?: string | null
         }
         Update: {
           asaas_ambiente?: string | null
@@ -4580,6 +4597,12 @@ export type Database = {
           created_at?: string
           creditos_mensagens_extras?: number
           current_period_end?: string | null
+          custom_billing_type?: string | null
+          custom_ciclo?: string | null
+          custom_dia_vencimento?: number | null
+          custom_limits?: Json | null
+          custom_preco?: number | null
+          custom_vencimento_dias?: number | null
           id?: string
           overdue_desde?: string | null
           pending_desde?: string | null
@@ -4595,6 +4618,7 @@ export type Database = {
           trial_end?: string | null
           updated_at?: string
           user_id?: string
+          vinculado_a_user_id?: string | null
         }
         Relationships: [
           {

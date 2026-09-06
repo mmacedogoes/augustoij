@@ -23,6 +23,7 @@ export type SubscriptionEfetiva = {
     relatoriosPorCondominio?: boolean;
     suportePrioritario?: boolean;
   } | null;
+  cortesia_observacao?: string | null;
   custom_preco?: number | null;
   custom_ciclo?: string | null;
   custom_billing_type?: string | null;

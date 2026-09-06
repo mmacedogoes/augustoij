@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
 import { logAdminAction } from "./audit.server";
 import { PLAN_IDS, PLANS, type PlanId } from "@/config/plans";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 const PlanoConfigEnum = z.enum(PLAN_IDS as [PlanId, ...PlanId[]]);
 
@@ -314,7 +315,7 @@ export const adminUpdateUsuarioPerfil = createServerFn({ method: "POST" })
     }
 
     // 3) Atualiza o registro em profiles
-    const patch: Record<string, unknown> = {
+    const patch: TablesUpdate<"profiles"> = {
       nome: data.nome.trim(),
       email: emailLimpo,
       telefone: data.telefone?.trim() || null,
@@ -322,8 +323,8 @@ export const adminUpdateUsuarioPerfil = createServerFn({ method: "POST" })
       tipo_pessoa: data.tipo_pessoa,
       cpf_cnpj: data.cpf_cnpj?.trim() || null,
       razao_social: data.tipo_pessoa === "pj" ? (data.razao_social?.trim() || null) : null,
-      perfil_atuacao: data.perfil_atuacao?.trim() || null,
-      papel_sistema: data.papel_sistema,
+      perfil_atuacao: (data.perfil_atuacao?.trim() || null) as TablesUpdate<"profiles">["perfil_atuacao"],
+      ...(data.papel_sistema ? { papel_sistema: data.papel_sistema } : {}),
       ativo: data.ativo,
       updated_at: new Date().toISOString(),
     };
@@ -339,7 +340,7 @@ export const adminUpdateUsuarioPerfil = createServerFn({ method: "POST" })
       actorUserId: context.userId,
       action: "profile.admin_update",
       targetUserId: data.userId,
-      metadata: patch,
+      metadata: patch as Record<string, unknown>,
     });
 
     return { ok: true };
@@ -373,7 +374,7 @@ export const adminUpdateSubscription = createServerFn({ method: "POST" })
       .eq("user_id", data.userId)
       .maybeSingle();
 
-    const patch: Record<string, unknown> = {};
+    const patch: TablesUpdate<"subscriptions"> = {};
     if (data.plano_config_id !== undefined) patch.plano_config_id = data.plano_config_id;
     if (data.cortesia !== undefined) {
       patch.cortesia = data.cortesia;
@@ -400,7 +401,7 @@ export const adminUpdateSubscription = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     // Sincroniza o plano com os usuários vinculados a este titular
-    const syncPatch: Record<string, unknown> = {};
+    const syncPatch: TablesUpdate<"subscriptions"> = {};
     if (patch.plano_config_id !== undefined) syncPatch.plano_config_id = patch.plano_config_id;
     if (patch.cortesia !== undefined) syncPatch.cortesia = patch.cortesia;
     if (patch.cortesia_observacao !== undefined) syncPatch.cortesia_observacao = patch.cortesia_observacao;
@@ -507,7 +508,7 @@ export const adminSalvarPlanoPersonalizado = createServerFn({ method: "POST" })
     };
 
     // 2) Salva o plano no banco PRIMEIRO (garante que métricas e limites sejam atualizados)
-    const patchSub: Record<string, unknown> = {
+    const patchSub: TablesInsert<"subscriptions"> = {
       user_id: data.userId,
       plano_config_id: "personalizado",
       status: "active",
