@@ -220,28 +220,44 @@ export const listEventosProximos30Dias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureAcessoContratos(context);
+    const { isSuperAdmin, condominiosAcessiveis } = await import("./guard");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const isSuper = await isSuperAdmin(context);
+
+    let condoIds: string[] | null = null;
+    if (!isSuper) {
+      condoIds = await condominiosAcessiveis(context);
+      if (condoIds.length === 0) return { rows: [] };
+    }
+
     const hoje = hojeBR();
     const [y, m, d] = hoje.split("-").map((n) => Number(n));
     const ate = new Date(Date.UTC(y, m - 1, d));
     ate.setUTCDate(ate.getUTCDate() + 30);
     const ateISO = `${ate.getUTCFullYear()}-${String(ate.getUTCMonth() + 1).padStart(2, "0")}-${String(ate.getUTCDate()).padStart(2, "0")}`;
 
-    const { data: rows, error } = await context.supabase
+    let q = supabaseAdmin
       .from("contrato_eventos")
       .select(
-        "id, contrato_id, tipo, titulo, data_evento, origem, contratos_servico!inner(prestador_nome, situacao, condominios(nome))",
+        "id, contrato_id, tipo, titulo, data_evento, origem, contratos_servico!inner(condominio_id, prestador_nome, situacao, condominios(nome))",
       )
       .eq("status", "pendente")
       .gte("data_evento", hoje)
       .lte("data_evento", ateISO)
       .order("data_evento", { ascending: true })
       .limit(200);
+
+    if (condoIds) {
+      q = q.in("contratos_servico.condominio_id", condoIds);
+    }
+
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
     type Row = {
       id: string; contrato_id: string; tipo: string; titulo: string;
       data_evento: string; origem: "automatico" | "manual";
-      contratos_servico: { prestador_nome: string; situacao: string; condominios: { nome: string } | null } | null;
+      contratos_servico: { condominio_id: string; prestador_nome: string; situacao: string; condominios: { nome: string } | null } | null;
     };
     const list: EventoProximo[] = ((rows ?? []) as Row[])
       .filter((r) => r.contratos_servico && r.contratos_servico.situacao === "ativo")

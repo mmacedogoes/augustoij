@@ -81,7 +81,21 @@ export const getCondominio = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
+    // Sincroniza a carteira caso seja o Marcelo ou membro da equipe
+    const { sincronizarCarteiraMarceloSeNecessario } = await import("@/lib/seed-versari.server");
+    await sincronizarCarteiraMarceloSeNecessario(context.userId).catch(() => {});
+
+    const { condominiosAcessiveisIds } = await import("@/lib/conta-master.server");
+    const ids = await condominiosAcessiveisIds(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { isAdminInternoServer } = await import("@/lib/admin-bypass");
+    const isSuper = await isAdminInternoServer(context.supabase, context.userId);
+
+    if (!isSuper && !ids.includes(data.id)) {
+      throw new Error("Acesso negado a este condomínio.");
+    }
+
+    const { data: row, error } = await supabaseAdmin
       .from("condominios")
       .select("*")
       .eq("id", data.id)

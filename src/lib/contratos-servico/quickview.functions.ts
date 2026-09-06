@@ -30,8 +30,9 @@ export const getResumoRapidoContrato = createServerFn({ method: "POST" })
   .inputValidator((v) => z.object({ contratoId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     await ensureAcessoContratos(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: rels, error: rErr } = await context.supabase
+    const { data: rels, error: rErr } = await supabaseAdmin
       .from("contrato_responsaveis")
       .select("user_id")
       .eq("contrato_id", data.contratoId);
@@ -40,7 +41,7 @@ export const getResumoRapidoContrato = createServerFn({ method: "POST" })
 
     let responsaveis: string[] = [];
     if (ids.length > 0) {
-      const { data: profs } = await context.supabase
+      const { data: profs } = await supabaseAdmin
         .from("profiles")
         .select("id, nome, email")
         .in("id", ids);
@@ -49,7 +50,7 @@ export const getResumoRapidoContrato = createServerFn({ method: "POST" })
         .sort((a, b) => a.localeCompare(b));
     }
 
-    const { data: chs } = await context.supabase
+    const { data: chs } = await supabaseAdmin
       .from("contrato_checklists")
       .select("id")
       .eq("ativo", true)
@@ -58,7 +59,7 @@ export const getResumoRapidoContrato = createServerFn({ method: "POST" })
 
     let pendentes = 0;
     if (chIds.length > 0) {
-      const { data: periodos } = await context.supabase
+      const { data: periodos } = await supabaseAdmin
         .from("contrato_checklist_periodos")
         .select("checklist_id, status")
         .in("checklist_id", chIds)
@@ -97,13 +98,22 @@ export const listContratoIdsComPendencia = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
-    await ensureAcessoContratos(context);
+    await ensureAcessoContratos(context, data.condominioId ?? null);
+    const { isSuperAdmin, condominiosAcessiveis } = await import("./guard");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const isSuper = await isSuperAdmin(context);
 
-    let q = context.supabase
+    let q = supabaseAdmin
       .from("contratos_servico")
       .select("id")
       .eq("situacao", "ativo");
-    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    if (data.condominioId) {
+      q = q.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { ids: [] as string[] };
+      q = q.in("condominio_id", ids);
+    }
     if (data.tipo === "sem-mes-base") q = q.is("mes_base_reajuste", null);
     if (data.tipo === "sem-documento") q = q.is("arquivo_path", null).is("documento_id", null);
     if (data.tipo === "sem-indice") q = q.or("indice_reajuste.is.null,indice_reajuste.eq.nenhum");
@@ -114,7 +124,7 @@ export const listContratoIdsComPendencia = createServerFn({ method: "POST" })
     if (ids.length === 0) return { ids: [] as string[] };
 
     if (data.tipo === "sem-responsavel") {
-      const { data: rels } = await context.supabase
+      const { data: rels } = await supabaseAdmin
         .from("contrato_responsaveis")
         .select("contrato_id")
         .in("contrato_id", ids);
@@ -123,14 +133,14 @@ export const listContratoIdsComPendencia = createServerFn({ method: "POST" })
     }
 
     if (data.tipo === "checklist") {
-      const { data: chs } = await context.supabase
+      const { data: chs } = await supabaseAdmin
         .from("contrato_checklists")
         .select("id, contrato_id")
         .eq("ativo", true)
         .in("contrato_id", ids);
       const checklists = (chs ?? []) as Array<{ id: string; contrato_id: string }>;
       if (checklists.length === 0) return { ids: [] as string[] };
-      const { data: periodos } = await context.supabase
+      const { data: periodos } = await supabaseAdmin
         .from("contrato_checklist_periodos")
         .select("checklist_id")
         .in("checklist_id", checklists.map((c) => c.id))

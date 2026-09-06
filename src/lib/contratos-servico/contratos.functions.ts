@@ -129,13 +129,21 @@ export const listContratosServico = createServerFn({ method: "POST" })
   .inputValidator((v) => listFiltersSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
     await ensureAcessoContratos(context, (data.condominioId as string) ?? null);
+    const isSuper = await isSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    let query = context.supabase
+    let query = supabaseAdmin
       .from("contratos_servico")
       .select(
         "id, condominio_id, tipo_servico_id, situacao, prestador_nome, prazo_indeterminado, data_inicio, data_fim, valor, tipo_valor, documento_id, mes_base_reajuste, indice_reajuste, condominios(nome), tipos_servico_contrato(nome)",
       );
-    if (data.condominioId) query = query.eq("condominio_id", data.condominioId);
+    if (data.condominioId) {
+      query = query.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { rows: [], counters: { vigentes: 0, vencendo: 0, vencidos: 0 } };
+      query = query.in("condominio_id", ids);
+    }
     if (data.tipoServicoId) query = query.eq("tipo_servico_id", data.tipoServicoId);
     if (data.busca && data.busca.length > 0) {
       const b = data.busca.replace(/%/g, "").replace(/,/g, " ");
@@ -207,9 +215,10 @@ export const getContratoServico = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => idInput.parse(v))
   .handler(async ({ data, context }) => {
-    const { data: cData } = await context.supabase.from("contratos_servico").select("condominio_id").eq("id", data.id).maybeSingle();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: cData } = await supabaseAdmin.from("contratos_servico").select("condominio_id").eq("id", data.id).maybeSingle();
     await ensureAcessoContratos(context, (cData?.condominio_id as string) ?? null);
-    const { data: contrato, error } = await context.supabase
+    const { data: contrato, error } = await supabaseAdmin
       .from("contratos_servico")
       .select(
         "*, condominios(id, nome), tipos_servico_contrato(id, slug, nome, terceirizacao_padrao)",
@@ -219,7 +228,7 @@ export const getContratoServico = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!contrato) throw new Error("Contrato não encontrado");
 
-    const { data: obrigacoes, error: obrErr } = await context.supabase
+    const { data: obrigacoes, error: obrErr } = await supabaseAdmin
       .from("contrato_obrigacoes")
       .select("id, parte, descricao, periodicidade, clausula_origem, ordem, origem")
       .eq("contrato_id", data.id)
@@ -432,8 +441,9 @@ export const listCondominiosParaContratos = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await ensureAcessoContratos(context);
     const isSuper = await isSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    let query = context.supabase
+    let query = supabaseAdmin
       .from("condominios")
       .select("id, nome, cidade, uf");
 

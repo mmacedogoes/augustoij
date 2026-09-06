@@ -1,13 +1,9 @@
-/**
- * Fase 5 — Indicadores agregados do painel de contratos de prestação de serviços.
- * Consultas independentes e curtas: a UI carrega em paralelo e mostra
- * cada bloco assim que responde.
- */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensurePainelConsolidado } from "./guard";
+import { ensurePainelConsolidado, condominiosAcessiveis, isSuperAdmin } from "./guard";
 import { statusExibicaoContrato } from "./status";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const filtroSchema = z.object({
   condominioId: z.string().uuid().nullable().optional(),
@@ -49,13 +45,40 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
     await ensurePainelConsolidado(context);
+    const isSuper = await isSuperAdmin(context);
 
-    let q = context.supabase
+    let q = supabaseAdmin
       .from("contratos_servico")
       .select(
-        "id, condominio_id, tipo_servico_id, situacao, prazo_indeterminado, data_fim, valor, tipo_valor, mes_base_reajuste, indice_reajuste, ultimo_reajuste_em, arquivo_path, tipos_servico_contrato(nome)",
+        "id, condominio_id, tipo_servico_id, situacao, prazo_indeterminado, data_fim, valor, tipo_valor, mes_base_reajuste, indice_reajuste, ultimo_reajuste_em, arquivo_path, documento_id, tipos_servico_contrato(nome)",
       );
-    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+
+    if (data.condominioId) {
+      q = q.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) {
+        return {
+          vigentes: 0,
+          vencendo_90d: 0,
+          vencidos: 0,
+          reajustes_pendentes: 0,
+          checklists_pendentes_mes: 0,
+          nao_conformidades_mes: 0,
+          valor_mensal_total: 0,
+          valor_anual_estimado: 0,
+          valor_global_total: 0,
+          total_com_pendencias: 0,
+          sem_responsavel: 0,
+          sem_indice: 0,
+          mes_base_ausente: 0,
+          documentos_ausentes: 0,
+          distribuicao_tipos: [],
+        };
+      }
+      q = q.in("condominio_id", ids);
+    }
+
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     type Row = {
@@ -63,7 +86,7 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       situacao: string; prazo_indeterminado: boolean; data_fim: string | null;
       valor: number | null; tipo_valor: string;
       mes_base_reajuste: number | null; indice_reajuste: string | null;
-      ultimo_reajuste_em: string | null; arquivo_path: string | null;
+      ultimo_reajuste_em: string | null; arquivo_path: string | null; documento_id: string | null;
       tipos_servico_contrato: { nome: string } | null;
     };
     const list = (rows ?? []) as Row[];
@@ -90,12 +113,12 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
     // Alertas de dados incompletos
     const sem_indice = ativos.filter(r => !r.indice_reajuste || r.indice_reajuste === "nenhum").length;
     const mes_base_ausente = ativos.filter(r => !r.mes_base_reajuste).length;
-    const documentos_ausentes = ativos.filter(r => !r.arquivo_path).length;
+    const documentos_ausentes = ativos.filter(r => !r.arquivo_path && !r.documento_id).length;
 
     // Responsáveis
     let sem_responsavel = 0;
     if (ativos.length > 0) {
-      const { data: respRel } = await context.supabase
+      const { data: respRel } = await supabaseAdmin
         .from("contrato_responsaveis")
         .select("contrato_id")
         .in("contrato_id", ativos.map(a => a.id));
@@ -121,7 +144,7 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
     );
     if (candidatos.length > 0) {
       const ids = candidatos.map((r) => r.id);
-      const { data: aplicados } = await context.supabase
+      const { data: aplicados } = await supabaseAdmin
         .from("contrato_reajustes")
         .select("contrato_id, competencia")
         .in("contrato_id", ids);
@@ -154,7 +177,7 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
     let nao_conformidades_mes = 0;
     if (ativos.length > 0) {
       const contratoIds = ativos.map((r) => r.id);
-      const { data: chs } = await context.supabase
+      const { data: chs } = await supabaseAdmin
         .from("contrato_checklists")
         .select("id, tipo, contrato_id")
         .eq("ativo", true)
@@ -162,7 +185,7 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
       const checklists = (chs ?? []) as Array<{ id: string; tipo: string; contrato_id: string }>;
       if (checklists.length > 0) {
         const chIds = checklists.map((c) => c.id);
-        const { data: periodos } = await context.supabase
+        const { data: periodos } = await supabaseAdmin
           .from("contrato_checklist_periodos")
           .select("id, checklist_id, status")
           .in("checklist_id", chIds)
@@ -173,14 +196,14 @@ export const getIndicadoresPainel = createServerFn({ method: "POST" })
 
         const chTrab = checklists.filter((c) => c.tipo === "trabalhista").map((c) => c.id);
         if (chTrab.length > 0) {
-          const { data: perTrab } = await context.supabase
+          const { data: perTrab } = await supabaseAdmin
             .from("contrato_checklist_periodos")
             .select("id")
             .in("checklist_id", chTrab)
             .eq("competencia", competencia);
           const perIds = ((perTrab ?? []) as Array<{ id: string }>).map((p) => p.id);
           if (perIds.length > 0) {
-            const { data: marc } = await context.supabase
+            const { data: marc } = await supabaseAdmin
               .from("contrato_checklist_marcacoes")
               .select("id")
               .in("periodo_id", perIds)
@@ -235,11 +258,18 @@ export const listChecklistsPendentesMes = createServerFn({ method: "POST" })
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
     await ensurePainelConsolidado(context);
-    let q = context.supabase
+    const isSuper = await isSuperAdmin(context);
+    let q = supabaseAdmin
       .from("contratos_servico")
       .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
       .eq("situacao", "ativo");
-    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    if (data.condominioId) {
+      q = q.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { rows: [] as ChecklistPendenteMes[] };
+      q = q.in("condominio_id", ids);
+    }
     const { data: contratos, error } = await q;
     if (error) throw new Error(error.message);
     type C = { 
@@ -253,7 +283,7 @@ export const listChecklistsPendentesMes = createServerFn({ method: "POST" })
     if (list.length === 0) return { rows: [] as ChecklistPendenteMes[] };
 
     const ids = list.map((c) => c.id);
-    const { data: checklists } = await context.supabase
+    const { data: checklists } = await supabaseAdmin
       .from("contrato_checklists")
       .select("id, tipo, contrato_id")
       .eq("ativo", true)
@@ -262,7 +292,7 @@ export const listChecklistsPendentesMes = createServerFn({ method: "POST" })
     if (chs.length === 0) return { rows: [] as ChecklistPendenteMes[] };
 
     const competencia = primeiroDiaMesBR();
-    const { data: periodos } = await context.supabase
+    const { data: periodos } = await supabaseAdmin
       .from("contrato_checklist_periodos")
       .select("checklist_id, status")
       .in("checklist_id", chs.map((c) => c.id))
@@ -310,12 +340,19 @@ export const listContratosSemResponsavel = createServerFn({ method: "POST" })
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
     await ensurePainelConsolidado(context);
-    let q = context.supabase
+    const isSuper = await isSuperAdmin(context);
+    let q = supabaseAdmin
       .from("contratos_servico")
       .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
       .eq("situacao", "ativo");
     
-    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    if (data.condominioId) {
+      q = q.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { rows: [] };
+      q = q.in("condominio_id", ids);
+    }
     
     const { data: contratos, error } = await q;
     if (error) throw new Error(error.message);
@@ -323,7 +360,7 @@ export const listContratosSemResponsavel = createServerFn({ method: "POST" })
     const list = (contratos ?? []) as any[];
     if (list.length === 0) return { rows: [] };
 
-    const { data: respRel } = await context.supabase
+    const { data: respRel } = await supabaseAdmin
       .from("contrato_responsaveis")
       .select("contrato_id")
       .in("contrato_id", list.map(a => a.id));
@@ -350,13 +387,20 @@ export const listContratosSemMesBase = createServerFn({ method: "POST" })
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
     await ensurePainelConsolidado(context);
-    let q = context.supabase
+    const isSuper = await isSuperAdmin(context);
+    let q = supabaseAdmin
       .from("contratos_servico")
       .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
       .eq("situacao", "ativo")
       .is("mes_base_reajuste", null);
     
-    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    if (data.condominioId) {
+      q = q.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { rows: [] };
+      q = q.in("condominio_id", ids);
+    }
     
     const { data: contratos, error } = await q;
     if (error) throw new Error(error.message);
@@ -380,14 +424,21 @@ export const listContratosSemDocumento = createServerFn({ method: "POST" })
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
     await ensurePainelConsolidado(context);
-    let q = context.supabase
+    const isSuper = await isSuperAdmin(context);
+    let q = supabaseAdmin
       .from("contratos_servico")
       .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
       .eq("situacao", "ativo")
       .is("arquivo_path", null)
       .is("documento_id", null);
     
-    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    if (data.condominioId) {
+      q = q.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { rows: [] };
+      q = q.in("condominio_id", ids);
+    }
     
     const { data: contratos, error } = await q;
     if (error) throw new Error(error.message);
@@ -411,13 +462,20 @@ export const listContratosSemIndice = createServerFn({ method: "POST" })
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
     await ensurePainelConsolidado(context);
-    let q = context.supabase
+    const isSuper = await isSuperAdmin(context);
+    let q = supabaseAdmin
       .from("contratos_servico")
       .select("id, prestador_nome, situacao, condominios(nome), tipos_servico_contrato(nome)")
       .eq("situacao", "ativo")
       .or("indice_reajuste.is.null,indice_reajuste.eq.nenhum");
     
-    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    if (data.condominioId) {
+      q = q.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { rows: [] };
+      q = q.in("condominio_id", ids);
+    }
     
     const { data: contratos, error } = await q;
     if (error) throw new Error(error.message);
@@ -449,11 +507,18 @@ export const listNaoConformidadesTrabalhistasMes = createServerFn({ method: "POS
   .inputValidator((v) => filtroSchema.parse(v ?? {}))
   .handler(async ({ data, context }) => {
     await ensurePainelConsolidado(context);
-    let q = context.supabase
+    const isSuper = await isSuperAdmin(context);
+    let q = supabaseAdmin
       .from("contratos_servico")
       .select("id, prestador_nome, condominios(nome)")
       .eq("situacao", "ativo");
-    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    if (data.condominioId) {
+      q = q.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { rows: [] as NaoConformidadeMes[] };
+      q = q.in("condominio_id", ids);
+    }
     const { data: contratos, error } = await q;
     if (error) throw new Error(error.message);
     type C = { id: string; prestador_nome: string; condominios: { nome: string } | null };
@@ -461,7 +526,7 @@ export const listNaoConformidadesTrabalhistasMes = createServerFn({ method: "POS
     if (cs.length === 0) return { rows: [] as NaoConformidadeMes[] };
     const contratoInfo = new Map(cs.map((c) => [c.id, c]));
 
-    const { data: chs } = await context.supabase
+    const { data: chs } = await supabaseAdmin
       .from("contrato_checklists")
       .select("id, contrato_id")
       .eq("ativo", true)
@@ -472,7 +537,7 @@ export const listNaoConformidadesTrabalhistasMes = createServerFn({ method: "POS
     const chToContrato = new Map(checklists.map((c) => [c.id, c.contrato_id]));
 
     const competencia = primeiroDiaMesBR();
-    const { data: pers } = await context.supabase
+    const { data: pers } = await supabaseAdmin
       .from("contrato_checklist_periodos")
       .select("id, checklist_id")
       .in("checklist_id", checklists.map((c) => c.id))
@@ -481,7 +546,7 @@ export const listNaoConformidadesTrabalhistasMes = createServerFn({ method: "POS
     if (periodos.length === 0) return { rows: [] as NaoConformidadeMes[] };
     const perToCh = new Map(periodos.map((p) => [p.id, p.checklist_id]));
 
-    const { data: marc } = await context.supabase
+    const { data: marc } = await supabaseAdmin
       .from("contrato_checklist_marcacoes")
       .select("periodo_id, item_id, marcado_em, contrato_checklist_itens(descricao)")
       .in("periodo_id", periodos.map((p) => p.id))

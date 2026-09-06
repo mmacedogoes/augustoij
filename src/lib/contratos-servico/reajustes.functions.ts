@@ -62,7 +62,11 @@ export const listPendenciasReajuste = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureAcessoContratos(context);
-    let q = context.supabase
+    const { isSuperAdmin, condominiosAcessiveis } = await import("./guard");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const isSuper = await isSuperAdmin(context);
+
+    let q = supabaseAdmin
       .from("contratos_servico")
       .select(
         "id, condominio_id, prestador_nome, valor, indice_reajuste, mes_base_reajuste, ultimo_reajuste_em, situacao, condominios(nome)",
@@ -71,7 +75,13 @@ export const listPendenciasReajuste = createServerFn({ method: "POST" })
       .not("mes_base_reajuste", "is", null)
       .not("valor", "is", null)
       .neq("indice_reajuste", "nenhum");
-    if (data.condominioId) q = q.eq("condominio_id", data.condominioId);
+    if (data.condominioId) {
+      q = q.eq("condominio_id", data.condominioId);
+    } else if (!isSuper) {
+      const ids = await condominiosAcessiveis(context);
+      if (ids.length === 0) return { rows: [] as PendenciaReajuste[] };
+      q = q.in("condominio_id", ids);
+    }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
@@ -85,7 +95,7 @@ export const listPendenciasReajuste = createServerFn({ method: "POST" })
 
     const ids = list.map((r) => r.id);
     // Busca competências já aplicadas para deduzir pendências.
-    const { data: aplicados, error: eA } = await context.supabase
+    const { data: aplicados, error: eA } = await supabaseAdmin
       .from("contrato_reajustes")
       .select("contrato_id, competencia")
       .in("contrato_id", ids);
