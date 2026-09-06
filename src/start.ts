@@ -5,7 +5,8 @@ import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
-  if (new URL(request.url).pathname.startsWith("/lovable/")) {
+  const { pathname } = new URL(request.url);
+  if (pathname.startsWith("/lovable/")) {
     return next();
   }
   try {
@@ -15,12 +16,23 @@ const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
       throw error;
     }
     console.error(error);
+    // Chamadas RPC (server functions) nunca devem receber HTML: isso quebra o
+    // parse no cliente e resulta em tela branca. Devolve JSON com o status certo.
+    if (pathname.startsWith("/_serverFn")) {
+      const mensagem = error instanceof Error ? error.message : "Erro inesperado";
+      const naoAutorizado = mensagem.startsWith("Unauthorized");
+      return new Response(JSON.stringify({ error: mensagem }), {
+        status: naoAutorizado ? 401 : 500,
+        headers: { "content-type": "application/json; charset=utf-8" },
+      });
+    }
     return new Response(renderErrorPage(), {
       status: 500,
       headers: { "content-type": "text/html; charset=utf-8" },
     });
   }
 });
+
 
 // Adiciona headers de segurança a todas as respostas (SSR, server routes, server fns).
 const securityHeadersMiddleware = createMiddleware().server(async ({ next, request }) => {
