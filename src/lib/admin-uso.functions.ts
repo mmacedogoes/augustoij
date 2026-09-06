@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureAdmin } from "./admin-guard";
 import { logAdminAction } from "./audit.server";
+import { PLANS, type PlanId } from "@/config/plans";
 
 function mesAtual(): { mes: string; primeiroDia: string } {
   const d = new Date();
@@ -103,15 +104,24 @@ export const listUsoPorUsuario = createServerFn({ method: "GET" })
     const ids = (profiles ?? []).map((p) => p.id);
     if (ids.length === 0) return [];
 
-    const [{ data: subs }, { data: usos }, { data: custos }, { data: planos }, { data: cfg }] = await Promise.all([
-      supabaseAdmin.from("subscriptions").select("user_id, plano_id, status").in("user_id", ids),
-      supabaseAdmin.from("uso_mensal").select("user_id, total_mensagens, total_tokens, total_credits, custo_estimado_brl").eq("mes_ano", mes).in("user_id", ids),
-      supabaseAdmin.from("custos_cliente_mensal").select("user_id, custo_tokens_openai, custo_storage").eq("mes_ano", `${mes}-01`).in("user_id", ids),
-      supabaseAdmin.from("planos").select("id, nome, limite_mensagens_mes, limite_storage_mb, preco_mensal"),
+    const [{ data: subs }, { data: usos }, { data: custos }, { data: cfg }] = await Promise.all([
+      supabaseAdmin
+        .from("subscriptions")
+        .select("user_id, plano_config_id, status, cortesia, cortesia_observacao, vinculado_a_user_id")
+        .in("user_id", ids),
+      supabaseAdmin
+        .from("uso_mensal")
+        .select("user_id, total_mensagens, total_tokens, total_credits, custo_estimado_brl")
+        .eq("mes_ano", mes)
+        .in("user_id", ids),
+      supabaseAdmin
+        .from("custos_cliente_mensal")
+        .select("user_id, custo_tokens_openai, custo_storage")
+        .eq("mes_ano", `${mes}-01`)
+        .in("user_id", ids),
       supabaseAdmin.from("config_alertas").select("custo_storage_mb_brl, credito_brl").eq("id", 1).maybeSingle(),
     ]);
 
-    const planosById = Object.fromEntries((planos ?? []).map((p) => [p.id, p]));
     const subsByUser = Object.fromEntries((subs ?? []).map((s) => [s.user_id, s]));
     const usoByUser = Object.fromEntries((usos ?? []).map((u) => [u.user_id, u]));
     const custoByUser = Object.fromEntries((custos ?? []).map((c) => [c.user_id, c]));
@@ -121,27 +131,47 @@ export const listUsoPorUsuario = createServerFn({ method: "GET" })
     const rows = [];
     for (const p of profiles ?? []) {
       const sub = subsByUser[p.id];
-      const plano = sub?.plano_id ? planosById[sub.plano_id] : undefined;
+      const rawPlanoId = (sub?.plano_config_id ?? "gratuito") as string;
+      const planoId = (rawPlanoId in PLANS ? rawPlanoId : "gratuito") as PlanId;
+      const planoDef = PLANS[planoId];
+
+      let planoNome = planoDef?.nome ?? "Gratuito";
+      let limMsgs: number | null = planoDef?.mensagensPorMes ?? null;
+      let limMb: number | null = 500;
+
+      if (sub?.vinculado_a_user_id) {
+        planoNome = `${planoNome} (Vinculado)`;
+      } else if (sub?.cortesia) {
+        planoNome = `${planoNome} (Cortesia)`;
+      }
+
+      if (rawPlanoId === "personalizado" && sub?.cortesia_observacao && sub.cortesia_observacao.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(sub.cortesia_observacao);
+          planoNome = "Plano Personalizado";
+          if (parsed.custom_limits?.mensagensPorMes !== undefined) {
+            limMsgs = parsed.custom_limits.mensagensPorMes ? Number(parsed.custom_limits.mensagensPorMes) : null;
+          }
+        } catch {}
+      }
+
       const u = usoByUser[p.id];
       const c = custoByUser[p.id];
       const { data: bytes } = await supabaseAdmin.rpc("storage_bytes_by_user", { _user_id: p.id });
       const mb = Number(bytes ?? 0) / 1048576;
       const custoStorage = Number(c?.custo_storage ?? mb * rateMb);
-      const custoIA = Number(c?.custo_tokens_openai ?? u?.custo_estimado_brl ?? 0);
+      const custoIA = Number(u?.custo_estimado_brl ?? c?.custo_tokens_openai ?? 0);
       const msgs = u?.total_mensagens ?? 0;
-      const limMsgs = plano?.limite_mensagens_mes ?? null;
-      const limMb = plano?.limite_storage_mb ?? null;
-      // Créditos reais somados de mensagens.creditos_lovable (via uso_mensal.total_credits).
-      // Se ainda não houver dados (mensagens antigas), estima pelo custo IA / câmbio.
       const creditosReais = Number(u?.total_credits ?? 0);
       const creditosLovable =
         creditosReais > 0 ? creditosReais : creditoBrl > 0 ? custoIA / creditoBrl : 0;
+
       rows.push({
         user_id: p.id,
         nome: p.nome,
         email: p.email,
-        plano_nome: plano?.nome ?? "Trial",
-        plano_id: sub?.plano_id ?? null,
+        plano_nome: planoNome,
+        plano_id: rawPlanoId,
         status: sub?.status ?? "trialing",
         mensagens: msgs,
         tokens: u?.total_tokens ?? 0,

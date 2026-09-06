@@ -305,6 +305,10 @@ const ORIGEM_LABEL: Record<string, string> = {
   ocr_visao_kb: "OCR/Visão da base de conhecimento",
   embedding_documento: "Indexação (embeddings) de documentos",
   embedding_kb: "Indexação (embeddings) da base de conhecimento",
+  assembleia_transcricao: "Transcrição de áudio (Assembleias)",
+  assembleia_ata: "Geração de ata por IA",
+  assembleia_inadimplencia: "Análise de inadimplência (Assembleias)",
+  assembleia_revisao_pauta: "Revisão de pautas (Assembleias)",
   demo_chat: "Chat de demonstração (landing)",
   outro: "Outros",
 };
