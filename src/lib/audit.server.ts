@@ -17,6 +17,8 @@ export type AuditAction =
   | "user.deactivate"
   | "role.set"
   | "subscription.update"
+  | "subscription.custom_plan_saved"
+  | "profile.admin_update"
   | "kb.create"
   | "kb.delete"
   | "kb.process"
