@@ -323,8 +323,8 @@ export const adminUpdateUsuarioPerfil = createServerFn({ method: "POST" })
       tipo_pessoa: data.tipo_pessoa,
       cpf_cnpj: data.cpf_cnpj?.trim() || null,
       razao_social: data.tipo_pessoa === "pj" ? (data.razao_social?.trim() || null) : null,
-      perfil_atuacao: data.perfil_atuacao?.trim() || null,
-      papel_sistema: data.papel_sistema,
+      perfil_atuacao: (data.perfil_atuacao?.trim() || null) as TablesUpdate<"profiles">["perfil_atuacao"],
+      ...(data.papel_sistema ? { papel_sistema: data.papel_sistema } : {}),
       ativo: data.ativo,
       updated_at: new Date().toISOString(),
     };
