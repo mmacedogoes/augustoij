@@ -28,6 +28,10 @@ import { Button } from "@/components/ui/button";
 import { ContratoStatusBadge } from "./ContratoStatusBadge";
 import { type ContratoLinha } from "@/lib/contratos-servico/contratos.functions";
 import { getResumoRapidoContrato } from "@/lib/contratos-servico/quickview.functions";
+import {
+  calcularAvisoPrevioInfo,
+  calcularReajusteStatusInfo,
+} from "@/lib/contratos-servico/status";
 import { cn } from "@/lib/utils";
 
 interface QuickViewDrawerProps {
@@ -48,6 +52,8 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
 
   const responsaveis = resumo?.responsaveis ?? [];
   const checklistsPendentes = resumo?.checklists_pendentes ?? 0;
+  const avisoInfo = calcularAvisoPrevioInfo(contrato);
+  const reajusteInfo = calcularReajusteStatusInfo(contrato);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -155,7 +161,19 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
                 <HealthItem 
                   label="Documento Original" 
                   status={contrato.documento_id ? "ok" : "warning"} 
-                  desc={contrato.documento_id ? "Presente" : "Arquivo ausente"}
+                  desc={contrato.documento_id ? "Presente no acervo" : "Arquivo ausente"}
+                />
+                {avisoInfo.temAvisoPrevio && (
+                  <HealthItem
+                    label="Janela de Aviso Prévio"
+                    status={avisoInfo.expirado ? "error" : avisoInfo.emJanelaCritica ? "warning" : "ok"}
+                    desc={avisoInfo.textoFormatado}
+                  />
+                )}
+                <HealthItem 
+                  label="Reajuste Anual" 
+                  status={reajusteInfo.status === "pendente" ? "error" : reajusteInfo.status === "proximo_30d" ? "warning" : "ok"} 
+                  desc={reajusteInfo.descricao}
                 />
                 <HealthItem 
                   label="Checklists Mensais" 
@@ -168,29 +186,61 @@ export function QuickViewDrawer({ contrato, open, onOpenChange }: QuickViewDrawe
                         : "Em dia"
                   }
                 />
-                <HealthItem 
-                  label="Mês-base Reajuste" 
-                  status={contrato.mes_base_reajuste ? "ok" : "warning"} 
-                  desc={contrato.mes_base_reajuste ? `Mês ${contrato.mes_base_reajuste}` : "Não configurado"}
-                />
               </div>
             </div>
 
             {/* Próximo Evento / CTA Dinâmico */}
             <div 
-              className="bg-augusto-gold/5 border border-augusto-gold/20 rounded-lg p-4 cursor-pointer hover:bg-augusto-gold/10 transition-colors"
+              className={cn(
+                "rounded-lg p-4 cursor-pointer transition-colors border",
+                avisoInfo.emJanelaCritica || avisoInfo.expirado
+                  ? "bg-destructive/5 border-destructive/30 hover:bg-destructive/10"
+                  : reajusteInfo.status === "pendente"
+                    ? "bg-amber-500/5 border-amber-500/30 hover:bg-amber-500/10"
+                    : "bg-augusto-gold/5 border-augusto-gold/20 hover:bg-augusto-gold/10"
+              )}
               onClick={() => {
                 onOpenChange(false);
-                navigate({ to: `/app/contratos/${contrato.id}`, search: (prev: any) => ({ ...prev, tab: 'gestao' }) });
+                navigate({
+                  to: `/app/contratos/${contrato.id}`,
+                  search: (prev: any) => ({
+                    ...prev,
+                    tab: avisoInfo.emJanelaCritica || avisoInfo.expirado ? 'ia' : reajusteInfo.status === "pendente" ? 'reajustes' : 'informacoes'
+                  })
+                });
               }}
-
             >
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="h-4 w-4 text-augusto-gold" />
-                <span className="text-xs font-bold text-augusto-gold uppercase">Próxima Ação</span>
+                <AlertTriangle className={cn(
+                  "h-4 w-4",
+                  avisoInfo.emJanelaCritica || avisoInfo.expirado ? "text-destructive" :
+                  reajusteInfo.status === "pendente" ? "text-amber-600 dark:text-amber-400" :
+                  "text-augusto-gold"
+                )} />
+                <span className={cn(
+                  "text-xs font-bold uppercase",
+                  avisoInfo.emJanelaCritica || avisoInfo.expirado ? "text-destructive" :
+                  reajusteInfo.status === "pendente" ? "text-amber-600 dark:text-amber-400" :
+                  "text-augusto-gold"
+                )}>
+                  {avisoInfo.emJanelaCritica || avisoInfo.expirado ? "Aviso Prévio Crítico" :
+                   reajusteInfo.status === "pendente" ? "Reajuste Pendente" : "Gestão do Contrato"}
+                </span>
               </div>
-              <p className="text-sm font-medium text-primary">Revisar obrigações e pendências</p>
-              <p className="text-xs text-muted-foreground mt-1">Ver todos os checklists e prazos em aberto</p>
+              <p className="text-sm font-medium text-primary">
+                {avisoInfo.emJanelaCritica || avisoInfo.expirado
+                  ? "Notificar prestador para evitar renovação automática"
+                  : reajusteInfo.status === "pendente"
+                    ? `Aplicar reajuste do índice ${reajusteInfo.indiceNome}`
+                    : "Abrir detalhes e obrigações do contrato"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {avisoInfo.emJanelaCritica || avisoInfo.expirado
+                  ? "Clique para redigir a notificação com a IA"
+                  : reajusteInfo.status === "pendente"
+                    ? "Clique para calcular a nova parcela"
+                    : "Ver todos os checklists, retenções e aditivos"}
+              </p>
             </div>
           </div>
         </ScrollArea>

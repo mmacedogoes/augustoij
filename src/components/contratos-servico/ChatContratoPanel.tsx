@@ -16,16 +16,19 @@ interface ChatContratoPanelProps {
   contratoId: string;
   condominioId: string;
   prestadorNome: string;
+  initialPrompt?: string | null;
 }
 
 export function ChatContratoPanel({
   contratoId,
   condominioId,
   prestadorNome,
+  initialPrompt,
 }: ChatContratoPanelProps) {
   const [conversaId, setConversaId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const tokenRef = useRef<string | null>(null);
+  const initialSentRef = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -96,6 +99,14 @@ export function ChatContratoPanel({
   const [input, setInput] = useState("");
   const isLoading = status === "submitted" || status === "streaming";
 
+  // Envia o prompt inicial se fornecido
+  useEffect(() => {
+    if (conversaId && initialPrompt && !initialSentRef.current && !isLoading) {
+      initialSentRef.current = true;
+      (sendMessage as any)(initialPrompt);
+    }
+  }, [conversaId, initialPrompt, isLoading, sendMessage]);
+
   useEffect(() => {
     const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (viewport) {
@@ -128,17 +139,40 @@ export function ChatContratoPanel({
     );
   }
 
+  const acoesRapidas = [
+    {
+      titulo: "Notificar Descumprimento Contratual",
+      descricao: "Gerar Notificação Extrajudicial para sanar falha ou vício no serviço",
+      prompt: `Redija uma Notificação Extrajudicial formal para o prestador ${prestadorNome}, apontando descumprimento de obrigação contratual e fixando prazo de 5 (cinco) dias para regularização, sob pena de aplicação de multa rescisória e rescisão motivada.`,
+    },
+    {
+      titulo: "Notificar Não Renovação / Rescisão",
+      descricao: "Comunicação formal com aviso prévio tempestivo",
+      prompt: `Redija uma Notificação Formal de Não Renovação e Término de Vigência para o prestador ${prestadorNome}, manifestando o desinteresse do condomínio na prorrogação automática e solicitando a transição organizada dos serviços.`,
+    },
+    {
+      titulo: "Minuta de Termo Aditivo",
+      descricao: "Aditivo de reajuste financeiro ou prorrogação de prazo",
+      prompt: `Elabore uma minuta formal de Termo Aditivo ao Contrato de Prestação de Serviços com ${prestadorNome}, contemplando o reajuste anual pelo índice previsto e ratificando as demais cláusulas.`,
+    },
+    {
+      titulo: "Cobrança de CNDs e Encargos Trabalhistas",
+      descricao: "Exigir comprovantes de FGTS, INSS e folhas (Súmula 331 TST)",
+      prompt: `Redija uma Notificação para ${prestadorNome} solicitando o envio imediato das guias de recolhimento de FGTS, INSS (DCTFWeb), folhas de ponto/pagamento e certidões negativas dos empregados alocados, sob pena de retenção cautelar do pagamento da fatura.`,
+    },
+  ];
+
   return (
-    <div className="flex flex-col h-[600px] bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+    <div className="flex flex-col h-[650px] bg-card rounded-xl border border-border overflow-hidden shadow-sm">
       <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-augusto-gold/10 rounded-lg">
             <Sparkles className="w-4 h-4 text-augusto-gold" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Perguntar à IJ</h3>
+            <h3 className="text-sm font-semibold text-foreground">Assistente de Gestão Contratual & IA</h3>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-              Contexto isolado: {prestadorNome}
+              Contexto do contrato: {prestadorNome}
             </p>
           </div>
         </div>
@@ -147,33 +181,34 @@ export function ChatContratoPanel({
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-6 max-w-3xl mx-auto">
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-augusto-gold/10 flex items-center justify-center text-augusto-gold">
+                <Sparkles className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium">Como posso ajudar com este contrato?</p>
-                <p className="text-xs text-muted-foreground px-8">
-                  Você pode perguntar sobre prazos, reajustes, obrigações do prestador ou pedir para redigir um aditivo.
+                <p className="text-sm font-semibold">Como posso apoiar a gestão deste contrato?</p>
+                <p className="text-xs text-muted-foreground max-w-md">
+                  Selecione uma ação rápida abaixo para minutar um documento jurídico instantâneo ou faça perguntas sobre cláusulas, prazos e obrigações.
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
-                {[
-                  "Quais as principais obrigações?",
-                  "Quando é o próximo reajuste?",
-                  "Resuma as regras de rescisão"
-                ].map((sug) => (
-                  <Button 
-                    key={sug}
-                    variant="outline" 
-                    size="sm" 
-                    className="text-[11px] h-8 justify-start font-normal"
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-xl text-left">
+                {acoesRapidas.map((acao) => (
+                  <button
+                    key={acao.titulo}
+                    type="button"
+                    className="p-3 rounded-lg border border-border/70 bg-card hover:border-augusto-gold/50 hover:bg-augusto-gold/5 transition-all text-left flex flex-col justify-between group"
                     onClick={() => {
-                      (sendMessage as any)(sug);
+                      (sendMessage as any)(acao.prompt);
                     }}
                   >
-                    {sug}
-                  </Button>
+                    <span className="text-xs font-semibold text-foreground group-hover:text-augusto-gold transition-colors">
+                      {acao.titulo}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
+                      {acao.descricao}
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>

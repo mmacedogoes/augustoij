@@ -43,7 +43,11 @@ import {
   getContratoArquivoUrl,
   anexarArquivoContratoServico,
 } from "@/lib/contratos-servico/importar.functions";
-import { statusExibicaoContrato } from "@/lib/contratos-servico/status";
+import {
+  statusExibicaoContrato,
+  calcularAvisoPrevioInfo,
+  calcularReajusteStatusInfo,
+} from "@/lib/contratos-servico/status";
 import { EditContratoModal } from "@/components/contratos-servico/EditContratoModal";
 import { EditObrigacoesModal } from "@/components/contratos-servico/EditObrigacoesModal";
 import { Separator } from "@/components/ui/separator";
@@ -114,6 +118,7 @@ function Page() {
   const [excluindo, setExcluindo] = useState(false);
   const [countAditivos, setCountAditivos] = useState<number>(0);
   const [aba, setAba] = useState<string>("informacoes");
+  const [promptIa, setPromptIa] = useState<string | null>(null);
   const location = useLocation();
   const search = Route.useSearch() as any;
   const checkAdmin = useServerFn(isCurrentUserAdmin);
@@ -254,6 +259,44 @@ function Page() {
   const c = ficha.contrato;
   const status = statusExibicaoContrato(c);
   const temArquivo = !!(c.arquivo_path || c.documento_id);
+  const avisoInfo = useMemo(() => calcularAvisoPrevioInfo(c), [c]);
+  const reajusteInfo = useMemo(() => calcularReajusteStatusInfo(c), [c]);
+
+  function handleAcaoRapida(prompt: string) {
+    setPromptIa(prompt);
+    setAba("ia");
+  }
+
+  const tabs = [
+    { id: "informacoes", label: "Resumo e Dados", icon: <FileText className="h-4 w-4" /> },
+    { id: "checklists", label: "Checklists", icon: <ListChecks className="h-4 w-4" /> },
+    {
+      id: "reajustes",
+      label: "Reajustes",
+      icon: <ArrowUpRightSquare className="h-4 w-4" />,
+      badge: reajusteInfo.status === "pendente" ? "Pendente" : undefined,
+      badgeTone: "destructive" as const,
+    },
+    {
+      id: "retencoes",
+      label: "Retenções",
+      icon: <Shield className="h-4 w-4" />,
+      badge: c.terceirizacao_mao_de_obra ? "INSS 11%" : undefined,
+      badgeTone: "warning" as const,
+    },
+    {
+      id: "aditivos",
+      label: "Aditivos",
+      icon: <FilePlus2 className="h-4 w-4" />,
+      badge: countAditivos > 0 ? countAditivos : undefined,
+      badgeTone: "muted" as const,
+    },
+    { id: "agenda", label: "Agenda Financeira", icon: <CalendarClock className="h-4 w-4" /> },
+    { id: "responsaveis", label: "Responsáveis", icon: <Users className="h-4 w-4" /> },
+    { id: "analise", label: "Análise IA", icon: <Sparkles className="h-4 w-4" /> },
+    { id: "ia", label: "Perguntar à IJ", icon: <MessageSquare className="h-4 w-4" />, isIa: true },
+    { id: "atividades", label: "Logs", icon: <Activity className="h-4 w-4" /> },
+  ];
 
   return (
     <>
@@ -316,6 +359,165 @@ function Page() {
           </div>
         </div>
 
+        {/* Hero Card de Prazos Críticos e Indicadores Vitais */}
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Card 1: Valor & Pagamento */}
+          <Card className="p-4 border-border/60 bg-card/60 backdrop-blur flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+              <span>Valor do Contrato</span>
+              <Wallet className="h-4 w-4 text-augusto-gold" />
+            </div>
+            <div className="mt-2">
+              <p className="font-serif text-2xl font-bold text-foreground">
+                {c.valor === null ? "—" : formatBRL(Number(c.valor))}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {c.tipo_valor === "mensal" ? "Recorrência mensal" : "Valor global"}
+                {c.dia_vencimento ? ` · Venc. dia ${c.dia_vencimento}` : ""}
+              </p>
+            </div>
+          </Card>
+
+          {/* Card 2: Vigência & Aviso Prévio */}
+          <Card className={cn(
+            "p-4 border-border/60 bg-card/60 backdrop-blur flex flex-col justify-between shadow-xs transition-colors",
+            avisoInfo.emJanelaCritica && "border-amber-500/50 bg-amber-500/5",
+            avisoInfo.expirado && "border-destructive/50 bg-destructive/5"
+          )}>
+            <div className="flex items-center justify-between text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+              <span>Vigência & Rescisão</span>
+              <CalendarRange className="h-4 w-4 text-augusto-gold" />
+            </div>
+            <div className="mt-2">
+              <p className="text-sm font-semibold text-foreground">
+                {c.prazo_indeterminado ? "Prazo Indeterminado" : formatDate(c.data_fim)}
+              </p>
+              {avisoInfo.temAvisoPrevio ? (
+                <div className="mt-1">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[10px] px-1.5 py-0 h-5 font-medium inline-flex items-center gap-1",
+                      avisoInfo.expirado ? "bg-destructive/10 text-destructive border-destructive/30" :
+                      avisoInfo.emJanelaCritica ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-semibold" :
+                      "bg-muted text-muted-foreground border-border"
+                    )}
+                  >
+                    <CalendarClock className="h-3 w-3" />
+                    {avisoInfo.expirado ? `Aviso expirou há ${Math.abs(avisoInfo.diasRestantesAviso ?? 0)}d` :
+                     avisoInfo.emJanelaCritica ? `Aviso em ${avisoInfo.diasRestantesAviso}d` :
+                     `Aviso: ${formatDate(avisoInfo.dataLimiteAviso)}`}
+                  </Badge>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {c.renovacao_automatica ? "Renovação automática ativa" : "Sem renovação automática"}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {c.prazo_indeterminado ? `Início: ${formatDate(c.data_inicio)}` : "Aviso prévio padrão"}
+                </p>
+              )}
+            </div>
+          </Card>
+
+          {/* Card 3: Reajuste Anual */}
+          <Card className={cn(
+            "p-4 border-border/60 bg-card/60 backdrop-blur flex flex-col justify-between shadow-xs",
+            reajusteInfo.status === "pendente" && "border-destructive/40 bg-destructive/5"
+          )}>
+            <div className="flex items-center justify-between text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+              <span>Reajuste Anual</span>
+              <TrendingUp className="h-4 w-4 text-augusto-gold" />
+            </div>
+            <div className="mt-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-semibold text-foreground">
+                  {reajusteInfo.indiceNome}
+                </span>
+                <span className="text-xs text-muted-foreground">· Mês {reajusteInfo.mesBaseNome}</span>
+              </div>
+              <div className="mt-1">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[10px] px-1.5 py-0 h-5 font-medium",
+                    reajusteInfo.badgeTone === "destructive" ? "bg-destructive/10 text-destructive border-destructive/30 font-semibold" :
+                    reajusteInfo.badgeTone === "warning" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30" :
+                    reajusteInfo.badgeTone === "positive" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" :
+                    "bg-muted text-muted-foreground border-border"
+                  )}
+                >
+                  {reajusteInfo.rotulo}
+                </Badge>
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 4: Compliance & Segurança */}
+          <Card className="p-4 border-border/60 bg-card/60 backdrop-blur flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+              <span>Segurança & Risco</span>
+              <Shield className="h-4 w-4 text-augusto-gold" />
+            </div>
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className={cn("h-2 w-2 rounded-full", c.terceirizacao_mao_de_obra ? "bg-amber-500" : "bg-muted-foreground/40")} />
+                <span className="font-medium text-foreground">
+                  {c.terceirizacao_mao_de_obra ? "Mão de Obra Terceirizada" : "Sem cessão de mão de obra"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className={cn("h-2 w-2 rounded-full", c.exige_seguro_rc ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+                <span>{c.exige_seguro_rc ? "Seguro RC Exigido" : "Seguro RC Opcional"}</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Atalhos Rápidos de Gestão com IA (1 Clique) */}
+        <div className="mb-6 rounded-xl border border-augusto-gold/20 bg-gradient-to-r from-augusto-gold/[0.06] to-card p-3 flex flex-wrap items-center justify-between gap-2 shadow-xs">
+          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+            <Sparkles className="h-4 w-4 text-augusto-gold" />
+            <span>Ações Rápidas com IA:</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs bg-background/80 hover:bg-augusto-gold/10 hover:text-augusto-gold border-border/70"
+              onClick={() => handleAcaoRapida(`Redija uma Notificação Extrajudicial formal para o prestador ${c.prestador_nome}, apontando descumprimento de obrigação contratual e fixando prazo de 5 (cinco) dias para regularização, sob pena de aplicação de multa rescisória e rescisão motivada.`)}
+            >
+              <FileText className="h-3.5 w-3.5 mr-1 text-augusto-gold" /> Notificar Descumprimento
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs bg-background/80 hover:bg-augusto-gold/10 hover:text-augusto-gold border-border/70"
+              onClick={() => handleAcaoRapida(`Redija uma Notificação Formal de Não Renovação e Término de Vigência para o prestador ${c.prestador_nome}, manifestando o desinteresse do condomínio na prorrogação automática e solicitando a transição organizada dos serviços.`)}
+            >
+              <CalendarClock className="h-3.5 w-3.5 mr-1 text-augusto-gold" /> Notificar Não Renovação
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs bg-background/80 hover:bg-augusto-gold/10 hover:text-augusto-gold border-border/70"
+              onClick={() => handleAcaoRapida(`Elabore uma minuta formal de Termo Aditivo ao Contrato de Prestação de Serviços com ${c.prestador_nome}, contemplando o reajuste anual pelo índice previsto e ratificando as demais cláusulas.`)}
+            >
+              <ArrowUpRightSquare className="h-3.5 w-3.5 mr-1 text-augusto-gold" /> Minutar Termo Aditivo
+            </Button>
+            {c.terceirizacao_mao_de_obra && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs bg-background/80 hover:bg-augusto-gold/10 hover:text-augusto-gold border-border/70"
+                onClick={() => handleAcaoRapida(`Redija uma Notificação para ${c.prestador_nome} solicitando o envio imediato das guias de recolhimento de FGTS, INSS (DCTFWeb), folhas de ponto/pagamento e certidões negativas dos empregados alocados, sob pena de retenção cautelar do pagamento da fatura.`)}
+              >
+                <Shield className="h-3.5 w-3.5 mr-1 text-augusto-gold" /> Cobrar Encargos/CNDs
+              </Button>
+            )}
+          </div>
+        </div>
+
         <EditContratoModal 
           open={editContratoOpen} 
           onOpenChange={setEditContratoOpen} 
@@ -345,35 +547,48 @@ function Page() {
           onSaved={carregar}
         />
 
-        {/* Menu Superior Cascata em substituição à navegação lateral */}
-        <div className="mb-8 w-full border-b border-border/60 bg-card/30 backdrop-blur-sm sticky top-0 z-30">
-          <nav className="flex items-center space-x-1 pb-px">
-            {/* NavGroup Principal */}
-            <DropdownNav 
-              label="Principal"
-              items={[
-                { label: "Resumo e Dados", active: aba === "informacoes", onClick: () => setAba("informacoes"), icon: <FileText className="h-4 w-4" /> },
-                { label: "Checklists", active: aba === "checklists", onClick: () => setAba("checklists"), icon: <ListChecks className="h-4 w-4" /> },
-                { label: "Retenções", active: aba === "retencoes", onClick: () => setAba("retencoes"), icon: <Shield className="h-4 w-4" /> },
-              ]}
-            />
-            <DropdownNav 
-              label="Gestão"
-              items={[
-                { label: "Agenda Financeira", active: aba === "agenda", onClick: () => setAba("agenda"), icon: <CalendarClock className="h-4 w-4" /> },
-                { label: "Reajustes", active: aba === "reajustes", onClick: () => setAba("reajustes"), icon: <ArrowUpRightSquare className="h-4 w-4" /> },
-                { label: "Responsáveis", active: aba === "responsaveis", onClick: () => setAba("responsaveis"), icon: <Users className="h-4 w-4" /> },
-              ]}
-            />
-            <DropdownNav 
-              label="Histórico e IA"
-              items={[
-                { label: "Análise de IA", active: aba === "analise", onClick: () => setAba("analise"), icon: <Sparkles className="h-4 w-4" /> },
-                { label: "Aditivos", active: aba === "aditivos", onClick: () => setAba("aditivos"), icon: <FilePlus2 className="h-4 w-4" /> },
-                { label: "Logs", active: aba === "atividades", onClick: () => setAba("atividades"), icon: <Activity className="h-4 w-4" /> },
-                { label: "Perguntar à IJ", active: aba === "ia", onClick: () => setAba("ia"), icon: <MessageSquare className="h-4 w-4" /> },
-              ]}
-            />
+        {/* Menu Superior com Abas Horizontais e Badges */}
+        <div className="mb-6 w-full border-b border-border/60 bg-card/40 backdrop-blur-md sticky top-0 z-30 overflow-x-auto py-1">
+          <nav className="flex items-center space-x-1 min-w-max px-1">
+            {tabs.map((tab) => {
+              const active = aba === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setAba(tab.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap",
+                    active
+                      ? tab.isIa
+                        ? "bg-augusto-gold text-white shadow-sm"
+                        : "bg-augusto-gold/15 text-primary border border-augusto-gold/30 shadow-xs"
+                      : tab.isIa
+                        ? "text-augusto-gold hover:bg-augusto-gold/10"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <span className={cn(active ? (tab.isIa ? "text-white" : "text-augusto-gold") : "text-muted-foreground/70")}>
+                    {tab.icon}
+                  </span>
+                  <span>{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge !== null && (
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1",
+                        tab.badgeTone === "destructive"
+                          ? "bg-destructive/15 text-destructive ring-destructive/30"
+                          : tab.badgeTone === "warning"
+                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-amber-500/30"
+                            : "bg-muted text-muted-foreground ring-border"
+                      )}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
@@ -720,6 +935,7 @@ function Page() {
                      contratoId={contratoId}
                      condominioId={c.condominio_id}
                      prestadorNome={c.prestador_nome}
+                     initialPrompt={promptIa}
                    />
                 </Suspense>
               </div>
@@ -749,84 +965,6 @@ function Page() {
         </DialogContent>
       </Dialog>
     </>
-  );
-}
-
-function DropdownNav({
-  label,
-  items,
-}: {
-  label: string;
-  items: Array<{ label: string; active: boolean; onClick: () => void; icon: React.ReactNode }>;
-}) {
-  const [open, setOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const anyActive = items.some((it) => it.active);
-
-  // Fecha o menu ao clicar fora (especialmente importante para mobile)
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [open]);
-
-  return (
-    <div 
-      ref={dropdownRef}
-      className="relative" 
-      onMouseEnter={() => setOpen(true)} 
-      onMouseLeave={() => setOpen(false)}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className={cn(
-          "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-200 border-b-2 outline-none",
-          anyActive 
-            ? "border-augusto-gold text-primary bg-augusto-gold/5" 
-            : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
-        )}
-      >
-        {label}
-        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", open && "rotate-180")} />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 top-[calc(100%-2px)] z-[100] mt-0 w-56 rounded-b-xl border border-border bg-card p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200">
-          <div className="flex flex-col gap-1">
-            {items.map((it) => (
-              <button
-                key={it.label}
-                type="button"
-                onClick={() => {
-                  it.onClick();
-                  setOpen(false);
-                }}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                  it.active
-                    ? "bg-augusto-gold/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <span className={cn("transition-colors", it.active ? "text-augusto-gold" : "text-muted-foreground/60")}>
-                  {it.icon}
-                </span>
-                {it.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 
