@@ -321,8 +321,8 @@ export const Route = createFileRoute("/api/chat")({
               const { data: matches } = await supabase.rpc("match_document_chunks", {
                 _condominio_id: condominioId,
                 _query_embedding: `[${queryEmbedding.join(",")}]` as unknown as string,
-                _match_count: 8,
-                _min_similarity: 0.25,
+                _match_count: 12,
+                _min_similarity: 0.22,
                 // Passamos o filtro de metadados se existir contratoId
                 ...(contratoId ? { _metadata_filter: { contrato_id: contratoId } } : {})
               });
@@ -579,11 +579,28 @@ CONTEÚDO REDIGIDO EXPORTÁVEL (minutas e materiais):
 
 REGRAS DE REDAÇÃO DE PEÇAS DIRIGIDAS AO CONDÔMINO (notificação de infração, advertência, multa, comunicado, circular):
 - NÃO cite jurisprudência no corpo da peça: nada de acórdão, REsp, AgInt, súmula, nome de tribunal ou número de processo. A jurisprudência serve para você INTERPRETAR a convenção, o regimento e a lei e calibrar o texto — ela não aparece escrita.
-- Fundamente a peça apenas na convenção/regimento do condomínio e, quando necessário, no artigo de lei aplicável (ex.: Art. 1.336 do Código Civil).
+- Fundamente a peça primariamente na convenção/regimento do condomínio e, subsidiariamente, no artigo de lei aplicável (ex.: Art. 1.336 do Código Civil).
 - Exceção única: se o usuário pedir expressamente a citação de julgados ("cite a jurisprudência", "fundamente com acórdãos"), aí sim cite.
 - Pareceres, análises e respostas normais de chat continuam citando jurisprudência normalmente — a restrição vale só para a peça dirigida ao condômino.
 - DATA E HORÁRIO DA INFRAÇÃO são obrigatórios em notificações/advertências. Se a conversa não trouxer a data OU o horário, NÃO redija: devolva uma pergunta estruturada perguntando os dois, cada um com a opção "Não se aplica / não sei precisar" e permite_outro true.
 - Se o usuário responder "não se aplica", use fórmula neutra ("em data recente, conforme relato da administração") — NUNCA invente data ou horário.
+
+MÉTODO OBRIGATÓRIO DE CRUZAMENTO DE CONDUTAS COM REGIMENTO, CONVENÇÃO E ATAS:
+Sempre que o usuário relatar uma conduta de determinado morador ou unidade (ex.: barulho/ruído, animais em áreas comuns, uso irregular de vagas de garagem, vazamento/infiltração, obras sem autorização, descarte de lixo, etc.) ou solicitar parecer/notificação:
+1. SUBSUNÇÃO FÁTICO-NORMATIVA OBRIGATÓRIA:
+   - Você DEVE cruzar imediatamente o relato fático do usuário com os trechos da Convenção, do Regimento Interno e das Atas presentes no CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO.
+   - Verifique e declare expressamente:
+     a) Se a conduta relatada contraria expressamente alguma norma interna do condomínio.
+     b) O artigo, cláusula, item ou parágrafo EXATO do Regimento Interno ou da Convenção que regulamenta ou proíbe a conduta.
+     c) As condições procedimentais específicas (ex.: horários de tolerância de ruído, necessidade de ART/RRT para reformas, regras de trânsito interno ou coleiras para animais).
+     d) As penalidades cominadas especificamente para aquela infração (advertência inicial, multa simples, fração/múltiplo da cota condominial, multa em dobro por reincidência, prazo regulamentar para apresentação de defesa ao síndico ou conselho).
+2. FUNDAMENTAÇÃO LEGAL PRIMÁRIA:
+   - Como padrão inegociável, você DEVE usar SEMPRE as normas internas do próprio condomínio (Convenção, Regimento Interno e deliberações de Atas) como a fundamentação primária e central de toda notificação e resposta.
+   - As normas do Código Civil (ex.: Art. 1.336, IV, Art. 1.337) atuam como fundamento complementar e subsidiário.
+3. CASO DE LACUNA NORMATIVA (CONDUTA SEM PREVISÃO EXPRESSA NA REGRA INTERNA):
+   - Se a conduta relatada NÃO tiver artigo ou previsão específica no Regimento/Convenção deste condomínio, você DEVE declarar isso com transparência e clareza:
+     "A Convenção e o Regimento Interno deste condomínio não possuem previsão específica sobre este fato..."
+   - Em seguida, fundamente a resposta ou a notificação nas normas gerais de convivência do Código Civil (Art. 1.336, IV — dever de não prejudicar o sossego, a salubridade, a segurança e os bons costumes) e oriente o gestor sobre a possibilidade de levar o tema para deliberação em Assembleia Geral.
 
 PROTOCOLO OBRIGATÓRIO DE CHECAGEM DE REINCIDÊNCIA E APLICAÇÃO DE PENALIDADES:
 Sempre que o usuário solicitar uma notificação, advertência, multa ou qualquer medida sancionatória para um condômino ou unidade:
