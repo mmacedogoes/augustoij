@@ -5050,15 +5050,6 @@ export type Database = {
         Returns: string
       }
       conta_master: { Args: { _user_id: string }; Returns: string }
-      delete_email: {
-        Args: { message_id: number; queue_name: string }
-        Returns: boolean
-      }
-      email_queue_dispatch: { Args: never; Returns: undefined }
-      enqueue_email: {
-        Args: { payload: Json; queue_name: string }
-        Returns: number
-      }
       gerar_protocolo_helpdesk: { Args: never; Returns: string }
       get_papel_sistema: {
         Args: { _id: string }
@@ -5123,15 +5114,6 @@ export type Database = {
           titulo: string
         }[]
       }
-      move_to_dlq: {
-        Args: {
-          dlq_name: string
-          message_id: number
-          payload: Json
-          source_queue: string
-        }
-        Returns: number
-      }
       normalizar_telefone_br: { Args: { p_telefone: string }; Returns: string }
       normalize_cpf: { Args: { _v: string }; Returns: string }
       normalize_edificio: { Args: { _v: string }; Returns: string }
@@ -5139,14 +5121,6 @@ export type Database = {
       pode_no_condominio: {
         Args: { _condominio_id: string; _permissao: string; _user_id: string }
         Returns: boolean
-      }
-      read_email_batch: {
-        Args: { batch_size: number; queue_name: string; vt: number }
-        Returns: {
-          message: Json
-          msg_id: number
-          read_ct: number
-        }[]
       }
       refresh_custos_cliente_mensal: {
         Args: { _mes_ano: string; _user_id: string }
