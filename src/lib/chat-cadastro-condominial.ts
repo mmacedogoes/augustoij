@@ -239,9 +239,9 @@ export function blocoHistoricoConversasCondominio(
     return `- (${data}) ${titulo}: "${trecho}${m.conteudo.length > 300 ? "…" : ""}"`;
   });
 
-  return `HISTÓRICO DE CONVERSAS E NOTIFICAÇÕES ANTERIORES NESTE CONDOMÍNIO (memória conversacional):\n${itens.join(
-    "\n",
-  )}\n\n`;
+  return `HISTÓRICO DE CONVERSAS E NOTIFICAÇÕES ANTERIORES NESTE CONDOMÍNIO (memória conversacional apenas para checar reincidência de conduta):
+[AVISO CRÍTICO PARA A IA: Os registros abaixo são de conversas e notificações PASSADAS. NUNCA use a conduta ou fato desses registros passados para substituir a conduta solicitada pelo usuário na conversa atual!]
+${itens.join("\n")}\n\n`;
 }
 
 /**

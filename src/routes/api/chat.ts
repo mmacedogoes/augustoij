@@ -252,12 +252,30 @@ export const Route = createFileRoute("/api/chat")({
           const textoBuscaRag = conversaTextoCompleto || userText;
 
           // ============================================================
-          // 1) CACHE LOOKUP — mesma pergunta neste condomínio em <48h
+          // 1) CACHE LOOKUP — apenas para perguntas autônomas de primeiro turno
           // ============================================================
+          const numUserMsgs = messages.filter((m) => m.role === "user").length;
+          const isMultiTurn = numUserMsgs > 1;
           const perguntaNorm = normalizarPergunta(userText);
-          const perguntaHash = perguntaNorm ? hashPergunta(perguntaNorm) : "";
+          const isRespostaCurtaOuOpcao =
+            perguntaNorm.length < 25 ||
+            /^(sim|nao|ok|opcao|primeira|segunda|ocorrencia|reincidencia|multa|advertencia)/i.test(
+              perguntaNorm,
+            ) ||
+            perguntaNorm.includes("ocorrencia") ||
+            perguntaNorm.includes("reincidencia") ||
+            perguntaNorm.includes("notificacao previa") ||
+            perguntaNorm.includes("opcao");
+
           const temAnexoTemporario = !!(attachmentContext && attachmentContext.trim());
-          if (perguntaHash && !temAnexoTemporario) {
+          const podeUsarCache =
+            !isMultiTurn &&
+            !isRespostaCurtaOuOpcao &&
+            !temAnexoTemporario &&
+            !contratoId;
+          const perguntaHash = podeUsarCache && perguntaNorm ? hashPergunta(perguntaNorm) : "";
+
+          if (perguntaHash) {
             const { data: cacheHit } = await supabase
               .from("chat_cache")
               .select("id, resposta, hit_count")
@@ -589,6 +607,15 @@ CONTEÚDO REDIGIDO EXPORTÁVEL (minutas e materiais):
 - Não descreva o marcador nem comente sobre ele — a interface o converte automaticamente nos botões de download (PDF/DOCX).
 
 REGRAS DE REDAÇÃO DE PEÇAS DIRIGIDAS AO CONDÔMINO (notificação de infração, advertência, multa, comunicado, circular):
+- FIDELIDADE ABSOLUTA AO TEMA FÁTICO SOLICITADO (PROIBIÇÃO TOTAL DE TROCA OU MISTURA DE INFRAÇÕES):
+  • Você DEVE manter fidelidade estrita e irrestrita à conduta/fato infracional relatado pelo usuário na CONVERSA ATUAL.
+  • É TERMINANTEMENTE PROIBIDO alterar, trocar ou contaminar o objeto da notificação com condutas de conversas passadas ou do histórico:
+    - Se o usuário solicitou notificação por **trânsito com animais de estimação no elevador social / áreas comuns**, a notificação DEVE ser exclusivamente sobre **animais / pets e circulação em áreas comuns / elevadores**. NUNCA mencione barulho ou ruído!
+    - Se o usuário solicitou por **barulho / ruído / perturbação do sossego**, a peça deve ser sobre barulho / ruído.
+    - Se o usuário solicitou por **vagas de garagem**, a peça deve ser sobre garagem.
+    - Se o usuário solicitou por **obras / reformas**, a peça deve ser sobre obras.
+    - Se o usuário solicitou por **descarte inadequado de lixo**, a peça deve ser sobre lixo.
+  • O histórico de conversas passadas e registros antigos serve ÚNICA E EXCLUSIVAMENTE para verificar se a mesma unidade já foi notificada anteriormente pela MESMA conduta para fins de gradação de reincidência. Jamais use o tema de uma infração anterior para substituir o fato atual.
 - NÃO cite jurisprudência no corpo da peça: nada de acórdão, REsp, AgInt, súmula, nome de tribunal ou número de processo. A jurisprudência serve para você INTERPRETAR a convenção, o regimento e a lei e calibrar o texto — ela não aparece escrita.
 - CITAÇÃO OBRIGATÓRIA DE ARTIGOS E PARÁGRAFOS EXATOS DAS NORMAS INTERNAS (PROIBIÇÃO DE GENERALISMO):
   • Você DEVE citar nominalmente os números dos artigos, parágrafos, incisos e alíneas da Convenção e do Regimento Interno do condomínio aplicáveis ao fato e à sanção (ex.: "Artigo 14, § 1º, alínea 'b' do Regimento Interno", "Artigo 32 da Convenção Condominial").
@@ -600,7 +627,7 @@ REGRAS DE REDAÇÃO DE PEÇAS DIRIGIDAS AO CONDÔMINO (notificação de infraç�
   • É TERMINANTEMENTE PROIBIDO usar fórmulas vagas como "no prazo legal", "em prazo razoável", "no prazo regulamentar" ou deixar o prazo genérico/indefinido.
   • Se e somente se a Convenção/Regimento for expressamente omisso quanto ao prazo de defesa, declare a omissão com clareza ("Diante da omissão regimental quanto ao prazo específico...") e fixe o prazo supletivo de 5 (cinco) dias úteis perante a administração.
 - DESCRIÇÃO FÁTICA E GRADAÇÃO DA PENALIDADE PRECISAS:
-  • Descreva com exatidão os fatos informados na conversa (data, horário se informado, conduta específica como ruído excessivo, perturbação do sossego) e a penalidade exata (Advertência formal ou Multa com seu valor ou percentual da cota condominial previsto nas normas internas).
+  • Descreva com exatidão os fatos informados na conversa (data, horário se informado, conduta específica como trânsito de animal em elevador social, ruído excessivo, vaga irregular) e a penalidade exata (Advertência formal ou Multa com seu valor ou percentual da cota condominial previsto nas normas internas).
 - DATA E HORÁRIO DA INFRAÇÃO: Se a conversa não trouxer a data OU o horário, NÃO redija: devolva uma pergunta estruturada perguntando os dois, cada um com a opção "Não se aplica / não sei precisar" e permite_outro true. Se o usuário responder "não se aplica", use fórmula neutra ("em data recente, conforme relato da administração") — NUNCA invente data ou horário.
 - Exceção única sobre jurisprudência: se o usuário pedir expressamente a citação de julgados ("cite a jurisprudência", "fundamente com acórdãos"), aí sim cite.
 - Pareceres, análises e respostas normais de chat continuam citando jurisprudência normalmente — a restrição vale só para a peça dirigida ao condômino.
@@ -757,9 +784,14 @@ ${cadastroBlock}${historicoBlock}${orientacoesBlock ? `ORIENTAÇÕES DA ADMINIST
                   creditos_lovable: creditos > 0 ? creditos : null,
                 });
                 // Salva no cache (chave: condominio + pergunta normalizada).
-                // Não cacheia se o usuário anexou documento temporário
-                // (a resposta depende daquele anexo pontual).
-                if (perguntaHash && !temAnexoTemporario && textoLimpo.length > 40) {
+                // Apenas se for pergunta autônoma válida de 1º turno (nunca multi-turno, respostas curtas ou perguntas estruturadas)
+                if (
+                  podeUsarCache &&
+                  perguntaHash &&
+                  textoLimpo.length > 40 &&
+                  !textoLimpo.includes('"tipo":"pergunta_estruturada"') &&
+                  !textoLimpo.includes("```pergunta-estruturada")
+                ) {
                   try {
                     await supabase.from("chat_cache").insert({
                       condominio_id: condominioId,
