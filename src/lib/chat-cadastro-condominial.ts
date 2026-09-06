@@ -45,6 +45,16 @@ function tokensUnidade(u: UnidadeRow): string[] {
   const bloco = (u.bloco ?? "").trim().toLowerCase();
   if (numero) toks.push(numero);
   if (bloco) toks.push(bloco);
+
+  for (const c of u.condominos ?? []) {
+    if (c.nome) {
+      const nomeCompleto = c.nome.trim().toLowerCase();
+      toks.push(nomeCompleto);
+      const partes = nomeCompleto.split(/\s+/).filter((p) => p.length >= 3);
+      toks.push(...partes);
+    }
+  }
+
   return toks;
 }
 
@@ -141,12 +151,41 @@ export type InfracaoRow = {
   valor_multa?: number | null;
 };
 
+export type MensagemConversaAnterior = {
+  titulo_conversa?: string | null;
+  created_at?: string | null;
+  papel: string;
+  conteudo: string;
+};
+
 function dataBr(iso?: string | null): string {
   if (!iso) return "data não informada";
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "data não informada"
     : d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+}
+
+/**
+ * Monta o bloco de resumo de conversas anteriores do condomínio que mencionem
+ * notificações, advertências, multas ou infrações.
+ */
+export function blocoHistoricoConversasCondominio(
+  mensagens: MensagemConversaAnterior[] | null | undefined,
+): string {
+  const lista = mensagens ?? [];
+  if (lista.length === 0) return "";
+
+  const itens = lista.slice(0, 10).map((m) => {
+    const data = dataBr(m.created_at);
+    const titulo = m.titulo_conversa ? `[Conversa: "${m.titulo_conversa}"]` : "";
+    const trecho = m.conteudo.slice(0, 300).replace(/\n+/g, " ").trim();
+    return `- (${data}) ${titulo}: "${trecho}${m.conteudo.length > 300 ? "…" : ""}"`;
+  });
+
+  return `HISTÓRICO DE CONVERSAS E NOTIFICAÇÕES ANTERIORES NESTE CONDOMÍNIO (memória conversacional):\n${itens.join(
+    "\n",
+  )}\n\n`;
 }
 
 /**
@@ -157,9 +196,9 @@ function dataBr(iso?: string | null): string {
 export function blocoHistoricoInfracoes(
   unidades: UnidadeRow[] | null | undefined,
   infracoes: InfracaoRow[] | null | undefined,
+  historicoConversasBlock = "",
 ): string {
   const lista = infracoes ?? [];
-  if (lista.length === 0) return "";
   const porUnidade = new Map<string, UnidadeRow>();
   for (const u of unidades ?? []) if (u.id) porUnidade.set(u.id, u);
 
@@ -185,9 +224,18 @@ export function blocoHistoricoInfracoes(
     linhas.push(`- ${rotulo} — ${ocorrencias.length} ocorrência(s): ${detalhe}`);
   }
 
-  return `HISTÓRICO DE NOTIFICAÇÕES E INFRAÇÕES JÁ REGISTRADAS (memória do sistema):\n${linhas.join(
-    "\n",
-  )}\n\nSe a nova peça tratar de fato da MESMA categoria já registrada para a mesma unidade, trate como REINCIDÊNCIA: aplique a consequência prevista na convenção, no regimento interno ou em deliberação de ata (ex.: advertência → multa → multa agravada), citando a cláusula. Se os documentos do condomínio não previrem a gradação, diga isso expressamente e sugira deliberação — nunca invente penalidade ou valor.\n\n`;
+  let blocoFormal = "";
+  if (linhas.length > 0) {
+    blocoFormal = `HISTÓRICO DE NOTIFICAÇÕES E INFRAÇÕES FORMALMENTE REGISTRADAS NO SISTEMA:\n${linhas.join(
+      "\n",
+    )}\n\n`;
+  }
+
+  if (!blocoFormal && !historicoConversasBlock) {
+    return `HISTÓRICO DE INFRAÇÕES NESTE CONDOMÍNIO:\nNenhum registro prévio de notificação ou infração foi encontrado no banco de dados para este condomínio/unidade.\n\n`;
+  }
+
+  return `${blocoFormal}${historicoConversasBlock}`;
 }
 
 /** Formata o bloco final. Retorna "" quando não há cadastro. */

@@ -22,6 +22,7 @@ import {
 import {
   blocoCadastroCondominial,
   blocoHistoricoInfracoes,
+  blocoHistoricoConversasCondominio,
   priorizarUnidades,
 } from "@/lib/chat-cadastro-condominial";
 
@@ -410,7 +411,7 @@ export const Route = createFileRoute("/api/chat")({
           let cadastroBlock = "";
           let historicoBlock = "";
           try {
-            const [{ data: unidadesCad }, { data: condominioInfo }] = await Promise.all([
+            const [{ data: unidadesCad }, { data: condominioInfo }, { data: conversasCondo }] = await Promise.all([
               supabase
                 .from("unidades")
                 .select("id, bloco, numero, tipo, condominos(nome, cpf, tipo, principal)")
@@ -420,7 +421,16 @@ export const Route = createFileRoute("/api/chat")({
                 .select("nome, endereco, cidade, uf")
                 .eq("id", condominioId)
                 .maybeSingle(),
+              // Resgate de conversas anteriores deste condomínio
+              supabase
+                .from("conversas")
+                .select("id, titulo, created_at")
+                .eq("condominio_id", condominioId)
+                .neq("id", conversaId)
+                .order("created_at", { ascending: false })
+                .limit(12),
             ]);
+
             cadastroBlock = blocoCadastroCondominial(
               unidadesCad as never,
               userText,
@@ -430,23 +440,68 @@ export const Route = createFileRoute("/api/chat")({
             const { selecionadas } = priorizarUnidades(
               (unidadesCad ?? []) as never,
               userText,
-              20,
+              35,
             );
             const ids = selecionadas
               .map((u) => u.id)
               .filter((id): id is string => typeof id === "string");
+
+            let infracoes: any[] = [];
             if (ids.length > 0) {
-              const { data: infracoes } = await supabase
+              const { data: infracoesData } = await supabase
                 .from("unidade_infracoes")
                 .select("unidade_id, tipo, categoria, ocorrido_em, created_at, valor_multa")
                 .in("unidade_id", ids)
                 .order("created_at", { ascending: false })
                 .limit(80);
-              historicoBlock = blocoHistoricoInfracoes(
-                unidadesCad as never,
-                infracoes as never,
-              );
+              infracoes = infracoesData ?? [];
             }
+
+            // Resgata mensagens das conversas anteriores do condomínio para identificar notificações passadas
+            let historicoConversasBlock = "";
+            if (conversasCondo && conversasCondo.length > 0) {
+              const convIds = conversasCondo.map((c) => c.id);
+              const { data: msgsAntigas } = await supabase
+                .from("mensagens")
+                .select("conversa_id, papel, conteudo, created_at")
+                .in("conversa_id", convIds)
+                .order("created_at", { ascending: false })
+                .limit(30);
+
+              if (msgsAntigas && msgsAntigas.length > 0) {
+                const convMap = new Map(conversasCondo.map((c) => [c.id, c.titulo]));
+                const msgsFormatadas = msgsAntigas
+                  .filter((m) => {
+                    const txt = (m.conteudo || "").toLowerCase();
+                    return (
+                      txt.includes("notifica") ||
+                      txt.includes("advert") ||
+                      txt.includes("multa") ||
+                      txt.includes("infrac") ||
+                      txt.includes("reincid") ||
+                      txt.includes("barulho") ||
+                      txt.includes("vaga") ||
+                      txt.includes("animal") ||
+                      txt.includes("obra") ||
+                      txt.includes("lixo")
+                    );
+                  })
+                  .map((m) => ({
+                    titulo_conversa: convMap.get(m.conversa_id) ?? null,
+                    created_at: m.created_at,
+                    papel: m.papel,
+                    conteudo: m.conteudo,
+                  }));
+
+                historicoConversasBlock = blocoHistoricoConversasCondominio(msgsFormatadas);
+              }
+            }
+
+            historicoBlock = blocoHistoricoInfracoes(
+              unidadesCad as never,
+              infracoes as never,
+              historicoConversasBlock,
+            );
           } catch (e) {
             console.error("Cadastro condominial fetch failed:", e);
           }
@@ -527,8 +582,28 @@ REGRAS DE REDAÇÃO DE PEÇAS DIRIGIDAS AO CONDÔMINO (notificação de infraç�
 - Fundamente a peça apenas na convenção/regimento do condomínio e, quando necessário, no artigo de lei aplicável (ex.: Art. 1.336 do Código Civil).
 - Exceção única: se o usuário pedir expressamente a citação de julgados ("cite a jurisprudência", "fundamente com acórdãos"), aí sim cite.
 - Pareceres, análises e respostas normais de chat continuam citando jurisprudência normalmente — a restrição vale só para a peça dirigida ao condômino.
-- DATA E HORÁRIO DA INFRAÇÃO são obrigatórios em notificações/advertências. Se a conversa não trouxer a data OU o horário, NÃO redija: devolva uma pergunta estruturada (formato abaixo) perguntando os dois, cada um com a opção "Não se aplica / não sei precisar" e permite_outro true.
+- DATA E HORÁRIO DA INFRAÇÃO são obrigatórios em notificações/advertências. Se a conversa não trouxer a data OU o horário, NÃO redija: devolva uma pergunta estruturada perguntando os dois, cada um com a opção "Não se aplica / não sei precisar" e permite_outro true.
 - Se o usuário responder "não se aplica", use fórmula neutra ("em data recente, conforme relato da administração") — NUNCA invente data ou horário.
+
+PROTOCOLO OBRIGATÓRIO DE CHECAGEM DE REINCIDÊNCIA E APLICAÇÃO DE PENALIDADES:
+Sempre que o usuário solicitar uma notificação, advertência, multa ou qualquer medida sancionatória para um condômino ou unidade:
+
+1. SE HOUVER HISTÓRICO DE NOTIFICAÇÃO/INFRAÇÃO PREEXISTENTE (no histórico de infrações registradas ou nas conversas anteriores do condomínio para a mesma unidade/condômino):
+   - Você DEVE identificar expressamente a ocorrência anterior (mencionando o fato e a data aproximada do registro prévio).
+   - Você NÃO DEVE redigir a peça diretamente sem antes consultar a decisão do gestor.
+   - Você DEVE emitir OBRIGATORIAMENTE uma PERGUNTA ESTRUTURADA (JSON na raiz, sem prosa ou disclaimer) perguntando se deve aplicar a PENA MAIS GRAVOSA POR REINCIDÊNCIA (ex.: Multa conforme Convenção/Regimento) ou se prefere emitir nova notificação/advertência simples.
+   - Formato JSON obrigatório do caso com histórico:
+     {"tipo":"pergunta_estruturada","texto":"Identifiquei no histórico do condomínio que esta unidade já possui notificação/advertência anterior sobre conduta similar. Conforme a Convenção e o Regimento Interno, a reincidência autoriza a aplicação de penalidade mais gravosa. Como deseja proceder?","perguntas":[{"id":"decisao_reincidencia","pergunta":"Qual medida sancionatória deseja aplicar?","modo":"unica","opcoes":["Aplicar penalidade mais gravosa por reincidência (Multa)","Emitir nova notificação/advertência simples"],"permite_outro":true}]}
+
+2. SE NÃO HOUVER NENHUM REGISTRO DE NOTIFICAÇÃO ANTERIOR NO CONDOMÍNIO (nem formalmente nem nas conversas anteriores):
+   - Você NÃO DEVE assumir previamente se é a 1ª vez ou se já houve notificação extraoficial fora do sistema.
+   - Você DEVE emitir OBRIGATORIAMENTE uma PERGUNTA ESTRUTURADA (JSON na raiz) perguntando se é a 1ª ocorrência desse condômino ou se já houve notificação anterior fora da plataforma, para aplicar a gradação legal correta.
+   - Formato JSON obrigatório do caso sem histórico:
+     {"tipo":"pergunta_estruturada","texto":"Não localizei notificações anteriores registradas no sistema para esta unidade sobre este fato. Para aplicar a penalidade correta segundo a Convenção e o Regimento Interno, confirme:","perguntas":[{"id":"status_reincidencia","pergunta":"Trata-se da 1ª ocorrência ou já houve notificação anterior?","modo":"unica","opcoes":["É a 1ª ocorrência (Notificação/Advertência inicial)","Já houve notificação prévia fora do sistema (Reincidência - aplicar Multa)"],"permite_outro":true}]}
+
+3. APÓS A RESPOSTA DO USUÁRIO:
+   - Se for 1ª ocorrência: redija a notificação/advertência inicial, com fundamentação na convenção e prazo regulamentar para cessação da conduta ou defesa prévia.
+   - Se for reincidência: redija a aplicação da pena mais gravosa (multa ou multa majorada), citando a reincidência, a cláusula que prevê a gradação, o valor exato previsto na convenção/regimento e o prazo de recurso.
 
 IDENTIFICAÇÃO DO DESTINATÁRIO — OBRIGATÓRIA (dados pessoais são LÍCITOS aqui):
 - Notificações, advertências, multas, cobranças, comunicados individuais e demais peças dirigidas a condôminos DEVEM qualificar o destinatário com NOME COMPLETO, CPF e unidade (bloco/número), quando esses dados constarem do bloco "CADASTRO DE UNIDADES E CONDÔMINOS DESTE CONDOMÍNIO".
