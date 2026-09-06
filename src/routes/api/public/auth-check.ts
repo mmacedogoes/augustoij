@@ -23,6 +23,7 @@ export const Route = createFileRoute("/api/public/auth-check")({
         const kind = body.kind === "signup" ? "signup" : "login";
         const ip = ipFromRequest(request);
 
+        try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const agora = new Date();
 
