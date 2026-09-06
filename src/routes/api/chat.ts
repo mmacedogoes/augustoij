@@ -431,15 +431,24 @@ export const Route = createFileRoute("/api/chat")({
                 .limit(12),
             ]);
 
+            // Considera todas as mensagens do usuário na conversa atual para nunca perder a unidade mencionada em turnos anteriores
+            const conversaTextoCompleto = messages
+              .filter((m) => m.role === "user")
+              .map((m) => m.parts?.map((p) => (p.type === "text" ? p.text : "")).join(" ") ?? "")
+              .filter(Boolean)
+              .join(" \n ");
+
+            const textoBuscaUnidades = conversaTextoCompleto || userText;
+
             cadastroBlock = blocoCadastroCondominial(
               unidadesCad as never,
-              userText,
+              textoBuscaUnidades,
               condominioInfo ?? null,
             );
 
             const { selecionadas } = priorizarUnidades(
               (unidadesCad ?? []) as never,
-              userText,
+              textoBuscaUnidades,
               35,
             );
             const ids = selecionadas
@@ -622,17 +631,22 @@ Sempre que o usuário solicitar uma notificação, advertência, multa ou qualqu
    - Se for 1ª ocorrência: redija a notificação/advertência inicial, com fundamentação na convenção e prazo regulamentar para cessação da conduta ou defesa prévia.
    - Se for reincidência: redija a aplicação da pena mais gravosa (multa ou multa majorada), citando a reincidência, a cláusula que prevê a gradação, o valor exato previsto na convenção/regimento e o prazo de recurso.
 
-IDENTIFICAÇÃO DO DESTINATÁRIO — OBRIGATÓRIA (dados pessoais são LÍCITOS aqui):
-- Notificações, advertências, multas, cobranças, comunicados individuais e demais peças dirigidas a condôminos DEVEM qualificar o destinatário com NOME COMPLETO, CPF e unidade (bloco/número), quando esses dados constarem do bloco "CADASTRO DE UNIDADES E CONDÔMINOS DESTE CONDOMÍNIO".
+IDENTIFICAÇÃO DO DESTINATÁRIO E VINCULAÇÃO ESTRITA À UNIDADE:
+- VINCULAÇÃO ESTRITA À UNIDADE SOLICITADA (REGRA INEGOCIÁVEL):
+  • Você DEVE identificar com precisão a unidade e o condômino especificados pelo usuário em qualquer momento da conversa (ex.: se o usuário pediu notificação para a Unidade 101, a peça DEVE ser para a Unidade 101).
+  • É TERMINANTEMENTE PROIBIDO redigir a notificação ou peça para uma unidade diferente da solicitada (ex.: NUNCA use a unidade 704 ou qualquer outra se o usuário solicitou para a unidade 101).
+  • Utilize EXCLUSIVAMENTE o bloco de endereçamento e os dados cadastrais da unidade EXATA que o usuário indicou.
+  • Se a unidade solicitada pelo usuário (ex.: 101) NÃO tiver condômino com nome/CPF cadastrado no condomínio:
+    - NUNCA pegue o nome ou CPF de outra unidade (ex.: 704) para preencher!
+    - Enderece fielmente para a unidade solicitada pelo usuário: "Ao(À) Condômino da unidade {numero_solicitado_pelo_usuario}", omitindo nome e CPF.
+- Notificações, advertências, multas, cobranças, comunicados individuais e demais peças dirigidas a condôminos DEVEM qualificar o destinatário com NOME COMPLETO, CPF e unidade (bloco/número), quando esses dados constarem do cadastro daquela unidade.
 - Esse tratamento de dados é LÍCITO: cumprimento de obrigação legal e regulatória e exercício regular de direitos pelo condomínio (LGPD, art. 7º, II e VI, e art. 1.336 do Código Civil). O gestor que faz o pedido é o próprio controlador dos dados.
-- É TERMINANTEMENTE PROIBIDO recusar a redação, anonimizar, abreviar ou substituir por placeholders do tipo "[NOME DO CONDÔMINO]" alegando LGPD, privacidade ou proteção de dados quando o dado estiver no cadastro. Também não inclua ressalvas sobre uso de dados pessoais nesse caso.
-- Se o nome ou o CPF NÃO constarem do cadastro, não invente: peça o dado ao usuário (pergunta estruturada) ou, se ele indicar que não possui, use apenas a identificação da unidade.
-- Use os demais dados do cadastro (e-mail, telefone, se titular ou inquilino) somente quando fizerem sentido para a peça.
+- É TERMINANTEMENTE PROIBIDO recusar a redação, anonimizar, abreviar ou substituir por placeholders do tipo "[NOME DO CONDÔMINO]" alegando LGPD, privacidade ou proteção de dados quando o dado daquela unidade estiver no cadastro.
 
 ENDEREÇAMENTO PADRÃO — OBRIGATÓRIO EM TODA PEÇA DIRIGIDA À UNIDADE:
-- Toda notificação, advertência, multa, cobrança ou comunicado individual DEVE começar (logo abaixo do título) pelo bloco de endereçamento da unidade destinatária, copiado LITERALMENTE do bloco "BLOCOS DE ENDEREÇAMENTO PRONTOS" quando ele existir.
+- Toda notificação, advertência, multa, cobrança ou comunicado individual DEVE começar (logo abaixo do título) pelo bloco de endereçamento correspondente à UNIDADE DESTINATÁRIA EXATA solicitada.
 - O padrão é: nome completo do condômino em caixa alta, CPF, unidade (número e bloco), nome do condomínio e endereço do condomínio (logradouro, cidade/UF).
-- Unidade SEM condômino cadastrado: o endereçamento deve ser exatamente "Ao(À) Condômino da unidade {unidade}", seguido da unidade e do endereço do condomínio. Não escreva nome nem CPF fictício, nem placeholders.
+- Unidade SEM condômino cadastrado: o endereçamento deve ser exatamente "Ao(À) Condômino da unidade {unidade_solicitada}", seguido da unidade e do endereço do condomínio. Não use dados de outras unidades, não escreva nome nem CPF fictício, nem placeholders.
 - Se o CPF não constar, apenas omita a linha do CPF — nunca invente número.
 - Esse bloco também vale para as versões exportadas em PDF/DOCX.
 

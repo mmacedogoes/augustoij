@@ -31,6 +31,17 @@ export type CondominioInfo = {
 
 const MAX_UNIDADES = 60;
 
+const STOPWORDS_PT = new Set([
+  "de", "da", "do", "das", "dos", "em", "na", "no", "nas", "nos",
+  "para", "por", "com", "sem", "sob", "sobre", "que", "uma", "um",
+  "uns", "umas", "como", "mais", "mas", "a", "e", "o", "as", "os",
+  "ao", "aos", "sr", "sra", "senhor", "senhora", "bloco", "unidade",
+  "apto", "apartamento", "casa", "lote", "sala", "loja", "notificacao",
+  "notificação", "advertencia", "advertência", "multa", "morador",
+  "condomino", "condômino", "infracao", "infração", "solicitar",
+  "solicito", "fazer", "faça", "favor", "este", "esta", "nesse", "nesta"
+]);
+
 function rotuloUnidade(u: UnidadeRow): string {
   const bloco = (u.bloco ?? "").trim();
   const numero = (u.numero ?? "").trim();
@@ -39,50 +50,95 @@ function rotuloUnidade(u: UnidadeRow): string {
     .join(" — ") || "Unidade sem identificação";
 }
 
-function tokensUnidade(u: UnidadeRow): string[] {
-  const toks: string[] = [];
+function escapeRe(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function calcularScoreUnidade(u: UnidadeRow, texto: string): number {
+  if (!texto) return 0;
+  let score = 0;
+  const t = texto.toLowerCase();
   const numero = (u.numero ?? "").trim().toLowerCase();
   const bloco = (u.bloco ?? "").trim().toLowerCase();
-  if (numero) toks.push(numero);
-  if (bloco) toks.push(bloco);
 
-  for (const c of u.condominos ?? []) {
-    if (c.nome) {
-      const nomeCompleto = c.nome.trim().toLowerCase();
-      toks.push(nomeCompleto);
-      const partes = nomeCompleto.split(/\s+/).filter((p) => p.length >= 3);
-      toks.push(...partes);
+  // 1. Match do número da unidade (ex.: "101", "704")
+  if (numero) {
+    // Padrão contextual forte: "unidade 101", "apto 101", "apartamento 101", "ap 101", "#101"
+    const reContexto = new RegExp(`(?:unidade|apto|apartamento|ap|casa|sala|lote|n[ºo°]?|#)\\s*${escapeRe(numero)}(?:[^0-9a-zà-ú]|$)`, "i");
+    if (reContexto.test(t)) {
+      score += 200;
+    } else {
+      // Número isolado como palavra inteira: "101"
+      const reNumero = new RegExp(`(?:^|[^0-9a-zà-ú])${escapeRe(numero)}(?:[^0-9a-zà-ú]|$)`, "i");
+      if (reNumero.test(t)) {
+        score += 100;
+      }
     }
   }
 
-  return toks;
+  // 2. Match do bloco da unidade (ex.: "Bloco A", "Torre 1")
+  if (bloco) {
+    if (bloco.length > 2 && !STOPWORDS_PT.has(bloco)) {
+      // Bloco com nome longo (ex.: "Jardins", "Norte")
+      const reBlocoLongo = new RegExp(`(?:^|[^0-9a-zà-ú])${escapeRe(bloco)}(?:[^0-9a-zà-ú]|$)`, "i");
+      if (reBlocoLongo.test(t)) score += 40;
+    } else {
+      // Bloco curto (ex.: "A", "B", "1", "2") — EXIGE prefixo "bloco", "torre", "ed." para evitar falsos positivos com preposição "a"
+      const reBlocoCurto = new RegExp(`(?:bloco|bl\\.?|torre|edif[íi]cio|ed\\.?)\\s*${escapeRe(bloco)}(?:[^0-9a-zà-ú]|$)`, "i");
+      if (reBlocoCurto.test(t)) score += 50;
+    }
+  }
+
+  // 3. Match de condôminos (nome completo ou partes significativas)
+  for (const c of u.condominos ?? []) {
+    if (c.nome) {
+      const nomeCompleto = c.nome.trim().toLowerCase();
+      if (nomeCompleto.length >= 4) {
+        const reNomeCompleto = new RegExp(`(?:^|[^0-9a-zà-ú])${escapeRe(nomeCompleto)}(?:[^0-9a-zà-ú]|$)`, "i");
+        if (reNomeCompleto.test(t)) {
+          score += 150;
+          continue;
+        }
+      }
+      const partes = nomeCompleto.split(/\s+/).filter((p) => p.length >= 3 && !STOPWORDS_PT.has(p));
+      for (const p of partes) {
+        const reParte = new RegExp(`(?:^|[^0-9a-zà-ú])${escapeRe(p)}(?:[^0-9a-zà-ú]|$)`, "i");
+        if (reParte.test(t)) {
+          score += 40;
+        }
+      }
+    }
+  }
+
+  return score;
 }
 
-/** Unidades citadas na pergunta vêm primeiro; o resto mantém a ordem original. */
+/** Unidades citadas na pergunta vêm primeiro ordenadas por relevância; o resto mantém a ordem. */
 export function priorizarUnidades(
   unidades: UnidadeRow[],
   pergunta: string,
   max = MAX_UNIDADES,
-): { selecionadas: UnidadeRow[]; omitidas: number } {
-  const texto = (pergunta ?? "").toLowerCase();
-  const citadas: UnidadeRow[] = [];
-  const demais: UnidadeRow[] = [];
-  for (const u of unidades) {
-    const toks = tokensUnidade(u);
-    const citada =
-      toks.length > 0 &&
-      toks.some((t) => new RegExp(`(^|[^0-9a-zà-ú])${escapeRe(t)}([^0-9a-zà-ú]|$)`, "i").test(texto));
-    (citada ? citadas : demais).push(u);
-  }
+): { selecionadas: UnidadeRow[]; omitidas: number; citadas: UnidadeRow[] } {
+  const comScore = (unidades ?? []).map((u) => ({
+    unidade: u,
+    score: calcularScoreUnidade(u, pergunta),
+  }));
+
+  const citadas = comScore
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.unidade);
+
+  const demais = comScore
+    .filter((item) => item.score === 0)
+    .map((item) => item.unidade);
+
   const ordenadas = [...citadas, ...demais];
   return {
     selecionadas: ordenadas.slice(0, max),
     omitidas: Math.max(0, ordenadas.length - max),
+    citadas,
   };
-}
-
-function escapeRe(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** Rótulo curto da unidade usado no fallback de endereçamento. */
@@ -250,7 +306,7 @@ export function blocoCadastroCondominial(
   );
   if (lista.length === 0) return "";
 
-  const { selecionadas, omitidas } = priorizarUnidades(lista, pergunta);
+  const { selecionadas, omitidas, citadas } = priorizarUnidades(lista, pergunta);
 
   const linhas = selecionadas.map((u) => {
     const pessoas = (u.condominos ?? []).map((c) => {
@@ -275,12 +331,14 @@ export function blocoCadastroCondominial(
       }\n`
     : "";
 
-  const modelos = selecionadas
+  // Se houver unidades citadas/relevantes na conversa, foca os modelos nelas primeiro
+  const unidadesParaModelos = citadas.length > 0 ? citadas : selecionadas.slice(0, 10);
+  const modelos = unidadesParaModelos
     .slice(0, 10)
-    .map((u) => montarEnderecamento(u, condominio))
-    .join("\n---\n");
+    .map((u) => `[BLOCO DE ENDEREÇAMENTO — ${rotuloUnidade(u).toUpperCase()}]:\n${montarEnderecamento(u, condominio)}`)
+    .join("\n\n---\n\n");
 
   return `${cabecalhoCondominio}CADASTRO DE UNIDADES E CONDÔMINOS DESTE CONDOMÍNIO (dados fornecidos pelo próprio gestor):\n${linhas.join(
     "\n",
-  )}${rodape}\n\nBLOCOS DE ENDEREÇAMENTO PRONTOS (copie literalmente no topo de qualquer notificação, advertência, multa, cobrança ou comunicado dirigido à unidade):\n${modelos}\n\n`;
+  )}${rodape}\n\nBLOCOS DE ENDEREÇAMENTO PRONTOS POR UNIDADE (utilize EXCLUSIVAMENTE o bloco da unidade solicitada pelo usuário no topo da peça):\n${modelos}\n\n`;
 }
