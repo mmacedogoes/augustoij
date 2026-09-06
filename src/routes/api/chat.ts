@@ -242,6 +242,15 @@ export const Route = createFileRoute("/api/chat")({
               .join(" ")
               .trim() ?? "";
 
+          // Considera todas as mensagens do usuário na conversa atual para nunca perder termos de turnos anteriores (ex: conduta/unidade dita no turno 1 e confirmação no turno 2)
+          const conversaTextoCompleto = messages
+            .filter((m) => m.role === "user")
+            .map((m) => m.parts?.map((p) => (p.type === "text" ? p.text : "")).join(" ") ?? "")
+            .filter(Boolean)
+            .join(" \n ");
+
+          const textoBuscaRag = conversaTextoCompleto || userText;
+
           // ============================================================
           // 1) CACHE LOOKUP — mesma pergunta neste condomínio em <48h
           // ============================================================
@@ -314,15 +323,15 @@ export const Route = createFileRoute("/api/chat")({
           let contexto = "";
           let contextoKb = "";
           let temMatchDocumento = false;
-          if (userText) {
+          if (textoBuscaRag) {
             try {
-              const queryEmbedding = await embedText(apiKey, userText);
+              const queryEmbedding = await embedText(apiKey, textoBuscaRag);
               // Se contratoId presente, tentamos buscar primeiro apenas chunks desse contrato
               const { data: matches } = await supabase.rpc("match_document_chunks", {
                 _condominio_id: condominioId,
                 _query_embedding: `[${queryEmbedding.join(",")}]` as unknown as string,
-                _match_count: 12,
-                _min_similarity: 0.22,
+                _match_count: 16,
+                _min_similarity: 0.18,
                 // Passamos o filtro de metadados se existir contratoId
                 ...(contratoId ? { _metadata_filter: { contrato_id: contratoId } } : {})
               });
@@ -342,8 +351,8 @@ export const Route = createFileRoute("/api/chat")({
               // Base de conhecimento global (treinada pelo admin)
               const { data: kb } = await supabase.rpc("match_kb_chunks", {
                 _query_embedding: `[${queryEmbedding.join(",")}]` as unknown as string,
-                _match_count: 4,
-                _min_similarity: 0.3,
+                _match_count: 5,
+                _min_similarity: 0.25,
               });
               if (kb && Array.isArray(kb) && kb.length > 0) {
                 contextoKb = kb
@@ -430,13 +439,6 @@ export const Route = createFileRoute("/api/chat")({
                 .order("created_at", { ascending: false })
                 .limit(12),
             ]);
-
-            // Considera todas as mensagens do usuário na conversa atual para nunca perder a unidade mencionada em turnos anteriores
-            const conversaTextoCompleto = messages
-              .filter((m) => m.role === "user")
-              .map((m) => m.parts?.map((p) => (p.type === "text" ? p.text : "")).join(" ") ?? "")
-              .filter(Boolean)
-              .join(" \n ");
 
             const textoBuscaUnidades = conversaTextoCompleto || userText;
 
@@ -588,11 +590,20 @@ CONTEÚDO REDIGIDO EXPORTÁVEL (minutas e materiais):
 
 REGRAS DE REDAÇÃO DE PEÇAS DIRIGIDAS AO CONDÔMINO (notificação de infração, advertência, multa, comunicado, circular):
 - NÃO cite jurisprudência no corpo da peça: nada de acórdão, REsp, AgInt, súmula, nome de tribunal ou número de processo. A jurisprudência serve para você INTERPRETAR a convenção, o regimento e a lei e calibrar o texto — ela não aparece escrita.
-- Fundamente a peça primariamente na convenção/regimento do condomínio e, subsidiariamente, no artigo de lei aplicável (ex.: Art. 1.336 do Código Civil).
-- Exceção única: se o usuário pedir expressamente a citação de julgados ("cite a jurisprudência", "fundamente com acórdãos"), aí sim cite.
+- CITAÇÃO OBRIGATÓRIA DE ARTIGOS E PARÁGRAFOS EXATOS DAS NORMAS INTERNAS (PROIBIÇÃO DE GENERALISMO):
+  • Você DEVE citar nominalmente os números dos artigos, parágrafos, incisos e alíneas da Convenção e do Regimento Interno do condomínio aplicáveis ao fato e à sanção (ex.: "Artigo 14, § 1º, alínea 'b' do Regimento Interno", "Artigo 32 da Convenção Condominial").
+  • É TERMINANTEMENTE PROIBIDO usar expressões genéricas ou vagas como "conforme as normas internas", "de acordo com o regulamento", "conforme a convenção" sem citar o número do artigo correspondente.
+  • É TERMINANTEMENTE PROIBIDO fundamentar a notificação primariamente no Código Civil quando houver Regimento Interno ou Convenção disponíveis no contexto: o Código Civil (ex.: Art. 1.336, IV) atua apenas subsidiariamente.
+- PRAZO DE DEFESA E DESTINATÁRIO DO RECURSO ESTRITAMENTE ESPECÍFICOS (PROIBIÇÃO DE PRAZO GENÉRICO):
+  • O prazo para o condômino apresentar defesa, impugnação ou recurso DEVE ser exato e extraído diretamente da Convenção ou Regimento Interno (ex.: "no prazo improrrogável de 5 (cinco) dias úteis", "no prazo de 10 (dez) dias corridos").
+  • Indique expressamente o órgão/destinatário perante o qual a defesa deve ser protocolada (ex.: "perante a Administração do Condomínio / Síndico", "através do e-mail oficial da administração", "ao Conselho Consultivo/Fiscal").
+  • É TERMINANTEMENTE PROIBIDO usar fórmulas vagas como "no prazo legal", "em prazo razoável", "no prazo regulamentar" ou deixar o prazo genérico/indefinido.
+  • Se e somente se a Convenção/Regimento for expressamente omisso quanto ao prazo de defesa, declare a omissão com clareza ("Diante da omissão regimental quanto ao prazo específico...") e fixe o prazo supletivo de 5 (cinco) dias úteis perante a administração.
+- DESCRIÇÃO FÁTICA E GRADAÇÃO DA PENALIDADE PRECISAS:
+  • Descreva com exatidão os fatos informados na conversa (data, horário se informado, conduta específica como ruído excessivo, perturbação do sossego) e a penalidade exata (Advertência formal ou Multa com seu valor ou percentual da cota condominial previsto nas normas internas).
+- DATA E HORÁRIO DA INFRAÇÃO: Se a conversa não trouxer a data OU o horário, NÃO redija: devolva uma pergunta estruturada perguntando os dois, cada um com a opção "Não se aplica / não sei precisar" e permite_outro true. Se o usuário responder "não se aplica", use fórmula neutra ("em data recente, conforme relato da administração") — NUNCA invente data ou horário.
+- Exceção única sobre jurisprudência: se o usuário pedir expressamente a citação de julgados ("cite a jurisprudência", "fundamente com acórdãos"), aí sim cite.
 - Pareceres, análises e respostas normais de chat continuam citando jurisprudência normalmente — a restrição vale só para a peça dirigida ao condômino.
-- DATA E HORÁRIO DA INFRAÇÃO são obrigatórios em notificações/advertências. Se a conversa não trouxer a data OU o horário, NÃO redija: devolva uma pergunta estruturada perguntando os dois, cada um com a opção "Não se aplica / não sei precisar" e permite_outro true.
-- Se o usuário responder "não se aplica", use fórmula neutra ("em data recente, conforme relato da administração") — NUNCA invente data ou horário.
 
 MÉTODO OBRIGATÓRIO DE CRUZAMENTO DE CONDUTAS COM REGIMENTO, CONVENÇÃO E ATAS:
 Sempre que o usuário relatar uma conduta de determinado morador ou unidade (ex.: barulho/ruído, animais em áreas comuns, uso irregular de vagas de garagem, vazamento/infiltração, obras sem autorização, descarte de lixo, etc.) ou solicitar parecer/notificação:
@@ -600,12 +611,12 @@ Sempre que o usuário relatar uma conduta de determinado morador ou unidade (ex.
    - Você DEVE cruzar imediatamente o relato fático do usuário com os trechos da Convenção, do Regimento Interno e das Atas presentes no CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO.
    - Verifique e declare expressamente:
      a) Se a conduta relatada contraria expressamente alguma norma interna do condomínio.
-     b) O artigo, cláusula, item ou parágrafo EXATO do Regimento Interno ou da Convenção que regulamenta ou proíbe a conduta.
-     c) As condições procedimentais específicas (ex.: horários de tolerância de ruído, necessidade de ART/RRT para reformas, regras de trânsito interno ou coleiras para animais).
-     d) As penalidades cominadas especificamente para aquela infração (advertência inicial, multa simples, fração/múltiplo da cota condominial, multa em dobro por reincidência, prazo regulamentar para apresentação de defesa ao síndico ou conselho).
-2. FUNDAMENTAÇÃO LEGAL PRIMÁRIA:
-   - Como padrão inegociável, você DEVE usar SEMPRE as normas internas do próprio condomínio (Convenção, Regimento Interno e deliberações de Atas) como a fundamentação primária e central de toda notificação e resposta.
-   - As normas do Código Civil (ex.: Art. 1.336, IV, Art. 1.337) atuam como fundamento complementar e subsidiário.
+     b) O artigo, cláusula, item ou parágrafo EXATO do Regimento Interno ou da Convenção que regulamenta ou proíbe a conduta (cite nominalmente os números dos artigos).
+     c) As condições procedimentais específicas (ex.: horários de silêncio e tolerância de ruído, necessidade de ART/RRT para reformas, regras de trânsito interno ou coleiras para animais).
+     d) As penalidades cominadas especificamente para aquela infração (advertência inicial, multa simples, fração/múltiplo da cota condominial, multa em dobro por reincidência, prazo regulamentar exato para apresentação de defesa ao síndico ou conselho).
+2. FUNDAMENTAÇÃO LEGAL PRIMÁRIA E CITAÇÃO EXPRESSA DOS ARTIGOS:
+   - Como padrão inegociável, você DEVE usar SEMPRE as normas internas do próprio condomínio (Convenção, Regimento Interno e deliberações de Atas) com menção explícita aos seus artigos como a fundamentação primária e central de toda notificação e resposta.
+   - As normas do Código Civil (ex.: Art. 1.336, IV, Art. 1.337) atuam apenas como fundamento complementar e subsidiário.
 3. CASO DE LACUNA NORMATIVA (CONDUTA SEM PREVISÃO EXPRESSA NA REGRA INTERNA):
    - Se a conduta relatada NÃO tiver artigo ou previsão específica no Regimento/Convenção deste condomínio, você DEVE declarar isso com transparência e clareza:
      "A Convenção e o Regimento Interno deste condomínio não possuem previsão específica sobre este fato..."
