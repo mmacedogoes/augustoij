@@ -17,6 +17,8 @@ interface ChatContratoPanelProps {
   condominioId: string;
   prestadorNome: string;
   initialPrompt?: string | null;
+  /** Chamado assim que o prompt inicial é enviado, para que o pai o limpe. */
+  onInitialPromptEnviado?: () => void;
 }
 
 export function ChatContratoPanel({
@@ -24,6 +26,7 @@ export function ChatContratoPanel({
   condominioId,
   prestadorNome,
   initialPrompt,
+  onInitialPromptEnviado,
 }: ChatContratoPanelProps) {
   const [conversaId, setConversaId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
