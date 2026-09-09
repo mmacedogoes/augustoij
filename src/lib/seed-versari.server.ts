@@ -43,18 +43,7 @@ export async function sincronizarCarteiraMarceloSeNecessario(userId: string) {
       }
     }
 
-    // Se nao for Marcelo nem membro de sua equipe, busca se Marcelo ja existe no banco
-    if (!marceloId) {
-      const { data: marceloProfile } = await supabaseAdmin
-        .from("profiles")
-        .select("id")
-        .eq("email", MARCELO_EMAIL)
-        .maybeSingle();
-      if (marceloProfile?.id) {
-        marceloId = marceloProfile.id;
-      }
-    }
-
+    // Se nao for Marcelo nem membro de sua equipe, nada a fazer.
     if (!marceloId) return;
 
     // 2. Buscar condominios ja existentes de Marcelo para nao duplicar/substituir
@@ -62,6 +51,12 @@ export async function sincronizarCarteiraMarceloSeNecessario(userId: string) {
       .from("condominios")
       .select("id, nome, cnpj")
       .eq("owner_id", marceloId);
+
+    // Carga inicial apenas: se a carteira ja tem condominios, nao inserimos nada
+    // (assim um condominio excluido de proposito nao volta sozinho). O
+    // compartilhamento com a equipe continua sendo garantido abaixo.
+    const cargaInicial = (existentes ?? []).length === 0;
+
 
     const nomesExistentes = new Set((existentes ?? []).map((c) => c.nome.trim().toLowerCase()));
     const cnpjsExistentes = new Set(
