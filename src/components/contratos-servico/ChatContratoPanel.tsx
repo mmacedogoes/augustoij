@@ -107,8 +107,9 @@ export function ChatContratoPanel({
     if (conversaId && initialPrompt && !initialSentRef.current && !isLoading) {
       initialSentRef.current = true;
       (sendMessage as any)(initialPrompt);
+      onInitialPromptEnviado?.();
     }
-  }, [conversaId, initialPrompt, isLoading, sendMessage]);
+  }, [conversaId, initialPrompt, isLoading, sendMessage, onInitialPromptEnviado]);
 
   useEffect(() => {
     const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
