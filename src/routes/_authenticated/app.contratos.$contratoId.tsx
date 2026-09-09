@@ -936,6 +936,7 @@ function Page() {
                      condominioId={c.condominio_id}
                      prestadorNome={c.prestador_nome}
                      initialPrompt={promptIa}
+                     onInitialPromptEnviado={() => setPromptIa(null)}
                    />
                 </Suspense>
               </div>
