@@ -66,7 +66,7 @@ export async function sincronizarCarteiraMarceloSeNecessario(userId: string) {
     );
 
     // 3. Filtrar apenas os que ainda nao estao cadastrados
-    const novosParaInserir = CONDOMINIOS_VERSARI_SEED.filter((seed) => {
+    const novosParaInserir = (cargaInicial ? CONDOMINIOS_VERSARI_SEED : []).filter((seed) => {
       const nomeKey = seed.nome.trim().toLowerCase();
       const cnpjKey = seed.cnpj.replace(/\D/g, "");
       if (nomesExistentes.has(nomeKey)) return false;
