@@ -48,9 +48,12 @@ export const salvarAditivo = createServerFn({ method: "POST" })
     if (eIns) throw new Error(eIns.message);
     const aditivoId = inserted.id as string;
 
-    // Decodifica base64 e faz upload.
-    const b64 = data.pdfBase64.replace(/^data:application\/pdf;base64,/, "");
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    // Decodifica base64 robustamente e faz upload no storage
+    const cleanB64 = data.pdfBase64.includes("base64,")
+      ? data.pdfBase64.split("base64,")[1]
+      : data.pdfBase64;
+    const sanitizedB64 = cleanB64.trim().replace(/\s+/g, "");
+    const bytes = Buffer.from(sanitizedB64, "base64");
     const path = `${context.userId}/aditivos/${data.contratoLocacaoId}/${aditivoId}.pdf`;
     const { error: eUp } = await context.supabase
       .storage

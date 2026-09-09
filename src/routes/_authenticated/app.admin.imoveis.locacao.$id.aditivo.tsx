@@ -88,6 +88,7 @@ function GerarAditivo() {
 
   const [form, setForm] = useState<Form | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [gerandoDocx, setGerandoDocx] = useState(false);
   const [ultimoPath, setUltimoPath] = useState<string | null>(null);
 
   useEffect(() => {
@@ -299,6 +300,232 @@ function GerarAditivo() {
     doc.save(`termo-renovacao-${id.slice(0, 8)}.pdf`);
   }
 
+  async function baixarDocx() {
+    if (!form) return;
+    setGerandoDocx(true);
+    try {
+      const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
+
+      const FONT = "Times New Roman";
+      const LINE_SPACING = 360; // 1.5 linhas
+      const INDENT = 720; // 1.25 cm em dxa
+
+      const qual = (
+        label: string,
+        o: {
+          nome: string;
+          nacionalidade: string;
+          estado_civil: string;
+          profissao: string;
+          rg: string;
+          cpf: string;
+          endereco: string;
+        },
+      ) => [
+        new TextRun({ text: `${label}: `, font: FONT, size: 24, bold: true }),
+        new TextRun({
+          text: `${o.nome}, ${o.nacionalidade}, ${o.estado_civil}, ${o.profissao}, portador(a) do RG nº ${o.rg} e inscrito(a) no CPF sob o nº ${o.cpf}, residente e domiciliado(a) em ${o.endereco}.`,
+          font: FONT,
+          size: 24,
+        }),
+      ];
+
+      const paragraphs: import("docx").Paragraph[] = [
+        // Título centralizado em caixa alta e negrito
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { line: LINE_SPACING, before: 0, after: 360 },
+          children: [
+            new TextRun({
+              text: "TERMO DE RENOVAÇÃO DE CONTRATO DE LOCAÇÃO DE IMÓVEL RESIDENCIAL",
+              font: FONT,
+              size: 26,
+              bold: true,
+            }),
+          ],
+        }),
+
+        // Locadora
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: LINE_SPACING, after: 200 },
+          indent: { firstLine: INDENT },
+          children: qual("LOCADORA", {
+            nome: form.loc_nome,
+            nacionalidade: form.loc_nacionalidade,
+            estado_civil: form.loc_estado_civil,
+            profissao: form.loc_profissao,
+            rg: form.loc_rg,
+            cpf: form.loc_cpf,
+            endereco: form.loc_endereco,
+          }),
+        }),
+
+        // Locatário
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: LINE_SPACING, after: 240 },
+          indent: { firstLine: INDENT },
+          children: qual("LOCATÁRIO(A)", {
+            nome: form.inq_nome,
+            nacionalidade: form.inq_nacionalidade,
+            estado_civil: form.inq_estado_civil,
+            profissao: form.inq_profissao,
+            rg: form.inq_rg,
+            cpf: form.inq_cpf,
+            endereco: form.inq_endereco,
+          }),
+        }),
+      ];
+
+      // Considerações e Cláusulas
+      const clausulas = [
+        form.cl_consideracoes,
+        form.cl_objeto,
+        form.cl_prazo,
+        form.cl_preco,
+        form.cl_reajuste,
+        form.cl_encargos,
+        form.cl_mora,
+        form.cl_utilizacao,
+        form.cl_garantia,
+        form.cl_disposicoes,
+      ];
+
+      for (const cl of clausulas) {
+        if (!cl || !cl.trim()) continue;
+        const partes = cl.split("\n").map((p) => p.trim()).filter(Boolean);
+        for (const parte of partes) {
+          const matchClausula = parte.match(/^(CLÁUSULA\s+[^\.]+\.|CONSIDERANDO\s+[^\;]+[\;\.]?)(.*)$/i);
+          if (matchClausula) {
+            paragraphs.push(
+              new Paragraph({
+                alignment: AlignmentType.JUSTIFIED,
+                spacing: { line: LINE_SPACING, after: 180 },
+                indent: { firstLine: INDENT },
+                children: [
+                  new TextRun({ text: matchClausula[1], font: FONT, size: 24, bold: true }),
+                  new TextRun({ text: matchClausula[2], font: FONT, size: 24 }),
+                ],
+              }),
+            );
+          } else {
+            paragraphs.push(
+              new Paragraph({
+                alignment: AlignmentType.JUSTIFIED,
+                spacing: { line: LINE_SPACING, after: 180 },
+                indent: { firstLine: INDENT },
+                children: [new TextRun({ text: parte, font: FONT, size: 24 })],
+              }),
+            );
+          }
+        }
+      }
+
+      // Local e data
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.LEFT,
+          spacing: { line: LINE_SPACING, before: 240, after: 360 },
+          children: [
+            new TextRun({
+              text: `Local e data: ______________________, ${form.data_assinatura}.`,
+              font: FONT,
+              size: 24,
+            }),
+          ],
+        }),
+      );
+
+      // Assinaturas
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { line: LINE_SPACING, before: 360, after: 60 },
+          children: [new TextRun({ text: "____________________________________________", font: FONT, size: 24 })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { line: LINE_SPACING, after: 360 },
+          children: [new TextRun({ text: `LOCADORA — ${form.loc_nome}`, font: FONT, size: 24, bold: true })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { line: LINE_SPACING, before: 240, after: 60 },
+          children: [new TextRun({ text: "____________________________________________", font: FONT, size: 24 })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { line: LINE_SPACING, after: 360 },
+          children: [new TextRun({ text: `LOCATÁRIO(A) — ${form.inq_nome}`, font: FONT, size: 24, bold: true })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.LEFT,
+          spacing: { line: LINE_SPACING, before: 240, after: 120 },
+          children: [new TextRun({ text: "Testemunhas:", font: FONT, size: 24, bold: true })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.LEFT,
+          spacing: { line: LINE_SPACING, after: 120 },
+          children: [
+            new TextRun({
+              text: "1) ____________________________________   Nome:                                   CPF:",
+              font: FONT,
+              size: 22,
+            }),
+          ],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.LEFT,
+          spacing: { line: LINE_SPACING, after: 120 },
+          children: [
+            new TextRun({
+              text: "2) ____________________________________   Nome:                                   CPF:",
+              font: FONT,
+              size: 22,
+            }),
+          ],
+        }),
+      );
+
+      const doc = new Document({
+        styles: {
+          default: {
+            document: {
+              run: { font: FONT, size: 24 },
+            },
+          },
+        },
+        sections: [
+          {
+            properties: {
+              page: {
+                size: { width: 11906, height: 16838 }, // A4
+                margin: { top: 1418, right: 1418, bottom: 1418, left: 1418 }, // ~2.5 cm
+              },
+            },
+            children: paragraphs,
+          },
+        ],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `termo-renovacao-${id.slice(0, 8)}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast.success("Arquivo DOCX gerado com sucesso.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao gerar arquivo DOCX.");
+    } finally {
+      setGerandoDocx(false);
+    }
+  }
+
   async function salvarNoStorage() {
     if (!form) return;
     setSalvando(true);
@@ -346,16 +573,19 @@ function GerarAditivo() {
     <AppShell>
       <AdminNav />
       <ImoveisNav />
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Link to="/app/admin/imoveis/locacao/$id" params={{ id }}>
             <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Voltar ao painel</Button>
           </Link>
           <h1 className="text-xl font-semibold">Gerar termo de renovação</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={baixarPdf} disabled={!form}>
             <Download className="h-4 w-4 mr-1" />Baixar PDF
+          </Button>
+          <Button variant="outline" onClick={baixarDocx} disabled={!form || gerandoDocx}>
+            <FileText className="h-4 w-4 mr-1" />{gerandoDocx ? "Gerando DOCX…" : "Baixar DOCX"}
           </Button>
           <Button onClick={salvarNoStorage} disabled={!form || salvando}>
             <Save className="h-4 w-4 mr-1" />{salvando ? "Salvando…" : "Salvar aditivo"}
@@ -475,6 +705,9 @@ function GerarAditivo() {
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={abrirSalvo}>
                     Abrir PDF salvo
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={baixarDocx} disabled={gerandoDocx}>
+                    <Download className="h-4 w-4 mr-1" />{gerandoDocx ? "Gerando DOCX…" : "Baixar DOCX"}
                   </Button>
                   <Button size="sm" onClick={lancarHonorario}>
                     <Wallet className="h-4 w-4 mr-1" />Lançar honorário de renovação
