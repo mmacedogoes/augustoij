@@ -86,17 +86,17 @@ async function runHandler(request: Request): Promise<Response> {
   const primeiroDoMes = hoje.slice(0, 7) + "-01";
   const { data: checkRaw, error: cErr } = await supabaseAdmin
     .from("contrato_checklist_periodos")
-    .select("id, competencia, status, checklist_id, contrato_checklists!inner(id, contrato_id, escopo)")
+    .select("id, competencia, status, checklist_id, contrato_checklists!inner(id, contrato_id, titulo)")
     .eq("status", "aberto")
     .lt("competencia", primeiroDoMes)
     .order("competencia", { ascending: false })
     .limit(500);
   if (cErr) {
-    console.warn("[lembretes-contratos] checklists (ignorado):", cErr.message);
+    console.error("[lembretes-contratos] checklists:", cErr.message);
   }
   type PeriodoRow = {
     id: string; competencia: string; status: string; checklist_id: string;
-    contrato_checklists: { id: string; contrato_id: string; escopo: string } | null;
+    contrato_checklists: { id: string; contrato_id: string; titulo: string } | null;
   };
   const periodos = ((checkRaw ?? []) as unknown as PeriodoRow[]);
   const eventosChecklist: EventoBase[] = [];
@@ -125,7 +125,7 @@ async function runHandler(request: Request): Promise<Response> {
       contrato_id: p.contrato_checklists.contrato_id,
       tipo: "checklist_pendente",
       titulo: `${pendentesQtd} item(ns) pendente(s) do checklist`,
-      descricao: `Competência ${formatBR(p.competencia)} — ${p.contrato_checklists.escopo}.`,
+      descricao: `Competência ${formatBR(p.competencia)} — ${p.contrato_checklists.titulo}.`,
       data_evento: p.competencia,
     });
   }

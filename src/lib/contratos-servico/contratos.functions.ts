@@ -122,6 +122,9 @@ type ContratoLinha = {
   documento_id: string | null;
   mes_base_reajuste?: number | null;
   indice_reajuste?: string | null;
+  ultimo_reajuste_em?: string | null;
+  aviso_previo_dias?: number | null;
+  renovacao_automatica?: boolean | null;
 };
 
 export const listContratosServico = createServerFn({ method: "POST" })
@@ -135,7 +138,7 @@ export const listContratosServico = createServerFn({ method: "POST" })
     let query = supabaseAdmin
       .from("contratos_servico")
       .select(
-        "id, condominio_id, tipo_servico_id, situacao, prestador_nome, prazo_indeterminado, data_inicio, data_fim, valor, tipo_valor, documento_id, mes_base_reajuste, indice_reajuste, condominios(nome), tipos_servico_contrato(nome)",
+        "id, condominio_id, tipo_servico_id, situacao, prestador_nome, prazo_indeterminado, data_inicio, data_fim, valor, tipo_valor, documento_id, mes_base_reajuste, indice_reajuste, ultimo_reajuste_em, aviso_previo_dias, renovacao_automatica, condominios(nome), tipos_servico_contrato(nome)",
       );
     if (data.condominioId) {
       query = query.eq("condominio_id", data.condominioId);
@@ -166,6 +169,9 @@ export const listContratosServico = createServerFn({ method: "POST" })
       documento_id: string | null;
       mes_base_reajuste: number | null;
       indice_reajuste: string | null;
+      ultimo_reajuste_em: string | null;
+      aviso_previo_dias: number | null;
+      renovacao_automatica: boolean | null;
       condominios: { nome: string } | null;
       tipos_servico_contrato: { nome: string } | null;
     };
@@ -187,6 +193,9 @@ export const listContratosServico = createServerFn({ method: "POST" })
       documento_id: r.documento_id,
       mes_base_reajuste: r.mes_base_reajuste,
       indice_reajuste: r.indice_reajuste,
+      ultimo_reajuste_em: r.ultimo_reajuste_em,
+      aviso_previo_dias: r.aviso_previo_dias,
+      renovacao_automatica: r.renovacao_automatica,
     }));
 
     // Contadores globais (não afetados pelo filtro de status, respeitam os demais)
