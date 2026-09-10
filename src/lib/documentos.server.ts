@@ -294,11 +294,17 @@ export async function extractTextWithVision(
 }
 
 export async function extractText(buffer: Uint8Array, fileName: string): Promise<string> {
-  const lower = fileName.toLowerCase();
+  const { validarUploadSeguro } = await import("@/lib/seguranca-lgpd.server");
+  const validacao = validarUploadSeguro(buffer, fileName);
+  if (!validacao.valido) {
+    throw new Error(validacao.motivo ?? "Arquivo inválido ou potencialmente inseguro.");
+  }
+
+  const lower = validacao.nomeSanitizado.toLowerCase();
   if (buffer.byteLength === 0) {
     throw new Error("Arquivo vazio (0 bytes). Reenvie um arquivo válido.");
   }
-  if (isImageFile(fileName)) {
+  if (isImageFile(validacao.nomeSanitizado)) {
     // imagens não têm camada de texto — sinaliza para o caller usar visão
     throw new Error("__NEEDS_VISION__");
   }

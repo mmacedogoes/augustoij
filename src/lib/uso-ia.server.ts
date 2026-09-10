@@ -92,9 +92,18 @@ export async function registrarEventoIa(input: RegistrarEventoIaInput): Promise<
       }
     }
 
-    // Cálculo de custo BRL usa config_alertas.credito_brl no trigger,
-    // então passamos 0 aqui e deixamos o trigger converter (single source
-    // of truth com o fluxo de chat).
+    const { mascararDadosSensiveis } = await import("@/lib/seguranca-lgpd.server");
+    let metaSanitizado = input.meta ?? null;
+    if (metaSanitizado && typeof metaSanitizado === "object") {
+      try {
+        const jsonStr = JSON.stringify(metaSanitizado);
+        const mascaradoStr = mascararDadosSensiveis(jsonStr);
+        metaSanitizado = JSON.parse(mascaradoStr);
+      } catch {
+        // mantém o meta original se falhar parsing
+      }
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("eventos_ia").insert({
       user_id: input.userId,
@@ -107,7 +116,7 @@ export async function registrarEventoIa(input: RegistrarEventoIaInput): Promise<
       custo_brl: 0,
       aig_log_id: input.aigLogId ?? null,
       aig_run_id: input.aigRunId ?? null,
-      meta: (input.meta ?? null) as never,
+      meta: (metaSanitizado ?? null) as never,
     });
     if (error) {
       console.error("[uso-ia] insert eventos_ia falhou:", error.message);
