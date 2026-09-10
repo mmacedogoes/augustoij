@@ -128,10 +128,14 @@ function Page() {
     checkAdmin().then((adm: any) => setIsAdmin(!!adm?.admin)).catch(() => {});
   }, [checkAdmin]);
 
+  const c = ficha?.contrato ?? null;
   const isModoSuporte = useMemo(() => {
-    if (!isAdmin || !ficha?.contrato) return false;
+    if (!isAdmin || !c) return false;
     return !!search.cid || !!search.support;
-  }, [isAdmin, ficha?.contrato, search.cid, search.support]);
+  }, [isAdmin, c, search.cid, search.support]);
+
+  const avisoInfo = useMemo(() => (c ? calcularAvisoPrevioInfo(c) : null), [c]);
+  const reajusteInfo = useMemo(() => (c ? calcularReajusteStatusInfo(c) : null), [c]);
 
   useEffect(() => {
     const abasValidas = [
@@ -245,7 +249,7 @@ function Page() {
       </>
     );
   }
-  if (!ficha) {
+  if (!ficha || !c) {
     return (
       <>
         <div className="max-w-4xl space-y-4">
@@ -256,11 +260,8 @@ function Page() {
     );
   }
 
-  const c = ficha.contrato;
   const status = statusExibicaoContrato(c);
   const temArquivo = !!(c.arquivo_path || c.documento_id);
-  const avisoInfo = useMemo(() => calcularAvisoPrevioInfo(c), [c]);
-  const reajusteInfo = useMemo(() => calcularReajusteStatusInfo(c), [c]);
 
   function handleAcaoRapida(prompt: string) {
     setPromptIa(prompt);
@@ -274,7 +275,7 @@ function Page() {
       id: "reajustes",
       label: "Reajustes",
       icon: <ArrowUpRightSquare className="h-4 w-4" />,
-      badge: reajusteInfo.status === "pendente" ? "Pendente" : undefined,
+      badge: reajusteInfo?.status === "pendente" ? "Pendente" : undefined,
       badgeTone: "destructive" as const,
     },
     {

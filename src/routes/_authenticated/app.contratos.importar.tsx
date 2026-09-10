@@ -78,6 +78,23 @@ function Page() {
   const [obrigacoes, setObrigacoes] = useState<Array<ObrigacaoExtraida & { origem: "ia" | "manual" }>>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [arrastando, setArrastando] = useState(false);
+  const [etapaProgresso, setEtapaProgresso] = useState(1);
+
+  useEffect(() => {
+    let timer1: NodeJS.Timeout;
+    let timer2: NodeJS.Timeout;
+    if (passo === "processando") {
+      setEtapaProgresso(1);
+      timer1 = setTimeout(() => setEtapaProgresso(2), 2500);
+      timer2 = setTimeout(() => setEtapaProgresso(3), 6000);
+    }
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [passo]);
+
   useEffect(() => {
     let alivo = true;
     listarCondos()
@@ -182,25 +199,7 @@ function Page() {
           </div>
         </div>
       </AppShell>
-    );
   }
-
-  const [arrastando, setArrastando] = useState(false);
-  const [etapaProgresso, setEtapaProgresso] = useState(1);
-
-  useEffect(() => {
-    let timer1: NodeJS.Timeout;
-    let timer2: NodeJS.Timeout;
-    if (passo === "processando") {
-      setEtapaProgresso(1);
-      timer1 = setTimeout(() => setEtapaProgresso(2), 2500);
-      timer2 = setTimeout(() => setEtapaProgresso(3), 6000);
-    }
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
-  }, [passo]);
 
   function onDragOver(e: React.DragEvent) {
     e.preventDefault();

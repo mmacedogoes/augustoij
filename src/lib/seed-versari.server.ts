@@ -3,12 +3,23 @@ import { CONDOMINIOS_VERSARI_SEED } from "@/config/seed-condominios-versari";
 
 export const MARCELO_EMAIL = "marcelo@versari.com.br";
 
+const syncedUsersCache = new Map<string, number>();
+const SYNC_TTL_MS = 1000 * 60 * 30; // 30 minutos
+
 /**
  * Garante que a carteira de condominios do Marcelo Versari esta sincronizada.
  * Regra de seguranca estrita: Condominios existentes NUNCA sao modificados nem substituidos,
  * apenas ignorados.
  */
 export async function sincronizarCarteiraMarceloSeNecessario(userId: string) {
+  if (!userId) return;
+  const now = Date.now();
+  const lastSync = syncedUsersCache.get(userId);
+  if (lastSync && now - lastSync < SYNC_TTL_MS) {
+    return;
+  }
+  syncedUsersCache.set(userId, now);
+
   try {
     // 1. Identificar se o usuario e o Marcelo ou pertence a equipe do Marcelo
     const { data: profile } = await supabaseAdmin
