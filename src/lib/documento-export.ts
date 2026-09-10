@@ -966,19 +966,16 @@ export async function gerarDocxBlob(
                     ? []
                     : [
                         new TextRun({
-                          text: "Página ",
+                          children: [
+                            "Página ",
+                            PageNumber.CURRENT,
+                            " de ",
+                            PageNumber.TOTAL_PAGES,
+                          ],
                           font: FONT,
                           size: 18,
                           color: "888888",
                         }),
-                        PageNumber.CURRENT,
-                        new TextRun({
-                          text: " de ",
-                          font: FONT,
-                          size: 18,
-                          color: "888888",
-                        }),
-                        PageNumber.TOTAL_PAGES,
                       ]),
                 ],
               }),
