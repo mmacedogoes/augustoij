@@ -17,6 +17,7 @@ import {
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { GestaoContratosGate } from "@/components/gates/GestaoContratosGate";
 import { CalloutBanner } from "@/components/ui/callout-banner";
+import { KpiMetricCard } from "@/components/ui/kpi-metric-card";
 import {
   getIndicadoresPainel,
   listChecklistsPendentesMes,
@@ -218,43 +219,49 @@ function Page() {
           </Select>
         </div>
 
-        {/* Faixa de Saúde da Carteira */}
+        {/* ReUI Faixa de Saúde e KPIs da Carteira com Delta Indicators */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <HealthCard 
+          <KpiMetricCard 
             label="Contratos Vigentes" 
             value={ind?.vigentes} 
-            icon={<CheckCircle2 className="h-5 w-5 text-augusto-green" />} 
+            icon={<CheckCircle2 className="h-5 w-5" />}
+            tone="emerald"
+            delta={ind?.vigentes ? { value: `${ind.vigentes} ativos`, trend: "up", period: "em vigor" } : undefined}
+            subtitle="Carteira regular"
           />
-          <HealthCard 
+          <KpiMetricCard 
             label="Exige Atenção" 
             value={ind?.total_com_pendencias} 
-            icon={<AlertTriangle className="h-5 w-5 text-augusto-gold" />} 
-            tone={ind?.total_com_pendencias ? "ambar" : "neutro"}
+            icon={<AlertTriangle className="h-5 w-5" />} 
+            tone={ind?.total_com_pendencias ? "amber" : "neutral"}
+            delta={ind?.total_com_pendencias ? { value: `${ind.total_com_pendencias} pendências`, trend: "up", isPositive: false, period: "ação sugerida" } : undefined}
+            subtitle={ind?.total_com_pendencias ? "Clique para revisar" : "Tudo em dia"}
+            interactive={!!ind?.total_com_pendencias}
+            onClick={() => ind?.total_com_pendencias && handleOpenPendencia("reajuste")}
           />
-          <HealthCard 
-            label="Vencidos/Críticos" 
+          <KpiMetricCard 
+            label="Vencidos / Críticos" 
             value={(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0)} 
-            icon={<ShieldAlert className="h-5 w-5 text-destructive" />} 
-            tone={(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0) > 0 ? "vermelho" : "neutro"}
+            icon={<ShieldAlert className="h-5 w-5" />} 
+            tone={(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0) > 0 ? "rose" : "neutral"}
+            delta={(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0) > 0 ? { value: `${(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0)} urgentes`, trend: "down", isPositive: false } : undefined}
+            subtitle={(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0) > 0 ? "Requer intervenção" : "Nenhum risco crítico"}
+            interactive={(ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0) > 0}
+            onClick={() => ((ind?.vencidos ?? 0) + (ind?.nao_conformidades_mes ?? 0) > 0) && handleOpenPendencia("nao_conformidade")}
           />
           <Popover>
             <PopoverTrigger asChild>
-              <Card className="app-card p-4.5 border-augusto-gold/20 bg-gradient-to-br from-card via-card to-augusto-gold/[0.05] cursor-help hover:-translate-y-0.5 hover:border-augusto-gold/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Valor Anual Estimado</span>
-                  <div className="p-1 rounded-md bg-augusto-gold/10 text-augusto-gold">
-                    <Info className="h-3.5 w-3.5" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xl font-mono font-bold tabular-nums text-foreground tracking-tight">
-                    {ind === null ? "…" : formatBRL(ind.valor_anual_estimado)}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Recorrente: <span className="font-mono font-medium">{ind ? formatBRL(ind.valor_mensal_total) : "—"}</span>/mês
-                  </p>
-                </div>
-              </Card>
+              <div className="cursor-help">
+                <KpiMetricCard
+                  label="Valor Anual Estimado"
+                  value={ind === null ? "…" : formatBRL(ind.valor_anual_estimado)}
+                  icon={<Wallet className="h-5 w-5" />}
+                  tone="gold"
+                  subtitle={`Recorrente: ${ind ? formatBRL(ind.valor_mensal_total) : "—"}/mês`}
+                  delta={{ value: "Global + Mensal", trend: "neutral", period: "12 meses" }}
+                  interactive
+                />
+              </div>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-4">
               <div className="space-y-3">
