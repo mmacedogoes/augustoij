@@ -29,9 +29,9 @@ function HomePage() {
   const fetchProfile = useServerFn(getProfile);
 
   const condosQuery = useQuery<Condo[]>({
-    queryKey: ["home", "condos"],
+    queryKey: ["condominios-lista"],
     queryFn: async () => ((await fetchCondos()) as Condo[]) ?? [],
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
   const profileQuery = useQuery<{ nome?: string | null; email?: string | null }>({
     queryKey: ["home", "profile"],

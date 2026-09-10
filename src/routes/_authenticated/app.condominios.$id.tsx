@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ArrowLeft, Building, Eye, MessageSquare } from "lucide-react";
@@ -87,6 +88,7 @@ export const Route = createFileRoute("/_authenticated/app/condominios/$id")({
 });
 
 function CondominioDetail() {
+  const queryClient = useQueryClient();
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const wantsAdminView = !!search.admin_view;
@@ -198,6 +200,7 @@ function CondominioDetail() {
     setExcluindo(true);
     try {
       await removerCondominio({ data: { id } });
+      queryClient.invalidateQueries({ queryKey: ["condominios-lista"] });
       toast.success("Condomínio excluído.");
       navigate({ to: "/app/condominios" });
     } catch (e) {
@@ -544,6 +547,7 @@ function CondominioDetail() {
                             const savedRow = saved as (typeof condo & { cidadeNova?: boolean }) | null;
                             setCondo(savedRow);
                             setEditing(false);
+                            queryClient.invalidateQueries({ queryKey: ["condominios-lista"] });
                             toast.success("Dados atualizados");
                             if (savedRow?.cidadeNova) setShowDisclaimer(true);
                           } catch (e) {

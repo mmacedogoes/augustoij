@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { Building, Plus, Lock, Sparkles, Search, X, ArrowDownAZ, MapPin, ChevronRight } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -49,11 +50,27 @@ function normalizarTexto(str: string): string {
     .trim();
 }
 
+type CondoItem = {
+  id: string;
+  nome: string;
+  uf: string | null;
+  cidade: string | null;
+  qtd_unidades: number | null;
+  cnpj: string | null;
+};
+
 function CondominiosPage() {
+  const queryClient = useQueryClient();
   const fetchList = useServerFn(listCondominios);
   const create = useServerFn(createCondominio);
   const { data: plano, refetch: refetchPlano } = usePlanContext();
-  const [items, setItems] = useState<Array<{ id: string; nome: string; uf: string | null; cidade: string | null; qtd_unidades: number | null; cnpj: string | null }>>([]);
+
+  const { data: items = [], isLoading } = useQuery<CondoItem[]>({
+    queryKey: ["condominios-lista"],
+    queryFn: async () => ((await fetchList()) as CondoItem[]) ?? [],
+    staleTime: 60_000,
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -68,12 +85,6 @@ function CondominiosPage() {
     categoria: CategoriaCondominio;
   }>({ nome: "", cnpj: "", uf: "", cidade: "", categoria: "predio" });
   const [loading, setLoading] = useState(false);
-
-  async function reload() {
-    const r = await fetchList();
-    setItems(r as typeof items);
-  }
-  useEffect(() => { reload().catch(() => {}); }, []);
 
   // Fechar dropdown de autocomplete ao clicar fora
   useEffect(() => {
@@ -137,7 +148,7 @@ function CondominiosPage() {
       toast.success("Condomínio criado!");
       setOpen(false);
       setForm({ nome: "", cnpj: "", uf: "", cidade: "", categoria: "predio" });
-      reload();
+      queryClient.invalidateQueries({ queryKey: ["condominios-lista"] });
       refetchPlano();
       if ((res as { cidadeNova?: boolean } | null)?.cidadeNova) {
         setShowDisclaimer(true);
@@ -365,7 +376,19 @@ function CondominiosPage() {
         )}
 
         <div className="mt-2 grid sm:grid-cols-2 gap-4 app-stagger">
-          {items.length === 0 ? (
+          {isLoading && items.length === 0 ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="app-card p-5 animate-pulse">
+                <div className="flex items-center gap-3.5">
+                  <div className="h-10 w-10 rounded-lg bg-muted/80 shrink-0" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-4 bg-muted/80 rounded w-1/2" />
+                    <div className="h-3 bg-muted/60 rounded w-3/4" />
+                  </div>
+                </div>
+              </Card>
+            ))
+          ) : items.length === 0 ? (
             <Card className="app-card p-10 border-dashed border-[var(--landing-rule)] col-span-full bg-gradient-to-b from-card to-muted/30">
               <AppEmptyState
                 icon={<Building strokeWidth={1.5} />}
