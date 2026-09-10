@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { GestaoContratosGate } from "@/components/gates/GestaoContratosGate";
+import { CalloutBanner } from "@/components/ui/callout-banner";
 import {
   getIndicadoresPainel,
   listChecklistsPendentesMes,
@@ -279,6 +280,33 @@ function Page() {
             </PopoverContent>
           </Popover>
         </div>
+
+        {/* ReUI Callout Banners de Alertas Críticos */}
+        {ind && (ind.vencidos > 0 || ind.nao_conformidades_mes > 0) ? (
+          <CalloutBanner
+            variant="critical"
+            title="Atenção Crítica: Contratos Vencidos ou Não Conformidades"
+            badge="Ação Imediata"
+            description={`Identificamos ${ind.vencidos} contrato(s) com vigência expirada e ${ind.nao_conformidades_mes} pendência(s) trabalhista(s) crítica(s) registradas.`}
+            action={{
+              label: "Tratar Pendências Críticas",
+              onClick: () => handleOpenPendencia(ind.nao_conformidades_mes > 0 ? "nao_conformidade" : "reajuste"),
+            }}
+            dismissible
+          />
+        ) : ind && ind.reajustes_pendentes > 0 ? (
+          <CalloutBanner
+            variant="gold"
+            title="Reajustes Anuais Pendentes de Aplicação"
+            badge="Correção Monetária"
+            description={`Existem ${ind.reajustes_pendentes} contrato(s) aguardando cálculo e formalização do reajuste anual pelo índice previsto.`}
+            action={{
+              label: "Revisar e Aplicar Reajustes",
+              onClick: () => handleOpenPendencia("reajuste"),
+            }}
+            dismissible
+          />
+        ) : null}
 
         {/* Alertas Pró-Ativos e Ciclo de Vida */}
         <AlertasProativosWidget condominioId={condFiltro} />
