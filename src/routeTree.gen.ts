@@ -51,6 +51,7 @@ import { Route as ApiVozFalarRouteImport } from './routes/api/voz/falar'
 import { Route as ApiVozTranscreverRouteImport } from './routes/api/voz/transcrever'
 import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authenticated/app.admin.index'
 import { Route as AuthenticatedAppAdminAuditoriaRouteImport } from './routes/_authenticated/app.admin.auditoria'
+import { Route as AuthenticatedAppAdminAvaliacaoRouteImport } from './routes/_authenticated/app.admin.avaliacao'
 import { Route as AuthenticatedAppAdminBlogRouteImport } from './routes/_authenticated/app.admin.blog'
 import { Route as AuthenticatedAppAdminCidadesNovasRouteImport } from './routes/_authenticated/app.admin.cidades-novas'
 import { Route as AuthenticatedAppAdminCondominiosRouteImport } from './routes/_authenticated/app.admin.condominios'
@@ -321,6 +322,12 @@ const AuthenticatedAppAdminAuditoriaRoute =
   AuthenticatedAppAdminAuditoriaRouteImport.update({
     id: '/auditoria',
     path: '/auditoria',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppAdminAvaliacaoRoute =
+  AuthenticatedAppAdminAvaliacaoRouteImport.update({
+    id: '/avaliacao',
+    path: '/avaliacao',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
 const AuthenticatedAppAdminBlogRoute =
@@ -693,6 +700,7 @@ export interface FileRoutesByFullPath {
   '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
+  '/app/admin/avaliacao': typeof AuthenticatedAppAdminAvaliacaoRoute
   '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
   '/app/admin/cidades-novas': typeof AuthenticatedAppAdminCidadesNovasRoute
   '/app/admin/condominios': typeof AuthenticatedAppAdminCondominiosRoute
@@ -787,6 +795,7 @@ export interface FileRoutesByTo {
   '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
+  '/app/admin/avaliacao': typeof AuthenticatedAppAdminAvaliacaoRoute
   '/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
   '/app/admin/cidades-novas': typeof AuthenticatedAppAdminCidadesNovasRoute
   '/app/admin/condominios': typeof AuthenticatedAppAdminCondominiosRoute
@@ -886,6 +895,7 @@ export interface FileRoutesById {
   '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/admin/auditoria': typeof AuthenticatedAppAdminAuditoriaRoute
+  '/_authenticated/app/admin/avaliacao': typeof AuthenticatedAppAdminAvaliacaoRoute
   '/_authenticated/app/admin/blog': typeof AuthenticatedAppAdminBlogRoute
   '/_authenticated/app/admin/cidades-novas': typeof AuthenticatedAppAdminCidadesNovasRoute
   '/_authenticated/app/admin/condominios': typeof AuthenticatedAppAdminCondominiosRoute
@@ -986,6 +996,7 @@ export interface FileRouteTypes {
     | '/api/voz/transcrever'
     | '/app/'
     | '/app/admin/auditoria'
+    | '/app/admin/avaliacao'
     | '/app/admin/blog'
     | '/app/admin/cidades-novas'
     | '/app/admin/condominios'
@@ -1080,6 +1091,7 @@ export interface FileRouteTypes {
     | '/api/voz/transcrever'
     | '/app'
     | '/app/admin/auditoria'
+    | '/app/admin/avaliacao'
     | '/app/admin/blog'
     | '/app/admin/cidades-novas'
     | '/app/admin/condominios'
@@ -1178,6 +1190,7 @@ export interface FileRouteTypes {
     | '/api/voz/transcrever'
     | '/_authenticated/app/'
     | '/_authenticated/app/admin/auditoria'
+    | '/_authenticated/app/admin/avaliacao'
     | '/_authenticated/app/admin/blog'
     | '/_authenticated/app/admin/cidades-novas'
     | '/_authenticated/app/admin/condominios'
@@ -1569,6 +1582,13 @@ declare module '@tanstack/react-router' {
       path: '/auditoria'
       fullPath: '/app/admin/auditoria'
       preLoaderRoute: typeof AuthenticatedAppAdminAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/admin/avaliacao': {
+      id: '/_authenticated/app/admin/avaliacao'
+      path: '/avaliacao'
+      fullPath: '/app/admin/avaliacao'
+      preLoaderRoute: typeof AuthenticatedAppAdminAvaliacaoRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
     '/_authenticated/app/admin/blog': {
@@ -2012,6 +2032,7 @@ const AuthenticatedAppAdminImoveisRouteWithChildren =
 
 interface AuthenticatedAppAdminRouteChildren {
   AuthenticatedAppAdminAuditoriaRoute: typeof AuthenticatedAppAdminAuditoriaRoute
+  AuthenticatedAppAdminAvaliacaoRoute: typeof AuthenticatedAppAdminAvaliacaoRoute
   AuthenticatedAppAdminBlogRoute: typeof AuthenticatedAppAdminBlogRoute
   AuthenticatedAppAdminCidadesNovasRoute: typeof AuthenticatedAppAdminCidadesNovasRoute
   AuthenticatedAppAdminCondominiosRoute: typeof AuthenticatedAppAdminCondominiosRoute
@@ -2030,6 +2051,7 @@ interface AuthenticatedAppAdminRouteChildren {
 
 const AuthenticatedAppAdminRouteChildren: AuthenticatedAppAdminRouteChildren = {
   AuthenticatedAppAdminAuditoriaRoute: AuthenticatedAppAdminAuditoriaRoute,
+  AuthenticatedAppAdminAvaliacaoRoute: AuthenticatedAppAdminAvaliacaoRoute,
   AuthenticatedAppAdminBlogRoute: AuthenticatedAppAdminBlogRoute,
   AuthenticatedAppAdminCidadesNovasRoute:
     AuthenticatedAppAdminCidadesNovasRoute,
