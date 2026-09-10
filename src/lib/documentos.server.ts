@@ -383,8 +383,155 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
 }
 
 /**
- * Fatia o texto preservando quebras de linha (essencial para tabelas
- * Markdown de frações ideais) e cortando preferencialmente em fim de linha.
+ * Expressões regulares para detecção de divisões hierárquicas e dispositivos legais:
+ */
+const REGEX_TITULO_HIERARQUICO =
+  /^\s*(?:(?:CAP[IÍ]TULO|T[IÍ]TULO|SE[CÇ][AÃ]O|SUBSE[CÇ][AÃ]O|LIVRO|PARTE)\s+[0-9IVXLCDM]+.*|DISPOSI[CÇ][OÕ]ES\s+(?:GERAIS|FINAIS|TRANSIT[OÓ]RIAS|PRELIMINARES).*|REGIMENTO\s+INTERNO.*|CONVEN[CÇ][AÃ]O.*)\s*$/i;
+
+const REGEX_INICIO_ARTIGO =
+  /^\s*(?:Art(?:igo|\.)?\s*[\d]+[ºªa-z\d\.\-]*|Cl[aá]usula\s*[\d]+[ºªa-z\d\.\-]*|Item\s*[\d]+[ºªa-z\d\.\-]*)\s*[-–—:.]?/i;
+
+/**
+ * Divide artigos excepcionalmente longos preservando parágrafos e incisos atômicos.
+ */
+function chunkArtigoLongo(breadcrumb: string, linhas: string[], maxSize: number): string[] {
+  const chunks: string[] = [];
+  let blocoAtual: string[] = [];
+
+  for (const linha of linhas) {
+    if (blocoAtual.length > 0 && blocoAtual.join("\n").length + linha.length + 1 > maxSize) {
+      const cabecalho = breadcrumb ? `${breadcrumb}\n` : "";
+      chunks.push(`${cabecalho}${blocoAtual.join("\n")}`.trim());
+      blocoAtual = [];
+    }
+    blocoAtual.push(linha);
+  }
+
+  if (blocoAtual.length > 0) {
+    const cabecalho = breadcrumb ? `${breadcrumb}\n` : "";
+    chunks.push(`${cabecalho}${blocoAtual.join("\n")}`.trim());
+  }
+
+  return chunks;
+}
+
+/**
+ * Divide documentos jurídicos e condominiais (Convenções, Regimentos, Contratos)
+ * preservando a integridade de cada Artigo/Cláusula e seus parágrafos/incisos/tabelas.
+ */
+export function chunkDocumentoJuridicoSemantico(
+  text: string,
+  maxSize = 1800,
+  overlap = 200,
+): string[] {
+  const clean = text
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  if (clean.length <= maxSize) return clean ? [clean] : [];
+
+  const linhas = clean.split("\n");
+  const unidades: Array<{ breadcrumb: string; linhas: string[] }> = [];
+
+  let capituloAtual = "";
+  let unidadeAtual: { breadcrumb: string; linhas: string[] } | null = null;
+
+  for (let i = 0; i < linhas.length; i++) {
+    const linha = linhas[i].trim();
+    if (!linha) continue;
+
+    // Detecta mudança de Capítulo / Título / Seção
+    if (REGEX_TITULO_HIERARQUICO.test(linha)) {
+      if (unidadeAtual && unidadeAtual.linhas.length > 0) {
+        unidades.push(unidadeAtual);
+        unidadeAtual = null;
+      }
+      capituloAtual = linha.replace(/^[#*_\s]+|[#*_\s]+$/g, "").trim();
+      continue;
+    }
+
+    // Detecta início de um novo Artigo / Cláusula
+    if (REGEX_INICIO_ARTIGO.test(linha)) {
+      if (unidadeAtual && unidadeAtual.linhas.length > 0) {
+        unidades.push(unidadeAtual);
+      }
+      const matchArtigo = linha.match(REGEX_INICIO_ARTIGO);
+      const rotuloArtigo = matchArtigo ? matchArtigo[0].trim() : "";
+      const breadcrumb = capituloAtual
+        ? `[${capituloAtual} > ${rotuloArtigo}]`
+        : `[${rotuloArtigo}]`;
+
+      unidadeAtual = {
+        breadcrumb,
+        linhas: [linha],
+      };
+      continue;
+    }
+
+    // Linhas normais, parágrafos, incisos ou tabelas
+    if (unidadeAtual) {
+      unidadeAtual.linhas.push(linhas[i]);
+    } else {
+      unidadeAtual = {
+        breadcrumb: capituloAtual ? `[${capituloAtual}]` : "",
+        linhas: [linhas[i]],
+      };
+    }
+  }
+
+  if (unidadeAtual && unidadeAtual.linhas.length > 0) {
+    unidades.push(unidadeAtual);
+  }
+
+  // Agrupa unidades normativas até o tamanho máximo sem quebrar artigos
+  const chunks: string[] = [];
+  let bufferLinhas: string[] = [];
+  let bufferBreadcrumb = "";
+
+  const flush = () => {
+    if (bufferLinhas.length === 0) return;
+    const conteudo = bufferLinhas.join("\n").trim();
+    if (conteudo) {
+      const cabecalho = bufferBreadcrumb ? `${bufferBreadcrumb}\n` : "";
+      chunks.push(`${cabecalho}${conteudo}`.trim());
+    }
+    bufferLinhas = [];
+    bufferBreadcrumb = "";
+  };
+
+  for (const u of unidades) {
+    const textoUnidade = u.linhas.join("\n");
+
+    // Caso a unidade inteira seja maior que maxSize (artigo gigante com dezenas de incisos)
+    if (textoUnidade.length > maxSize) {
+      flush();
+      const subChunks = chunkArtigoLongo(u.breadcrumb, u.linhas, maxSize);
+      chunks.push(...subChunks);
+      continue;
+    }
+
+    // Se adicionar esta unidade ultrapassar maxSize, faz o flush do buffer atual
+    const tamanhoProjetado =
+      (bufferLinhas.length ? bufferLinhas.join("\n").length + 1 : 0) + textoUnidade.length;
+    if (bufferLinhas.length > 0 && tamanhoProjetado > maxSize) {
+      flush();
+    }
+
+    if (bufferLinhas.length === 0) {
+      bufferBreadcrumb = u.breadcrumb;
+    }
+    bufferLinhas.push(textoUnidade);
+  }
+
+  flush();
+  return chunks.length > 0 ? chunks : [clean];
+}
+
+/**
+ * Fatia o texto preservando quebras de linha e aplicando chunking semântico para
+ * documentos jurídicos (Convenções, Regimentos e Contratos).
  */
 export function chunkText(text: string, size = 1800, overlap = 200): string[] {
   const clean = text
@@ -393,6 +540,16 @@ export function chunkText(text: string, size = 1800, overlap = 200): string[] {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   if (clean.length <= size) return clean ? [clean] : [];
+
+  // Se o documento contiver artigos, cláusulas ou divisões hierárquicas normativas,
+  // utiliza o parser semântico jurídico para preservar os dispositivos legais intactos.
+  const ehDocumentoNormativo =
+    /(?:artigo|art\.)\s*\d+|cl[aá]usula\s*\d+|cap[ií]tulo\s+[0-9ivxlcdm]+/i.test(clean);
+
+  if (ehDocumentoNormativo) {
+    return chunkDocumentoJuridicoSemantico(clean, size, overlap);
+  }
+
   const linhas = clean.split("\n");
   const chunks: string[] = [];
   let atuais: string[] = [];
@@ -427,3 +584,4 @@ export function chunkText(text: string, size = 1800, overlap = 200): string[] {
   if (atuais.length) chunks.push(atuais.join("\n").trim());
   return chunks;
 }
+
