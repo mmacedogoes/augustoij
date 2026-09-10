@@ -301,44 +301,43 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
           const { supabaseAdmin } = await import(
             "@/integrations/supabase/client.server"
           );
+          const { processarWebhookAsaasIdempotente } = await import(
+            "@/lib/webhook-idempotencia.server"
+          );
 
-          const subscriptionId = parsed.payment?.subscription ?? null;
           const event = parsed.event;
+          const subscriptionId = parsed.payment?.subscription ?? null;
 
-          // 1) log idempotente do evento
-          await supabaseAdmin
-            .from("asaas_webhook_events")
-            .upsert(
-              {
-                event_id: parsed.id ?? null,
-                event_type: event,
-                payment_id: parsed.payment?.id ?? null,
-                subscription_id: subscriptionId,
-                customer_id: parsed.payment?.customer ?? null,
-                status: parsed.payment?.status ?? null,
-                payload: JSON.parse(bodyText),
-              },
-              { onConflict: "event_id", ignoreDuplicates: true },
-            );
+          const webhookResult = await processarWebhookAsaasIdempotente({
+            supabaseAdmin,
+            payload: parsed,
+            rawBodyText: bodyText,
+            handler: async (eventId) => {
+              if (!subscriptionId) {
+                console.log(`[asaas-webhook] Evento ${eventId} sem subscriptionId associado.`);
+                return { skipped: "no_subscription" };
+              }
 
-          // 2) trata efeitos colaterais por tipo de evento
-          if (subscriptionId) {
-            const { data: sub, error: subErr } = await supabaseAdmin
-              .from("subscriptions")
-              .select(
-                "id, user_id, plano_config_id, pending_plano_config_id, asaas_subscription_id",
-              )
-              .eq("asaas_subscription_id", subscriptionId)
-              .maybeSingle();
+              const { data: sub, error: subErr } = await supabaseAdmin
+                .from("subscriptions")
+                .select(
+                  "id, user_id, plano_config_id, pending_plano_config_id, asaas_subscription_id",
+                )
+                .eq("asaas_subscription_id", subscriptionId)
+                .maybeSingle();
 
-            if (subErr) {
-              console.error("[asaas-webhook] erro ao buscar assinatura", subErr);
-            } else if (!sub) {
-              console.warn(
-                "[asaas-webhook] assinatura não encontrada para",
-                subscriptionId,
-              );
-            } else {
+              if (subErr) {
+                console.error("[asaas-webhook] erro ao buscar assinatura", subErr);
+                throw subErr;
+              }
+              if (!sub) {
+                console.warn(
+                  "[asaas-webhook] assinatura não encontrada para",
+                  subscriptionId,
+                );
+                return { skipped: "subscription_not_found" };
+              }
+
               if (event === "PAYMENT_CONFIRMED" || event === "PAYMENT_RECEIVED") {
                 const novoPlano = sub.pending_plano_config_id ?? sub.plano_config_id;
                 const { error: upErr } = await supabaseAdmin
@@ -353,25 +352,29 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
                     asaas_status: parsed.payment?.status ?? "CONFIRMED",
                   })
                   .eq("id", sub.id);
+
                 if (upErr) {
                   console.error("[asaas-webhook] erro ao liberar plano", upErr);
-                } else {
-                  console.log(
-                    `[asaas-webhook] plano liberado user=${sub.user_id} plano=${novoPlano}`,
-                  );
-                  // Envia e-mail de confirmação de pagamento (não bloqueia o webhook)
-                  try {
-                    await enviarEmailPagamentoConfirmado({
-                      supabaseAdmin,
-                      userId: sub.user_id,
-                      planoId: novoPlano,
-                      valorCentavos: parsed.payment?.value ?? undefined,
-                      proximaData: parsed.payment?.nextDueDate ?? undefined,
-                    });
-                  } catch (mailErr) {
-                    console.error("[asaas-webhook] falha ao enviar e-mail", mailErr);
-                  }
+                  throw upErr;
                 }
+
+                console.log(
+                  `[asaas-webhook] plano liberado user=${sub.user_id} plano=${novoPlano}`,
+                );
+
+                // Envia e-mail de confirmação de pagamento (não bloqueia o webhook)
+                try {
+                  await enviarEmailPagamentoConfirmado({
+                    supabaseAdmin,
+                    userId: sub.user_id,
+                    planoId: novoPlano,
+                    valorCentavos: parsed.payment?.value ?? undefined,
+                    proximaData: parsed.payment?.nextDueDate ?? undefined,
+                  });
+                } catch (mailErr) {
+                  console.error("[asaas-webhook] falha ao enviar e-mail", mailErr);
+                }
+                return { action: "plano_liberado", plano: novoPlano };
               } else if (event === "PAYMENT_OVERDUE") {
                 const { data: updatedRows, error: upErr } = await supabaseAdmin
                   .from("subscriptions")
@@ -382,13 +385,16 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
                   .eq("id", sub.id)
                   .is("overdue_desde", null)
                   .select("id");
+
                 if (upErr) {
                   console.error("[asaas-webhook] erro ao marcar overdue", upErr);
-                } else {
-                  console.log(
-                    `[asaas-webhook] overdue registrado user=${sub.user_id} (tolerância 2 dias)`,
-                  );
+                  throw upErr;
                 }
+
+                console.log(
+                  `[asaas-webhook] overdue registrado user=${sub.user_id} (tolerância 2 dias)`,
+                );
+
                 // Envia e-mail de aviso apenas na primeira marcação, para não
                 // repetir a cada webhook. Se já estava overdue, o update acima
                 // não afeta nenhuma linha.
@@ -412,11 +418,19 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
                     );
                   }
                 }
+                return { action: "overdue_registrado" };
               }
-            }
-          }
 
-          return Response.json({ ok: true });
+              return { action: "ignored_event", event };
+            },
+          });
+
+          return Response.json({
+            ok: true,
+            status: webhookResult.status,
+            event_id: webhookResult.eventId,
+            ...(webhookResult.error ? { error: webhookResult.error } : {}),
+          });
         } catch (err) {
           console.error("[asaas-webhook] falha inesperada", err);
           // Sempre 200 para o Asaas não reagendar indefinidamente.

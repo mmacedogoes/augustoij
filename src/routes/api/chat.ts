@@ -237,6 +237,41 @@ export const Route = createFileRoute("/api/chat")({
             );
           }
 
+          // ============================================================
+          // 0.1) RATE LIMITING E PROTEÇÃO CONTRA ABUSOS / RAJADAS / CONCORRÊNCIA
+          // ============================================================
+          const clientIp =
+            request.headers.get("cf-connecting-ip") ??
+            request.headers.get("x-real-ip") ??
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+            "0.0.0.0";
+
+          const { rateLimitChat, releaseConcurrencyLock } = await import(
+            "@/lib/rate-limit.server"
+          );
+          const rateDecision = rateLimitChat({
+            userId: conv.user_id,
+            conversaId,
+            clientIp,
+            bypass: cortesia,
+          });
+
+          if (!rateDecision.allowed) {
+            return new Response(
+              JSON.stringify({
+                error: "rate_limit_exceeded",
+                message: rateDecision.message,
+              }),
+              {
+                status: 429,
+                headers: {
+                  "Content-Type": "application/json",
+                  ...rateDecision.headers,
+                },
+              },
+            );
+          }
+
           const lastUser = [...messages].reverse().find((m) => m.role === "user");
           const userText =
             lastUser?.parts
@@ -322,6 +357,8 @@ export const Route = createFileRoute("/api/chat")({
                   }
                 } catch (err) {
                   console.error("Cache hit persist failed:", err);
+                } finally {
+                  if (rateDecision.lockKey) releaseConcurrencyLock(rateDecision.lockKey);
                 }
               });
             }
@@ -437,6 +474,8 @@ export const Route = createFileRoute("/api/chat")({
                 });
               } catch (err) {
                 console.error("Short-circuit persist failed:", err);
+              } finally {
+                if (rateDecision.lockKey) releaseConcurrencyLock(rateDecision.lockKey);
               }
             });
           }
@@ -833,6 +872,8 @@ PERGUNTAS ESTRUTURADAS (opcional):
                 }
               } catch (e) {
                 console.error("Persist message failed:", e);
+              } finally {
+                if (rateDecision.lockKey) releaseConcurrencyLock(rateDecision.lockKey);
               }
             },
           });
