@@ -25,6 +25,7 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 import { DicasPopup } from "@/components/DicasPopup";
 import { HelpMenu } from "@/components/HelpMenu";
 import { NotificationsBell } from "@/components/contratos-servico/NotificationsBell";
+import { CommandPalette, CommandPaletteTrigger } from "@/components/CommandPalette";
 import { TrialExpiredBanner } from "@/components/gates/PlanGates";
 import { UsageThresholdBanner } from "@/components/gates/UsageThresholdBanner";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -66,6 +67,7 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
   const [forceTour, setForceTour] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [recolhida, setRecolhida] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
 
   // Preferência de sidebar recolhida (lida depois da hidratação).
   useEffect(() => {
@@ -232,7 +234,8 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
                   {tituloAtual}
                 </span>
 
-                <div className="ml-auto flex items-center gap-1">
+                <div className="ml-auto flex items-center gap-2">
+                  <CommandPaletteTrigger onClick={() => setCommandOpen(true)} />
                   <NotificationsBell />
                   <HelpMenu onStartTour={() => setForceTour(true)} />
                   <button
@@ -254,6 +257,12 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
           </div>
 
           <MobileTabBar nav={nav} ehAtivo={ehAtivo} />
+
+          <CommandPalette
+            open={commandOpen}
+            onOpenChange={setCommandOpen}
+            isAdmin={isAdmin}
+          />
 
           {profile && (!profile.onboarding_tour_completo || forceTour) && (
             <OnboardingTour
