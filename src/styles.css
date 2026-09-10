@@ -575,6 +575,32 @@
   backdrop-filter: blur(14px) saturate(140%);
 }
 
+@utility app-card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid color-mix(in hsl, var(--border) 80%, transparent);
+  border-radius: var(--app-radius);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  transition: border-color var(--dur-base) var(--ease-soft), box-shadow var(--dur-base) var(--ease-soft), transform var(--dur-base) var(--ease-soft);
+}
+
+@utility app-card-interactive {
+  position: relative;
+  background: var(--card);
+  border: 1px solid color-mix(in hsl, var(--border) 80%, transparent);
+  border-radius: var(--app-radius);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  transition: transform var(--dur-base) var(--ease-out-quint), box-shadow var(--dur-base) var(--ease-out-quint), border-color var(--dur-base) var(--ease-out-quint);
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.06);
+    border-color: color-mix(in hsl, var(--augusto-gold) 40%, transparent);
+  }
+  &:active {
+    transform: translateY(0) scale(0.99);
+  }
+}
+
 @utility app-nav-item {
   position: relative;
   display: flex;
