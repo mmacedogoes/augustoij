@@ -70,3 +70,65 @@ export function blocoContextoCondominial(params: {
   }
   return temBaseCondominial ? FALLBACK_SEM_MATCH : AVISO_INTERNO_SEM_BASE;
 }
+
+export type ChatMessageLike = {
+  id?: string;
+  role: "system" | "user" | "assistant" | "data" | string;
+  content?: string;
+  parts?: Array<{ type: string; text?: string; [key: string]: unknown }>;
+};
+
+/**
+ * Otimiza o histórico de mensagens para redução de tokens e aceleração de contexto (AAS Playbook):
+ * - Em conversas curtas (<= 6 mensagens): mantém todas as mensagens intactas.
+ * - Em conversas longas (> 6 mensagens):
+ *   • Mantém 100% íntegras TODAS as mensagens do usuário (role: "user") para preservar a intenção.
+ *   • Mantém 100% íntegras as últimas 4 mensagens da conversa (janela recente de contexto).
+ *   • Comprime respostas intermediárias antigas do assistente (> 350 caracteres)
+ *     em um resumo factual ancorado, evitando o reprocessamento de minutas repetidas.
+ */
+export function otimizarHistoricoMensagens<T extends ChatMessageLike>(messages: T[]): T[] {
+  if (!messages || messages.length <= 6) return messages;
+
+  const total = messages.length;
+  const indiceCorteRecente = Math.max(0, total - 4);
+
+  return messages.map((m, idx) => {
+    // Preserva mensagens do usuário ou turnos recentes
+    if (m.role === "user" || idx >= indiceCorteRecente) {
+      return m;
+    }
+
+    // Extrai o texto do assistente
+    let texto = "";
+    if (Array.isArray(m.parts) && m.parts.length > 0) {
+      texto = m.parts
+        .map((p) => (p.type === "text" && typeof p.text === "string" ? p.text : ""))
+        .join(" ")
+        .trim();
+    } else if (typeof m.content === "string") {
+      texto = m.content.trim();
+    }
+
+    // Se já for concisa ou estruturada curta, mantém intacta
+    if (texto.length <= 350) {
+      return m;
+    }
+
+    const primeiraLinha = texto.split("\n")[0]?.slice(0, 70).replace(/[#*`]/g, "").trim() ?? "";
+    const trechoResumo = texto.slice(0, 180).replace(/\n+/g, " ").replace(/[#*`]/g, "").trim();
+    const textoComprimido = `[Registro consolidado da resposta anterior do assistente — ${primeiraLinha}: "${trechoResumo}…"]`;
+
+    if (Array.isArray(m.parts) && m.parts.length > 0) {
+      return {
+        ...m,
+        parts: [{ type: "text", text: textoComprimido }],
+      };
+    }
+
+    return {
+      ...m,
+      content: textoComprimido,
+    };
+  });
+}

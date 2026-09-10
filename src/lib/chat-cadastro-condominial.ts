@@ -331,10 +331,9 @@ export function blocoCadastroCondominial(
       }\n`
     : "";
 
-  // Se houver unidades citadas/relevantes na conversa, foca os modelos nelas primeiro
-  const unidadesParaModelos = citadas.length > 0 ? citadas : selecionadas.slice(0, 10);
+  // Se houver unidades citadas/relevantes na conversa, foca os modelos nelas primeiro (top 3 para otimização de tokens)
+  const unidadesParaModelos = citadas.length > 0 ? citadas.slice(0, 3) : selecionadas.slice(0, 3);
   const modelos = unidadesParaModelos
-    .slice(0, 10)
     .map((u) => `[BLOCO DE ENDEREÇAMENTO — ${rotuloUnidade(u).toUpperCase()}]:\n${montarEnderecamento(u, condominio)}`)
     .join("\n\n---\n\n");
 
@@ -342,3 +341,4 @@ export function blocoCadastroCondominial(
     "\n",
   )}${rodape}\n\nBLOCOS DE ENDEREÇAMENTO PRONTOS POR UNIDADE (utilize EXCLUSIVAMENTE o bloco da unidade solicitada pelo usuário no topo da peça):\n${modelos}\n\n`;
 }
+

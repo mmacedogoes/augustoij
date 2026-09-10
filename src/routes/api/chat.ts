@@ -18,7 +18,9 @@ import {
   avaliarBaseCondominial,
   deveSolicitarReupload,
   blocoContextoCondominial,
+  otimizarHistoricoMensagens,
 } from "@/lib/chat-base-condominial";
+
 import {
   blocoCadastroCondominial,
   blocoHistoricoInfracoes,
@@ -360,7 +362,11 @@ export const Route = createFileRoute("/api/chat")({
                   .map(
                     (m: { nome_arquivo: string; conteudo: string }) => {
                       const cabecalho = `(trecho de documento do condomínio${m.nome_arquivo ? `: ${m.nome_arquivo}` : ""})`;
-                      return `${cabecalho}\n${m.conteudo}`.trim();
+                      const conteudoLimpo = (m.conteudo || "")
+                        .replace(/[ \t]{2,}/g, " ")
+                        .replace(/\n{3,}/g, "\n\n")
+                        .trim();
+                      return `${cabecalho}\n${conteudoLimpo}`;
                     },
                   )
                   .join("\n\n---\n\n");
@@ -383,11 +389,16 @@ export const Route = createFileRoute("/api/chat")({
                       if (m.tipo) meta.push(`tipo: ${m.tipo}`);
                       if (m.fonte) meta.push(`fonte: ${m.fonte}`);
                       const cabecalho = meta.length > 0 ? `(${meta.join(" — ")})` : "";
-                      return `${cabecalho}\n${m.conteudo}`.trim();
+                      const conteudoLimpo = (m.conteudo || "")
+                        .replace(/[ \t]{2,}/g, " ")
+                        .replace(/\n{3,}/g, "\n\n")
+                        .trim();
+                      return `${cabecalho}\n${conteudoLimpo}`;
                     },
                   )
                   .join("\n\n---\n\n");
               }
+
             } catch (e) {
               console.error("RAG retrieval failed:", e);
             }
@@ -554,7 +565,12 @@ export const Route = createFileRoute("/api/chat")({
             console.error("Orientações fetch failed:", e);
           }
 
-          const systemPrompt = `Você é o assistente jurídico do Augusto.IJ, especialista em gestão de condomínios brasileiros (Código Civil, Lei 4.591/64, jurisprudência do STJ).
+          // =========================================================================
+          // 4) COMPOSIÇÃO DE PROMPT STATIC-FIRST (PROMPT CACHING DO GEMINI)
+          //    Pilar 1: Regras e schemas estáticos no topo (Cache Hit invariante),
+          //    seguidos de base do condomínio, cadastro, histórico dinâmico e anexo.
+          // =========================================================================
+          const systemPromptEstatico = `Você é o assistente jurídico do Augusto.IJ, especialista em gestão de condomínios brasileiros (Código Civil, Lei 4.591/64, jurisprudência do STJ).
 
 ${contratoId ? `ATENÇÃO: Você está em uma análise ISOLADA de um contrato específico de prestação de serviços. Foco total nas cláusulas e obrigações deste contrato.` : ""}
 
@@ -688,7 +704,6 @@ ENDEREÇAMENTO PADRÃO — OBRIGATÓRIO EM TODA PEÇA DIRIGIDA À UNIDADE:
 - Se o CPF não constar, apenas omita a linha do CPF — nunca invente número.
 - Esse bloco também vale para as versões exportadas em PDF/DOCX.
 
-
 PERGUNTAS ESTRUTURADAS (opcional):
 - Quando a pergunta do usuário precisar de esclarecimentos ANTES de você redigir a resposta (notificação, parecer, ata, análise), NÃO responda parcialmente — em vez disso, devolva EXCLUSIVAMENTE um JSON válido, começando com "{" na primeira coluna, sem prosa antes ou depois, sem cercas de código, sem disclaimer, no formato exato:
 {"tipo":"pergunta_estruturada","texto":"Texto curto explicando o que você precisa saber","perguntas":[{"id":"identificador_curto","pergunta":"Texto da pergunta","modo":"unica","opcoes":["Opção 1","Opção 2","Opção 3"],"permite_outro":true}]}
@@ -702,17 +717,19 @@ PERGUNTAS ESTRUTURADAS (opcional):
 \`\`\`pergunta-estruturada
 {"pergunta": "Texto curto da escolha", "opcoes": ["Opção 1", "Opção 2", "Opção 3"]}
 \`\`\`
-- Não use nenhum destes formatos se a pergunta já estiver clara.
+- Não use nenhum destes formatos se a pergunta já estiver clara.`;
 
-${cadastroBlock}${historicoBlock}${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${blocoContextoCondominial(
-            { contexto, temBaseCondominial },
-          )}${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}\n\n` : ""}${
+          const blocoConhecimentoGlobal = `${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}\n\n` : ""}`;
+          const blocoCondominio = `${blocoContextoCondominial({ contexto, temBaseCondominial })}${cadastroBlock}`;
+          const blocoDinamico = `${historicoBlock}${
             attachmentContext && attachmentContext.trim()
               ? `DOCUMENTO ANEXADO PELO USUÁRIO NESTA CONVERSA (uso temporário${
                   attachmentNome ? `, arquivo: ${attachmentNome}` : ""
                 }):\n\n${attachmentContext}\n\nUtilize este documento como contexto principal quando a pergunta do usuário se referir a ele.`
               : ""
           }`;
+
+          const systemPrompt = `${systemPromptEstatico}\n\n${blocoConhecimentoGlobal}${blocoCondominio}${blocoDinamico}`;
 
           // Diretiva de plano: quando o plano NÃO inclui jurisprudência
           // completa, adicionamos ao system prompt a restrição de não
@@ -756,12 +773,13 @@ ${cadastroBlock}${historicoBlock}${orientacoesBlock ? `ORIENTAÇÕES DA ADMINIST
           const result = streamText({
             model,
             system: systemPromptFinal,
-            messages: await convertToModelMessages(messages),
+            messages: await convertToModelMessages(otimizarHistoricoMensagens(messages)),
             experimental_transform: [sanitizarRespostaStream()],
             onFinish: async ({ text, usage }) => {
               try {
                 const textoLimpo = sanitizarResposta(text);
                 const inputTokens =
+
                   (usage as { inputTokens?: number; promptTokens?: number } | undefined)
                     ?.inputTokens ??
                   (usage as { promptTokens?: number } | undefined)?.promptTokens ??
