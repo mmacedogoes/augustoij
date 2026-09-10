@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { FileText, FileType2, Loader2, Pencil, Save } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
-import { validarConteudo } from "@/lib/documento-export";
+import { validarConteudo, type DocumentoExportOptions } from "@/lib/documento-export";
 import { EditorMinuta } from "@/components/chat/EditorMinuta";
 import { SalvarNoCondominioDialog } from "@/components/chat/SalvarNoCondominioDialog";
+import { getCondominio } from "@/lib/condominios.functions";
 
 type Formato = "pdf" | "docx";
 
@@ -24,6 +27,13 @@ export function DocumentoDownload({
   const [editorAberto, setEditorAberto] = useState(false);
   const [salvarAberto, setSalvarAberto] = useState(false);
 
+  const fetchCondo = useServerFn(getCondominio);
+  const { data: condo } = useQuery({
+    queryKey: ["condominio-export-timbre", condominioId],
+    queryFn: () => fetchCondo({ data: { id: condominioId! } }),
+    enabled: Boolean(condominioId),
+  });
+
   if (dispensado) return null;
 
   async function gerar(formato: Formato) {
@@ -35,11 +45,30 @@ export function DocumentoDownload({
     }
     setGerando(formato);
     try {
+      const cidUf = [condo?.cidade, condo?.uf].filter(Boolean).join("/");
+      const hoje = new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(new Date());
+
+      const exportOptions: DocumentoExportOptions | undefined = condo
+        ? {
+            cabecalho: {
+              nomeCondominio: condo.nome,
+              cnpj: condo.cnpj || undefined,
+              endereco: condo.endereco || undefined,
+              cidadeUf: cidUf || undefined,
+            },
+            assinatura: {
+              cidadeData: cidUf ? `${cidUf}, ${hoje}.` : `${hoje}.`,
+              nomeResponsavel: "Administração Condominial",
+              cargoResponsavel: "Síndico(a) / Administrador(a)",
+            },
+          }
+        : undefined;
+
       const mod = await import("@/lib/documento-export");
-      if (formato === "pdf") await mod.gerarPdf(conteudo, titulo);
-      else await mod.gerarDocx(conteudo, titulo);
+      if (formato === "pdf") await mod.gerarPdf(conteudo, titulo, exportOptions);
+      else await mod.gerarDocx(conteudo, titulo, exportOptions);
       setGerado(formato);
-      toast.success(`Arquivo ${formato.toUpperCase()} gerado e baixado.`);
+      toast.success(`Arquivo ${formato.toUpperCase()} gerado e baixado com sucesso.`);
     } catch (e) {
       console.error("[documento-export] falha ao gerar", formato, e);
       toast.error(

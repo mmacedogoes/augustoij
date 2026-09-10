@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { limparParaDocumento, parseDocumento } from "./documento-export";
+import {
+  limparParaDocumento,
+  parseDocumento,
+  nomeArquivo,
+  validarConteudo,
+  type DocumentoExportOptions,
+} from "./documento-export";
 
 const CORPO = `# NOTIFICAÇÃO EXTRAJUDICIAL
 
@@ -43,4 +49,33 @@ describe("limparParaDocumento", () => {
     expect(titulo).toBe("NOTIFICAÇÃO EXTRAJUDICIAL");
     expect(blocos.map((b) => b.texto).join(" ")).not.toMatch(/Deseja que eu gere/i);
   });
+
+  it("parseDocumento respeita tituloPersonalizado quando fornecido em options", () => {
+    const options: DocumentoExportOptions = {
+      tituloPersonalizado: "ADVERTÊNCIA FORMAL POR REINCIDÊNCIA",
+      cabecalho: {
+        nomeCondominio: "Condomínio Residencial Jardins",
+        cnpj: "12.345.678/0001-90",
+        protocolo: "ADV-2026/012",
+      },
+    };
+    const { titulo } = parseDocumento(CORPO, "DOCUMENTO", options);
+    expect(titulo).toBe("ADVERTÊNCIA FORMAL POR REINCIDÊNCIA");
+  });
+
+  it("nomeArquivo normaliza e remove caracteres especiais", () => {
+    expect(nomeArquivo("NOTIFICAÇÃO EXTRAJUDICIAL: UNIDADE 101/A", "pdf")).toBe(
+      "notificacao-extrajudicial-unidade-101-a.pdf",
+    );
+    expect(nomeArquivo("Edital de Convocação Assembleia Geral Ordinária", "docx")).toBe(
+      "edital-de-convocacao-assembleia-geral-ordinaria.docx",
+    );
+  });
+
+  it("validarConteudo acusa textos vazios ou curtos demais", () => {
+    expect(validarConteudo("")).toMatch(/Não há conteúdo/);
+    expect(validarConteudo("Curto")).toMatch(/curto demais/);
+    expect(validarConteudo(CORPO)).toBeNull();
+  });
 });
+
