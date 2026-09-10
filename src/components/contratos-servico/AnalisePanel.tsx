@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Sparkles, MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Sparkles, MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, XCircle, BookOpen } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,7 +60,7 @@ export function AnalisePanel({
       const r = await runFn({ data: { contratoId } });
       setResultado(r as ResultadoAnalise);
       setGeradoEm((r as ResultadoAnalise).gerado_em);
-      toast.success("Análise concluída.");
+      toast.success("Análise concluída com base nos modelos de referência.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha na análise.");
     } finally { setAnalisando(false); }
@@ -74,6 +74,10 @@ export function AnalisePanel({
       `Analisei o contrato firmado com **${prestadorNome}**${objeto ? ` (${objeto})` : ""}. Aqui está o semáforo:\n`,
     );
     if (resultado?.resumo) linhas.push(`> ${resultado.resumo.trim()}\n`);
+
+    if (resultado?.modelos_comparados && resultado.modelos_comparados.length > 0) {
+      linhas.push(`_Cruzamento realizado com os modelos de referência da base privada: ${resultado.modelos_comparados.join(", ")}._\n`);
+    }
 
     function bloco(emoji: string, titulo: string, pontos: { titulo: string; detalhe: string; clausula?: string | null }[]) {
       if (!pontos || pontos.length === 0) return;
@@ -105,7 +109,7 @@ export function AnalisePanel({
         <div>
           <h3 className="text-lg font-serif text-primary">Análise com o Augusto</h3>
           <p className="text-sm text-muted-foreground">
-            Semáforo com pontos positivos, negativos e de atenção do contrato.
+            Semáforo comparativo com os modelos padrão e diretrizes da base privada.
             {geradoEm ? ` Última análise: ${fmtDT(geradoEm)}.` : ""}
           </p>
         </div>
@@ -142,6 +146,18 @@ export function AnalisePanel({
         )
       ) : (
         <div className="space-y-4">
+          {resultado.modelos_comparados && resultado.modelos_comparados.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-augusto-gold/30 bg-augusto-gold/5 px-3 py-2 text-xs text-foreground">
+              <BookOpen className="h-4 w-4 text-augusto-gold shrink-0" />
+              <div>
+                <span className="font-semibold text-primary">Confrontado com a Base "Treinar a IA":</span>{" "}
+                <span className="text-muted-foreground">
+                  Modelos e referências padrão utilizados: <strong>{resultado.modelos_comparados.join(", ")}</strong>.
+                </span>
+              </div>
+            </div>
+          )}
+
           {resultado.resumo && (
             <div className="rounded-md border border-border bg-muted/30 p-3 text-sm text-foreground whitespace-pre-wrap">
               {resultado.resumo}
