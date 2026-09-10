@@ -9,6 +9,24 @@ export type StatusExibicaoContrato =
   | "vence_em_breve"
   | "vencido";
 
+export type FaixaVencimento =
+  | "vencido"
+  | "urgente_30d"
+  | "atencao_60d"
+  | "alerta_90d"
+  | "vigente_estavel"
+  | "indeterminado"
+  | "inativo";
+
+export interface VencimentoDetalhadoInfo {
+  faixa: FaixaVencimento;
+  diasRestantes: number | null;
+  dataFimFormatada: string | null;
+  rotulo: string;
+  badgeTone: "destructive" | "warning" | "amber" | "positive" | "muted";
+  acaoRecomendada: string;
+}
+
 export type ContratoStatusInput = {
   situacao: string | null | undefined;
   prazo_indeterminado: boolean | null | undefined;
@@ -32,6 +50,106 @@ export function statusExibicaoContrato(c: ContratoStatusInput): StatusExibicaoCo
   if (diffDias < 0) return "vencido";
   if (diffDias <= JANELA_VENCIMENTO_DIAS) return "vence_em_breve";
   return "vigente";
+}
+
+export function calcularVencimentoDetalhadoInfo(c: ContratoStatusInput): VencimentoDetalhadoInfo {
+  if (c.situacao === "encerrado" || c.situacao === "suspenso") {
+    return {
+      faixa: "inativo",
+      diasRestantes: null,
+      dataFimFormatada: null,
+      rotulo: c.situacao === "encerrado" ? "Encerrado" : "Suspenso",
+      badgeTone: "muted",
+      acaoRecomendada: "Nenhuma ação necessária.",
+    };
+  }
+  if (c.prazo_indeterminado) {
+    return {
+      faixa: "indeterminado",
+      diasRestantes: null,
+      dataFimFormatada: "Prazo indeterminado",
+      rotulo: "Prazo indeterminado",
+      badgeTone: "positive",
+      acaoRecomendada: "Monitorar reajustes anuais e qualidade da prestação.",
+    };
+  }
+  if (!c.data_fim) {
+    return {
+      faixa: "vigente_estavel",
+      diasRestantes: null,
+      dataFimFormatada: "Não informada",
+      rotulo: "Vigente",
+      badgeTone: "positive",
+      acaoRecomendada: "Cadastrar data de término da vigência.",
+    };
+  }
+
+  const fim = c.data_fim instanceof Date ? c.data_fim : new Date(String(c.data_fim));
+  if (Number.isNaN(fim.getTime())) {
+    return {
+      faixa: "vigente_estavel",
+      diasRestantes: null,
+      dataFimFormatada: "Data inválida",
+      rotulo: "Vigente",
+      badgeTone: "positive",
+      acaoRecomendada: "Corrigir data de término.",
+    };
+  }
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const diffDias = Math.floor((fim.getTime() - hoje.getTime()) / 86_400_000);
+  const dataFimFormatada = fim.toLocaleDateString("pt-BR");
+
+  if (diffDias < 0) {
+    return {
+      faixa: "vencido",
+      diasRestantes: diffDias,
+      dataFimFormatada,
+      rotulo: `Vencido há ${Math.abs(diffDias)} dias`,
+      badgeTone: "destructive",
+      acaoRecomendada: "Regularizar via aditivo de renovação ou formalizar encerramento imediato.",
+    };
+  }
+  if (diffDias <= 30) {
+    return {
+      faixa: "urgente_30d",
+      diasRestantes: diffDias,
+      dataFimFormatada,
+      rotulo: diffDias === 0 ? "Vence hoje" : diffDias === 1 ? "Vence amanhã" : `Vence em ${diffDias} dias`,
+      badgeTone: "destructive",
+      acaoRecomendada: "Emitir minuta de renovação ou notificar rescisão para evitar renovação tácita.",
+    };
+  }
+  if (diffDias <= 60) {
+    return {
+      faixa: "atencao_60d",
+      diasRestantes: diffDias,
+      dataFimFormatada,
+      rotulo: `Vence em ${diffDias} dias`,
+      badgeTone: "amber",
+      acaoRecomendada: "Iniciar negociação de renovação ou cotações de concorrência com novos fornecedores.",
+    };
+  }
+  if (diffDias <= 90) {
+    return {
+      faixa: "alerta_90d",
+      diasRestantes: diffDias,
+      dataFimFormatada,
+      rotulo: `Vence em ${diffDias} dias`,
+      badgeTone: "warning",
+      acaoRecomendada: "Avaliar continuidade dos serviços e planejar termo de aditamento.",
+    };
+  }
+
+  return {
+    faixa: "vigente_estavel",
+    diasRestantes: diffDias,
+    dataFimFormatada,
+    rotulo: "Vigente",
+    badgeTone: "positive",
+    acaoRecomendada: "Contrato em vigência regular.",
+  };
 }
 
 export function rotuloStatus(s: StatusExibicaoContrato): string {

@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PendenciasDrawer, type PendenciaTipo } from "@/components/contratos-servico/PendenciasDrawer";
+import { AlertasProativosWidget } from "@/components/contratos-servico/AlertasProativosWidget";
 
 const TODOS = "__todos";
 
@@ -274,6 +275,9 @@ function Page() {
             </PopoverContent>
           </Popover>
         </div>
+
+        {/* Alertas Pró-Ativos e Ciclo de Vida */}
+        <AlertasProativosWidget condominioId={condFiltro} />
 
         <div className="grid lg:grid-cols-[1fr_340px] gap-6">
           <div className="space-y-6">
