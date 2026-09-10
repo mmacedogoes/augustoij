@@ -238,17 +238,21 @@ function Page() {
           />
           <Popover>
             <PopoverTrigger asChild>
-              <Card className="app-card p-4 border-augusto-gold/10 bg-gradient-to-br from-card to-augusto-gold/[0.03] cursor-help hover:border-augusto-gold/30 transition-all">
+              <Card className="app-card p-4.5 border-augusto-gold/20 bg-gradient-to-br from-card via-card to-augusto-gold/[0.05] cursor-help hover:-translate-y-0.5 hover:border-augusto-gold/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Valor Anual Estimado</span>
-                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Valor Anual Estimado</span>
+                  <div className="p-1 rounded-md bg-augusto-gold/10 text-augusto-gold">
+                    <Info className="h-3.5 w-3.5" />
+                  </div>
                 </div>
-                <p className="text-xl font-serif text-primary">
-                  {ind === null ? "…" : formatBRL(ind.valor_anual_estimado)}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Recorrente: {ind ? formatBRL(ind.valor_mensal_total) : "—"}/mês
-                </p>
+                <div>
+                  <p className="text-xl font-mono font-bold tabular-nums text-foreground tracking-tight">
+                    {ind === null ? "…" : formatBRL(ind.valor_anual_estimado)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Recorrente: <span className="font-mono font-medium">{ind ? formatBRL(ind.valor_mensal_total) : "—"}</span>/mês
+                  </p>
+                </div>
               </Card>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-4">
@@ -378,24 +382,33 @@ function Page() {
 }
 
 function HealthCard({ 
-  label, value, icon, tone = "neutro" 
+  label, value, icon, tone = "neutro", subtitle
 }: { 
-  label: string; value: number | undefined; icon: React.ReactNode; tone?: "neutro" | "ambar" | "vermelho" 
+  label: string; value: number | undefined; icon: React.ReactNode; tone?: "neutro" | "ambar" | "vermelho"; subtitle?: string;
 }) {
+  const toneClasses = {
+    neutro: "border-l-emerald-600 dark:border-l-emerald-400 bg-gradient-to-br from-card to-emerald-500/[0.03]",
+    ambar: "border-l-amber-500 bg-gradient-to-br from-card to-amber-500/[0.04]",
+    vermelho: "border-l-rose-500 bg-gradient-to-br from-card to-rose-500/[0.04]",
+  };
+
   return (
     <Card className={cn(
-      "app-card p-4 flex flex-col justify-between h-full transition-all border-l-4",
-      tone === "neutro" ? "border-l-border bg-card" : 
-      tone === "ambar" ? "border-l-augusto-gold bg-augusto-gold/[0.02]" : 
-      "border-l-destructive bg-destructive/[0.02]"
+      "app-card p-4.5 flex flex-col justify-between h-full border-l-4 shadow-xs hover:-translate-y-0.5 hover:shadow-md transition-all duration-200",
+      toneClasses[tone]
     )}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
-        {icon}
+        <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
+        <div className="p-1.5 rounded-md bg-muted/60 text-muted-foreground">{icon}</div>
       </div>
-      <p className="text-2xl font-serif text-primary">
-        {value === undefined ? "…" : value}
-      </p>
+      <div>
+        <p className="text-2xl font-mono font-bold tabular-nums text-foreground tracking-tight">
+          {value === undefined ? "…" : value}
+        </p>
+        {subtitle && (
+          <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
+        )}
+      </div>
     </Card>
   );
 }

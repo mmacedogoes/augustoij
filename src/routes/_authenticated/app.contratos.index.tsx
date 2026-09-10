@@ -401,17 +401,17 @@ function Page() {
 
 function Counter({ label, value, tone, onClick }: { label: string; value: number; tone: "emerald" | "amber" | "red"; onClick: () => void }) {
   const tones = {
-    emerald: "border-l-augusto-green text-augusto-green bg-augusto-green/[0.02]",
-    amber: "border-l-augusto-gold text-augusto-gold bg-augusto-gold/[0.02]",
-    red: "border-l-destructive text-destructive bg-destructive/[0.02]",
+    emerald: "border-l-emerald-600 dark:border-l-emerald-400 bg-gradient-to-br from-card to-emerald-500/[0.03]",
+    amber: "border-l-amber-500 bg-gradient-to-br from-card to-amber-500/[0.04]",
+    red: "border-l-rose-500 bg-gradient-to-br from-card to-rose-500/[0.04]",
   };
   return (
     <Card 
-      className={cn("app-card p-4 border-l-4 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]", tones[tone])}
+      className={cn("app-card p-4.5 border-l-4 cursor-pointer shadow-xs hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 active:scale-[0.98]", tones[tone])}
       onClick={onClick}
     >
-      <p className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">{label}</p>
-      <p className="text-2xl font-serif">{value}</p>
+      <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">{label}</p>
+      <p className="text-2xl font-mono font-bold tabular-nums text-foreground tracking-tight">{value}</p>
     </Card>
   );
 }
