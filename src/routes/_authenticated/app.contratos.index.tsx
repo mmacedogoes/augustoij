@@ -4,12 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { 
   FileText, Plus, Sparkles, Filter, ChevronDown, Search, 
-  ArrowUpDown, MoreHorizontal, X, Shield 
+  ArrowUpDown, MoreHorizontal, X, Shield, Building2, Briefcase,
+  Layers, RotateCcw
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FacetedFilter, FacetedFilterChip } from "@/components/ui/faceted-filter";
 import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { GestaoContratosGate } from "@/components/gates/GestaoContratosGate";
 import {
@@ -228,7 +230,7 @@ function Page() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por prestador…"
+                placeholder="Buscar por prestador ou objeto…"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 className="pl-9 h-9 bg-muted/20 border-border/40 focus:border-augusto-gold/40"
@@ -236,76 +238,105 @@ function Page() {
             </div>
             
             <div className="flex flex-wrap items-center gap-2">
-              <Select 
-                value={condominioId} 
-                onValueChange={(v) => {
-                  setCondominioId(v);
-                  // O useEffect já reage a condominioId
+              <FacetedFilter
+                title="Condomínio"
+                options={condos.map((c) => ({
+                  label: c.nome,
+                  value: c.id,
+                  icon: Building2,
+                }))}
+                singleSelect
+                selectedValues={condominioId === TODOS ? [] : [condominioId]}
+                onSingleSelect={(v) => setCondominioId(v || TODOS)}
+                placeholder="Buscar condomínio…"
+              />
+
+              <FacetedFilter
+                title="Tipo de Serviço"
+                options={tipos.map((t) => ({
+                  label: t.nome,
+                  value: t.id,
+                  icon: Briefcase,
+                }))}
+                singleSelect
+                selectedValues={tipoId === TODOS ? [] : [tipoId]}
+                onSingleSelect={(v) => setTipoId(v || TODOS)}
+                placeholder="Buscar tipo…"
+              />
+
+              <FacetedFilter
+                title="Status"
+                options={[
+                  { label: "Vigentes", value: "vigente" },
+                  { label: "Vencendo em breve", value: "vence_em_breve" },
+                  { label: "Vencidos", value: "vencido" },
+                  { label: "Suspensos", value: "suspenso" },
+                  { label: "Encerrados", value: "encerrado" },
+                ]}
+                singleSelect
+                selectedValues={status === TODOS ? [] : [status]}
+                onSingleSelect={(v) => {
+                  setStatus(v || TODOS);
+                  if (v) setVisao("todos");
                 }}
-              >
-                <SelectTrigger className="h-9 w-[180px] bg-muted/20 border-border/40 focus:ring-augusto-green">
-                  <SelectValue placeholder="Condomínio" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TODOS}>Todos os condomínios</SelectItem>
-                  {condos.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select 
-                value={tipoId} 
-                onValueChange={(v) => {
-                  setTipoId(v);
-                }}
-              >
-                <SelectTrigger className="h-9 w-[180px] bg-muted/20 border-border/40 focus:ring-augusto-green">
-                  <SelectValue placeholder="Tipo de serviço" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TODOS}>Todos os tipos</SelectItem>
-                  {tipos.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-9 px-2 text-muted-foreground hover:text-primary transition-colors" 
-                onClick={() => { 
-                  setBusca(""); 
-                  setCondominioId(TODOS); 
-                  setTipoId(TODOS); 
-                  setStatus(TODOS); 
-                  setVisao("todos"); 
-                }}
-              >
-                Limpar filtros
-              </Button>
+                placeholder="Filtrar status…"
+              />
+
+              {(condominioId !== TODOS || tipoId !== TODOS || busca || status !== TODOS || visao !== "todos") && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-9 px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors gap-1.5" 
+                  onClick={() => { 
+                    setBusca(""); 
+                    setCondominioId(TODOS); 
+                    setTipoId(TODOS); 
+                    setStatus(TODOS); 
+                    setVisao("todos"); 
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Limpar filtros
+                </Button>
+              )}
             </div>
           </div>
 
-          {/* Chips de Filtros Ativos */}
-          {(condominioId !== TODOS || tipoId !== TODOS || busca || status !== TODOS) && (
-            <div className="px-4 py-2 border-b border-border/40 bg-muted/10 flex flex-wrap gap-2">
+          {/* ReUI Faceted Filter Chips Ativos */}
+          {(condominioId !== TODOS || tipoId !== TODOS || busca || status !== TODOS || visao !== "todos") && (
+            <div className="px-4 py-2 border-b border-border/40 bg-muted/10 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mr-1">
+                Filtros ativos:
+              </span>
               {condominioId !== TODOS && (
-                <Badge variant="secondary" className="bg-augusto-gold/10 text-augusto-gold hover:bg-augusto-gold/20 gap-1 border-augusto-gold/20">
-                  Condomínio: {condos.find(c => c.id === condominioId)?.nome}
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => setCondominioId(TODOS)} />
-                </Badge>
+                <FacetedFilterChip
+                  label={`Condomínio: ${condos.find((c) => c.id === condominioId)?.nome || condominioId}`}
+                  onRemove={() => setCondominioId(TODOS)}
+                />
               )}
               {tipoId !== TODOS && (
-                <Badge variant="secondary" className="bg-augusto-gold/10 text-augusto-gold hover:bg-augusto-gold/20 gap-1 border-augusto-gold/20">
-                  Tipo: {tipos.find(t => t.id === tipoId)?.nome}
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => setTipoId(TODOS)} />
-                </Badge>
+                <FacetedFilterChip
+                  label={`Tipo: ${tipos.find((t) => t.id === tipoId)?.nome || tipoId}`}
+                  onRemove={() => setTipoId(TODOS)}
+                />
+              )}
+              {status !== TODOS && (
+                <FacetedFilterChip
+                  label={`Status: ${status}`}
+                  onRemove={() => setStatus(TODOS)}
+                />
+              )}
+              {visao !== "todos" && (
+                <FacetedFilterChip
+                  label={`Visão: ${visaoLabel}`}
+                  onRemove={() => setVisao("todos")}
+                />
               )}
               {busca && (
-                <Badge variant="secondary" className="bg-augusto-gold/10 text-augusto-gold hover:bg-augusto-gold/20 gap-1 border-augusto-gold/20">
-                  Busca: {busca}
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => setBusca("")} />
-                </Badge>
+                <FacetedFilterChip
+                  label={`Busca: "${busca}"`}
+                  onRemove={() => setBusca("")}
+                />
               )}
             </div>
           )}
