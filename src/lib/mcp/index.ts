@@ -5,6 +5,8 @@ import listarDocumentos from "./tools/listar-documentos";
 import listarContratos from "./tools/listar-contratos";
 import listarAssembleias from "./tools/listar-assembleias";
 import pautaAssembleia from "./tools/pauta-assembleia";
+import consultarCnpj from "./tools/consultar-cnpj";
+import consultarIndicesBcb from "./tools/consultar-indices-bcb";
 
 // O emissor OAuth precisa ser o host direto do Supabase (o proxy publicado
 // quebraria a validação RFC 8414). O ref do projeto é inlinado no build.
@@ -15,7 +17,7 @@ export default defineMcp({
   title: "Augusto.IJ",
   version: "0.1.0",
   instructions:
-    "Ferramentas do Augusto.IJ, plataforma de inteligência jurídica condominial. Use `listar_condominios` para descobrir os condomínios do usuário e o seu id, e depois as demais ferramentas para unidades, documentos, contratos de prestação de serviços e assembleias. Todos os dados respeitam as permissões do usuário conectado.",
+    "Ferramentas do Augusto.IJ, plataforma de inteligência jurídica condominial. Use `listar_condominios` para descobrir os condomínios do usuário e o seu id, e depois as demais ferramentas para unidades, documentos, contratos de prestação de serviços, assembleias, consulta de situação cadastral de CNPJ e índices de reajuste do Banco Central. Todos os dados respeitam as permissões do usuário conectado.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
@@ -27,5 +29,7 @@ export default defineMcp({
     listarContratos,
     listarAssembleias,
     pautaAssembleia,
+    consultarCnpj,
+    consultarIndicesBcb,
   ],
 });
