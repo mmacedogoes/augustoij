@@ -9,6 +9,8 @@ import {
   PenTool,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -217,6 +219,18 @@ export function EditorMinuta({
   const [salvarAberto, setSalvarAberto] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<"texto" | "timbre" | "assinatura">("texto");
   const [opcoesAbertas, setOpcoesAbertas] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+
+  async function copiarTexto() {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(true);
+      toast.success("Texto da minuta copiado.");
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar o texto.");
+    }
+  }
 
   // Estados de Personalização (Timbre e Assinatura)
   const [usarTimbre, setUsarTimbre] = useState(true);
@@ -542,7 +556,7 @@ export function EditorMinuta({
   return (
     <>
       <Dialog open={open} onOpenChange={fechar}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col gap-3">
+        <DialogContent className="max-w-5xl h-[94vh] md:h-[90vh] flex flex-col gap-3 p-3 sm:p-6">
           <DialogHeader className="pb-1">
             <DialogTitle>Editar documento</DialogTitle>
             <DialogDescription>
@@ -572,17 +586,30 @@ export function EditorMinuta({
           </div>
 
           <Tabs defaultValue="editar" className="flex min-h-0 flex-1 flex-col md:hidden">
-            <TabsList className="self-start">
-              <TabsTrigger value="editar">Texto</TabsTrigger>
-              <TabsTrigger value="opcoes">Timbre & Assinatura</TabsTrigger>
-              <TabsTrigger value="previa">Visualizar</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center justify-between w-full pb-1">
+              <TabsList className="self-start">
+                <TabsTrigger value="editar" className="text-xs">Texto</TabsTrigger>
+                <TabsTrigger value="opcoes" className="text-xs">Timbre & Assinatura</TabsTrigger>
+                <TabsTrigger value="previa" className="text-xs">Visualizar</TabsTrigger>
+              </TabsList>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={copiarTexto}
+                className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                title="Copiar texto da minuta"
+              >
+                {copiado ? <Check className="h-3.5 w-3.5 text-augusto-green mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                <span>{copiado ? "Copiado!" : "Copiar"}</span>
+              </Button>
+            </div>
             <TabsContent value="editar" className="min-h-0 flex-1">
               <Textarea
                 value={texto}
                 onChange={(e) => setTexto(e.target.value)}
                 spellCheck
-                className="h-full min-h-[300px] resize-none font-mono text-xs leading-relaxed"
+                className="h-full min-h-[280px] resize-none font-mono text-xs leading-relaxed"
                 placeholder="Texto do documento…"
               />
             </TabsContent>
@@ -596,11 +623,23 @@ export function EditorMinuta({
 
           {erroConteudo && <p className="text-xs text-destructive">{erroConteudo}</p>}
 
-          <DialogFooter className="flex-wrap gap-2 pt-1 border-t">
-            <span className="mr-auto text-xs text-muted-foreground self-center">
-              {texto.trim().length.toLocaleString("pt-BR")} caracteres
-            </span>
-            <Button variant="outline" size="sm" disabled={bloqueado} onClick={() => gerar("pdf")}>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t">
+            <div className="flex items-center justify-between sm:justify-start gap-2 mr-auto w-full sm:w-auto">
+              <span className="text-xs text-muted-foreground">
+                {texto.trim().length.toLocaleString("pt-BR")} caracteres
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={copiarTexto}
+                className="hidden sm:inline-flex h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                {copiado ? <Check className="h-3.5 w-3.5 text-augusto-green mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                <span>{copiado ? "Copiado" : "Copiar Minuta"}</span>
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" disabled={bloqueado} onClick={() => gerar("pdf")} className="min-h-[38px] sm:min-h-0">
               {gerando === "pdf" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -608,7 +647,7 @@ export function EditorMinuta({
               )}
               Gerar PDF Timbrado
             </Button>
-            <Button variant="outline" size="sm" disabled={bloqueado} onClick={() => gerar("docx")}>
+            <Button variant="outline" size="sm" disabled={bloqueado} onClick={() => gerar("docx")} className="min-h-[38px] sm:min-h-0">
               {gerando === "docx" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -617,7 +656,7 @@ export function EditorMinuta({
               Gerar DOCX Timbrado
             </Button>
             {condominioId && (
-              <Button size="sm" disabled={bloqueado} onClick={() => setSalvarAberto(true)}>
+              <Button size="sm" disabled={bloqueado} onClick={() => setSalvarAberto(true)} className="min-h-[38px] sm:min-h-0">
                 <Save className="h-4 w-4" />
                 Salvar no condomínio
               </Button>
