@@ -11,6 +11,7 @@ import {
   PanelLeftOpen,
   MoreHorizontal,
   Users,
+  Search,
 } from "lucide-react";
 import { useMemo, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -234,15 +235,23 @@ function AppShellRoot({ children }: { children: React.ReactNode }) {
                   {tituloAtual}
                 </span>
 
-                <div className="ml-auto flex items-center gap-2">
+                <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
                   <CommandPaletteTrigger onClick={() => setCommandOpen(true)} />
+                  <button
+                    type="button"
+                    onClick={() => setCommandOpen(true)}
+                    aria-label="Buscar"
+                    className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 active:scale-95 md:hidden"
+                  >
+                    <Search className="h-5 w-5" strokeWidth={1.6} />
+                  </button>
                   <NotificationsBell />
                   <HelpMenu onStartTour={() => setForceTour(true)} />
                   <button
                     type="button"
                     onClick={handleSignOut}
                     aria-label="Sair"
-                    className="inline-grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 md:hidden"
+                    className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 active:scale-95 md:hidden"
                   >
                     <LogOut className="h-5 w-5" strokeWidth={1.6} />
                   </button>
@@ -319,13 +328,13 @@ function MobileTabBar({
         key={n.to}
         to={n.to as "/app"}
         aria-current={active ? "page" : undefined}
-        className="relative flex flex-1 flex-col items-center justify-center gap-1 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70"
+        className="relative flex flex-1 min-h-[48px] flex-col items-center justify-center gap-1 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 active:scale-95 transition-transform"
       >
         <span
           aria-hidden="true"
           className="absolute top-0 h-[2px] rounded-full bg-augusto-gold"
           style={{
-            width: active ? "16px" : "0px",
+            width: active ? "18px" : "0px",
             opacity: active ? 1 : 0,
             transition: "width var(--dur-base) var(--ease-out-quint), opacity var(--dur-base) var(--ease-out-quint)",
           }}
@@ -334,7 +343,7 @@ function MobileTabBar({
           className={cn("h-5 w-5", active ? "text-augusto-gold" : "text-muted-foreground")}
           strokeWidth={1.6}
         />
-        <span className={cn("text-[10px] leading-none", active ? "text-augusto-gold" : "text-muted-foreground")}>
+        <span className={cn("text-[10px] leading-none font-medium", active ? "text-augusto-gold" : "text-muted-foreground")}>
           {n.label}
         </span>
       </Link>
@@ -345,7 +354,7 @@ function MobileTabBar({
     <>
       <nav
         aria-label="Navegação principal"
-        className="fixed bottom-0 left-0 right-0 z-40 flex w-full border-t border-[var(--landing-rule)] bg-card md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 flex w-full border-t border-[var(--landing-rule)] bg-card/95 backdrop-blur-md md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {visiveis.map(item)}
@@ -353,10 +362,10 @@ function MobileTabBar({
           <button
             type="button"
             onClick={() => setMaisAberto(true)}
-            className="relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70"
+            className="relative flex flex-1 min-h-[48px] flex-col items-center justify-center gap-1 py-1.5 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold/70 active:scale-95 transition-transform"
           >
             <MoreHorizontal className="h-5 w-5" strokeWidth={1.6} />
-            <span className="text-[10px] leading-none">Mais</span>
+            <span className="text-[10px] leading-none font-medium">Mais</span>
           </button>
         )}
       </nav>
