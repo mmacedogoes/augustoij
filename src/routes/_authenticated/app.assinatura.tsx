@@ -217,106 +217,153 @@ function AssinaturaPage() {
         </Card>
       )}
 
-      <Card className="app-card border-augusto-gold/25">
-        <CardHeader>
-          <CardTitle className="text-lg text-augusto-green">
-            Plano {planoInfo.nome}
-          </CardTitle>
+      <Card className="app-card border-augusto-gold/25 shadow-sm">
+        <CardHeader className="border-b border-border/40 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-augusto-gold">Plano Escolhido</span>
+              <CardTitle className="text-2xl font-serif text-augusto-green">
+                {planoInfo.nome}
+              </CardTitle>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-foreground">
+                {fmt(displayMensal)}
+                <span className="text-xs font-normal text-muted-foreground">/mês</span>
+              </div>
+              {ciclo === "anual" && (
+                <div className="text-xs font-medium text-augusto-green">
+                  Faturado anualmente ({fmt(preco.anualTotal)})
+                </div>
+              )}
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           <div>
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Ciclo
-            </Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                Ciclo de Faturamento
+              </Label>
+              {ciclo === "anual" && (
+                <span className="inline-flex items-center rounded-full bg-augusto-green/10 px-2 py-0.5 text-[11px] font-semibold text-augusto-green">
+                  Economia de {fmt(preco.mensal * 12 - preco.anualTotal)}/ano
+                </span>
+              )}
+            </div>
             <RadioGroup
               value={ciclo}
               onValueChange={(v) => setCiclo(v as "mensal" | "anual")}
-              className="mt-2 grid grid-cols-2 gap-3"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
             >
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:border-primary/40">
-                <RadioGroupItem value="mensal" id="ciclo-mensal" />
+              <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition ${ciclo === "mensal" ? "border-primary bg-primary/5 shadow-xs" : "border-border hover:border-primary/40"}`}>
+                <RadioGroupItem value="mensal" id="ciclo-mensal" className="mt-0.5" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">Mensal</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-sm font-semibold">Mensal</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
                     {fmt(preco.mensal)} / mês
                   </div>
+                  <div className="text-[11px] text-muted-foreground mt-1">Cobrança recorrente mensal</div>
                 </div>
               </label>
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:border-primary/40">
-                <RadioGroupItem value="anual" id="ciclo-anual" />
+              <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition relative ${ciclo === "anual" ? "border-augusto-green bg-augusto-green/5 shadow-xs ring-1 ring-augusto-green/30" : "border-border hover:border-primary/40"}`}>
+                <div className="absolute -top-2.5 right-3 rounded bg-augusto-green px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
+                  Melhor Valor
+                </div>
+                <RadioGroupItem value="anual" id="ciclo-anual" className="mt-0.5" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">Anual</div>
-                  <div className="text-xs text-muted-foreground">
-                    {fmt(preco.anualPorMes)} / mês · {fmt(preco.anualTotal)}/ano
+                  <div className="text-sm font-semibold flex items-center gap-1.5">
+                    Anual
+                    <span className="text-[10px] font-normal text-augusto-green font-medium">(-17%)</span>
                   </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {fmt(preco.anualPorMes)} / mês · <span className="font-medium text-foreground">{fmt(preco.anualTotal)}/ano</span>
+                  </div>
+                  <div className="text-[11px] text-augusto-green font-medium mt-1">Garante o preço sem reajuste</div>
                 </div>
               </label>
             </RadioGroup>
           </div>
 
           <div>
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Forma de pagamento
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+              Forma de Pagamento
             </Label>
             <RadioGroup
               value={billingType}
               onValueChange={(v) => setBillingType(v as typeof billingType)}
-              className="mt-2 grid gap-2 sm:grid-cols-2"
+              className="mt-2 grid gap-2.5 sm:grid-cols-2"
             >
               {[
-                { v: "UNDEFINED", t: "Escolher no pagamento", d: "Pix, boleto ou cartão" },
-                { v: "PIX", t: "Pix", d: "Confirmação em minutos" },
-                { v: "BOLETO", t: "Boleto bancário", d: "Compensa em até 3 dias úteis" },
-                { v: "CREDIT_CARD", t: "Cartão de crédito", d: "Renovação automática" },
+                { v: "UNDEFINED", t: "Escolher no checkout", d: "Pix, boleto ou cartão", tag: null },
+                { v: "PIX", t: "Pix Instantâneo", d: "Liberação imediata da conta", tag: "Recomendado" },
+                { v: "CREDIT_CARD", t: "Cartão de Crédito", d: "Ativação imediata e automática", tag: "Instantâneo" },
+                { v: "BOLETO", t: "Boleto Bancário", d: "Compensação em até 3 dias úteis", tag: null },
               ].map((o) => (
                 <label
                   key={o.v}
-                  className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:border-primary/40"
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${billingType === o.v ? "border-primary bg-primary/5 shadow-xs" : "border-border hover:border-primary/40"}`}
                 >
-                  <RadioGroupItem value={o.v} id={`bt-${o.v}`} />
-                  <div>
-                    <div className="text-sm font-medium">{o.t}</div>
-                    <div className="text-xs text-muted-foreground">{o.d}</div>
+                  <RadioGroupItem value={o.v} id={`bt-${o.v}`} className="mt-0.5" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium flex items-center justify-between">
+                      <span>{o.t}</span>
+                      {o.tag && (
+                        <span className="text-[10px] font-semibold text-augusto-green bg-augusto-green/10 px-1.5 py-0.2 rounded">
+                          {o.tag}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{o.d}</div>
                   </div>
                 </label>
               ))}
             </RadioGroup>
           </div>
 
-          <div className="rounded-lg bg-muted/40 p-4 flex items-baseline justify-between">
-            <div className="text-sm text-muted-foreground">
-              Total {ciclo === "anual" ? "anual" : "mensal"}
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-2">
+            <div className="flex items-baseline justify-between">
+              <div className="text-sm font-medium text-foreground">
+                Total a pagar agora ({ciclo === "anual" ? "Anualidade" : "1ª Mensalidade"})
+              </div>
+              <div className="text-2xl font-bold text-augusto-green">
+                {fmt(valorAtual)}
+              </div>
             </div>
-            <div className="text-xl font-semibold">
-              {fmt(valorAtual)}
-              <span className="text-xs font-normal text-muted-foreground ml-1">
-                ({fmt(displayMensal)}/mês)
-              </span>
+            {ciclo === "anual" && (
+              <div className="text-xs text-muted-foreground flex items-center justify-between border-t border-border/40 pt-2">
+                <span>Equivalente mensal:</span>
+                <span className="font-semibold text-foreground">{fmt(displayMensal)} / mês</span>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-augusto-green shrink-0" />
+              <span>Criptografia SSL de 256 bits · LGPD compliance</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-augusto-gold shrink-0" />
+              <span>Garantia de 7 dias com cancelamento simplificado</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            {perfil.data?.ambiente === "sandbox"
-              ? "Ambiente Sandbox Asaas · nenhum valor real será cobrado."
-              : "Pagamento processado com segurança pelo Asaas."}
-          </div>
-
-          <div className="flex flex-wrap gap-3 justify-end">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-2 border-t border-border/40">
             <Button variant="ghost" onClick={() => navigate({ to: "/app" })}>
-              Cancelar
+              Voltar ao painel
             </Button>
             <Button
               onClick={() => mutation.mutate()}
               disabled={mutation.isPending || !perfilCompleto}
-              className="gap-2"
+              className="gap-2 min-h-[42px] px-6 text-sm font-semibold shadow-sm"
             >
               {mutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <ArrowRight className="h-4 w-4" />
               )}
-              Ir para pagamento
+              Confirmar e Ir para Pagamento
             </Button>
           </div>
         </CardContent>
@@ -327,7 +374,7 @@ function AssinaturaPage() {
         <span className="font-medium text-augusto-green">
           {perfil.data?.email ?? "cadastrado"}
         </span>{" "}
-        e libera automaticamente seu plano.
+        e libera automaticamente todos os recursos do seu plano.
       </p>
       </div>
     </div>

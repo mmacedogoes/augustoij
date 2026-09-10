@@ -185,6 +185,41 @@ function Page() {
     );
   }
 
+  const [arrastando, setArrastando] = useState(false);
+  const [etapaProgresso, setEtapaProgresso] = useState(1);
+
+  useEffect(() => {
+    let timer1: NodeJS.Timeout;
+    let timer2: NodeJS.Timeout;
+    if (passo === "processando") {
+      setEtapaProgresso(1);
+      timer1 = setTimeout(() => setEtapaProgresso(2), 2500);
+      timer2 = setTimeout(() => setEtapaProgresso(3), 6000);
+    }
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [passo]);
+
+  function onDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setArrastando(true);
+  }
+
+  function onDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setArrastando(false);
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setArrastando(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      selecionarArquivo(e.dataTransfer.files[0]);
+    }
+  }
+
   return (
     <AppShell>
       <div className="max-w-5xl space-y-6">
@@ -258,19 +293,46 @@ function Page() {
                   onChange={(e) => selecionarArquivo(e.target.files?.[0] ?? null)}
                 />
                 {file ? (
-                  <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="font-medium">{file.name}</span>
-                      <span className="text-muted-foreground">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                  <div className="flex items-center justify-between rounded-md border border-augusto-green/30 bg-augusto-green/5 p-4">
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="p-2 rounded bg-augusto-green/10 text-augusto-green">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-foreground">{file.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB · Pronto para análise segura
+                        </div>
+                      </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => setFile(null)}><Trash2 className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setFile(null)} title="Remover arquivo">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => inputRef.current?.click()} className="flex w-full flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-muted/20 p-8 text-sm text-muted-foreground transition hover:bg-muted/40">
-                    <Upload className="h-6 w-6" />
-                    Clique para escolher o arquivo do contrato
-                  </button>
+                  <div
+                    onDragOver={onDragOver}
+                    onDragLeave={onDragLeave}
+                    onDrop={onDrop}
+                    onClick={() => inputRef.current?.click()}
+                    className={`flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 text-center transition ${
+                      arrastando
+                        ? "border-augusto-green bg-augusto-green/10 ring-2 ring-augusto-green/30"
+                        : "border-border/80 bg-muted/20 hover:border-primary/60 hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="rounded-full bg-primary/10 p-3 text-primary">
+                      <Upload className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {arrastando ? "Solte o arquivo do contrato aqui" : "Arraste e solte o contrato aqui, ou clique para navegar"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Suporta PDF, DOCX, DOC e TXT de até {MAX_MB} MB
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
             ) : (
@@ -308,19 +370,39 @@ function Page() {
               </div>
             )}
 
-            <div className="flex justify-end">
-              <Button onClick={processar} disabled={!condominioId || (fonte === "upload" ? !file : !docId)}>
-                <Sparkles className="mr-2 h-4 w-4" /> Analisar com IA
+            <div className="flex justify-end pt-2 border-t border-border/40">
+              <Button
+                onClick={processar}
+                disabled={!condominioId || (fonte === "upload" ? !file : !docId)}
+                className="min-h-[40px] px-5 font-semibold gap-2"
+              >
+                <Sparkles className="h-4 w-4 text-augusto-gold" /> Iniciar Análise e Extração com IA
               </Button>
             </div>
           </div>
         )}
 
         {passo === "processando" && (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card p-12 text-center shadow-sm">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <div className="text-lg font-medium">Analisando o contrato…</div>
-            <div className="text-sm text-muted-foreground">Isso pode levar até 30 segundos.</div>
+          <div className="flex flex-col items-center justify-center gap-5 rounded-lg border border-border bg-card p-10 text-center shadow-sm">
+            <Loader2 className="h-10 w-10 animate-spin text-augusto-green" />
+            <div className="space-y-1">
+              <div className="text-xl font-serif text-foreground">Analisando contrato com inteligência jurídica…</div>
+              <div className="text-xs text-muted-foreground">Isso leva em média de 10 a 25 segundos.</div>
+            </div>
+            <div className="w-full max-w-md space-y-2 text-left text-xs bg-muted/40 p-4 rounded-lg border border-border/60">
+              <div className={`flex items-center gap-2 ${etapaProgresso >= 1 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                <CheckCircle2 className={`h-4 w-4 ${etapaProgresso >= 1 ? "text-augusto-green" : "text-muted-foreground/40"}`} />
+                <span>Validação e extração de texto do documento</span>
+              </div>
+              <div className={`flex items-center gap-2 ${etapaProgresso >= 2 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                <CheckCircle2 className={`h-4 w-4 ${etapaProgresso >= 2 ? "text-augusto-green" : "text-muted-foreground/40"}`} />
+                <span>Identificação de partes, vigência, valores e reajustes</span>
+              </div>
+              <div className={`flex items-center gap-2 ${etapaProgresso >= 3 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                <CheckCircle2 className={`h-4 w-4 ${etapaProgresso >= 3 ? "text-augusto-green" : "text-muted-foreground/40"}`} />
+                <span>Estruturação das obrigações do condomínio e prestador</span>
+              </div>
+            </div>
           </div>
         )}
 
