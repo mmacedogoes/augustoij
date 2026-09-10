@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CopySnippet } from "@/components/ui/copy-snippet";
 import { DOC_MARKER_RE, gerarPdf, gerarDocx, validarConteudo } from "@/lib/documento-export";
 
 interface ChatContratoPanelProps {
@@ -253,25 +254,34 @@ export function ChatContratoPanel({
                   </div>
 
                   {m.role === "assistant" && hasDocMarker && !isLoading && (
-                    <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-[11px] gap-2 bg-background"
-                        onClick={() => handleExport(content, 'pdf')}
-                      >
-                        <Download className="w-3 h-3" />
-                        Baixar PDF
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-[11px] gap-2 bg-background"
-                        onClick={() => handleExport(content, 'docx')}
-                      >
-                        <FileText className="w-3 h-3" />
-                        Baixar Word
-                      </Button>
+                    <div className="mt-3">
+                      <CopySnippet
+                        title="Minuta / Notificação Gerada"
+                        badge="Documento IJ"
+                        value={content.replace(DOC_MARKER_RE, "").trim()}
+                        downloadFileName={`${prestadorNome.toLowerCase().replace(/\s+/g, "_")}_minuta.txt`}
+                        variant="gold"
+                      />
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-[11px] gap-2 bg-background hover:bg-augusto-gold/10"
+                          onClick={() => handleExport(content, 'pdf')}
+                        >
+                          <Download className="w-3 h-3 text-augusto-gold" />
+                          Exportar PDF Timbrado
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-[11px] gap-2 bg-background hover:bg-augusto-gold/10"
+                          onClick={() => handleExport(content, 'docx')}
+                        >
+                          <FileText className="w-3 h-3 text-augusto-gold" />
+                          Exportar Word (.docx)
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
