@@ -382,8 +382,8 @@ function Page() {
           {/* Card 2: Vigência & Aviso Prévio */}
           <Card className={cn(
             "p-4 border-border/60 bg-card/60 backdrop-blur flex flex-col justify-between shadow-xs transition-colors",
-            avisoInfo.emJanelaCritica && "border-amber-500/50 bg-amber-500/5",
-            avisoInfo.expirado && "border-destructive/50 bg-destructive/5"
+            avisoInfo?.emJanelaCritica && "border-amber-500/50 bg-amber-500/5",
+            avisoInfo?.expirado && "border-destructive/50 bg-destructive/5"
           )}>
             <div className="flex items-center justify-between text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
               <span>Vigência & Rescisão</span>
@@ -393,21 +393,21 @@ function Page() {
               <p className="text-sm font-semibold text-foreground">
                 {c.prazo_indeterminado ? "Prazo Indeterminado" : formatDate(c.data_fim)}
               </p>
-              {avisoInfo.temAvisoPrevio ? (
+              {avisoInfo?.temAvisoPrevio ? (
                 <div className="mt-1">
                   <Badge
                     variant="outline"
                     className={cn(
                       "text-[10px] px-1.5 py-0 h-5 font-medium inline-flex items-center gap-1",
-                      avisoInfo.expirado ? "bg-destructive/10 text-destructive border-destructive/30" :
-                      avisoInfo.emJanelaCritica ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-semibold" :
+                      avisoInfo?.expirado ? "bg-destructive/10 text-destructive border-destructive/30" :
+                      avisoInfo?.emJanelaCritica ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-semibold" :
                       "bg-muted text-muted-foreground border-border"
                     )}
                   >
                     <CalendarClock className="h-3 w-3" />
-                    {avisoInfo.expirado ? `Aviso expirou há ${Math.abs(avisoInfo.diasRestantesAviso ?? 0)}d` :
-                     avisoInfo.emJanelaCritica ? `Aviso em ${avisoInfo.diasRestantesAviso}d` :
-                     `Aviso: ${formatDate(avisoInfo.dataLimiteAviso)}`}
+                    {avisoInfo?.expirado ? `Aviso expirou há ${Math.abs(avisoInfo?.diasRestantesAviso ?? 0)}d` :
+                     avisoInfo?.emJanelaCritica ? `Aviso em ${avisoInfo?.diasRestantesAviso}d` :
+                     `Aviso: ${formatDate(avisoInfo?.dataLimiteAviso)}`}
                   </Badge>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
                     {c.renovacao_automatica ? "Renovação automática ativa" : "Sem renovação automática"}
@@ -424,7 +424,7 @@ function Page() {
           {/* Card 3: Reajuste Anual */}
           <Card className={cn(
             "p-4 border-border/60 bg-card/60 backdrop-blur flex flex-col justify-between shadow-xs",
-            reajusteInfo.status === "pendente" && "border-destructive/40 bg-destructive/5"
+            reajusteInfo?.status === "pendente" && "border-destructive/40 bg-destructive/5"
           )}>
             <div className="flex items-center justify-between text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
               <span>Reajuste Anual</span>
@@ -433,22 +433,22 @@ function Page() {
             <div className="mt-2">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-semibold text-foreground">
-                  {reajusteInfo.indiceNome}
+                  {reajusteInfo?.indiceNome}
                 </span>
-                <span className="text-xs text-muted-foreground">· Mês {reajusteInfo.mesBaseNome}</span>
+                <span className="text-xs text-muted-foreground">· Mês {reajusteInfo?.mesBaseNome}</span>
               </div>
               <div className="mt-1">
                 <Badge
                   variant="outline"
                   className={cn(
                     "text-[10px] px-1.5 py-0 h-5 font-medium",
-                    reajusteInfo.badgeTone === "destructive" ? "bg-destructive/10 text-destructive border-destructive/30 font-semibold" :
-                    reajusteInfo.badgeTone === "warning" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30" :
-                    reajusteInfo.badgeTone === "positive" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" :
+                    reajusteInfo?.badgeTone === "destructive" ? "bg-destructive/10 text-destructive border-destructive/30 font-semibold" :
+                    reajusteInfo?.badgeTone === "warning" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30" :
+                    reajusteInfo?.badgeTone === "positive" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" :
                     "bg-muted text-muted-foreground border-border"
                   )}
                 >
-                  {reajusteInfo.rotulo}
+                  {reajusteInfo?.rotulo}
                 </Badge>
               </div>
             </div>

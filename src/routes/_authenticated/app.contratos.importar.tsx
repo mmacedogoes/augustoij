@@ -199,6 +199,7 @@ function Page() {
           </div>
         </div>
       </AppShell>
+    );
   }
 
   function onDragOver(e: React.DragEvent) {

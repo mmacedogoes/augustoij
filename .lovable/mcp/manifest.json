@@ -172,6 +172,69 @@
           ]
         },
         "outputSchema": null
+      },
+      {
+        "name": "consultar_cnpj_receita",
+        "title": "Consultar situação cadastral de CNPJ",
+        "description": "Consulta a situação cadastral oficial de uma empresa ou condomínio na Receita Federal (razão social, nome fantasia, status ativo/inapto/baixado, CNAE e quadro de sócios) para checagem de fornecedores e contratos.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "cnpj": {
+              "type": "string",
+              "minLength": 14,
+              "description": "Número do CNPJ da empresa ou condomínio (com ou sem pontuação)."
+            }
+          },
+          "required": [
+            "cnpj"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "consultar_indices_reajuste_bcb",
+        "title": "Consultar índices oficiais de reajuste (BCB)",
+        "description": "Consulta taxas oficiais e séries históricas do Banco Central do Brasil (IPCA, IGP-M, INPC, Selic, CDI) para cálculo de reajustes contratuais e simulação de correções monetárias.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "indice": {
+              "type": "string",
+              "enum": [
+                "ipca",
+                "igpm",
+                "inpc",
+                "selic",
+                "cdi"
+              ],
+              "description": "Identificador do índice econômico."
+            },
+            "ultimos_meses": {
+              "description": "Quantidade de meses/registros recentes a retornar.",
+              "default": 12,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 36
+            }
+          },
+          "required": [
+            "indice"
+          ]
+        },
+        "outputSchema": null
       }
     ]
   }
