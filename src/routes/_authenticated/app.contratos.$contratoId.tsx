@@ -18,6 +18,15 @@ import { ContratosTabs } from "@/components/contratos-servico/ContratosTabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+  Timeline,
+  TimelineItem,
+  TimelineIcon,
+  TimelineHeader,
+  TimelineTitle,
+  TimelineTime,
+  TimelineDescription,
+} from "@/components/ui/timeline";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -726,9 +735,9 @@ function Page() {
                     </div>
                   </ExpandableSection>
 
-                  {/* Vigência */}
+                  {/* Vigência e Linha do Tempo do Ciclo de Vida */}
                   <ExpandableSection
-                    titulo="Vigência e Prazo"
+                    titulo="Vigência e Ciclo de Vida"
                     icon={<CalendarRange className="h-4 w-4" />}
                     resumo={`${formatDate(c.data_inicio)} até ${c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}`}
                   >
@@ -746,6 +755,7 @@ function Page() {
                           </p>
                         </div>
                       </div>
+
                       <div className="flex flex-wrap gap-3">
                         <StatBadge
                           tone={c.renovacao_automatica ? "positive" : "muted"}
@@ -758,6 +768,89 @@ function Page() {
                             Aviso Prévio: {c.aviso_previo_dias} dias
                           </StatBadge>
                         )}
+                      </div>
+
+                      {/* ReUI Timeline: Linha do Tempo do Ciclo de Vida do Contrato */}
+                      <div className="mt-6 rounded-xl border border-border/50 bg-card p-5">
+                        <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-augusto-gold" />
+                          Linha do Tempo & Eventos Contratuais
+                        </h4>
+                        <Timeline>
+                          <TimelineItem active>
+                            <TimelineIcon variant="success">
+                              <Check className="h-3 w-3" />
+                            </TimelineIcon>
+                            <TimelineHeader>
+                              <TimelineTitle>Início da Vigência</TimelineTitle>
+                              <TimelineTime>{formatDate(c.data_inicio)}</TimelineTime>
+                            </TimelineHeader>
+                            <TimelineDescription>
+                              Assinatura e início formal da execução dos serviços pelo prestador {c.prestador_nome}.
+                            </TimelineDescription>
+                          </TimelineItem>
+
+                          <TimelineItem active>
+                            <TimelineIcon variant={reajusteInfo?.badgeTone === "destructive" ? "destructive" : reajusteInfo?.badgeTone === "warning" ? "warning" : "gold"}>
+                              <TrendingUp className="h-3 w-3" />
+                            </TimelineIcon>
+                            <TimelineHeader>
+                              <TimelineTitle>Reajuste Anual Programado</TimelineTitle>
+                              <TimelineTime>
+                                Mês {reajusteInfo?.mesBaseNome || "Base"} ({reajusteInfo?.indiceNome || rotuloIndice(c.indice_reajuste)})
+                              </TimelineTime>
+                            </TimelineHeader>
+                            <TimelineDescription>
+                              {reajusteInfo?.status === "pendente"
+                                ? `Reajuste de aniversário pendente de aplicação pelo índice ${reajusteInfo?.indiceNome}.`
+                                : `Aplicação periódica do índice de correção monetária (${reajusteInfo?.indiceNome || rotuloIndice(c.indice_reajuste)}).`}
+                            </TimelineDescription>
+                          </TimelineItem>
+
+                          {avisoInfo?.temAvisoPrevio && (
+                            <TimelineItem active>
+                              <TimelineIcon variant={avisoInfo.expirado ? "destructive" : avisoInfo.emJanelaCritica ? "warning" : "default"}>
+                                <CalendarClock className="h-3 w-3" />
+                              </TimelineIcon>
+                              <TimelineHeader>
+                                <TimelineTitle>Janela Limite de Aviso Prévio</TimelineTitle>
+                                <TimelineTime>{formatDate(avisoInfo.dataLimiteAviso)}</TimelineTime>
+                              </TimelineHeader>
+                              <TimelineDescription>
+                                {avisoInfo.expirado
+                                  ? `Prazo para manifestação expirou há ${Math.abs(avisoInfo.diasRestantesAviso)} dias.`
+                                  : avisoInfo.emJanelaCritica
+                                    ? `Atenção: restam ${avisoInfo.diasRestantesAviso} dias para envio de notificação formal de rescisão/não renovação.`
+                                    : `Notificação com antecedência mínima de ${c.aviso_previo_dias} dias.`}
+                              </TimelineDescription>
+                            </TimelineItem>
+                          )}
+
+                          <TimelineItem>
+                            <TimelineIcon variant={c.prazo_indeterminado ? "gold" : "muted"}>
+                              <CalendarRange className="h-3 w-3" />
+                            </TimelineIcon>
+                            <TimelineHeader>
+                              <TimelineTitle>
+                                {c.prazo_indeterminado
+                                  ? "Vigência Contínua"
+                                  : c.renovacao_automatica
+                                    ? "Término / Renovação Automática"
+                                    : "Término do Contrato"}
+                              </TimelineTitle>
+                              <TimelineTime>
+                                {c.prazo_indeterminado ? "Indeterminado" : formatDate(c.data_fim)}
+                              </TimelineTime>
+                            </TimelineHeader>
+                            <TimelineDescription>
+                              {c.prazo_indeterminado
+                                ? "Contrato em vigor por prazo indeterminado até manifestação de qualquer das partes."
+                                : c.renovacao_automatica
+                                  ? "Prorrogação automática de vigência por igual período na ausência de notificação prévia."
+                                  : "Fim do período de vigência previsto em contrato."}
+                            </TimelineDescription>
+                          </TimelineItem>
+                        </Timeline>
                       </div>
                     </div>
                   </ExpandableSection>
