@@ -27,6 +27,10 @@ import {
   blocoHistoricoConversasCondominio,
   priorizarUnidades,
 } from "@/lib/chat-cadastro-condominial";
+import {
+  buscarChunksCondominioHibrido,
+  buscarChunksKbHibrido,
+} from "@/lib/rag-hibrido.server";
 
 type ChatBody = {
   messages?: UIMessage[];
@@ -376,63 +380,64 @@ export const Route = createFileRoute("/api/chat")({
           const { temConvencao, temRegimento, temBaseCondominial } =
             avaliarBaseCondominial(docsBase);
 
-          // RAG retrieval
+          // RAG retrieval: Busca Híbrida (Dense Vector + Sparse Lexical + RRF)
           let contexto = "";
           let contextoKb = "";
           let temMatchDocumento = false;
           if (textoBuscaRag) {
             try {
               const queryEmbedding = await embedText(apiKey, textoBuscaRag);
-              // Se contratoId presente, tentamos buscar primeiro apenas chunks desse contrato
-              const { data: matches } = await supabase.rpc("match_document_chunks", {
-                _condominio_id: condominioId,
-                _query_embedding: `[${queryEmbedding.join(",")}]` as unknown as string,
-                _match_count: 16,
-                _min_similarity: 0.18,
-                // Passamos o filtro de metadados se existir contratoId
-                ...(contratoId ? { _metadata_filter: { contrato_id: contratoId } } : {})
+
+              // 1. Busca Híbrida nos Documentos do Condomínio (Vetorial + Léxica + RRF)
+              const matchesHibridos = await buscarChunksCondominioHibrido({
+                supabase,
+                condominioId,
+                queryTexto: textoBuscaRag,
+                queryEmbedding,
+                contratoId: contratoId ?? null,
+                matchCount: 16,
+                minSimilarity: 0.18,
               });
-              
-              if (matches && Array.isArray(matches) && matches.length > 0) {
+
+              if (matchesHibridos && matchesHibridos.length > 0) {
                 temMatchDocumento = true;
-                contexto = matches
-                  .map(
-                    (m: { nome_arquivo: string; conteudo: string }) => {
-                      const cabecalho = `(trecho de documento do condomínio${m.nome_arquivo ? `: ${m.nome_arquivo}` : ""})`;
-                      const conteudoLimpo = (m.conteudo || "")
-                        .replace(/[ \t]{2,}/g, " ")
-                        .replace(/\n{3,}/g, "\n\n")
-                        .trim();
-                      return `${cabecalho}\n${conteudoLimpo}`;
-                    },
-                  )
+                contexto = matchesHibridos
+                  .map((m) => {
+                    const tagRelevancia = m.origem_match === "hibrido" ? " [alta relevância combinada]" : "";
+                    const cabecalho = `(trecho de documento do condomínio${m.nome_arquivo ? `: ${m.nome_arquivo}` : ""}${tagRelevancia})`;
+                    const conteudoLimpo = (m.conteudo || "")
+                      .replace(/[ \t]{2,}/g, " ")
+                      .replace(/\n{3,}/g, "\n\n")
+                      .trim();
+                    return `${cabecalho}\n${conteudoLimpo}`;
+                  })
                   .join("\n\n---\n\n");
               }
 
-              // Base de conhecimento global (treinada pelo admin)
-              const { data: kb } = await supabase.rpc("match_kb_chunks", {
-                _query_embedding: `[${queryEmbedding.join(",")}]` as unknown as string,
-                _match_count: 5,
-                _min_similarity: 0.25,
+              // 2. Busca Híbrida na Base de Conhecimento Global / Treinamento da IA (KB)
+              const kbMatchesHibridos = await buscarChunksKbHibrido({
+                supabase,
+                queryTexto: textoBuscaRag,
+                queryEmbedding,
+                matchCount: 6,
+                minSimilarity: 0.20,
               });
-              if (kb && Array.isArray(kb) && kb.length > 0) {
-                contextoKb = kb
-                  .map(
-                    (
-                      m: { titulo: string; tipo: string; fonte: string | null; conteudo: string },
-                    ) => {
-                      const meta: string[] = [];
-                      if (m.titulo) meta.push(m.titulo);
-                      if (m.tipo) meta.push(`tipo: ${m.tipo}`);
-                      if (m.fonte) meta.push(`fonte: ${m.fonte}`);
-                      const cabecalho = meta.length > 0 ? `(${meta.join(" — ")})` : "";
-                      const conteudoLimpo = (m.conteudo || "")
-                        .replace(/[ \t]{2,}/g, " ")
-                        .replace(/\n{3,}/g, "\n\n")
-                        .trim();
-                      return `${cabecalho}\n${conteudoLimpo}`;
-                    },
-                  )
+
+              if (kbMatchesHibridos && kbMatchesHibridos.length > 0) {
+                contextoKb = kbMatchesHibridos
+                  .map((m) => {
+                    const meta: string[] = [];
+                    if (m.titulo) meta.push(m.titulo);
+                    if (m.tipo) meta.push(`tipo: ${m.tipo}`);
+                    if (m.fonte) meta.push(`fonte: ${m.fonte}`);
+                    const tagRelevancia = m.origem_match === "hibrido" ? " [destaque RRF]" : "";
+                    const cabecalho = meta.length > 0 ? `(${meta.join(" — ")}${tagRelevancia})` : "";
+                    const conteudoLimpo = (m.conteudo || "")
+                      .replace(/[ \t]{2,}/g, " ")
+                      .replace(/\n{3,}/g, "\n\n")
+                      .trim();
+                    return `${cabecalho}\n${conteudoLimpo}`;
+                  })
                   .join("\n\n---\n\n");
               }
 

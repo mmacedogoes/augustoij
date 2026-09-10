@@ -207,9 +207,10 @@ export async function buscarContextoTreinamentoContratos({
       }
     }
 
-    // 3. Busca Vetorial Semântica na Base de Conhecimento (match_kb_chunks)
+    // 3. Busca Híbrida (Vetorial + Léxica + RRF) na Base de Conhecimento
     try {
       const { embedText } = await import("@/lib/ai-gateway.server");
+      const { buscarChunksKbHibrido } = await import("@/lib/rag-hibrido.server");
       const termoBusca = [
         "Contrato de prestação de serviços para condomínio edilício",
         tipoServico ? `serviço de ${tipoServico}` : "",
@@ -221,29 +222,32 @@ export async function buscarContextoTreinamentoContratos({
         .join(". ");
 
       const queryEmbedding = await embedText(apiKey, termoBusca.slice(0, 1000));
-      const { data: matches, error: errMatch } = await supabase.rpc("match_kb_chunks", {
-        _query_embedding: `[${queryEmbedding.join(",")}]` as unknown as string,
-        _match_count: 8,
-        _min_similarity: 0.18,
+      const matches = await buscarChunksKbHibrido({
+        supabase,
+        queryTexto: termoBusca,
+        queryEmbedding,
+        matchCount: 8,
+        minSimilarity: 0.18,
       });
 
-      if (!errMatch && matches && Array.isArray(matches) && matches.length > 0) {
+      if (matches && matches.length > 0) {
         const chunksTexto: string[] = [];
-        for (const m of matches as Array<{ titulo: string; tipo: string; fonte: string | null; conteudo: string }>) {
-          if (!modelosComparados.includes(m.titulo)) {
+        for (const m of matches) {
+          if (m.titulo && !modelosComparados.includes(m.titulo)) {
             modelosComparados.push(m.titulo);
           }
           const meta = [m.titulo, m.tipo ? `tipo: ${m.tipo}` : "", m.fonte ? `fonte: ${m.fonte}` : ""]
             .filter(Boolean)
             .join(" — ");
-          chunksTexto.push(`[${meta}]\n${m.conteudo.trim()}`);
+          const tagRelevancia = m.origem_match === "hibrido" ? " [alta relevância combinada]" : "";
+          chunksTexto.push(`[${meta}${tagRelevancia}]\n${m.conteudo.trim()}`);
         }
         secoesContexto.push(
           `=== TRECHOS NORMATIVOS E DISPOSITIVOS CORRELATOS DA BASE DE TREINAMENTO ===\n${chunksTexto.join("\n\n---\n\n")}`,
         );
       }
     } catch (embErr) {
-      console.warn("[analise] busca vetorial kb:", embErr);
+      console.warn("[analise] busca híbrida kb:", embErr);
     }
   } catch (err) {
     console.error("[analise] erro ao carregar contexto de treinamento:", err);
