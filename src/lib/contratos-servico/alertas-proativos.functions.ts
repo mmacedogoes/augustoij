@@ -18,15 +18,14 @@ export type PrioridadeAlerta = "alta" | "media" | "baixa";
 export type ItemAlertaProativo = {
   id: string;
   contratoId: string;
-  tipoModulo: "servico" | "locacao";
+  tipoModulo: "servico";
   tipoAlerta:
     | "vencido"
     | "vencendo_30d"
     | "vencendo_60d"
     | "vencendo_90d"
     | "reajuste_devido"
-    | "aviso_previo_critico"
-    | "pagamento_atrasado";
+    | "aviso_previo_critico";
   prioridade: PrioridadeAlerta;
   titulo: string;
   subtitulo: string;
@@ -48,10 +47,6 @@ export type ResumoAlertasProativos = {
     servicosVencendo90d: number;
     servicosReajustesPendentes: number;
     servicosAvisoPrevioCritico: number;
-    totalContratosLocacaoAtivos: number;
-    locacoesVencendo90d: number;
-    locacoesReajustesDevidos: number;
-    locacoesPagamentosAtrasados: number;
     totalAlertasCriticos: number;
   };
   alertas: ItemAlertaProativo[];
@@ -243,139 +238,6 @@ export const getAlertasProativosContratos = createServerFn({ method: "POST" })
       }
     }
 
-    // 2. Contratos de Locação (Administração de Imóveis - SuperAdmin)
-    let totalLocacoesAtivas = 0;
-    let locacoesVencendo90d = 0;
-    let locacoesReajustesDevidos = 0;
-    let locacoesPagamentosAtrasados = 0;
-
-    if (isSuper) {
-      const hoje = new Date();
-      const hojeIso = hoje.toISOString().slice(0, 10);
-
-      const [
-        { data: locacoesRows },
-        { data: pagamentosAtrasadosRows },
-        { data: reajustesLocacaoRows },
-      ] = await Promise.all([
-        supabaseAdmin
-          .from("contratos_locacao")
-          .select(
-            "id, inquilino_nome, valor_aluguel, data_inicio_vigencia, prazo_meses, mes_base_reajuste, periodicidade_reajuste_meses, indice_reajuste, status, imoveis(edificio, numero_unidade, endereco)",
-          )
-          .eq("owner_admin_id", userId)
-          .eq("status", "ativo"),
-        supabaseAdmin
-          .from("pagamentos")
-          .select("id, tipo, valor, vencimento, competencia, contrato_locacao_id, contratos_locacao(inquilino_nome)")
-          .eq("owner_admin_id", userId)
-          .eq("pago", false)
-          .lt("vencimento", hojeIso),
-        supabaseAdmin
-          .from("reajustes")
-          .select("contrato_locacao_id, data")
-          .eq("owner_admin_id", userId)
-          .order("data", { ascending: false }),
-      ]);
-
-      const locacoes = locacoesRows ?? [];
-      totalLocacoesAtivas = locacoes.length;
-
-      const ultimoReajusteLoc = new Map<string, string>();
-      for (const r of reajustesLocacaoRows ?? []) {
-        if (!ultimoReajusteLoc.has(r.contrato_locacao_id)) {
-          ultimoReajusteLoc.set(r.contrato_locacao_id, r.data);
-        }
-      }
-
-      for (const loc of locacoes) {
-        const imovelInfo = loc.imoveis as unknown as { edificio: string | null; numero_unidade: string | null; endereco: string | null } | null;
-        const imovelDesc = [imovelInfo?.edificio, imovelInfo?.numero_unidade ? `Apto ${imovelInfo.numero_unidade}` : null]
-          .filter(Boolean)
-          .join(" - ") || imovelInfo?.endereco || "Imóvel Locado";
-
-        // Término de locação
-        if (loc.data_inicio_vigencia && loc.prazo_meses) {
-          const inicio = new Date(loc.data_inicio_vigencia + "T00:00:00Z");
-          const fim = new Date(inicio);
-          fim.setUTCMonth(fim.getUTCMonth() + loc.prazo_meses);
-          const dias = Math.floor((fim.getTime() - hoje.getTime()) / 86400000);
-
-          if (dias <= 90) {
-            locacoesVencendo90d++;
-            const prioridade: PrioridadeAlerta = dias <= 30 ? "alta" : "media";
-            alertas.push({
-              id: `loc-venc-${loc.id}`,
-              contratoId: loc.id,
-              tipoModulo: "locacao",
-              tipoAlerta: dias < 0 ? "vencido" : dias <= 30 ? "vencendo_30d" : "vencendo_90d",
-              prioridade,
-              titulo: `Locação Terminando — ${loc.inquilino_nome ?? "Inquilino"}`,
-              subtitulo: `${imovelDesc} • Término em ${dias < 0 ? `atraso de ${Math.abs(dias)}d` : `${dias} dias`} (${fim.toISOString().slice(0, 10)})`,
-              condominioNome: imovelDesc,
-              prestadorOuInquilino: loc.inquilino_nome ?? "Inquilino",
-              valorMensal: loc.valor_aluguel ? Number(loc.valor_aluguel) : null,
-              dataReferencia: fim.toISOString().slice(0, 10),
-              diasRestantes: dias,
-              acaoRecomendada: "Gerar termo aditivo de renovação ou vistoria de entrega das chaves.",
-              linkDestino: `/app/admin/imoveis/locacao/${loc.id}`,
-            });
-          }
-        }
-
-        // Reajuste de locação
-        const base = ultimoReajusteLoc.get(loc.id) ?? loc.data_inicio_vigencia;
-        const periodicidade = loc.periodicidade_reajuste_meses ?? 12;
-        if (base) {
-          const dBase = new Date(base + "T00:00:00Z");
-          dBase.setUTCMonth(dBase.getUTCMonth() + periodicidade);
-          const diasRea = Math.floor((dBase.getTime() - hoje.getTime()) / 86400000);
-          if (diasRea <= 30) {
-            locacoesReajustesDevidos++;
-            const proxIso = dBase.toISOString().slice(0, 10);
-            alertas.push({
-              id: `loc-reaj-${loc.id}`,
-              contratoId: loc.id,
-              tipoModulo: "locacao",
-              tipoAlerta: "reajuste_devido",
-              prioridade: diasRea <= 0 ? "alta" : "media",
-              titulo: `Reajuste Anual de Aluguel — ${loc.inquilino_nome ?? "Inquilino"}`,
-              subtitulo: `${imovelDesc} • Data-base ${diasRea < 0 ? `vencida há ${Math.abs(diasRea)} dias` : `em ${diasRea} dias`} (${proxIso})`,
-              condominioNome: imovelDesc,
-              prestadorOuInquilino: loc.inquilino_nome ?? "Inquilino",
-              valorMensal: loc.valor_aluguel ? Number(loc.valor_aluguel) : null,
-              dataReferencia: proxIso,
-              diasRestantes: diasRea,
-              acaoRecomendada: `Calcular reajuste pelo ${loc.indice_reajuste || "IGP-M/IPCA"} e enviar notificação ao locatário.`,
-              linkDestino: `/app/admin/imoveis/locacao/${loc.id}`,
-            });
-          }
-        }
-      }
-
-      // Pagamentos em atraso
-      for (const p of pagamentosAtrasadosRows ?? []) {
-        locacoesPagamentosAtrasados++;
-        const cLoc = p.contratos_locacao as unknown as { inquilino_nome: string | null } | null;
-        alertas.push({
-          id: `loc-pgto-${p.id}`,
-          contratoId: p.contrato_locacao_id,
-          tipoModulo: "locacao",
-          tipoAlerta: "pagamento_atrasado",
-          prioridade: "alta",
-          titulo: `${p.tipo.toUpperCase()} Atrasado — ${cLoc?.inquilino_nome ?? "Inquilino"}`,
-          subtitulo: `Competência ${p.competencia} • Vencimento ${p.vencimento} • R$ ${Number(p.valor ?? 0).toFixed(2)}`,
-          condominioNome: "Locação de Imóvel",
-          prestadorOuInquilino: cLoc?.inquilino_nome ?? "Inquilino",
-          valorMensal: Number(p.valor ?? 0),
-          dataReferencia: p.vencimento,
-          diasRestantes: Math.floor((new Date(p.vencimento).getTime() - hoje.getTime()) / 86400000),
-          acaoRecomendada: "Cobrar locatário com aplicação de multa e juros contratuais.",
-          linkDestino: `/app/admin/imoveis/locacao/${p.contrato_locacao_id}`,
-        });
-      }
-    }
-
     // Ordena alertas: prioridade alta primeiro, depois dias restantes menores
     alertas.sort((a, b) => {
       const pesoPrio = { alta: 3, media: 2, baixa: 1 };
@@ -396,10 +258,6 @@ export const getAlertasProativosContratos = createServerFn({ method: "POST" })
         servicosVencendo90d,
         servicosReajustesPendentes,
         servicosAvisoPrevioCritico,
-        totalContratosLocacaoAtivos: totalLocacoesAtivas,
-        locacoesVencendo90d,
-        locacoesReajustesDevidos,
-        locacoesPagamentosAtrasados,
         totalAlertasCriticos,
       },
       alertas,

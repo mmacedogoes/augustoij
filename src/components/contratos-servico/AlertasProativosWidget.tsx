@@ -17,7 +17,6 @@ import {
   Copy,
   ChevronRight,
   Building,
-  Home,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,12 +46,12 @@ export function AlertasProativosWidget({
   const getAlertas = useServerFn(getAlertasProativosContratos);
   const simularFn = useServerFn(simularCalculoReajusteProativo);
 
-  const [filtroTipo, setFiltroTipo] = useState<"todos" | "vencimentos" | "reajustes" | "locacoes">("todos");
+  const [filtroTipo, setFiltroTipo] = useState<"todos" | "vencimentos" | "reajustes" | "aviso_previo">("todos");
   const [modalReajuste, setModalReajuste] = useState<ItemAlertaProativo | null>(null);
   const [simulacaoResultado, setSimulacaoResultado] = useState<any | null>(null);
   const [calculando, setCalculando] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["alertas-proativos-contratos", condominioId],
     queryFn: () => getAlertas({ data: { condominioId: condominioId || null } }),
   });
@@ -60,13 +59,13 @@ export function AlertasProativosWidget({
   const metricas = data?.metricas;
   const alertas = (data?.alertas ?? []).filter((a) => {
     if (filtroTipo === "vencimentos") {
-      return a.tipoAlerta === "vencido" || a.tipoAlerta.startsWith("vencendo_") || a.tipoAlerta === "aviso_previo_critico";
+      return a.tipoAlerta === "vencido" || a.tipoAlerta.startsWith("vencendo_");
     }
     if (filtroTipo === "reajustes") {
       return a.tipoAlerta === "reajuste_devido";
     }
-    if (filtroTipo === "locacoes") {
-      return a.tipoModulo === "locacao";
+    if (filtroTipo === "aviso_previo") {
+      return a.tipoAlerta === "aviso_previo_critico";
     }
     return true;
   });
@@ -159,36 +158,34 @@ export function AlertasProativosWidget({
               Reajustes Devidos
             </span>
             <Badge variant="outline" className="text-xs text-blue-600 border-blue-200 bg-blue-50 font-bold">
-              {(metricas?.servicosReajustesPendentes ?? 0) + (metricas?.locacoesReajustesDevidos ?? 0)}
+              {metricas?.servicosReajustesPendentes ?? 0}
             </Badge>
           </div>
           <p className="mt-2 text-xl font-bold text-foreground">
-            {(metricas?.servicosReajustesPendentes ?? 0) + (metricas?.locacoesReajustesDevidos ?? 0)}
+            {metricas?.servicosReajustesPendentes ?? 0}
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5">Índices BCB disponíveis</p>
         </Card>
 
         <Card
-          onClick={() => setFiltroTipo((prev) => (prev === "locacoes" ? "todos" : "locacoes"))}
-          className={`p-3.5 cursor-pointer transition border-l-4 border-l-augusto-green hover:shadow-sm ${
-            filtroTipo === "locacoes" ? "ring-2 ring-augusto-green/20 bg-augusto-green/5" : ""
+          onClick={() => setFiltroTipo((prev) => (prev === "aviso_previo" ? "todos" : "aviso_previo"))}
+          className={`p-3.5 cursor-pointer transition border-l-4 border-l-augusto-gold hover:shadow-sm ${
+            filtroTipo === "aviso_previo" ? "ring-2 ring-augusto-gold/20 bg-augusto-gold/5" : ""
           }`}
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Home className="h-3.5 w-3.5 text-augusto-green" />
-              Locações Ativas
+              <FileText className="h-3.5 w-3.5 text-augusto-gold" />
+              Aviso Prévio
             </span>
-            <Badge variant="outline" className="text-xs text-augusto-green border-augusto-green/30 bg-augusto-green/10 font-bold">
-              {metricas?.totalContratosLocacaoAtivos ?? 0}
+            <Badge variant="outline" className="text-xs text-augusto-gold border-augusto-gold/30 bg-augusto-gold/10 font-bold">
+              {metricas?.servicosAvisoPrevioCritico ?? 0}
             </Badge>
           </div>
           <p className="mt-2 text-xl font-bold text-foreground">
-            {metricas?.totalContratosLocacaoAtivos ?? 0}
+            {metricas?.servicosAvisoPrevioCritico ?? 0}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {metricas?.locacoesVencendo90d ?? 0} a vencer em 90d
-          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Prazo rescisório crítico</p>
         </Card>
       </div>
 
@@ -226,16 +223,14 @@ export function AlertasProativosWidget({
             >
               Reajustes
             </Button>
-            {metricas?.totalContratosLocacaoAtivos ? (
-              <Button
-                size="sm"
-                variant={filtroTipo === "locacoes" ? "secondary" : "ghost"}
-                className="h-7 text-xs text-augusto-green"
-                onClick={() => setFiltroTipo("locacoes")}
-              >
-                Locações
-              </Button>
-            ) : null}
+            <Button
+              size="sm"
+              variant={filtroTipo === "aviso_previo" ? "secondary" : "ghost"}
+              className="h-7 text-xs text-augusto-gold"
+              onClick={() => setFiltroTipo("aviso_previo")}
+            >
+              Aviso Prévio
+            </Button>
           </div>
         </div>
 
@@ -270,11 +265,7 @@ export function AlertasProativosWidget({
                       {alerta.tipoAlerta.replace(/_/g, " ")}
                     </Badge>
                     <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-                      {alerta.tipoModulo === "servico" ? (
-                        <Building className="h-3 w-3" />
-                      ) : (
-                        <Home className="h-3 w-3" />
-                      )}
+                      <Building className="h-3 w-3" />
                       {alerta.condominioNome}
                     </span>
                   </div>
