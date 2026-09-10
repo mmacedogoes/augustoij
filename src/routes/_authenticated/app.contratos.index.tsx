@@ -322,14 +322,40 @@ function Page() {
             ) : total === 0 ? (
               <div className="p-12">
                 <AppEmptyState
-                  icon={<FileText className="opacity-20" size={48} />}
+                  icon={<FileText className="h-6 w-6 text-augusto-gold" />}
                   title="Nenhum contrato encontrado"
-                  description="Ajuste os filtros ou cadastre um novo contrato."
+                  description={
+                    busca || status !== TODOS || tipoId !== TODOS || condominioId !== TODOS
+                      ? "Nenhum contrato corresponde aos filtros aplicados. Tente limpar os filtros para visualizar a lista completa."
+                      : "Sua carteira ainda não possui contratos cadastrados neste condomínio. Comece cadastrando ou importando em lote."
+                  }
                   action={
-                    <Button variant="outline" size="sm" onClick={() => { setBusca(""); setVisao("todos"); }}>
-                      Ver todos os contratos
+                    busca || status !== TODOS || tipoId !== TODOS || condominioId !== TODOS ? (
+                      <Button
+                        variant="augusto"
+                        size="sm"
+                        onClick={() => {
+                          setBusca("");
+                          setCondominioId(TODOS);
+                          setTipoId(TODOS);
+                          setStatus(TODOS);
+                          setVisao("todos");
+                        }}
+                      >
+                        Limpar todos os filtros
+                      </Button>
+                    ) : (
+                      <Button variant="augusto" size="sm" asChild>
+                        <Link to="/app/contratos/novo">Cadastrar primeiro contrato</Link>
+                      </Button>
+                    )
+                  }
+                  secondaryAction={
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/app/contratos/importar">Importar PDFs em lote</Link>
                     </Button>
                   }
+                  tip="Você também pode pressionar Ctrl+K a qualquer momento para buscar ou navegar rapidamente."
                 />
               </div>
             ) : (
