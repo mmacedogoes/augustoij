@@ -376,6 +376,19 @@ export async function processarDocumentoCore(
       );
     }
 
+    // Rodada sem nenhum trecho novo e com bloco falhando: em vez de deixar o
+    // documento preso em "processando" para sempre, marcamos erro legível
+    // depois de algumas tentativas seguidas sem avanço.
+    if (novosChunks === 0 && falhas.length > 0 && tentativas >= 3) {
+      throw new IngestError(
+        "ocr",
+        "A leitura das páginas escaneadas falhou repetidamente",
+        ultimoErroOcr ??
+          "As páginas indicadas não puderam ser lidas. Verifique a qualidade do arquivo e reenvie.",
+        ultimoErroOcr ?? "",
+      );
+    }
+
     const restantes = blocos.filter((b) => !prontos.has(b.indice));
     // Só é definitivo quando não sobrou bloco algum. Se ainda há pendentes
     // (falta de tempo ou falhas transitórias), a próxima rodada retoma.

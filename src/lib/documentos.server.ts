@@ -67,14 +67,25 @@ async function ocrGateway(
   bytes: Uint8Array,
 ): Promise<string> {
   const dataUrl = `data:${mime};base64,${bufferToBase64(bytes)}`;
-  const userContent: Array<Record<string, unknown>> = [{ type: "text", text: PROMPT_OCR }];
+
+  // Alguns modelos aceitam o PDF como bloco `file`, outros só como `image_url`.
+  // Testamos as duas formas antes de desistir.
+  const variantes: Array<Array<Record<string, unknown>>> = [];
+  const blocoArquivo = { type: "file", file: { filename: fileName, file_data: dataUrl } };
+  const blocoImagem = { type: "image_url", image_url: { url: dataUrl } };
   if (mime === "application/pdf") {
-    userContent.push({ type: "file", file: { filename: fileName, file_data: dataUrl } });
+    variantes.push(
+      [{ type: "text", text: PROMPT_OCR }, blocoArquivo],
+      [{ type: "text", text: PROMPT_OCR }, blocoImagem],
+    );
   } else {
-    userContent.push({ type: "image_url", image_url: { url: dataUrl } });
+    variantes.push(
+      [{ type: "text", text: PROMPT_OCR }, blocoImagem],
+      [{ type: "text", text: PROMPT_OCR }, blocoArquivo],
+    );
   }
 
-  const tentarModelo = async (modelo: string) => {
+  const tentar = async (modelo: string, userContent: Array<Record<string, unknown>>) => {
     return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -90,21 +101,34 @@ async function ocrGateway(
     });
   };
 
-  let res = await tentarModelo(OCR_MODEL);
-  if (!res.ok && res.status !== 429 && res.status !== 402) {
-    console.warn(`[ocrGateway] modelo ${OCR_MODEL} retornou ${res.status}, tentando fallback ${OCR_FALLBACK_MODEL}`);
-    res = await tentarModelo(OCR_FALLBACK_MODEL);
+  let ultimoStatus = 0;
+  let ultimoCorpo = "";
+  for (const modelo of [OCR_MODEL, OCR_FALLBACK_MODEL]) {
+    for (const userContent of variantes) {
+      const res = await tentar(modelo, userContent);
+      if (res.ok) {
+        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+        const texto = json.choices?.[0]?.message?.content?.trim() ?? "";
+        if (texto) return texto;
+        ultimoStatus = 200;
+        ultimoCorpo = "resposta vazia do modelo";
+        continue;
+      }
+      ultimoStatus = res.status;
+      ultimoCorpo = (await res.text().catch(() => "")).slice(0, 300);
+      console.warn(`[ocrGateway] ${modelo} retornou ${res.status}: ${ultimoCorpo.slice(0, 120)}`);
+      // 429/402/5xx não são problema de formato: nada a ganhar variando o payload.
+      if (res.status === 429 || res.status === 402 || res.status >= 500) {
+        const err = new Error(`OCR falhou (gateway ${res.status}): ${ultimoCorpo}`);
+        (err as Error & { retryavel?: boolean }).retryavel = res.status !== 402;
+        throw err;
+      }
+    }
   }
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    const err = new Error(`OCR falhou (gateway ${res.status}): ${body.slice(0, 300)}`);
-    // 429/5xx são transitórios — o chamador tenta de novo.
-    (err as Error & { retryavel?: boolean }).retryavel = res.status === 429 || res.status >= 500;
-    throw err;
-  }
-  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  return json.choices?.[0]?.message?.content?.trim() ?? "";
+  const err = new Error(`OCR falhou (gateway ${ultimoStatus}): ${ultimoCorpo}`);
+  (err as Error & { retryavel?: boolean }).retryavel = false;
+  throw err;
 }
 
 async function ocrComRetry(
