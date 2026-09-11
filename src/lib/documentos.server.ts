@@ -209,26 +209,6 @@ export async function ocrBloco(
   return ocrComRetry(apiKey, fileName, mime, bytes);
 }
 
-/** Divide o PDF em sub-PDFs de N páginas (JS puro, sem renderização). */
-async function fatiarPdf(buffer: Uint8Array, porBloco: number) {
-  const { PDFDocument } = await import("pdf-lib");
-  const copia = new Uint8Array(buffer.byteLength);
-  copia.set(buffer);
-  const src = await PDFDocument.load(copia, { ignoreEncryption: true });
-  const total = src.getPageCount();
-  const blocos: { inicio: number; fim: number; bytes: Uint8Array }[] = [];
-  for (let i = 0; i < total; i += porBloco) {
-    const fim = Math.min(i + porBloco, total);
-    const out = await PDFDocument.create();
-    const paginas = await out.copyPages(
-      src,
-      Array.from({ length: fim - i }, (_, k) => i + k),
-    );
-    for (const p of paginas) out.addPage(p);
-    blocos.push({ inicio: i + 1, fim, bytes: await out.save() });
-  }
-  return { total, blocos };
-}
 
 /**
  * Lê e interpreta documentos escaneados ou imagens via Lovable AI Gateway
