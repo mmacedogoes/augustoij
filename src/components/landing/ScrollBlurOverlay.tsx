@@ -89,7 +89,7 @@ export function ScrollBlurOverlay() {
             "linear-gradient(to top, color-mix(in oklab, var(--augusto-cream) 55%, transparent) 0%, transparent 80%)",
         }}
       />
-    </motion.div>
+    </div>
   );
 }
 
