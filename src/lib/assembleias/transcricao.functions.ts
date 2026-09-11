@@ -9,6 +9,9 @@ import { BUCKET_GRAVACOES } from "./gravacao.functions";
 
 const MODELO_TRANSCRICAO = "google/gemini-2.5-flash";
 
+/** Teto de áudio por bloco: acima disso o servidor fica sem memória. */
+const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
+
 const SYSTEM_TRANSCRICAO = `Você transcreve o áudio de uma assembleia de condomínio em português do Brasil.
 Devolva segmentos com início e fim em segundos relativos ao começo do áudio enviado, o rótulo do falante no
 formato "Falante 1", "Falante 2" e assim por diante, mantendo o mesmo rótulo para a mesma voz ao longo de todo
