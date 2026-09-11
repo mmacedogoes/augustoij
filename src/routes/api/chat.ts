@@ -898,11 +898,19 @@ PERGUNTAS ESTRUTURADAS (opcional):
                 await liberarTrava();
               }
             },
+            onError: async (err) => {
+              console.error("Chat stream error:", err);
+              await liberarTrava();
+            },
+            onAbort: async () => {
+              await liberarTrava();
+            },
           });
 
           return result.toUIMessageStreamResponse({ originalMessages: messages });
         } catch (e) {
           console.error("Chat handler error:", e);
+          await liberarTrava();
           const msg = e instanceof Error ? e.message : "Erro interno";
           return new Response(msg, { status: 500 });
         }
