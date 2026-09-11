@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/public/hooks/documentos-retomar")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        if (!autorizado(request)) {
+        if (!(await autorizado(request))) {
           return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
         }
         const apiKey = process.env.LOVABLE_API_KEY;
