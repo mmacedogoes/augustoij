@@ -272,16 +272,22 @@ export function DocumentosPanel({
               concluido?: boolean;
               blocosProntos?: number;
             };
-            let anterior = -1;
+            let anterior = r?.blocosProntos ?? 0;
             let rodadas = 1;
+            let semAvanco = 0;
             while (
               r?.concluido === false &&
-              rodadas < 25 &&
-              (r.blocosProntos ?? 0) > anterior
+              rodadas < 50 &&
+              semAvanco < 3
             ) {
-              anterior = r.blocosProntos ?? 0;
               r = (await processDoc({ data: { id: created.id } })) as typeof r;
               rodadas += 1;
+              if ((r?.blocosProntos ?? 0) > anterior) {
+                anterior = r?.blocosProntos ?? 0;
+                semAvanco = 0;
+              } else {
+                semAvanco += 1;
+              }
             }
           } catch {
             /* status fica registrado no documento */
@@ -326,6 +332,7 @@ export function DocumentosPanel({
   const reprocessar = useServerFn(reprocessarDocumento);
 
   type Rodada = {
+    ok: true;
     concluido: boolean;
     chunks: number;
     totalPaginas: number;
@@ -347,15 +354,21 @@ export function DocumentosPanel({
       let r = (await reprocessar({ data: { id, reiniciar: true } })) as Rodada;
       let totalChunks = r.chunks;
       let rodadas = 1;
-      let anterior = -1;
-      while (!r.concluido && rodadas < 25 && r.blocosProntos > anterior) {
-        anterior = r.blocosProntos;
+      let semAvanco = 0;
+      let anterior = r.blocosProntos;
+      while (!r.concluido && rodadas < 50 && semAvanco < 3) {
         setProgresso(
-          `Lendo ${r.blocosProntos}/${r.totalBlocos} bloco(s)${r.totalPaginas ? ` · ${r.paginasLidas} de ${r.totalPaginas} páginas` : ""}…`,
+          `Lendo ${r.blocosProntos}/${r.totalBlocos || "?"} bloco(s)${r.totalPaginas ? ` · ${r.paginasLidas} de ${r.totalPaginas} páginas` : ""}…`,
         );
         r = (await reprocessar({ data: { id } })) as Rodada;
         totalChunks += r.chunks;
         rodadas += 1;
+        if (r.blocosProntos > anterior) {
+          anterior = r.blocosProntos;
+          semAvanco = 0;
+        } else {
+          semAvanco += 1;
+        }
       }
       if (r.concluido && r.paginasFalhas.length === 0) {
         toast.success("Documento relido com sucesso", {

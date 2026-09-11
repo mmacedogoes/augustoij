@@ -2,8 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const BUCKET = "documentos";
 
-/** Orçamento de tempo de uma rodada (o restante fica para a próxima chamada). */
-const ORCAMENTO_MS = 45_000;
+/** Orçamento de tempo de uma rodada (1 bloco por rodada para evitar timeout do Cloudflare/Edge). */
+const ORCAMENTO_MS = 10_000;
 
 export type ResultadoProcessamento = {
   ok: true;
@@ -330,6 +330,13 @@ export async function processarDocumentoCore(
           console.warn(`[ocr] bloco ${bloco.inicio}-${bloco.fim} falhou:`, ultimoErroOcr);
           for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
         }
+
+        // Retorna imediatamente após cada bloco processado para que o navegador
+        // receba a resposta HTTP em menos de 8s e exiba a barra de progresso em tempo real
+        if (cursor < pendentes.length) {
+          semTempo = true;
+          return;
+        }
       }
     };
 
@@ -360,7 +367,7 @@ export async function processarDocumentoCore(
       console.error("[uso-ia] ocr:", err);
     }
 
-    if (blocosProntos === 0) {
+    if (blocosProntos === 0 && !semTempo && pendentes.length > 0 && falhas.length >= pendentes.length) {
       throw new IngestError(
         "ocr",
         "Não foi possível ler o conteúdo visual do documento",
