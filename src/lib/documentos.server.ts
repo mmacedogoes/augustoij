@@ -51,9 +51,10 @@ const PROMPT_OCR =
   "7. Onde um caractere estiver ilegível, escreva [ilegível] no lugar — nunca adivinhe números.\n" +
   "8. NÃO resuma, NÃO interprete, NÃO adicione comentários — devolva APENAS o texto extraído.";
 
-const OCR_MODEL = "google/gemini-3.7-flash";
+const OCR_MODEL = "google/gemini-2.5-flash";
+const OCR_FALLBACK_MODEL = "google/gemini-3-flash-preview";
 /** Páginas por bloco de OCR (documentos longos são lidos em partes). */
-const PAGINAS_POR_BLOCO = 6;
+const PAGINAS_POR_BLOCO = 4;
 /** Chamadas simultâneas ao gateway. */
 const CONCORRENCIA_OCR = 1;
 
@@ -73,22 +74,31 @@ async function ocrGateway(
     userContent.push({ type: "image_url", image_url: { url: dataUrl } });
   }
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Lovable-API-Key": apiKey,
-      "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-    },
-    body: JSON.stringify({
-      model: OCR_MODEL,
-      messages: [{ role: "user", content: userContent }],
-    }),
-  });
+  const tentarModelo = async (modelo: string) => {
+    return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+      },
+      body: JSON.stringify({
+        model: modelo,
+        messages: [{ role: "user", content: userContent }],
+        temperature: 0.1,
+      }),
+    });
+  };
+
+  let res = await tentarModelo(OCR_MODEL);
+  if (!res.ok && res.status !== 429 && res.status !== 402) {
+    console.warn(`[ocrGateway] modelo ${OCR_MODEL} retornou ${res.status}, tentando fallback ${OCR_FALLBACK_MODEL}`);
+    res = await tentarModelo(OCR_FALLBACK_MODEL);
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    const err = new Error(`OCR falhou (gateway ${res.status}) ${body.slice(0, 200)}`);
+    const err = new Error(`OCR falhou (gateway ${res.status}): ${body.slice(0, 300)}`);
     // 429/5xx são transitórios — o chamador tenta de novo.
     (err as Error & { retryavel?: boolean }).retryavel = res.status === 429 || res.status >= 500;
     throw err;

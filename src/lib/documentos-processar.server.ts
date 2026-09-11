@@ -294,6 +294,7 @@ export async function processarDocumentoCore(
     let novosChunks = 0;
     let cursor = 0;
     let semTempo = false;
+    let ultimoErroOcr: string | null = null;
 
     const worker = async () => {
       for (;;) {
@@ -325,7 +326,8 @@ export async function processarDocumentoCore(
           });
           prontos.add(bloco.indice);
         } catch (err) {
-          console.warn(`[ocr] bloco ${bloco.inicio}-${bloco.fim} falhou`, err);
+          ultimoErroOcr = err instanceof Error ? err.message : String(err);
+          console.warn(`[ocr] bloco ${bloco.inicio}-${bloco.fim} falhou:`, ultimoErroOcr);
           for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
         }
       }
@@ -362,7 +364,8 @@ export async function processarDocumentoCore(
       throw new IngestError(
         "ocr",
         "Não foi possível ler o conteúdo visual do documento",
-        "Verifique se a digitalização está legível e tente novamente.",
+        ultimoErroOcr ?? "Verifique se a digitalização está legível e tente novamente.",
+        ultimoErroOcr ?? "",
       );
     }
 
