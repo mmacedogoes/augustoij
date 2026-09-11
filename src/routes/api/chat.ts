@@ -273,6 +273,9 @@ export const Route = createFileRoute("/api/chat")({
             clientIp,
             bypass: cortesia,
           });
+          lockKeyAtivo = rateDecision.lockKey;
+
+
 
           if (!rateDecision.allowed) {
             return new Response(
