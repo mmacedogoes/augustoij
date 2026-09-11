@@ -75,8 +75,11 @@ export async function processarDocumentoCore(
     })
     .eq("id", documento.id);
   const { embedChunksParallel } = await import("./ai-gateway.server");
-  const { extractText, prepararBlocosOcr, ocrBloco, chunkText, OCR_CONCORRENCIA } =
+  const { extractText, prepararPlanoOcr, ocrBloco, chunkText } =
     await import("./documentos.server");
+  // Um bloco por vez: sub-PDF + base64 simultâneos estouravam a memória do runtime.
+  const OCR_CONCORRENCIA = 1;
+
   const { humanizeIngestError, IngestError } = await import("./ingest-errors");
 
   const indexar = async (
@@ -262,7 +265,12 @@ export async function processarDocumentoCore(
     }
 
     // 2) OCR por blocos, retomável.
-    const { mime, totalPaginas, blocos } = await prepararBlocosOcr(buffer, documento.nome_arquivo);
+    const {
+      mime,
+      totalPaginas,
+      blocos,
+      gerarBloco,
+    } = await prepararPlanoOcr(buffer, documento.nome_arquivo);
     const { data: existentes } = await supabaseAdmin
       .from("document_chunks")
       .select("metadata")
@@ -289,12 +297,14 @@ export async function processarDocumentoCore(
         if (idx >= pendentes.length) return;
         const bloco = pendentes[idx];
         try {
+          const bytes = await gerarBloco(bloco.indice);
           const txt = await ocrBloco(
             apiKey,
             `${documento.nome_arquivo} (p. ${bloco.inicio}-${bloco.fim})`,
             mime,
-            bloco.bytes,
+            bytes,
           );
+
           if (!txt.trim()) {
             for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
             continue;
