@@ -13,9 +13,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
-import { math } from "@streamdown/math";
-import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
@@ -321,19 +318,73 @@ export const MessageBranchPage = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
-const streamdownPlugins = { cjk, code, math, mermaid };
+// Realce de código, fórmulas e diagramas são pesados (vários MB). Carrega
+// cada um sob demanda, no navegador, só quando a mensagem realmente usa.
+type PluginsStreamdown = ComponentProps<typeof Streamdown>["plugins"];
+const pluginsBase = { cjk } as PluginsStreamdown;
+const cachePlugins = new Map<string, unknown>();
+
+async function carregarPlugin(nome: "code" | "math" | "mermaid") {
+  if (cachePlugins.has(nome)) return cachePlugins.get(nome);
+  const mod =
+    nome === "code"
+      ? (await import("@streamdown/code")).code
+      : nome === "math"
+        ? (await import("@streamdown/math")).math
+        : (await import("@streamdown/mermaid")).mermaid;
+  cachePlugins.set(nome, mod);
+  return mod;
+}
+
+function usePluginsStreamdown(children: unknown): PluginsStreamdown {
+  const texto = typeof children === "string" ? children : "";
+  const precisa = useMemo(() => {
+    const lista: Array<"code" | "math" | "mermaid"> = [];
+    if (/```/.test(texto)) lista.push("code");
+    if (/\$\$?[^$]/.test(texto)) lista.push("math");
+    if (/```mermaid/.test(texto)) lista.push("mermaid");
+    return lista;
+  }, [texto]);
+  const chave = precisa.join(",");
+  const [plugins, setPlugins] = useState<PluginsStreamdown>(pluginsBase);
+
+  useEffect(() => {
+    if (!chave) {
+      setPlugins(pluginsBase);
+      return;
+    }
+    let vivo = true;
+    void Promise.all(precisa.map(carregarPlugin)).then((mods) => {
+      if (!vivo) return;
+      const extras: Record<string, unknown> = {};
+      precisa.forEach((nome, i) => {
+        extras[nome] = mods[i];
+      });
+      setPlugins({ ...(pluginsBase as object), ...extras } as PluginsStreamdown);
+    });
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave]);
+
+  return plugins;
+}
 
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
-    <Streamdown
-      className={cn(
-        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        className
-      )}
-      plugins={streamdownPlugins}
-      {...props}
-    />
-  ),
+  ({ className, ...props }: MessageResponseProps) => {
+    const plugins = usePluginsStreamdown(props.children);
+    return (
+      <Streamdown
+        className={cn(
+          "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+          className
+        )}
+        plugins={plugins}
+        {...props}
+      />
+    );
+  },
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children &&
     nextProps.isAnimating === prevProps.isAnimating
