@@ -46,14 +46,34 @@ export async function processarDocumentoCore(
   const inicio = Date.now();
   const { data: doc, error: errGet } = await supabase
     .from("documentos")
-    .select("id, condominio_id, storage_path, nome_arquivo, tipo")
+    .select("id, condominio_id, storage_path, nome_arquivo, tipo, processamento_meta")
     .eq("id", documentoId)
     .maybeSingle();
   if (errGet) throw new Error(errGet.message);
   if (!doc) throw new Error("Documento não encontrado");
   const documento = doc as DocRow;
+  const metaAnterior = ((doc as { processamento_meta?: Record<string, unknown> | null })
+    .processamento_meta ?? {}) as Record<string, unknown>;
+  const tentativas = (typeof metaAnterior.tentativas === "number" ? metaAnterior.tentativas : 0) + 1;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Marca o início da rodada ANTES de qualquer trabalho pesado: se a chamada
+  // morrer no meio (aba fechada, timeout do edge), o documento não fica sem
+  // rastro e a retomada automática sabe que já houve tentativa.
+  await supabaseAdmin
+    .from("documentos")
+    .update({
+      status_processamento: "processando",
+      processamento_meta: {
+        ...metaAnterior,
+        etapa: "lendo",
+        tentativas,
+        travado_ate: new Date(Date.now() + 3 * 60_000).toISOString(),
+        atualizado_em: new Date().toISOString(),
+      },
+    })
+    .eq("id", documento.id);
   const { embedChunksParallel } = await import("./ai-gateway.server");
   const { extractText, prepararBlocosOcr, ocrBloco, chunkText, OCR_CONCORRENCIA } =
     await import("./documentos.server");
@@ -156,6 +176,8 @@ export async function processarDocumentoCore(
         processamento_meta: {
           ...meta,
           etapa: concluido ? "interpretacao_unidades" : "ocr",
+          tentativas,
+          travado_ate: null,
           indexado_em: concluido ? new Date().toISOString() : null,
           atualizado_em: new Date().toISOString(),
         },
@@ -370,6 +392,8 @@ export async function processarDocumentoCore(
         status_processamento: ing.toStatus(),
         processamento_meta: {
           etapa: ing.stage,
+          tentativas,
+          travado_ate: null,
           mensagem: ing.toHuman(),
           detalhe_tecnico: ing.technical,
           atualizado_em: new Date().toISOString(),
@@ -391,8 +415,127 @@ export async function limparChunks(documentoId: string) {
       processamento_meta: {
         etapa: "reiniciando",
         mensagem: null,
+        tentativas: 0,
+        travado_ate: null,
         atualizado_em: new Date().toISOString(),
       },
     })
     .eq("id", documentoId);
+}
+
+/** Limite de tentativas sem qualquer avanço antes de declarar erro. */
+const MAX_TENTATIVAS = 12;
+
+type RetomadaItem = {
+  id: string;
+  nome: string;
+  resultado: "concluido" | "avancou" | "erro" | "ignorado";
+  detalhe?: string;
+};
+
+/**
+ * Retoma, no servidor, documentos que ficaram presos em "processando".
+ *
+ * A leitura por blocos era conduzida apenas pela aba do navegador: se o
+ * usuário saísse da página o documento ficava eternamente "processando".
+ * Esta rotina roda por cron e continua de onde parou.
+ */
+export async function retomarDocumentosParados(
+  apiKey: string,
+  opts?: { limite?: number; minutosParado?: number; orcamentoMs?: number; documentoId?: string },
+): Promise<{ verificados: number; itens: RetomadaItem[] }> {
+  const limite = opts?.limite ?? 5;
+  const minutos = opts?.minutosParado ?? 3;
+  const orcamento = opts?.orcamentoMs ?? 240_000;
+  const inicioGeral = Date.now();
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  let q = supabaseAdmin
+    .from("documentos")
+    .select("id, nome_arquivo, condominio_id, created_at, processamento_meta")
+    .eq("status_processamento", "processando")
+    .order("created_at", { ascending: true })
+    .limit(limite * 4);
+  if (opts?.documentoId) q = q.eq("id", opts.documentoId);
+
+  const { data: candidatos, error } = await q;
+  if (error) throw new Error(error.message);
+
+  const corte = Date.now() - minutos * 60_000;
+  const parados = (candidatos ?? [])
+    .filter((d) => {
+      const meta = (d.processamento_meta ?? {}) as Record<string, unknown>;
+      if (opts?.documentoId) return true;
+      const travado = typeof meta.travado_ate === "string" ? Date.parse(meta.travado_ate) : 0;
+      if (travado && travado > Date.now()) return false; // outra execução está cuidando
+      const ref =
+        typeof meta.atualizado_em === "string"
+          ? Date.parse(meta.atualizado_em)
+          : Date.parse(d.created_at as string);
+      return !ref || ref < corte;
+    })
+    .slice(0, limite);
+
+  const itens: RetomadaItem[] = [];
+
+  for (const doc of parados) {
+    if (Date.now() - inicioGeral > orcamento) break;
+    const meta = (doc.processamento_meta ?? {}) as Record<string, unknown>;
+    const tentativas = typeof meta.tentativas === "number" ? meta.tentativas : 0;
+    if (tentativas >= MAX_TENTATIVAS) {
+      await supabaseAdmin
+        .from("documentos")
+        .update({
+          status_processamento: "erro",
+          processamento_meta: {
+            ...meta,
+            etapa: "leitura",
+            travado_ate: null,
+            mensagem:
+              "A leitura foi tentada várias vezes sem avançar. Verifique a qualidade do arquivo e envie novamente.",
+            atualizado_em: new Date().toISOString(),
+          },
+        })
+        .eq("id", doc.id);
+      itens.push({ id: doc.id, nome: doc.nome_arquivo, resultado: "erro", detalhe: "sem avanço" });
+      continue;
+    }
+
+    // Usa o dono do condomínio apenas para atribuir o consumo de IA.
+    const { data: cond } = await supabaseAdmin
+      .from("condominios")
+      .select("owner_id")
+      .eq("id", doc.condominio_id)
+      .maybeSingle();
+    const userId = (cond?.owner_id as string | undefined) ?? "";
+
+    try {
+      let r = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey);
+      let anterior = -1;
+      while (
+        !r.concluido &&
+        r.blocosProntos > anterior &&
+        Date.now() - inicioGeral < orcamento
+      ) {
+        anterior = r.blocosProntos;
+        r = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey);
+      }
+      itens.push({
+        id: doc.id,
+        nome: doc.nome_arquivo,
+        resultado: r.concluido ? "concluido" : "avancou",
+        detalhe: `${r.blocosProntos}/${r.totalBlocos} bloco(s)`,
+      });
+    } catch (e) {
+      itens.push({
+        id: doc.id,
+        nome: doc.nome_arquivo,
+        resultado: "erro",
+        detalhe: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  return { verificados: parados.length, itens };
 }

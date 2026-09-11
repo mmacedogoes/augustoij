@@ -3150,6 +3150,24 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_tokens: {
+        Row: {
+          created_at: string
+          nome: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          nome: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          nome?: string
+          token?: string
+        }
+        Relationships: []
+      }
       custos_cliente_mensal: {
         Row: {
           created_at: string
