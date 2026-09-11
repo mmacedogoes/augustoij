@@ -15,5 +15,9 @@ export default defineConfig({
   },
   vite: {
     plugins: [mcpPlugin()],
+    define: {
+      // Marcador de versão: permite conferir no site qual build está publicada.
+      __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    },
   },
 });

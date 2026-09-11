@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
+import { versaoCurta } from "@/lib/versao";
 
 function InstagramGlyph({ className }: { className?: string }) {
   // Minimalist Instagram silhouette (inline SVG, currentColor)
@@ -109,7 +110,10 @@ export function ManifestoFooter({ showManifesto = true }: { showManifesto?: bool
         <div className="mx-auto max-w-6xl mt-12">
           <div className="h-px bg-augusto-gold/30" />
           <div className="mt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-[13px] text-augusto-slate">
-            <div>© {new Date().getFullYear()} Augusto.IJ, Todos os direitos reservados.</div>
+            <div>
+              © {new Date().getFullYear()} Augusto.IJ, Todos os direitos reservados.{" "}
+              <span className="text-augusto-slate/50">v{versaoCurta()}</span>
+            </div>
             <div className="flex flex-wrap items-center gap-4">
               <Link to="/privacidade" className="rounded-sm text-augusto-slate transition-colors duration-200 hover:text-augusto-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-augusto-gold">
                 Política de Privacidade
