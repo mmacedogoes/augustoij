@@ -379,7 +379,7 @@ export const Route = createFileRoute("/api/chat")({
                 } catch (err) {
                   console.error("Cache hit persist failed:", err);
                 } finally {
-                  if (rateDecision.lockKey) releaseConcurrencyLock(rateDecision.lockKey);
+                  await liberarTrava();
                 }
               });
             }
@@ -497,7 +497,7 @@ export const Route = createFileRoute("/api/chat")({
               } catch (err) {
                 console.error("Short-circuit persist failed:", err);
               } finally {
-                if (rateDecision.lockKey) releaseConcurrencyLock(rateDecision.lockKey);
+                await liberarTrava();
               }
             });
           }
@@ -895,7 +895,7 @@ PERGUNTAS ESTRUTURADAS (opcional):
               } catch (e) {
                 console.error("Persist message failed:", e);
               } finally {
-                if (rateDecision.lockKey) releaseConcurrencyLock(rateDecision.lockKey);
+                await liberarTrava();
               }
             },
           });
