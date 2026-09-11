@@ -435,12 +435,22 @@ export function DocumentosPanel({
     try {
       let r = (await reprocessar({ data: { id } })) as Rodada;
       let rodadas = 1;
-      let anterior = -1;
-      while (!r.concluido && rodadas < 25 && r.blocosProntos > anterior) {
-        anterior = r.blocosProntos;
-        setProgresso(`Lendo ${r.blocosProntos}/${r.totalBlocos} bloco(s)…`);
+      let anterior = r.blocosProntos;
+      let semAvanco = 0;
+      while (!r.concluido && rodadas < 60 && semAvanco < 4) {
+        setProgresso(
+          `Lendo ${r.blocosProntos}/${r.totalBlocos || "?"} bloco(s)${
+            r.totalPaginas ? ` · ${r.paginasLidas} de ${r.totalPaginas} páginas` : ""
+          }…`,
+        );
         r = (await reprocessar({ data: { id } })) as Rodada;
         rodadas += 1;
+        if (r.blocosProntos > anterior) {
+          anterior = r.blocosProntos;
+          semAvanco = 0;
+        } else {
+          semAvanco += 1;
+        }
       }
       if (r.concluido) toast.success("Leitura concluída");
       else toast.warning("Leitura ainda em andamento", { description: r.aviso ?? undefined });
@@ -452,6 +462,46 @@ export function DocumentosPanel({
       setProgresso(null);
     }
   };
+
+  /**
+   * Motor ativo: qualquer documento em "processando" volta a avançar sozinho
+   * assim que o painel é aberto, sem depender de clique do usuário.
+   */
+  const motorRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const pendente = docs.find(
+      (d) => d.status_processamento === "processando" && !motorRef.current.has(d.id),
+    );
+    if (!pendente) return;
+    motorRef.current.add(pendente.id);
+    let cancelado = false;
+    (async () => {
+      try {
+        let r = (await reprocessar({ data: { id: pendente.id } })) as Rodada;
+        let rodadas = 1;
+        let anterior = r.blocosProntos;
+        let semAvanco = 0;
+        while (!cancelado && !r.concluido && rodadas < 60 && semAvanco < 4) {
+          r = (await reprocessar({ data: { id: pendente.id } })) as Rodada;
+          rodadas += 1;
+          if (r.blocosProntos > anterior) {
+            anterior = r.blocosProntos;
+            semAvanco = 0;
+          } else {
+            semAvanco += 1;
+          }
+        }
+      } catch {
+        // silencioso: a leitura manual e o cron continuam disponíveis
+      } finally {
+        motorRef.current.delete(pendente.id);
+        if (!cancelado) refresh();
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [docs, reprocessar, refresh]);
 
   const statusBadge = (d: Doc) => {
     const s = d.status_processamento;
