@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
 
 /**
  * Fixed frosted band at the bottom of the viewport. Reveals as the user
@@ -7,11 +6,9 @@ import { motion, useReducedMotion } from "motion/react";
  * so it never covers the manifesto/CTA.
  */
 export function ScrollBlurOverlay() {
-  const reduce = useReducedMotion();
   const [opacity, setOpacity] = useState(0);
 
   useEffect(() => {
-    if (reduce) return;
     let raf = 0;
 
     const compute = () => {
@@ -46,14 +43,13 @@ export function ScrollBlurOverlay() {
       window.removeEventListener("resize", compute);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [reduce]);
+  }, []);
 
   return (
-    <motion.div
+    <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-40 md:h-52"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-40 md:h-52 transition-opacity duration-200"
       style={{ opacity }}
-      transition={{ duration: 0.2, ease: "linear" }}
     >
       {/* Progressive blur: stacked bands with increasing blur toward the bottom.
           Each band is masked so the transition between them is a soft gradient
