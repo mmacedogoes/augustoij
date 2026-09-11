@@ -143,6 +143,20 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Guarda a trava de concorrência fora do try para poder liberá-la
+        // mesmo quando a geração falha antes/durante o streaming.
+        let lockKeyAtivo: string | undefined;
+        const liberarTrava = async () => {
+          if (!lockKeyAtivo) return;
+          const chave = lockKeyAtivo;
+          lockKeyAtivo = undefined;
+          try {
+            const { releaseConcurrencyLock } = await import("@/lib/rate-limit.server");
+            releaseConcurrencyLock(chave);
+          } catch {
+            /* ignora */
+          }
+        };
         try {
           const apiKey = process.env.LOVABLE_API_KEY;
           const supaUrl = process.env.SUPABASE_URL;
