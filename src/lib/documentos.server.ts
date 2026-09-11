@@ -256,14 +256,11 @@ export async function extractTextWithVisionDetalhado(
     return { texto, totalPaginas: 1, paginasLidas: 1, paginasFalhas: [] };
   }
 
-  let total = 0;
-  let blocos: { inicio: number; fim: number; bytes: Uint8Array }[] = [];
+  let plano: PlanoOcr;
   try {
-    const r = await fatiarPdf(buffer, PAGINAS_POR_BLOCO);
-    total = r.total;
-    blocos = r.blocos;
-  } catch (e) {
-    // Não conseguiu fatiar (PDF atípico): tenta o arquivo inteiro de uma vez.
+    plano = await prepararPlanoOcr(buffer, fileName);
+  } catch {
+    // Não conseguiu abrir (PDF atípico): tenta o arquivo inteiro de uma vez.
     const texto = await ocrComRetry(apiKey, fileName, mime, buffer);
     if (!texto) {
       throw new Error(
@@ -273,6 +270,8 @@ export async function extractTextWithVisionDetalhado(
     return { texto, totalPaginas: 0, paginasLidas: 0, paginasFalhas: [] };
   }
 
+  const total = plano.totalPaginas;
+  const blocos = plano.blocos;
   const partes: string[] = new Array(blocos.length).fill("");
   const falhas: number[] = [];
   let cursor = 0;
@@ -283,11 +282,13 @@ export async function extractTextWithVisionDetalhado(
       if (idx >= blocos.length) return;
       const bloco = blocos[idx];
       try {
+        // Gera o sub-PDF só na hora do envio, para não guardar todos na memória.
+        const bytes = await plano.gerarBloco(bloco.indice);
         const txt = await ocrComRetry(
           apiKey,
           `${fileName} (p. ${bloco.inicio}-${bloco.fim})`,
           mime,
-          bloco.bytes,
+          bytes,
         );
         if (txt.trim()) partes[idx] = txt.trim();
         else for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
@@ -297,6 +298,8 @@ export async function extractTextWithVisionDetalhado(
       }
     }
   };
+
+
 
   await Promise.all(
     Array.from({ length: Math.min(CONCORRENCIA_OCR, blocos.length) }, () => worker()),
