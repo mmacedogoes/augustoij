@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/app/contratos/novo")({
   component: Page,
 });
 
-const MAX_MB = 10;
+const MAX_MB = 50;
 type Modo = "escolher" | "ia_upload" | "ia_processando" | "ia_revisao" | "manual";
 type Obr = ObrigacaoExtraida & { origem: "ia" | "manual" };
 type Extracao = {

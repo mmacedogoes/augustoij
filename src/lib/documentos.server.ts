@@ -54,7 +54,7 @@ const PROMPT_OCR =
 const OCR_MODEL = "google/gemini-2.5-flash";
 const OCR_FALLBACK_MODEL = "google/gemini-3-flash-preview";
 /** Páginas por bloco de OCR (documentos longos são lidos em partes). */
-const PAGINAS_POR_BLOCO = 4;
+const PAGINAS_POR_BLOCO = 2;
 /** Chamadas simultâneas ao gateway. */
 const CONCORRENCIA_OCR = 1;
 
@@ -385,11 +385,14 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
         const limpo = out.trim();
         const paginas = Math.max(1, totalPages ?? paginasTexto.length ?? 1);
         const palavras = (p: string) => (p.match(/\p{L}[\p{L}\p{M}'-]*/gu) ?? []).length;
-        const paginasComTexto = paginasTexto.filter((p) => palavras(p) >= 40).length;
-        const vocabulario = /condom[ií]nio|artigo|fra[cç][aã]o|unidade/i.test(limpo);
-        const suficiente =
-          limpo.length > 0 && vocabulario && paginasComTexto >= Math.ceil(paginas * 0.6);
-        if (!suficiente) {
+        const totalPalavras = paginasTexto.reduce((acc, p) => acc + palavras(p), 0);
+        const paginasComTexto = paginasTexto.filter((p) => palavras(p) >= 20).length;
+        // PDF digital: há camada de texto real e legível em boa parte das páginas.
+        // Visão/OCR fica reservado a scans e imagens puras (sem texto extraível).
+        const camadaDeTextoReal =
+          totalPalavras >= 80 &&
+          (paginasComTexto >= Math.ceil(paginas * 0.3) || totalPalavras / paginas >= 60);
+        if (!camadaDeTextoReal) {
           throw new Error("__NEEDS_VISION__");
         }
         return out;
