@@ -1,16 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-/** Autoriza apenas chamadas com o token de cron configurado nos secrets. */
-function autorizado(request: Request): boolean {
+function tokenDaRequisicao(request: Request): string {
+  const auth = request.headers.get("authorization") ?? "";
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  return request.headers.get("x-cron-token") ?? request.headers.get("x-cron-secret") ?? bearer;
+}
+
+/**
+ * Autoriza chamadas com o token de cron dos secrets OU com a chave interna
+ * guardada em `cron_tokens` (só o servidor lê essa tabela).
+ */
+async function autorizado(request: Request): Promise<boolean> {
+  const provided = tokenDaRequisicao(request);
+  if (!provided) return false;
   const esperados = [process.env.CRON_SECRET, process.env.CRON_LEMBRETES_TOKEN].filter(
     (v): v is string => !!v,
   );
-  if (esperados.length === 0) return false;
-  const auth = request.headers.get("authorization") ?? "";
-  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-  const provided =
-    request.headers.get("x-cron-token") ?? request.headers.get("x-cron-secret") ?? bearer ?? "";
-  return !!provided && esperados.includes(provided);
+  if (esperados.includes(provided)) return true;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("cron_tokens")
+      .select("token")
+      .eq("nome", "documentos-retomar")
+      .maybeSingle();
+    return !!data?.token && data.token === provided;
+  } catch {
+    return false;
+  }
 }
 
 // Cron: retoma documentos presos em "processando" (leitura interrompida).
