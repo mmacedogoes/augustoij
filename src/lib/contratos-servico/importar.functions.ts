@@ -103,10 +103,15 @@ async function extrairTextoDoDocx(bytes: Uint8Array): Promise<string> {
   }
 }
 async function extrairTextoDoPdf(bytes: Uint8Array): Promise<string> {
-  const { extractText, getDocumentProxy } = await import("unpdf");
-  const pdf = await getDocumentProxy(bytes);
-  const { text } = await extractText(pdf, { mergePages: true });
-  return (Array.isArray(text) ? text.join("\n") : (text ?? "")).trim();
+  try {
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(bytes);
+    const { text } = await extractText(pdf, { mergePages: true });
+    return (Array.isArray(text) ? text.join("\n") : (text ?? "")).trim();
+  } catch (e) {
+    console.warn("[contratos-servico-importar] unpdf falhou, acionando OCR visão:", e);
+    return "";
+  }
 }
 function parseJsonLoose(raw: string): unknown {
   const s = raw.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();

@@ -31,10 +31,15 @@ function base64ToBytes(b64: string): Uint8Array {
 }
 
 async function extrairTextoDoPdf(bytes: Uint8Array): Promise<string> {
-  const { extractText, getDocumentProxy } = await import("unpdf");
-  const pdf = await getDocumentProxy(bytes);
-  const { text } = await extractText(pdf, { mergePages: true });
-  return (Array.isArray(text) ? text.join("\n") : (text ?? "")).trim();
+  try {
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(bytes);
+    const { text } = await extractText(pdf, { mergePages: true });
+    return (Array.isArray(text) ? text.join("\n") : (text ?? "")).trim();
+  } catch (e) {
+    console.warn("[pauta-import] unpdf falhou, acionando OCR visão:", e);
+    return "";
+  }
 }
 
 async function extrairTextoDoDocx(bytes: Uint8Array): Promise<string> {

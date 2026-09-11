@@ -155,46 +155,64 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
     };
   }
 
-  const { PDFDocument } = await import("pdf-lib");
-  let src: import("pdf-lib").PDFDocument;
-  let total = 0;
   try {
+    const pdfLib = await import("pdf-lib");
+    const PDFDocument = pdfLib.PDFDocument ?? (pdfLib as Record<string, unknown>).default;
+    if (!PDFDocument || typeof (PDFDocument as { load?: unknown }).load !== "function") {
+      throw new Error("PDFDocument não disponível neste ambiente");
+    }
     const copia = new Uint8Array(buffer.byteLength);
     copia.set(buffer);
-    src = await PDFDocument.load(copia, { ignoreEncryption: true });
-    total = src.getPageCount();
-  } catch {
-    // PDF atípico que não pode ser aberto: um único bloco com o arquivo inteiro.
+    const src = await (PDFDocument as typeof import("pdf-lib").PDFDocument).load(copia, {
+      ignoreEncryption: true,
+    });
+    const total = src.getPageCount();
+
+    const blocos: Array<{ indice: number; inicio: number; fim: number }> = [];
+    for (let i = 0; i < total; i += PAGINAS_POR_BLOCO) {
+      const fim = Math.min(i + PAGINAS_POR_BLOCO, total);
+      blocos.push({ indice: blocos.length, inicio: i + 1, fim });
+    }
+
     return {
       mime,
-      totalPaginas: 0,
-      blocos: [{ indice: 0, inicio: 1, fim: 0 }],
+      totalPaginas: total,
+      blocos,
+      gerarBloco: async (indice: number) => {
+        const b = blocos[indice];
+        if (!b) throw new Error("Bloco inexistente.");
+        const out = await (PDFDocument as typeof import("pdf-lib").PDFDocument).create();
+        const paginas = await out.copyPages(
+          src,
+          Array.from({ length: b.fim - b.inicio + 1 }, (_, k) => b.inicio - 1 + k),
+        );
+        for (const p of paginas) out.addPage(p);
+        return await out.save();
+      },
+    };
+  } catch (err) {
+    console.warn(
+      "[documentos.server] Falha ao manipular páginas do PDF com pdf-lib (processando arquivo completo via IA):",
+      err instanceof Error ? err.message : String(err),
+    );
+    let estimatedPages = 1;
+    try {
+      const binaryString = new TextDecoder("latin1").decode(
+        buffer.subarray(0, Math.min(buffer.length, 1024 * 512)),
+      );
+      const matches = binaryString.match(/\/Type\s*\/Page\b/g);
+      if (matches && matches.length > 0) estimatedPages = matches.length;
+    } catch {
+      /* noop */
+    }
+
+    return {
+      mime,
+      totalPaginas: estimatedPages,
+      blocos: [{ indice: 0, inicio: 1, fim: estimatedPages }],
       gerarBloco: async () => buffer,
     };
   }
-
-  const blocos: Array<{ indice: number; inicio: number; fim: number }> = [];
-  for (let i = 0; i < total; i += PAGINAS_POR_BLOCO) {
-    const fim = Math.min(i + PAGINAS_POR_BLOCO, total);
-    blocos.push({ indice: blocos.length, inicio: i + 1, fim });
-  }
-
-  return {
-    mime,
-    totalPaginas: total,
-    blocos,
-    gerarBloco: async (indice: number) => {
-      const b = blocos[indice];
-      if (!b) throw new Error("Bloco inexistente.");
-      const out = await PDFDocument.create();
-      const paginas = await out.copyPages(
-        src,
-        Array.from({ length: b.fim - b.inicio + 1 }, (_, k) => b.inicio - 1 + k),
-      );
-      for (const p of paginas) out.addPage(p);
-      return await out.save();
-    },
-  };
 }
 
 
