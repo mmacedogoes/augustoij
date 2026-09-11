@@ -171,6 +171,9 @@ export async function processarDocumentoCore(
   const finalizar = async (
     concluido: boolean,
     meta: Record<string, string | number | boolean | number[] | null>,
+    // Quando a rodada avançou (leu blocos novos), o contador de tentativas
+    // volta a zero: só rodadas sem avanço algum podem levar ao erro definitivo.
+    avancou = false,
   ) => {
     await supabaseAdmin
       .from("documentos")
@@ -179,7 +182,7 @@ export async function processarDocumentoCore(
         processamento_meta: {
           ...meta,
           etapa: concluido ? "interpretacao_unidades" : "ocr",
-          tentativas,
+          tentativas: avancou ? 0 : tentativas,
           travado_ate: null,
           indexado_em: concluido ? new Date().toISOString() : null,
           atualizado_em: new Date().toISOString(),
