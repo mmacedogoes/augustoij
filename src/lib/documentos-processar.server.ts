@@ -384,7 +384,7 @@ export async function processarDocumentoCore(
         : semTempo
           ? `Leitura em andamento: ${blocosProntos} de ${blocos.length} bloco(s) concluído(s).`
           : `${paginasPendentes} página(s) ainda não puderam ser lidas.`,
-    });
+    }, novosChunks > 0);
 
     return {
       ok: true,
