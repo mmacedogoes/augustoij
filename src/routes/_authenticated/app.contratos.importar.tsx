@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_authenticated/app/contratos/importar")({
   component: Page,
 });
 
-const MAX_MB = 10;
+const MAX_MB = 50;
 
 type Condo = { id: string; nome: string; cidade: string | null; uf: string | null };
 type Doc = { id: string; titulo: string | null; nome_arquivo: string | null; created_at: string };

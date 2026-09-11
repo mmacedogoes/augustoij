@@ -101,7 +101,7 @@ const TIPOS: { v: TipoDoc; l: string }[] = [
 ];
 
 const MAX_FILES = 10;
-const MAX_MB = 15;
+const MAX_MB = 50;
 const ACCEPT = ".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp,.csv,.xlsx";
 
 function sugerirTipo(nome: string): TipoDoc {
@@ -456,12 +456,19 @@ export function DocumentosPanel({
   const statusBadge = (d: Doc) => {
     const s = d.status_processamento;
     const meta = d.processamento_meta;
-    if (s === "pronto")
+    if (s === "pronto") {
+      const origem =
+        meta?.modo === "ocr"
+          ? " · OCR IA"
+          : meta?.modo === "texto"
+            ? " · Texto nativo"
+            : "";
       return (
         <span className="inline-flex items-center gap-1 text-xs text-accent">
-          <CheckCircle2 className="h-3 w-3" /> Pronto
+          <CheckCircle2 className="h-3 w-3" /> Pronto{origem}
         </span>
       );
+    }
     if (s === "processando") {
       const ref = meta?.atualizado_em ? Date.parse(meta.atualizado_em) : Date.parse(d.created_at);
       const paradoMin = Math.floor((Date.now() - ref) / 60_000);
@@ -510,8 +517,9 @@ export function DocumentosPanel({
             <p className="text-sm font-medium text-primary">Enviar documentos</p>
             <p className="text-xs text-muted-foreground">
               PDF, DOCX, TXT, planilhas (CSV/XLSX) ou imagens (JPG, PNG, WEBP). Até {MAX_FILES}{" "}
-              arquivos, máximo de {MAX_MB} MB por arquivo. PDFs escaneados e imagens são lidos
-              automaticamente pela IA.
+              arquivos, máximo de {MAX_MB} MB por arquivo — inclusive escaneamentos pesados de
+              cartório. Documentos com texto nativo são lidos na hora; escaneamentos e imagens
+              passam por OCR da IA, página a página.
             </p>
           </div>
           <div

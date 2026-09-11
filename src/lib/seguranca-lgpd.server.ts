@@ -39,7 +39,7 @@ export function sanitizarNomeArquivo(nomeOriginal: string): string {
 export function validarUploadSeguro(
   buffer: Uint8Array,
   nomeArquivo: string,
-  maxBytes: number = 50 * 1024 * 1024,
+  maxBytes: number = 100 * 1024 * 1024,
 ): ValidacaoUploadResult {
   const nomeSanitizado = sanitizarNomeArquivo(nomeArquivo);
   const ext = nomeSanitizado.toLowerCase().split(".").pop() ?? "";
