@@ -47,6 +47,7 @@ import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/a
 import { Route as ApiPublicAuthCheckRouteImport } from './routes/api/public/auth-check'
 import { Route as ApiPublicDemoChatRouteImport } from './routes/api/public/demo-chat'
 import { Route as ApiPublicResendWebhookRouteImport } from './routes/api/public/resend-webhook'
+import { Route as ApiPublicVersaoRouteImport } from './routes/api/public/versao'
 import { Route as ApiVozFalarRouteImport } from './routes/api/voz/falar'
 import { Route as ApiVozTranscreverRouteImport } from './routes/api/voz/transcrever'
 import { Route as AuthenticatedAppAdminIndexRouteImport } from './routes/_authenticated/app.admin.index'
@@ -301,6 +302,11 @@ const ApiPublicDemoChatRoute = ApiPublicDemoChatRouteImport.update({
 const ApiPublicResendWebhookRoute = ApiPublicResendWebhookRouteImport.update({
   id: '/api/public/resend-webhook',
   path: '/api/public/resend-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicVersaoRoute = ApiPublicVersaoRouteImport.update({
+  id: '/api/public/versao',
+  path: '/api/public/versao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiVozFalarRoute = ApiVozFalarRouteImport.update({
@@ -703,6 +709,7 @@ export interface FileRoutesByFullPath {
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/api/public/resend-webhook': typeof ApiPublicResendWebhookRoute
+  '/api/public/versao': typeof ApiPublicVersaoRoute
   '/api/voz/falar': typeof ApiVozFalarRoute
   '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/app/': typeof AuthenticatedAppIndexRoute
@@ -799,6 +806,7 @@ export interface FileRoutesByTo {
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/api/public/resend-webhook': typeof ApiPublicResendWebhookRoute
+  '/api/public/versao': typeof ApiPublicVersaoRoute
   '/api/voz/falar': typeof ApiVozFalarRoute
   '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -900,6 +908,7 @@ export interface FileRoutesById {
   '/api/public/auth-check': typeof ApiPublicAuthCheckRoute
   '/api/public/demo-chat': typeof ApiPublicDemoChatRoute
   '/api/public/resend-webhook': typeof ApiPublicResendWebhookRoute
+  '/api/public/versao': typeof ApiPublicVersaoRoute
   '/api/voz/falar': typeof ApiVozFalarRoute
   '/api/voz/transcrever': typeof ApiVozTranscreverRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
@@ -1002,6 +1011,7 @@ export interface FileRouteTypes {
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
     | '/api/public/resend-webhook'
+    | '/api/public/versao'
     | '/api/voz/falar'
     | '/api/voz/transcrever'
     | '/app/'
@@ -1098,6 +1108,7 @@ export interface FileRouteTypes {
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
     | '/api/public/resend-webhook'
+    | '/api/public/versao'
     | '/api/voz/falar'
     | '/api/voz/transcrever'
     | '/app'
@@ -1198,6 +1209,7 @@ export interface FileRouteTypes {
     | '/api/public/auth-check'
     | '/api/public/demo-chat'
     | '/api/public/resend-webhook'
+    | '/api/public/versao'
     | '/api/voz/falar'
     | '/api/voz/transcrever'
     | '/_authenticated/app/'
@@ -1293,6 +1305,7 @@ export interface RootRouteChildren {
   ApiPublicAuthCheckRoute: typeof ApiPublicAuthCheckRoute
   ApiPublicDemoChatRoute: typeof ApiPublicDemoChatRoute
   ApiPublicResendWebhookRoute: typeof ApiPublicResendWebhookRoute
+  ApiPublicVersaoRoute: typeof ApiPublicVersaoRoute
   ApiVozFalarRoute: typeof ApiVozFalarRoute
   ApiVozTranscreverRoute: typeof ApiVozTranscreverRoute
   ApiPublicHooksDocumentosRetomarRoute: typeof ApiPublicHooksDocumentosRetomarRoute
@@ -1568,6 +1581,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/resend-webhook'
       fullPath: '/api/public/resend-webhook'
       preLoaderRoute: typeof ApiPublicResendWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/versao': {
+      id: '/api/public/versao'
+      path: '/api/public/versao'
+      fullPath: '/api/public/versao'
+      preLoaderRoute: typeof ApiPublicVersaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/voz/falar': {
@@ -2288,6 +2308,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAuthCheckRoute: ApiPublicAuthCheckRoute,
   ApiPublicDemoChatRoute: ApiPublicDemoChatRoute,
   ApiPublicResendWebhookRoute: ApiPublicResendWebhookRoute,
+  ApiPublicVersaoRoute: ApiPublicVersaoRoute,
   ApiVozFalarRoute: ApiVozFalarRoute,
   ApiVozTranscreverRoute: ApiVozTranscreverRoute,
   ApiPublicHooksDocumentosRetomarRoute: ApiPublicHooksDocumentosRetomarRoute,
