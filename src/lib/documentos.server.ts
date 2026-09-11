@@ -1,4 +1,3 @@
-import { extractText as unpdfExtract, getDocumentProxy } from "unpdf";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
 
@@ -331,32 +330,42 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
   }
   try {
     if (lower.endsWith(".pdf")) {
-      // IMPORTANTE: pdfjs/unpdf TRANSFERE o ArrayBuffer subjacente
-      // (detach), o que zera `buffer.byteLength` após esta chamada.
-      // Passamos uma cópia para preservar o buffer original do caller,
-      // que ainda pode precisar dele para o fallback de visão/OCR.
-      const pdfCopy = new Uint8Array(buffer.byteLength);
-      pdfCopy.set(buffer);
-      const pdf = await getDocumentProxy(pdfCopy);
-      const { text, totalPages } = await unpdfExtract(pdf, { mergePages: false });
-      const paginasTexto = (Array.isArray(text) ? text : [text ?? ""]).map((p) => String(p ?? ""));
-      const out = paginasTexto.join("\n\n");
-      const limpo = out.trim();
-      // OCR é caro: só vale quando a camada de texto é mesmo insuficiente.
-      // Critério por PALAVRAS (um quadro tem poucos caracteres por página) e
-      // pela presença do vocabulário esperado de um documento condominial.
-      const paginas = Math.max(1, totalPages ?? paginasTexto.length ?? 1);
-      const palavras = (p: string) => (p.match(/\p{L}[\p{L}\p{M}'-]*/gu) ?? []).length;
-      const paginasComTexto = paginasTexto.filter((p) => palavras(p) >= 40).length;
-      const vocabulario = /condom[ií]nio|artigo|fra[cç][aã]o|unidade/i.test(limpo);
-      const suficiente =
-        limpo.length > 0 && vocabulario && paginasComTexto >= Math.ceil(paginas * 0.6);
-      if (!suficiente) {
+      let paginasTexto: string[] = [];
+      let totalPages = 1;
+      let unpdfOk = false;
+
+      try {
+        const { extractText: unpdfExtract, getDocumentProxy } = await import("unpdf");
+        const pdfCopy = new Uint8Array(buffer.byteLength);
+        pdfCopy.set(buffer);
+        const pdf = await getDocumentProxy(pdfCopy);
+        const res = await unpdfExtract(pdf, { mergePages: false });
+        totalPages = res.totalPages ?? 1;
+        const rawText = res.text;
+        paginasTexto = (Array.isArray(rawText) ? rawText : [rawText ?? ""]).map((p) => String(p ?? ""));
+        unpdfOk = true;
+      } catch (unpdfErr) {
+        console.warn(
+          "[documentos.server] Falha no extrator direto unpdf (acionando fallback para Visão/OCR multimodal):",
+          unpdfErr instanceof Error ? unpdfErr.message : String(unpdfErr),
+        );
         throw new Error("__NEEDS_VISION__");
       }
 
-
-      return out;
+      if (unpdfOk) {
+        const out = paginasTexto.join("\n\n");
+        const limpo = out.trim();
+        const paginas = Math.max(1, totalPages ?? paginasTexto.length ?? 1);
+        const palavras = (p: string) => (p.match(/\p{L}[\p{L}\p{M}'-]*/gu) ?? []).length;
+        const paginasComTexto = paginasTexto.filter((p) => palavras(p) >= 40).length;
+        const vocabulario = /condom[ií]nio|artigo|fra[cç][aã]o|unidade/i.test(limpo);
+        const suficiente =
+          limpo.length > 0 && vocabulario && paginasComTexto >= Math.ceil(paginas * 0.6);
+        if (!suficiente) {
+          throw new Error("__NEEDS_VISION__");
+        }
+        return out;
+      }
     }
     if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
       const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
@@ -397,13 +406,21 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
   } catch (e) {
     if (e instanceof Error) {
       const m = e.message || "";
-      if (/Invalid PDF|InvalidPDFException|stream must have|corrupt/i.test(m)) {
-        throw new Error("Arquivo PDF corrompido ou inválido. Reenvie o documento original.");
-      }
+      if (m === "__NEEDS_VISION__") throw e;
       if (/password|encrypted/i.test(m)) {
         throw new Error("PDF protegido por senha. Remova a proteção antes de enviar.");
       }
+      if (lower.endsWith(".pdf")) {
+        console.warn("[documentos.server] Falha inesperada no PDF, direcionando para OCR Visão:", m);
+        throw new Error("__NEEDS_VISION__");
+      }
+      if (/Invalid PDF|InvalidPDFException|stream must have|corrupt/i.test(m)) {
+        throw new Error("Arquivo corrompido ou inválido. Reenvie o documento original.");
+      }
       throw e;
+    }
+    if (lower.endsWith(".pdf")) {
+      throw new Error("__NEEDS_VISION__");
     }
     throw new Error("Falha na leitura do conteúdo do arquivo.");
   }

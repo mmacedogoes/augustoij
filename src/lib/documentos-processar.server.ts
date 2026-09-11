@@ -237,7 +237,12 @@ export async function processarDocumentoCore(
       texto = await extractText(buffer, documento.nome_arquivo);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg !== "__NEEDS_VISION__") throw err;
+      if (msg !== "__NEEDS_VISION__") {
+        console.warn(
+          "[processarDocumentoCore] Falha na extração de texto direto, acionando OCR visão:",
+          msg,
+        );
+      }
     }
     if (texto.trim()) {
       await supabaseAdmin.from("document_chunks").delete().eq("documento_id", documento.id);
