@@ -161,6 +161,7 @@ export const deleteDocumento = createServerFn({ method: "POST" })
     await context.supabase.storage.from(BUCKET).remove([doc.storage_path]);
     const { error: errDel } = await context.supabase.from("documentos").delete().eq("id", doc.id);
     if (errDel) throw new Error(errDel.message);
+    await context.supabase.from("chat_cache").delete().eq("condominio_id", doc.condominio_id);
     return { ok: true };
   });
 

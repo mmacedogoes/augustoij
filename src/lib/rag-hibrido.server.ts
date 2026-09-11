@@ -43,7 +43,16 @@ export function extrairTermosChaveBusca(query: string): TermosChaveExtraidos {
   const artigos: string[] = [];
   let mArt: RegExpExecArray | null;
   while ((mArt = regexArtigo.exec(texto)) !== null) {
-    artigos.push(mArt[0].trim());
+    const termoOriginal = mArt[0].trim();
+    artigos.push(termoOriginal);
+    const numLimpo = mArt[1]?.replace(/[ºª.]/g, "").trim();
+    if (numLimpo) {
+      artigos.push(`artigo ${numLimpo}`);
+      artigos.push(`art. ${numLimpo}`);
+      artigos.push(`art ${numLimpo}`);
+      artigos.push(`artigo ${numLimpo}º`);
+      artigos.push(`art. ${numLimpo}º`);
+    }
   }
 
   // 2. Extração de Unidades/Apartamentos (ex: "unidade 101", "apto 704", "bloco B")
@@ -239,7 +248,7 @@ export async function buscarChunksCondominioHibrido({
     try {
       // Monta filtros ILIKE combinados para os termos mais relevantes
       const filtroOr = termosBusca
-        .slice(0, 4)
+        .slice(0, 10)
         .map((t) => `conteudo.ilike.%${t}%`)
         .join(",");
 
@@ -336,7 +345,7 @@ export async function buscarChunksKbHibrido({
   if (termosBusca.length > 0) {
     try {
       const filtroOr = termosBusca
-        .slice(0, 4)
+        .slice(0, 10)
         .map((t) => `conteudo.ilike.%${t}%`)
         .join(",");
 

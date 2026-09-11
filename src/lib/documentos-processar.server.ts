@@ -189,6 +189,9 @@ export async function processarDocumentoCore(
         },
       })
       .eq("id", documento.id);
+    if (concluido) {
+      await supabaseAdmin.from("chat_cache").delete().eq("condominio_id", documento.condominio_id);
+    }
     if (concluido && documento.tipo === "convencao") {
       try {
         const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
