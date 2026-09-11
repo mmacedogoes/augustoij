@@ -83,6 +83,14 @@ export const transcreverBloco = createServerFn({ method: "POST" })
         .download(gravacao.arquivo_path);
       if (errFile || !file) throw new Error("Arquivo de áudio indisponível no armazenamento.");
 
+      // O envio para a IA exige o áudio em memória (bytes + base64 ≈ 3x o
+      // tamanho). Acima deste limite o runtime do servidor estoura a memória.
+      if (file.size > MAX_AUDIO_BYTES) {
+        throw new Error(
+          `Este bloco de gravação é grande demais (${(file.size / 1024 / 1024).toFixed(1)} MB). Grave a assembleia em blocos menores, de até ${Math.round(MAX_AUDIO_BYTES / 1024 / 1024)} MB.`,
+        );
+      }
+
       const { mime, formato } = formatoDoPath(gravacao.arquivo_path);
       const base64 = toBase64(await file.arrayBuffer());
 
