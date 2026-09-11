@@ -54,11 +54,23 @@ const PROMPT_OCR =
 const OCR_MODEL = "google/gemini-2.5-flash";
 const OCR_FALLBACK_MODEL = "google/gemini-3-flash-preview";
 /** Páginas por bloco de OCR (documentos longos são lidos em partes). */
-const PAGINAS_POR_BLOCO = 2;
+const PAGINAS_POR_BLOCO = 1;
 /** Chamadas simultâneas ao gateway. */
 const CONCORRENCIA_OCR = 1;
+/** Tempo máximo de espera pelo gateway antes de abortar e retomar. */
+const OCR_TIMEOUT_MS = 35_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function isTimeoutError(e: unknown): boolean {
+  if (e instanceof DOMException) {
+    return e.name === "AbortError" || e.name === "TimeoutError";
+  }
+  if (e instanceof Error) {
+    return /timeout|timed out|abort/i.test(e.message);
+  }
+  return false;
+}
 
 async function ocrGateway(
   apiKey: string,
@@ -86,19 +98,29 @@ async function ocrGateway(
   }
 
   const tentar = async (modelo: string, userContent: Array<Record<string, unknown>>) => {
-    return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": apiKey,
-        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-      },
-      body: JSON.stringify({
-        model: modelo,
-        messages: [{ role: "user", content: userContent }],
-        temperature: 0.1,
-      }),
-    });
+    try {
+      return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-API-Key": apiKey,
+          "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+        },
+        signal: AbortSignal.timeout(OCR_TIMEOUT_MS),
+        body: JSON.stringify({
+          model: modelo,
+          messages: [{ role: "user", content: userContent }],
+          temperature: 0.1,
+        }),
+      });
+    } catch (e) {
+      if (isTimeoutError(e)) {
+        const err = new Error(`OCR abortado por timeout (${OCR_TIMEOUT_MS}ms): o gateway não respondeu a tempo`);
+        (err as Error & { retryavel?: boolean }).retryavel = true;
+        throw err;
+      }
+      throw e;
+    }
   };
 
   let ultimoStatus = 0;
