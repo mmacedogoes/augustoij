@@ -818,7 +818,7 @@ function Page() {
                               </TimelineHeader>
                               <TimelineDescription>
                                 {avisoInfo.expirado
-                                  ? `Prazo para manifestação expirou há ${Math.abs(avisoInfo.diasRestantesAviso)} dias.`
+                                  ? `Prazo para manifestação expirou há ${Math.abs(avisoInfo.diasRestantesAviso ?? 0)} dias.`
                                   : avisoInfo.emJanelaCritica
                                     ? `Atenção: restam ${avisoInfo.diasRestantesAviso} dias para envio de notificação formal de rescisão/não renovação.`
                                     : `Notificação com antecedência mínima de ${c.aviso_previo_dias} dias.`}

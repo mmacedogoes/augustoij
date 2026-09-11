@@ -144,7 +144,7 @@ export function CommandPalette({ open: controlledOpen, onOpenChange, isAdmin }: 
 
           <CommandItem
             value="treinar ia base de conhecimento modelos juridicos"
-            onSelect={() => handleSelect(() => navigate({ to: "/app/treinar" }))}
+            onSelect={() => handleSelect(() => navigate({ to: "/app/admin/treinamento" }))}
             className="flex items-center gap-2.5 py-2 px-3 cursor-pointer rounded-md hover:bg-accent/80 transition-colors"
           >
             <span className="p-1.5 rounded-md bg-amber-500/10 text-amber-500">
@@ -208,7 +208,7 @@ export function CommandPalette({ open: controlledOpen, onOpenChange, isAdmin }: 
             <>
               <CommandItem
                 value="admin gestao de imoveis locacoes locatarios"
-                onSelect={() => handleSelect(() => navigate({ to: "/app/imoveis" }))}
+                onSelect={() => handleSelect(() => navigate({ to: "/app/admin/imoveis" }))}
                 className="flex items-center gap-2.5 py-2 px-3 cursor-pointer rounded-md hover:bg-accent/80 transition-colors"
               >
                 <Home className="h-4 w-4 text-amber-500" />

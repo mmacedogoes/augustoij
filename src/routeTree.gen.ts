@@ -76,6 +76,7 @@ import { Route as AuthenticatedAppContratosImportarRouteImport } from './routes/
 import { Route as AuthenticatedAppContratosNovoRouteImport } from './routes/_authenticated/app.contratos.novo'
 import { Route as AuthenticatedAppContratosPainelRouteImport } from './routes/_authenticated/app.contratos.painel'
 import { Route as AuthenticatedAppSuporteTicketIdRouteImport } from './routes/_authenticated/app.suporte.$ticketId'
+import { Route as ApiPublicHooksDocumentosRetomarRouteImport } from './routes/api/public/hooks/documentos-retomar'
 import { Route as ApiPublicHooksHelpdeskLembretesRouteImport } from './routes/api/public/hooks/helpdesk-lembretes'
 import { Route as ApiPublicHooksLembretesContratosRouteImport } from './routes/api/public/hooks/lembretes-contratos'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -474,6 +475,12 @@ const AuthenticatedAppSuporteTicketIdRoute =
     path: '/suporte/$ticketId',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const ApiPublicHooksDocumentosRetomarRoute =
+  ApiPublicHooksDocumentosRetomarRouteImport.update({
+    id: '/api/public/hooks/documentos-retomar',
+    path: '/api/public/hooks/documentos-retomar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksHelpdeskLembretesRoute =
   ApiPublicHooksHelpdeskLembretesRouteImport.update({
     id: '/api/public/hooks/helpdesk-lembretes',
@@ -721,6 +728,7 @@ export interface FileRoutesByFullPath {
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/contratos/painel': typeof AuthenticatedAppContratosPainelRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
+  '/api/public/hooks/documentos-retomar': typeof ApiPublicHooksDocumentosRetomarRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/api/public/hooks/lembretes-contratos': typeof ApiPublicHooksLembretesContratosRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -815,6 +823,7 @@ export interface FileRoutesByTo {
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/contratos/painel': typeof AuthenticatedAppContratosPainelRoute
   '/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
+  '/api/public/hooks/documentos-retomar': typeof ApiPublicHooksDocumentosRetomarRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/api/public/hooks/lembretes-contratos': typeof ApiPublicHooksLembretesContratosRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -916,6 +925,7 @@ export interface FileRoutesById {
   '/_authenticated/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/_authenticated/app/contratos/painel': typeof AuthenticatedAppContratosPainelRoute
   '/_authenticated/app/suporte/$ticketId': typeof AuthenticatedAppSuporteTicketIdRoute
+  '/api/public/hooks/documentos-retomar': typeof ApiPublicHooksDocumentosRetomarRoute
   '/api/public/hooks/helpdesk-lembretes': typeof ApiPublicHooksHelpdeskLembretesRoute
   '/api/public/hooks/lembretes-contratos': typeof ApiPublicHooksLembretesContratosRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1017,6 +1027,7 @@ export interface FileRouteTypes {
     | '/app/contratos/novo'
     | '/app/contratos/painel'
     | '/app/suporte/$ticketId'
+    | '/api/public/hooks/documentos-retomar'
     | '/api/public/hooks/helpdesk-lembretes'
     | '/api/public/hooks/lembretes-contratos'
     | '/lovable/email/auth/preview'
@@ -1111,6 +1122,7 @@ export interface FileRouteTypes {
     | '/app/contratos/novo'
     | '/app/contratos/painel'
     | '/app/suporte/$ticketId'
+    | '/api/public/hooks/documentos-retomar'
     | '/api/public/hooks/helpdesk-lembretes'
     | '/api/public/hooks/lembretes-contratos'
     | '/lovable/email/auth/preview'
@@ -1211,6 +1223,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/contratos/novo'
     | '/_authenticated/app/contratos/painel'
     | '/_authenticated/app/suporte/$ticketId'
+    | '/api/public/hooks/documentos-retomar'
     | '/api/public/hooks/helpdesk-lembretes'
     | '/api/public/hooks/lembretes-contratos'
     | '/lovable/email/auth/preview'
@@ -1282,6 +1295,7 @@ export interface RootRouteChildren {
   ApiPublicResendWebhookRoute: typeof ApiPublicResendWebhookRoute
   ApiVozFalarRoute: typeof ApiVozFalarRoute
   ApiVozTranscreverRoute: typeof ApiVozTranscreverRoute
+  ApiPublicHooksDocumentosRetomarRoute: typeof ApiPublicHooksDocumentosRetomarRoute
   ApiPublicHooksHelpdeskLembretesRoute: typeof ApiPublicHooksHelpdeskLembretesRoute
   ApiPublicHooksLembretesContratosRoute: typeof ApiPublicHooksLembretesContratosRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1758,6 +1772,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/suporte/$ticketId'
       preLoaderRoute: typeof AuthenticatedAppSuporteTicketIdRouteImport
       parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/api/public/hooks/documentos-retomar': {
+      id: '/api/public/hooks/documentos-retomar'
+      path: '/api/public/hooks/documentos-retomar'
+      fullPath: '/api/public/hooks/documentos-retomar'
+      preLoaderRoute: typeof ApiPublicHooksDocumentosRetomarRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/helpdesk-lembretes': {
       id: '/api/public/hooks/helpdesk-lembretes'
@@ -2269,6 +2290,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicResendWebhookRoute: ApiPublicResendWebhookRoute,
   ApiVozFalarRoute: ApiVozFalarRoute,
   ApiVozTranscreverRoute: ApiVozTranscreverRoute,
+  ApiPublicHooksDocumentosRetomarRoute: ApiPublicHooksDocumentosRetomarRoute,
   ApiPublicHooksHelpdeskLembretesRoute: ApiPublicHooksHelpdeskLembretesRoute,
   ApiPublicHooksLembretesContratosRoute: ApiPublicHooksLembretesContratosRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,

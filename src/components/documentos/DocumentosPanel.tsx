@@ -70,6 +70,9 @@ type Doc = {
     indexado_em?: string | null;
     modo?: string | null;
     total_paginas?: number | null;
+    atualizado_em?: string | null;
+    tentativas?: number;
+    etapa?: string;
   } | null;
   created_at: string;
 };
@@ -412,19 +415,61 @@ export function DocumentosPanel({
     }
   };
 
-  const statusBadge = (s: string) => {
+  /** Continua a leitura de onde parou (sem apagar o que já foi lido). */
+  const handleContinuar = async (id: string) => {
+    setReprocessando(id);
+    setProgresso(null);
+    try {
+      let r = (await reprocessar({ data: { id } })) as Rodada;
+      let rodadas = 1;
+      let anterior = -1;
+      while (!r.concluido && rodadas < 25 && r.blocosProntos > anterior) {
+        anterior = r.blocosProntos;
+        setProgresso(`Lendo ${r.blocosProntos}/${r.totalBlocos} bloco(s)…`);
+        r = (await reprocessar({ data: { id } })) as Rodada;
+        rodadas += 1;
+      }
+      if (r.concluido) toast.success("Leitura concluída");
+      else toast.warning("Leitura ainda em andamento", { description: r.aviso ?? undefined });
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao continuar a leitura");
+    } finally {
+      setReprocessando(null);
+      setProgresso(null);
+    }
+  };
+
+  const statusBadge = (d: Doc) => {
+    const s = d.status_processamento;
+    const meta = d.processamento_meta;
     if (s === "pronto")
       return (
         <span className="inline-flex items-center gap-1 text-xs text-accent">
           <CheckCircle2 className="h-3 w-3" /> Pronto
         </span>
       );
-    if (s === "processando")
+    if (s === "processando") {
+      const ref = meta?.atualizado_em ? Date.parse(meta.atualizado_em) : Date.parse(d.created_at);
+      const paradoMin = Math.floor((Date.now() - ref) / 60_000);
+      const progressoTxt =
+        meta?.total_blocos && meta.total_blocos > 1
+          ? ` ${meta.blocos_prontos ?? 0}/${meta.total_blocos} bloco(s)`
+          : "";
+      if (paradoMin >= 3) {
+        return (
+          <span className="inline-flex items-center gap-1 text-xs text-amber-400">
+            <AlertTriangle className="h-3 w-3" /> Leitura pausada
+            {progressoTxt} · retomando automaticamente (parada há {paradoMin} min)
+          </span>
+        );
+      }
       return (
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin" /> Processando
+          <Loader2 className="h-3 w-3 animate-spin" /> Lendo{progressoTxt}
         </span>
       );
+    }
     return (
       <span className="inline-flex items-center gap-1 text-xs text-destructive" title={s}>
         <AlertTriangle className="h-3 w-3" /> Erro
@@ -632,7 +677,19 @@ export function DocumentosPanel({
                   {reprocessando === d.id && progresso ? (
                     <span className="text-xs text-muted-foreground">{progresso}</span>
                   ) : (
-                    statusBadge(d.status_processamento)
+                    <>
+                      {statusBadge(d)}
+                      {d.status_processamento === "processando" && (
+                        <button
+                          type="button"
+                          className="text-xs underline text-muted-foreground hover:text-primary"
+                          disabled={reprocessando === d.id}
+                          onClick={() => handleContinuar(d.id)}
+                        >
+                          Continuar leitura
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
                 {d.processamento_meta?.indexado_em && (
