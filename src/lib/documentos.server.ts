@@ -129,14 +129,20 @@ export function mimeParaArquivo(fileName: string): string {
   return mimeFor(fileName);
 }
 
+export type PlanoOcr = {
+  mime: string;
+  totalPaginas: number;
+  blocos: Array<{ indice: number; inicio: number; fim: number }>;
+  /** Gera os bytes do bloco sob demanda (evita manter o PDF inteiro fatiado na memória). */
+  gerarBloco: (indice: number) => Promise<Uint8Array>;
+};
+
 /**
- * Prepara os blocos de OCR de um arquivo. PDFs viram sub-PDFs de N páginas;
- * imagens viram um único bloco. Usado pela leitura retomável por rodadas.
+ * Planeja os blocos de OCR de um arquivo SEM materializar todos os sub-PDFs.
+ * Cada bloco só é gerado quando for enviado ao OCR — manter todos em memória
+ * estourava o limite do runtime em documentos grandes ("internal server error").
  */
-export async function prepararBlocosOcr(
-  buffer: Uint8Array,
-  fileName: string,
-): Promise<{ mime: string; totalPaginas: number; blocos: BlocoOcr[] }> {
+export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Promise<PlanoOcr> {
   if (buffer.byteLength === 0) {
     throw new Error("Arquivo vazio (0 bytes). Reenvie um arquivo válido.");
   }
@@ -145,21 +151,53 @@ export async function prepararBlocosOcr(
     return {
       mime,
       totalPaginas: 1,
-      blocos: [{ indice: 0, inicio: 1, fim: 1, bytes: buffer }],
+      blocos: [{ indice: 0, inicio: 1, fim: 1 }],
+      gerarBloco: async () => buffer,
     };
   }
+
+  const { PDFDocument } = await import("pdf-lib");
+  let src: import("pdf-lib").PDFDocument;
+  let total = 0;
   try {
-    const r = await fatiarPdf(buffer, PAGINAS_POR_BLOCO);
+    const copia = new Uint8Array(buffer.byteLength);
+    copia.set(buffer);
+    src = await PDFDocument.load(copia, { ignoreEncryption: true });
+    total = src.getPageCount();
+  } catch {
+    // PDF atípico que não pode ser aberto: um único bloco com o arquivo inteiro.
     return {
       mime,
-      totalPaginas: r.total,
-      blocos: r.blocos.map((b, i) => ({ indice: i, inicio: b.inicio, fim: b.fim, bytes: b.bytes })),
+      totalPaginas: 0,
+      blocos: [{ indice: 0, inicio: 1, fim: 0 }],
+      gerarBloco: async () => buffer,
     };
-  } catch {
-    // PDF atípico que não pode ser fatiado: um único bloco com o arquivo inteiro.
-    return { mime, totalPaginas: 0, blocos: [{ indice: 0, inicio: 1, fim: 0, bytes: buffer }] };
   }
+
+  const blocos: Array<{ indice: number; inicio: number; fim: number }> = [];
+  for (let i = 0; i < total; i += PAGINAS_POR_BLOCO) {
+    const fim = Math.min(i + PAGINAS_POR_BLOCO, total);
+    blocos.push({ indice: blocos.length, inicio: i + 1, fim });
+  }
+
+  return {
+    mime,
+    totalPaginas: total,
+    blocos,
+    gerarBloco: async (indice: number) => {
+      const b = blocos[indice];
+      if (!b) throw new Error("Bloco inexistente.");
+      const out = await PDFDocument.create();
+      const paginas = await out.copyPages(
+        src,
+        Array.from({ length: b.fim - b.inicio + 1 }, (_, k) => b.inicio - 1 + k),
+      );
+      for (const p of paginas) out.addPage(p);
+      return await out.save();
+    },
+  };
 }
+
 
 /** OCR de um bloco isolado (com uma retentativa em falhas transitórias). */
 export async function ocrBloco(
