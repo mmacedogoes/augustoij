@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { AugustoLogo } from "@/components/brand/AugustoLogo";
+import { versaoCurta } from "@/lib/versao";
 
 function InstagramGlyph({ className }: { className?: string }) {
   // Minimalist Instagram silhouette (inline SVG, currentColor)
