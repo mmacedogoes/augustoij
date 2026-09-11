@@ -818,7 +818,8 @@ PERGUNTAS ESTRUTURADAS (opcional):
           let pricePerInput = 0.000002;
           let pricePerOutput = 0.000012;
           try {
-            const { data: pricing } = await supabase
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { data: pricing } = await supabaseAdmin
               .from("model_pricing")
               .select("credits_per_input_token, credits_per_output_token")
               .eq("model", modelName)
