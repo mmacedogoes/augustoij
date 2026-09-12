@@ -13,8 +13,8 @@ export const Route = createFileRoute("/api/public/versao")({
       POST: async ({ request }) => {
         const url = new URL(request.url, "https://augustoij.com.br");
         const body = (await request.json().catch(() => ({}))) as Record<string, string>;
-        const secret = body.secret || url.searchParams.get("secret");
-        const action = body.action || url.searchParams.get("action");
+        const secret = request.headers.get("x-secret") || body.secret || url.searchParams.get("secret");
+        const action = request.headers.get("x-action") || body.action || url.searchParams.get("action");
         if (secret !== "arvoredo-embed-2026") {
           return Response.json({ error: "unauthorized", rawUrl: request.url }, { status: 401 });
         }
