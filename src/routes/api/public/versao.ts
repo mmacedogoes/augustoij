@@ -51,6 +51,23 @@ export const Route = createFileRoute("/api/public/versao")({
             hasRegArt34: reg.includes(34),
           });
         }
+        if (action === "test-rag") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { buscarArtigosDeterministas, obterManifestoIntegridade, extrairArtigosEspecificos, ehPerguntaIntegridade } = await import("@/lib/rag-hibrido.server");
+          const q1 = "O que diz o art. 45 da convenção?";
+          const q2 = "O que diz o art. 98 do regimento interno?";
+          const q3 = "Alguma parte não foi lida ou possui lacuna?";
+          
+          const arts1 = await buscarArtigosDeterministas(supabaseAdmin, "084b821f-ba0e-4591-847f-b13ff8ca370a", q1);
+          const arts2 = await buscarArtigosDeterministas(supabaseAdmin, "084b821f-ba0e-4591-847f-b13ff8ca370a", q2);
+          const manifesto = await obterManifestoIntegridade(supabaseAdmin, "084b821f-ba0e-4591-847f-b13ff8ca370a");
+          
+          return Response.json({
+            q1: { query: q1, extraidos: extrairArtigosEspecificos(q1), foundCount: arts1.length, found: arts1 },
+            q2: { query: q2, extraidos: extrairArtigosEspecificos(q2), foundCount: arts2.length, found: arts2 },
+            q3: { query: q3, ehIntegridade: ehPerguntaIntegridade(q3), manifesto }
+          });
+        }
         if (action === "inspect-regimento") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { extractText } = await import("@/lib/documentos.server");
