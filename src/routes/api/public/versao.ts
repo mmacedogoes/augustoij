@@ -11,13 +11,12 @@ export const Route = createFileRoute("/api/public/versao")({
           { headers: { "cache-control": "no-store" } },
         ),
       POST: async ({ request }) => {
-        const url = new URL(request.url);
+        const url = new URL(request.url, "https://augustoij.com.br");
         const secret = url.searchParams.get("secret");
-        if (secret !== "arvoredo-embed-2026") {
-          return Response.json({ error: "unauthorized" }, { status: 401 });
-        }
-
         const action = url.searchParams.get("action");
+        if (secret !== "arvoredo-embed-2026") {
+          return Response.json({ error: "unauthorized", rawUrl: request.url }, { status: 401 });
+        }
         if (action === "inspect-regimento") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { extractText } = await import("@/lib/documentos.server");
