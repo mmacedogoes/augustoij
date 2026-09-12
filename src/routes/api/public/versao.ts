@@ -18,6 +18,39 @@ export const Route = createFileRoute("/api/public/versao")({
         if (secret !== "arvoredo-embed-2026") {
           return Response.json({ error: "unauthorized", rawUrl: request.url }, { status: 401 });
         }
+        if (action === "seed-artigos") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const artigos = (body as any).artigos;
+          if (!Array.isArray(artigos) || artigos.length === 0) {
+            return Response.json({ error: "no_artigos" }, { status: 400 });
+          }
+          const { data, error } = await supabaseAdmin.from("documento_artigos").insert(artigos).select("id");
+          if (error) return Response.json({ error: error.message }, { status: 500 });
+          return Response.json({ ok: true, inserted: data?.length ?? 0 });
+        }
+        if (action === "stats-artigos") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data, error } = await supabaseAdmin
+            .from("documento_artigos")
+            .select("tipo, artigo_numero")
+            .eq("condominio_id", "084b821f-ba0e-4591-847f-b13ff8ca370a");
+          if (error) return Response.json({ error: error.message }, { status: 500 });
+          const conv = (data ?? []).filter(d => d.tipo === "convencao").map(d => d.artigo_numero).sort((a,b)=>a-b);
+          const reg = (data ?? []).filter(d => d.tipo === "regimento").map(d => d.artigo_numero).sort((a,b)=>a-b);
+          return Response.json({
+            ok: true,
+            total: data?.length ?? 0,
+            convencaoCount: conv.length,
+            regimentoCount: reg.length,
+            convencaoMin: conv[0] ?? null,
+            convencaoMax: conv[conv.length - 1] ?? null,
+            regimentoMin: reg[0] ?? null,
+            regimentoMax: reg[reg.length - 1] ?? null,
+            hasConvArt45: conv.includes(45),
+            hasRegArt98: reg.includes(98),
+            hasRegArt34: reg.includes(34),
+          });
+        }
         if (action === "inspect-regimento") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { extractText } = await import("@/lib/documentos.server");
