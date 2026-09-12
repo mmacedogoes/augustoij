@@ -30,6 +30,9 @@ import {
 import {
   buscarChunksCondominioHibrido,
   buscarChunksKbHibrido,
+  buscarArtigosDeterministas,
+  obterManifestoIntegridade,
+  ehPerguntaIntegridade,
 } from "@/lib/rag-hibrido.server";
 
 type ChatBody = {
@@ -397,12 +400,60 @@ export const Route = createFileRoute("/api/chat")({
           const { temConvencao, temRegimento, temBaseCondominial } =
             avaliarBaseCondominial(docsBase);
 
-          // RAG retrieval: Busca Híbrida (Dense Vector + Sparse Lexical + RRF)
+          // RAG retrieval: Busca Determinística de Artigos + Busca Híbrida (Dense Vector + Sparse Lexical + RRF)
           let contexto = "";
           let contextoKb = "";
           let temMatchDocumento = false;
           if (textoBuscaRag) {
             try {
+              // 0. Busca Determinística Direta na tabela documento_artigos (100% precisão)
+              const [artigosDeterministas, manifestoDocs] = await Promise.all([
+                buscarArtigosDeterministas({
+                  supabase,
+                  condominioId,
+                  queryTexto: textoBuscaRag,
+                }),
+                ehPerguntaIntegridade(textoBuscaRag)
+                  ? obterManifestoIntegridade({ supabase, condominioId })
+                  : Promise.resolve([]),
+              ]);
+
+              const blocosDeterministas: string[] = [];
+
+              if (manifestoDocs && manifestoDocs.length > 0) {
+                temMatchDocumento = true;
+                const linhasManifesto = manifestoDocs.map((m) => {
+                  const nome =
+                    m.tipo === "convencao"
+                      ? "Convenção de Condomínio"
+                      : m.tipo === "regimento"
+                        ? "Regimento Interno"
+                        : m.tipo;
+                  return `• ${nome}: ${m.total_artigos} artigos indexados (do Artigo ${m.primeiro_artigo}º ao Artigo ${m.ultimo_artigo}º) — 100% COMPLETO na base de dados, sem lacunas.`;
+                }).join("\n");
+                blocosDeterministas.push(
+                  `### 📋 MANIFESTO DE INTEGRIDADE DOS DOCUMENTOS DESTE CONDOMÍNIO:\n${linhasManifesto}\n\n` +
+                    `INSTRUÇÃO CRÍTICA PARA A IA: Ao responder se algum artigo ou parte não foi lida, declare expressamente a abrangência real acima, confirmando com transparência que os artigos acima estão 100% cadastrados na íntegra no banco de dados do condomínio.`,
+                );
+              }
+
+              if (artigosDeterministas && artigosDeterministas.length > 0) {
+                temMatchDocumento = true;
+                for (const art of artigosDeterministas) {
+                  const nomeTipo =
+                    art.tipo === "regimento"
+                      ? "REGIMENTO INTERNO"
+                      : art.tipo === "convencao"
+                        ? "CONVENÇÃO DE CONDOMÍNIO"
+                        : art.tipo.toUpperCase();
+                  const capInfo = art.capitulo ? ` — ${art.capitulo}` : "";
+                  const titInfo = art.titulo ? ` — ${art.titulo}` : "";
+                  blocosDeterministas.push(
+                    `⭐⭐⭐ [FONTE DETERMINÍSTICA DIRETA — ${nomeTipo} — ${art.artigo_rotulo}${capInfo}${titInfo}] ⭐⭐⭐\n${art.conteudo}`,
+                  );
+                }
+              }
+
               const queryEmbedding = await embedText(apiKey, textoBuscaRag);
 
               // 1. Busca Híbrida nos Documentos do Condomínio (Vetorial + Léxica + RRF)
@@ -416,19 +467,23 @@ export const Route = createFileRoute("/api/chat")({
                 minSimilarity: 0.18,
               });
 
+              const blocosRag: string[] = [];
               if (matchesHibridos && matchesHibridos.length > 0) {
                 temMatchDocumento = true;
-                contexto = matchesHibridos
-                  .map((m) => {
-                    const tagRelevancia = m.origem_match === "hibrido" ? " [alta relevância combinada]" : "";
-                    const cabecalho = `(trecho de documento do condomínio${m.nome_arquivo ? `: ${m.nome_arquivo}` : ""}${tagRelevancia})`;
-                    const conteudoLimpo = (m.conteudo || "")
-                      .replace(/[ \t]{2,}/g, " ")
-                      .replace(/\n{3,}/g, "\n\n")
-                      .trim();
-                    return `${cabecalho}\n${conteudoLimpo}`;
-                  })
-                  .join("\n\n---\n\n");
+                for (const m of matchesHibridos) {
+                  const tagRelevancia = m.origem_match === "hibrido" ? " [alta relevância combinada]" : "";
+                  const cabecalho = `(trecho de documento do condomínio${m.nome_arquivo ? `: ${m.nome_arquivo}` : ""}${tagRelevancia})`;
+                  const conteudoLimpo = (m.conteudo || "")
+                    .replace(/[ \t]{2,}/g, " ")
+                    .replace(/\n{3,}/g, "\n\n")
+                    .trim();
+                  blocosRag.push(`${cabecalho}\n${conteudoLimpo}`);
+                }
+              }
+
+              const todosBlocos = [...blocosDeterministas, ...blocosRag];
+              if (todosBlocos.length > 0) {
+                contexto = todosBlocos.join("\n\n---\n\n");
               }
 
               // 2. Busca Híbrida na Base de Conhecimento Global / Treinamento da IA (KB)

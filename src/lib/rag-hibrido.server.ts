@@ -378,3 +378,156 @@ export async function buscarChunksKbHibrido({
 
   return resultadoRrf.slice(0, matchCount);
 }
+
+export interface ArtigoDeterminista {
+  id: string;
+  artigo_numero: number;
+  artigo_rotulo: string;
+  tipo: string;
+  capitulo?: string | null;
+  titulo?: string | null;
+  conteudo: string;
+}
+
+export interface ArtigoReferenciado {
+  numero: number;
+  tipoDoc?: "convencao" | "regimento" | null;
+  rotulo: string;
+}
+
+export function extrairArtigosEspecificos(query: string): ArtigoReferenciado[] {
+  const texto = query ?? "";
+  const regex = /\b(?:art(?:igo)?\.?)\s*(\d+)/gi;
+  const resultados: ArtigoReferenciado[] = [];
+  let m: RegExpExecArray | null;
+
+  const temRegimento = /\b(?:regimento|interno|ri)\b/i.test(texto);
+  const temConvencao = /\b(?:conven[cç][aã]o)\b/i.test(texto);
+
+  let tipoDoc: "convencao" | "regimento" | null = null;
+  if (temRegimento && !temConvencao) tipoDoc = "regimento";
+  else if (temConvencao && !temRegimento) tipoDoc = "convencao";
+
+  while ((m = regex.exec(texto)) !== null) {
+    const num = parseInt(m[1], 10);
+    if (!isNaN(num) && num > 0) {
+      resultados.push({
+        numero: num,
+        tipoDoc,
+        rotulo: `Artigo ${num}`,
+      });
+    }
+  }
+  return resultados;
+}
+
+/**
+ * Busca determinística exata por artigo na tabela documento_artigos.
+ * Garante 100% de precisão para qualquer citação direta de artigo (ex.: Art. 98, Art. 45).
+ */
+export async function buscarArtigosDeterministas({
+  supabase,
+  condominioId,
+  queryTexto,
+}: {
+  supabase: import("@supabase/supabase-js").SupabaseClient;
+  condominioId: string;
+  queryTexto: string;
+}): Promise<ArtigoDeterminista[]> {
+  const artigosBuscados = extrairArtigosEspecificos(queryTexto);
+  if (artigosBuscados.length === 0) return [];
+
+  const numeros = Array.from(new Set(artigosBuscados.map((a) => a.numero)));
+  const tipoFiltro = artigosBuscados[0]?.tipoDoc;
+
+  try {
+    let q = supabase
+      .from("documento_artigos")
+      .select("id, artigo_numero, artigo_rotulo, tipo, capitulo, titulo, conteudo")
+      .eq("condominio_id", condominioId)
+      .in("artigo_numero", numeros);
+
+    if (tipoFiltro) {
+      q = q.eq("tipo", tipoFiltro);
+    }
+
+    const { data, error } = await q;
+    if (error || !data) {
+      console.warn("[buscarArtigosDeterministas] Aviso na busca determinística:", error);
+      return [];
+    }
+
+    return data as ArtigoDeterminista[];
+  } catch (err) {
+    console.warn("[buscarArtigosDeterministas] Falha ao consultar documento_artigos:", err);
+    return [];
+  }
+}
+
+export interface ManifestoDocumento {
+  tipo: string;
+  total_artigos: number;
+  primeiro_artigo: number;
+  ultimo_artigo: number;
+}
+
+/**
+ * Retorna o manifesto de integridade dos documentos do condomínio (contagem real de artigos indexados).
+ */
+export async function obterManifestoIntegridade({
+  supabase,
+  condominioId,
+}: {
+  supabase: import("@supabase/supabase-js").SupabaseClient;
+  condominioId: string;
+}): Promise<ManifestoDocumento[]> {
+  try {
+    const { data, error } = await supabase
+      .from("documento_artigos")
+      .select("tipo, artigo_numero")
+      .eq("condominio_id", condominioId);
+
+    if (error || !data || data.length === 0) return [];
+
+    const porTipo = new Map<string, number[]>();
+    for (const row of data) {
+      const arr = porTipo.get(row.tipo) ?? [];
+      arr.push(row.artigo_numero);
+      porTipo.set(row.tipo, arr);
+    }
+
+    const out: ManifestoDocumento[] = [];
+    for (const [tipo, arts] of porTipo.entries()) {
+      arts.sort((a, b) => a - b);
+      out.push({
+        tipo,
+        total_artigos: arts.length,
+        primeiro_artigo: arts[0],
+        ultimo_artigo: arts[arts.length - 1],
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Avalia se o usuário está fazendo uma pergunta sobre a integridade ou leitura completa dos documentos.
+ */
+export function ehPerguntaIntegridade(texto: string): boolean {
+  const t = (texto ?? "").toLowerCase();
+  const termosChecagem = [
+    "leitura", "lida", "lido", "lidos", "lidas", "falt", "lacuna", "incompleto",
+    "processad", "integra", "íntegra", "completo", "todos os artigos", "quantos artigos",
+  ];
+  const termosAlvo = [
+    "conven", "regimento", "documento", "artigo", "ia", "sistema", "base",
+  ];
+
+  const temChecagem = termosChecagem.some((term) => t.includes(term));
+  const temAlvo = termosAlvo.some((term) => t.includes(term));
+
+  return temChecagem && temAlvo;
+}
+

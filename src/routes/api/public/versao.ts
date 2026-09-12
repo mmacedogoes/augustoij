@@ -16,6 +16,34 @@ export const Route = createFileRoute("/api/public/versao")({
         if (secret !== "arvoredo-embed-2026") {
           return Response.json({ error: "unauthorized" }, { status: 401 });
         }
+
+        const action = url.searchParams.get("action");
+        if (action === "inspect-regimento") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { extractText } = await import("@/lib/documentos.server");
+          const { data: file, error: dlErr } = await supabaseAdmin.storage
+            .from("documentos")
+            .download("084b821f-ba0e-4591-847f-b13ff8ca370a/1789145852327_1789129250225_REGIMENTO_INTERNO_-_ARVOREDO_1_.pdf");
+          if (dlErr || !file) return Response.json({ error: dlErr?.message || "download_failed" }, { status: 500 });
+          const buffer = new Uint8Array(await file.arrayBuffer());
+          let text = "";
+          let errExtract = "";
+          try {
+            text = await extractText(buffer, "regimento.pdf");
+          } catch (e: any) {
+            errExtract = e.message;
+          }
+          return Response.json({
+            size: buffer.byteLength,
+            textLength: text.length,
+            errExtract,
+            preview: text.slice(0, 1000),
+            hasArt98: /art(?:igo|\.)\s*98/i.test(text),
+            hasArt34: /art(?:igo|\.)\s*34/i.test(text),
+            sampleMatch: text.match(/art(?:igo|\.)\s*98[^\n]{0,200}/i)?.[0] ?? null,
+          });
+        }
+
         const lovableKey = process.env.LOVABLE_API_KEY;
         if (!lovableKey) {
           return Response.json({ error: "no_api_key" }, { status: 500 });
