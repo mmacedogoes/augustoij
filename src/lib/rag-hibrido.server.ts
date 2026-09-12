@@ -517,12 +517,22 @@ export async function obterManifestoIntegridade({
  */
 export function ehPerguntaIntegridade(texto: string): boolean {
   const t = (texto ?? "").toLowerCase();
+
+  // Expressões fortes diretas que dispensam combinação de alvos
+  if (
+    /lacuna|incomplet|faltando|falta(m)?\s+(ler|algum|artigo|parte)|n[aã]o\s+foi\s+lid[ao]|est[aá]\s+complet[ao]|leu\s+tudo|lido\s+por\s+completo|leitura\s+est[aá]|todos\s+os\s+artigos/i.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+
   const termosChecagem = [
     "leitura", "lida", "lido", "lidos", "lidas", "falt", "lacuna", "incompleto",
-    "processad", "integra", "íntegra", "completo", "todos os artigos", "quantos artigos",
+    "processad", "integra", "íntegra", "completo", "todos os artigos", "quantos artigos", "abrangência", "cobertura",
   ];
   const termosAlvo = [
-    "conven", "regimento", "documento", "artigo", "ia", "sistema", "base",
+    "conven", "regimento", "documento", "artigo", "ia", "sistema", "base", "parte", "arquivo", "texto", "norma",
   ];
 
   const temChecagem = termosChecagem.some((term) => t.includes(term));

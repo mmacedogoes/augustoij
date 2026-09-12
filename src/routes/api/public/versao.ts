@@ -58,9 +58,9 @@ export const Route = createFileRoute("/api/public/versao")({
           const q2 = "O que diz o art. 98 do regimento interno?";
           const q3 = "Alguma parte não foi lida ou possui lacuna?";
           
-          const arts1 = await buscarArtigosDeterministas(supabaseAdmin, "084b821f-ba0e-4591-847f-b13ff8ca370a", q1);
-          const arts2 = await buscarArtigosDeterministas(supabaseAdmin, "084b821f-ba0e-4591-847f-b13ff8ca370a", q2);
-          const manifesto = await obterManifestoIntegridade(supabaseAdmin, "084b821f-ba0e-4591-847f-b13ff8ca370a");
+          const arts1 = await buscarArtigosDeterministas({ supabase: supabaseAdmin, condominioId: "084b821f-ba0e-4591-847f-b13ff8ca370a", queryTexto: q1 });
+          const arts2 = await buscarArtigosDeterministas({ supabase: supabaseAdmin, condominioId: "084b821f-ba0e-4591-847f-b13ff8ca370a", queryTexto: q2 });
+          const manifesto = await obterManifestoIntegridade({ supabase: supabaseAdmin, condominioId: "084b821f-ba0e-4591-847f-b13ff8ca370a" });
           
           return Response.json({
             q1: { query: q1, extraidos: extrairArtigosEspecificos(q1), foundCount: arts1.length, found: arts1 },
