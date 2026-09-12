@@ -503,14 +503,12 @@ export async function processarDocumentoCore(
         status_processamento: possuiConteudoValido ? "pronto" : ing.toStatus(),
         processamento_meta: {
           ...metaAnterior,
-          etapa: ing.stage,
+          etapa: possuiConteudoValido ? (metaAnterior.etapa ?? "ocr") : ing.stage,
           tentativas,
           travado_ate: null,
-          mensagem: ing.toHuman(),
-          detalhe_tecnico: ing.technical,
-          aviso: possuiConteudoValido
-            ? `Releitura mantida: ${ing.toHuman()}. Os ${chunksRestantes} trechos indexados continuam ativos.`
-            : ing.toHuman(),
+          mensagem: possuiConteudoValido ? null : ing.toHuman(),
+          detalhe_tecnico: possuiConteudoValido ? null : ing.technical,
+          aviso: possuiConteudoValido ? null : ing.toHuman(),
           atualizado_em: new Date().toISOString(),
         },
       })

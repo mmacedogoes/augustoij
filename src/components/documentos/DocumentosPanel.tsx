@@ -799,7 +799,7 @@ export function DocumentosPanel({
                       : ""}
                   </p>
                 )}
-                {(d.processamento_meta?.mensagem || d.processamento_meta?.aviso) && (
+                {d.status_processamento === "erro" && (d.processamento_meta?.mensagem || d.processamento_meta?.aviso) && (
                   <p className="mt-1 text-xs text-destructive">
                     {d.processamento_meta.mensagem ?? d.processamento_meta.aviso}
                   </p>
