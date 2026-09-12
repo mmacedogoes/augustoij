@@ -57,8 +57,8 @@ const OCR_FALLBACK_MODEL = "google/gemini-3-flash-preview";
 const PAGINAS_POR_BLOCO = 1;
 /** Chamadas simultâneas ao gateway. */
 const CONCORRENCIA_OCR = 1;
-/** Tempo máximo de espera pelo gateway antes de abortar e retomar. */
-const OCR_TIMEOUT_MS = 35_000;
+/** Tempo máximo de espera pelo gateway antes de abortar (8s para manter requests dentro do limite edge). */
+const OCR_TIMEOUT_MS = 8_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -72,28 +72,67 @@ function isTimeoutError(e: unknown): boolean {
   return false;
 }
 
+/**
+ * Em PDFs escaneados, as páginas contêm imagens JPEG (DCTDecode) embutidas.
+ * Extrair o fluxo JPEG bruto permite enviá-lo como image/jpeg padrão para o gateway,
+ * evitando rejeição do MIME application/pdf no endpoint de chat/completions.
+ */
+function extrairImagemDoPdf(bytes: Uint8Array): { mime: string; bytes: Uint8Array } | null {
+  const len = bytes.length;
+  let start = -1;
+  for (let i = 0; i < len - 3; i++) {
+    if (bytes[i] === 0xff && bytes[i + 1] === 0xd8 && bytes[i + 2] === 0xff) {
+      start = i;
+      break;
+    }
+  }
+  if (start >= 0) {
+    let end = -1;
+    for (let i = len - 2; i > start; i--) {
+      if (bytes[i] === 0xff && bytes[i + 1] === 0xd9) {
+        end = i + 2;
+        break;
+      }
+    }
+    if (end > start && end - start > 1024) {
+      return {
+        mime: "image/jpeg",
+        bytes: bytes.subarray(start, end),
+      };
+    }
+  }
+  return null;
+}
+
 async function ocrGateway(
   apiKey: string,
   fileName: string,
   mime: string,
   bytes: Uint8Array,
 ): Promise<string> {
-  const dataUrl = `data:${mime};base64,${bufferToBase64(bytes)}`;
+  let efetivoMime = mime;
+  let efetivosBytes = bytes;
 
-  // Alguns modelos aceitam o PDF como bloco `file`, outros só como `image_url`.
-  // Testamos as duas formas antes de desistir.
-  const variantes: Array<Array<Record<string, unknown>>> = [];
-  const blocoArquivo = { type: "file", file: { filename: fileName, file_data: dataUrl } };
-  const blocoImagem = { type: "image_url", image_url: { url: dataUrl } };
   if (mime === "application/pdf") {
-    variantes.push(
-      [{ type: "text", text: PROMPT_OCR }, blocoArquivo],
-      [{ type: "text", text: PROMPT_OCR }, blocoImagem],
-    );
+    const imagemExtraida = extrairImagemDoPdf(bytes);
+    if (imagemExtraida) {
+      efetivoMime = imagemExtraida.mime;
+      efetivosBytes = imagemExtraida.bytes;
+    }
+  }
+
+  const dataUrl = `data:${efetivoMime};base64,${bufferToBase64(efetivosBytes)}`;
+
+  const blocoImagem = { type: "image_url", image_url: { url: dataUrl } };
+  const blocoArquivo = { type: "file", file: { filename: fileName, file_data: dataUrl } };
+  const variantes: Array<Array<Record<string, unknown>>> = [];
+
+  if (efetivoMime.startsWith("image/")) {
+    variantes.push([{ type: "text", text: PROMPT_OCR }, blocoImagem]);
   } else {
     variantes.push(
-      [{ type: "text", text: PROMPT_OCR }, blocoImagem],
       [{ type: "text", text: PROMPT_OCR }, blocoArquivo],
+      [{ type: "text", text: PROMPT_OCR }, blocoImagem],
     );
   }
 
@@ -116,7 +155,7 @@ async function ocrGateway(
     } catch (e) {
       if (isTimeoutError(e)) {
         const err = new Error(`OCR abortado por timeout (${OCR_TIMEOUT_MS}ms): o gateway não respondeu a tempo`);
-        (err as Error & { retryavel?: boolean }).retryavel = true;
+        (err as Error & { retryavel?: boolean }).retryavel = false;
         throw err;
       }
       throw e;
@@ -139,7 +178,6 @@ async function ocrGateway(
       ultimoStatus = res.status;
       ultimoCorpo = (await res.text().catch(() => "")).slice(0, 300);
       console.warn(`[ocrGateway] ${modelo} retornou ${res.status}: ${ultimoCorpo.slice(0, 120)}`);
-      // 429/402/5xx não são problema de formato: nada a ganhar variando o payload.
       if (res.status === 429 || res.status === 402 || res.status >= 500) {
         const err = new Error(`OCR falhou (gateway ${res.status}): ${ultimoCorpo}`);
         (err as Error & { retryavel?: boolean }).retryavel = res.status !== 402;
@@ -162,9 +200,10 @@ async function ocrComRetry(
   try {
     return await ocrGateway(apiKey, fileName, mime, bytes);
   } catch (e) {
+    if (isTimeoutError(e)) throw e;
     const retryavel = (e as Error & { retryavel?: boolean }).retryavel !== false;
     if (!retryavel) throw e;
-    await sleep(2500);
+    await sleep(1000);
     return await ocrGateway(apiKey, fileName, mime, bytes);
   }
 }
@@ -429,19 +468,14 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
       if (unpdfOk) {
         const out = paginasTexto.join("\n\n");
         const limpo = out.trim();
-        const paginas = Math.max(1, totalPages ?? paginasTexto.length ?? 1);
         const palavras = (p: string) => (p.match(/\p{L}[\p{L}\p{M}'-]*/gu) ?? []).length;
         const totalPalavras = paginasTexto.reduce((acc, p) => acc + palavras(p), 0);
-        const paginasComTexto = paginasTexto.filter((p) => palavras(p) >= 20).length;
-        // PDF digital: há camada de texto real e legível em boa parte das páginas.
-        // Visão/OCR fica reservado a scans e imagens puras (sem texto extraível).
-        const camadaDeTextoReal =
-          totalPalavras >= 80 &&
-          (paginasComTexto >= Math.ceil(paginas * 0.3) || totalPalavras / paginas >= 60);
-        if (!camadaDeTextoReal) {
-          throw new Error("__NEEDS_VISION__");
+        // Se houver texto utilizável na camada digital do PDF (ou gerado por OCR prévio),
+        // aproveitamos diretamente para garantir indexação rápida e evitar timeouts de OCR.
+        if (totalPalavras >= 25 || limpo.length >= 100) {
+          return out;
         }
-        return out;
+        throw new Error("__NEEDS_VISION__");
       }
     }
     if (lower.endsWith(".docx") || lower.endsWith(".doc")) {

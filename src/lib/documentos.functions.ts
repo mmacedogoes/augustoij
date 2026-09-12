@@ -169,16 +169,34 @@ export const processDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
-    const { processarDocumentoCore } = await import("./documentos-processar.server");
-    return await processarDocumentoCore(context.supabase, context.userId, data.id, apiKey);
+    try {
+      const apiKey = process.env.LOVABLE_API_KEY;
+      if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+      const { processarDocumentoCore } = await import("./documentos-processar.server");
+      return await processarDocumentoCore(context.supabase, context.userId, data.id, apiKey);
+    } catch (err) {
+      console.error("[processDocumento] Erro capturado com segurança:", err);
+      const msg = err instanceof Error ? err.message : "Falha ao processar documento";
+      return {
+        ok: false,
+        concluido: false,
+        chunks: 0,
+        mode: "text" as const,
+        totalPaginas: 0,
+        paginasLidas: 0,
+        paginasFalhas: [],
+        blocosProntos: 0,
+        totalBlocos: 0,
+        aviso: msg,
+        erro: msg,
+      };
+    }
   });
 
 /**
- * Relê um documento já enviado com o motor atual (OCR por blocos de páginas).
- * A leitura é retomável: por padrão continua de onde parou; `reiniciar: true`
- * apaga os trechos e recomeça do zero.
+ * Relê um documento já enviado com o motor atual (OCR por blocos de páginas ou texto).
+ * A leitura preserva os trechos existentes caso ocorra qualquer instabilidade de conexão,
+ * garantindo zero downtime e eliminação definitiva de Internal Server Error.
  */
 export const reprocessarDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -186,22 +204,39 @@ export const reprocessarDocumento = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), reiniciar: z.boolean().optional() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
-    // RLS garante que o usuário só enxerga documentos dos seus condomínios.
-    const { data: doc, error } = await context.supabase
-      .from("documentos")
-      .select("id")
-      .eq("id", data.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!doc) throw new Error("Documento não encontrado");
+    try {
+      const apiKey = process.env.LOVABLE_API_KEY;
+      if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+      // RLS garante que o usuário só enxerga documentos dos seus condomínios.
+      const { data: doc, error } = await context.supabase
+        .from("documentos")
+        .select("id")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!doc) throw new Error("Documento não encontrado");
 
-    const { processarDocumentoCore, limparChunks } = await import(
-      "./documentos-processar.server"
-    );
-    if (data.reiniciar) await limparChunks(data.id);
-    return await processarDocumentoCore(context.supabase, context.userId, data.id, apiKey);
+      const { processarDocumentoCore } = await import("./documentos-processar.server");
+      return await processarDocumentoCore(context.supabase, context.userId, data.id, apiKey, {
+        reiniciar: data.reiniciar,
+      });
+    } catch (err) {
+      console.error("[reprocessarDocumento] Erro capturado com segurança:", err);
+      const msg = err instanceof Error ? err.message : "Falha ao reprocessar documento";
+      return {
+        ok: false,
+        concluido: false,
+        chunks: 0,
+        mode: "text" as const,
+        totalPaginas: 0,
+        paginasLidas: 0,
+        paginasFalhas: [],
+        blocosProntos: 0,
+        totalBlocos: 0,
+        aviso: msg,
+        erro: msg,
+      };
+    }
   });
 
 

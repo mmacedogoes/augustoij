@@ -332,7 +332,7 @@ export function DocumentosPanel({
   const reprocessar = useServerFn(reprocessarDocumento);
 
   type Rodada = {
-    ok: true;
+    ok?: boolean;
     concluido: boolean;
     chunks: number;
     totalPaginas: number;
@@ -341,6 +341,7 @@ export function DocumentosPanel({
     blocosProntos: number;
     totalBlocos: number;
     aviso: string | null;
+    erro?: string;
   };
 
   /**
@@ -352,6 +353,13 @@ export function DocumentosPanel({
     setProgresso(null);
     try {
       let r = (await reprocessar({ data: { id, reiniciar: true } })) as Rodada;
+      if (!r || r.ok === false) {
+        toast.warning("Não foi possível reler o documento no momento", {
+          description: r?.erro || r?.aviso || "Tente novamente mais tarde.",
+        });
+        refresh();
+        return;
+      }
       let totalChunks = r.chunks;
       let rodadas = 1;
       let semAvanco = 0;
@@ -361,6 +369,12 @@ export function DocumentosPanel({
           `Lendo ${r.blocosProntos}/${r.totalBlocos || "?"} bloco(s)${r.totalPaginas ? ` · ${r.paginasLidas} de ${r.totalPaginas} páginas` : ""}…`,
         );
         r = (await reprocessar({ data: { id } })) as Rodada;
+        if (!r || r.ok === false) {
+          toast.warning("Processamento interrompido", {
+            description: r?.erro || r?.aviso || "Não foi possível avançar a leitura das páginas restantes.",
+          });
+          break;
+        }
         totalChunks += r.chunks;
         rodadas += 1;
         if (r.blocosProntos > anterior) {
@@ -370,7 +384,7 @@ export function DocumentosPanel({
           semAvanco += 1;
         }
       }
-      if (r.concluido && r.paginasFalhas.length === 0) {
+      if (r.concluido && (r.paginasFalhas?.length ?? 0) === 0) {
         toast.success("Documento relido com sucesso", {
           description: `${totalChunks} trecho(s) indexado(s)${r.totalPaginas ? ` · ${r.totalPaginas} página(s)` : ""}.`,
         });
@@ -378,7 +392,7 @@ export function DocumentosPanel({
         toast.warning("Documento relido parcialmente", {
           description:
             r.aviso ??
-            `${r.paginasFalhas.length} página(s) não puderam ser lidas. O restante foi indexado.`,
+            `${r.paginasFalhas?.length ?? 0} página(s) não puderam ser lidas. O restante foi indexado.`,
         });
       }
       refresh();
@@ -416,7 +430,6 @@ export function DocumentosPanel({
     }
   };
 
-
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este documento e todos os seus trechos?")) return;
     try {
@@ -434,6 +447,13 @@ export function DocumentosPanel({
     setProgresso(null);
     try {
       let r = (await reprocessar({ data: { id } })) as Rodada;
+      if (!r || r.ok === false) {
+        toast.warning("Não foi possível continuar a leitura no momento", {
+          description: r?.erro || r?.aviso || "Tente novamente mais tarde.",
+        });
+        refresh();
+        return;
+      }
       let rodadas = 1;
       let anterior = r.blocosProntos;
       let semAvanco = 0;
@@ -444,6 +464,12 @@ export function DocumentosPanel({
           }…`,
         );
         r = (await reprocessar({ data: { id } })) as Rodada;
+        if (!r || r.ok === false) {
+          toast.warning("Processamento interrompido", {
+            description: r?.erro || r?.aviso || "Não foi possível avançar a leitura das páginas restantes.",
+          });
+          break;
+        }
         rodadas += 1;
         if (r.blocosProntos > anterior) {
           anterior = r.blocosProntos;

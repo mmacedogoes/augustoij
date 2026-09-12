@@ -6,7 +6,7 @@ const BUCKET = "documentos";
 const ORCAMENTO_MS = 10_000;
 
 export type ResultadoProcessamento = {
-  ok: true;
+  ok: boolean;
   /** Falso quando ainda há blocos pendentes — a UI chama outra rodada. */
   concluido: boolean;
   chunks: number;
@@ -17,6 +17,7 @@ export type ResultadoProcessamento = {
   blocosProntos: number;
   totalBlocos: number;
   aviso: string | null;
+  erro?: string;
 };
 
 type DocRow = {
@@ -42,6 +43,7 @@ export async function processarDocumentoCore(
   userId: string,
   documentoId: string,
   apiKey: string,
+  opts?: { reiniciar?: boolean },
 ): Promise<ResultadoProcessamento> {
   const inicio = Date.now();
   const { data: doc, error: errGet } = await supabase
@@ -57,6 +59,32 @@ export async function processarDocumentoCore(
   const tentativas = (typeof metaAnterior.tentativas === "number" ? metaAnterior.tentativas : 0) + 1;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { embedChunksParallel } = await import("./ai-gateway.server");
+
+  // Se o documento já possui chunks indexados sem embedding vetorial, completa agora
+  try {
+    const { data: pendentesEmb } = await supabaseAdmin
+      .from("document_chunks")
+      .select("id, conteudo")
+      .eq("documento_id", documento.id)
+      .is("embedding", null)
+      .limit(60);
+    if (pendentesEmb && pendentesEmb.length > 0) {
+      const { embeddings } = await embedChunksParallel(
+        apiKey,
+        pendentesEmb.map((c) => c.conteudo),
+        5,
+      );
+      for (let i = 0; i < pendentesEmb.length; i++) {
+        await supabaseAdmin
+          .from("document_chunks")
+          .update({ embedding: `[${embeddings[i].join(",")}]` })
+          .eq("id", pendentesEmb[i].id);
+      }
+    }
+  } catch (embErr) {
+    console.warn("[processarDocumentoCore] Auto-backfill de embeddings:", embErr);
+  }
 
   // Marca o início da rodada ANTES de qualquer trabalho pesado: se a chamada
   // morrer no meio (aba fechada, timeout do edge), o documento não fica sem
@@ -74,7 +102,7 @@ export async function processarDocumentoCore(
       },
     })
     .eq("id", documento.id);
-  const { embedChunksParallel } = await import("./ai-gateway.server");
+
   const { extractText, prepararPlanoOcr, ocrBloco, chunkText } =
     await import("./documentos.server");
   // Um bloco por vez: sub-PDF + base64 simultâneos estouravam a memória do runtime.
@@ -275,7 +303,37 @@ export async function processarDocumentoCore(
       };
     }
 
-    // 2) OCR por blocos, retomável.
+    // 2) Se o documento não tem camada de texto direto (escaneado), mas já possui chunks indexados
+    // e não foi solicitado reiniciar do zero, preservamos o conteúdo existente com status pronto.
+    const { count: chunksJaExistentes } = await supabaseAdmin
+      .from("document_chunks")
+      .select("id", { count: "exact", head: true })
+      .eq("documento_id", documento.id);
+
+    if ((chunksJaExistentes ?? 0) > 0 && !opts?.reiniciar) {
+      await finalizar(true, {
+        modo: "hibrido",
+        chunks: chunksJaExistentes,
+        blocos_prontos: 1,
+        total_blocos: 1,
+        paginas_falhas: [],
+        aviso: null,
+      });
+      return {
+        ok: true,
+        concluido: true,
+        chunks: chunksJaExistentes ?? 0,
+        mode: "vision",
+        totalPaginas: 0,
+        paginasLidas: 0,
+        paginasFalhas: [],
+        blocosProntos: 1,
+        totalBlocos: 1,
+        aviso: null,
+      };
+    }
+
+    // 3) OCR por blocos, retomável.
     const {
       mime,
       totalPaginas,
@@ -430,21 +488,49 @@ export async function processarDocumentoCore(
     };
   } catch (e) {
     const ing = humanizeIngestError(e, "leitura");
+
+    // Confere se o documento já possui chunks válidos indexados
+    const { count: chunksRestantes } = await supabaseAdmin
+      .from("document_chunks")
+      .select("id", { count: "exact", head: true })
+      .eq("documento_id", documento.id);
+
+    const possuiConteudoValido = (chunksRestantes ?? 0) > 0;
+
     await supabaseAdmin
       .from("documentos")
       .update({
-        status_processamento: ing.toStatus(),
+        status_processamento: possuiConteudoValido ? "pronto" : ing.toStatus(),
         processamento_meta: {
+          ...metaAnterior,
           etapa: ing.stage,
           tentativas,
           travado_ate: null,
           mensagem: ing.toHuman(),
           detalhe_tecnico: ing.technical,
+          aviso: possuiConteudoValido
+            ? `Releitura mantida: ${ing.toHuman()}. Os ${chunksRestantes} trechos indexados continuam ativos.`
+            : ing.toHuman(),
           atualizado_em: new Date().toISOString(),
         },
       })
       .eq("id", documento.id);
-    throw new Error(ing.toHuman());
+
+    return {
+      ok: possuiConteudoValido,
+      concluido: true,
+      chunks: chunksRestantes ?? 0,
+      mode: "vision",
+      totalPaginas: 0,
+      paginasLidas: 0,
+      paginasFalhas: [],
+      blocosProntos: 0,
+      totalBlocos: 0,
+      aviso: possuiConteudoValido
+        ? `Releitura mantida: ${ing.toHuman()}. Os ${chunksRestantes} trechos indexados continuam ativos.`
+        : ing.toHuman(),
+      erro: possuiConteudoValido ? undefined : ing.toHuman(),
+    };
   }
 }
 
