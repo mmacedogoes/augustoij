@@ -639,22 +639,23 @@ export async function retomarDocumentosParados(
     const userId = (cond?.owner_id as string | undefined) ?? "";
 
     try {
+      // Processa apenas um bloco por documento a cada rodada do cron para evitar
+      // vazamento de memória e OOM (Out of Memory) no servidor. O próximo bloco será
+      // processado na rodada seguinte.
       let r = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey);
-      let anterior = -1;
-      while (
-        !r.concluido &&
-        r.blocosProntos > anterior &&
-        Date.now() - inicioGeral < orcamento
-      ) {
-        anterior = r.blocosProntos;
-        r = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey);
-      }
+
       itens.push({
         id: doc.id,
         nome: doc.nome_arquivo,
         resultado: r.concluido ? "concluido" : "avancou",
         detalhe: `${r.blocosProntos}/${r.totalBlocos} bloco(s)`,
       });
+
+      // Se consumiu recurso processando este documento, vamos parar por aqui
+      // para garantir que a função não estoure a memória (502) com o próximo documento.
+      if (!r.concluido) {
+        break;
+      }
     } catch (e) {
       itens.push({
         id: doc.id,
