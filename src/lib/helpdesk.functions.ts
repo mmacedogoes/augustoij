@@ -232,7 +232,7 @@ async function enviarEmailHelpdesk(kind: EmailKind, ctx: EmailCtx): Promise<void
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Augusto.IJ Suporte <naoresponda@mail.augustoij.com.br>",
+        from: "Augusto.IJ Suporte <naoresponda@augustoij.com.br>",
         to,
         subject,
         html,

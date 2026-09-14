@@ -250,7 +250,7 @@ async function runHandler(request: Request): Promise<Response> {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Augusto.IJ <lembretes@mail.augustoij.com.br>",
+          from: "Augusto.IJ <lembretes@augustoij.com.br>",
           to: [destinatario.email],
           subject: `Sua semana em contratos: ${itens.length} pendência${itens.length === 1 ? "" : "s"}`,
           html,

@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     }
 
     const payload: Record<string, unknown> = {
-      from: "Augusto.IJ <naoresponda@mail.augustoij.com.br>",
+      from: "Augusto.IJ <naoresponda@augustoij.com.br>",
       to: [email],
       subject: "5 minutos para aproveitar melhor o Augusto",
       html: buildHtml(nome),

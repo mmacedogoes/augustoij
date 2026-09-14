@@ -68,7 +68,7 @@ export const enviarContatoPersonalizado = createServerFn({ method: "POST" })
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Augusto.IJ <naoresponda@mail.augustoij.com.br>",
+        from: "Augusto.IJ <naoresponda@augustoij.com.br>",
         to: ["mmacedogoes@gmail.com"],
         reply_to: data.email,
         subject: `Novo contato — Plano Personalizado — ${data.nome}`,

@@ -260,7 +260,7 @@ async function enviarEmailCidadeNova(params: {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        from: "Augusto.IJ <naoresponda@mail.augustoij.com.br>",
+        from: "Augusto.IJ <naoresponda@augustoij.com.br>",
         to: ["mmacedogoes@gmail.com"],
         subject: `[Augusto.IJ] Nova cidade cadastrada: ${cidade}/${uf}`,
         html,

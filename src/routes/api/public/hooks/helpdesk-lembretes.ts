@@ -66,7 +66,7 @@ export const Route = createFileRoute("/api/public/hooks/helpdesk-lembretes")({
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
               body: JSON.stringify({
-                from: "Augusto.IJ Suporte <naoresponda@mail.augustoij.com.br>",
+                from: "Augusto.IJ Suporte <naoresponda@augustoij.com.br>",
                 to: ["mmacedogoes@gmail.com", "suporte@augustoij.com.br"],
                 subject: `[Suporte] Lembrete: chamado ${t.protocolo} aguarda resposta`,
                 html,

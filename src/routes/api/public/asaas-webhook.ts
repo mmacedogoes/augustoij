@@ -153,7 +153,7 @@ async function enviarEmailPagamentoConfirmado(args: {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      from: "Augusto.IJ <naoresponda@mail.augustoij.com.br>",
+      from: "Augusto.IJ <naoresponda@augustoij.com.br>",
       to: [email],
       subject: `Pagamento confirmado — seu plano ${nomePlano} está ativo`,
       html,
@@ -252,7 +252,7 @@ async function enviarEmailPagamentoPendente(args: {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      from: "Augusto.IJ <naoresponda@mail.augustoij.com.br>",
+      from: "Augusto.IJ <naoresponda@augustoij.com.br>",
       to: [email],
       subject: "Aviso: seu pagamento está pendente",
       html,
