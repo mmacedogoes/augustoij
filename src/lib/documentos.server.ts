@@ -52,8 +52,8 @@ const PROMPT_OCR =
   "7. Onde um caractere estiver ilegível, escreva [ilegível] no lugar — nunca adivinhe números.\n" +
   "8. NÃO resuma, NÃO interprete, NÃO adicione comentários — devolva APENAS o texto extraído.";
 
-const OCR_MODEL = "google/gemini-2.5-flash";
-const OCR_FALLBACK_MODEL = "google/gemini-3-flash-preview";
+const OCR_MODEL = "google/gemini-1.5-pro";
+const OCR_FALLBACK_MODEL = "google/gemini-1.5-flash";
 /** Páginas por bloco de OCR (documentos longos são lidos em partes). */
 const PAGINAS_POR_BLOCO = 1;
 /** Chamadas simultâneas ao gateway. */
@@ -179,28 +179,23 @@ async function ocrGateway(
 
 
   const tentar = async (modelo: string, userContent: Array<Record<string, unknown>>) => {
-    const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(new Error("MANUAL_ABORT")), OCR_TIMEOUT_MS);
     try {
-      const fetchPromise = fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Lovable-API-Key": apiKey,
           "X-Lovable-AIG-SDK": "vercel-ai-sdk",
         },
-        signal: ctrl.signal,
+        signal: AbortSignal.timeout(OCR_TIMEOUT_MS),
         body: JSON.stringify({
           model: modelo,
           messages: [{ role: "user", content: userContent }],
           temperature: 0.1,
         }),
       });
-      const resp = await fetchPromise;
-      clearTimeout(to);
       return resp;
     } catch (e) {
-      clearTimeout(to);
       // Se a requisição estourar o timeout rigoroso, NÃO tentamos outro modelo no mesmo
       // fluxo, pois excederíamos o limite de execução de 30s da Vercel (Edge/Serverless).
       // Ao invés disso, lançamos o erro. O cron será reexecutado e tentará novamente depois.
@@ -227,7 +222,7 @@ async function ocrGateway(
       ultimoStatus = res.status;
       ultimoCorpo = (await res.text().catch(() => "")).slice(0, 300);
       console.warn(`[ocrGateway] ${modelo} retornou ${res.status}: ${ultimoCorpo.slice(0, 120)}`);
-      if (res.status === 429 || res.status === 402 || res.status >= 500) {
+      if (res.status === 408 || res.status === 429 || res.status === 402 || res.status >= 500) {
         const err = new Error(`OCR falhou (gateway ${res.status}): ${ultimoCorpo}`);
         (err as Error & { retryavel?: boolean }).retryavel = res.status !== 402;
         throw err;
