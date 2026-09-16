@@ -111,8 +111,8 @@ async function ocrGateway(
   mime: string,
   bytes: Uint8Array,
 ): Promise<string> {
-  /** Acima disso a imagem embutida em base64 estoura a memória do runtime. */
-  const LIMITE_INLINE_BYTES = 6 * 1024 * 1024;
+  /** Acima disso a imagem embutida em base64 estoura a memória do runtime. Aumentado para 30MB para PDFs grandes. */
+  const LIMITE_INLINE_BYTES = 30 * 1024 * 1024;
 
   const variantes: Array<Array<Record<string, unknown>>> = [];
   const dataUrlDe = (m: string, b: Uint8Array) => `data:${m};base64,${bufferToBase64(b)}`;
@@ -126,14 +126,12 @@ async function ocrGateway(
       { type: "image_url", image_url: { url: dataUrlDe(mime, bytes) } },
     ]);
   } else {
-    // PDF: tentamos o próprio sub-PDF e, em paralelo de tentativas, a imagem
-    // JPEG embutida. Antes, quando a extração da imagem dava certo, o envio do
-    // PDF era descartado — e, quando falhava, o bloco morria sem alternativa.
+    // PDF: tentamos o próprio sub-PDF via image_url (OpenRouter Gemini suporta PDF via data URI em image_url).
     if (bytes.byteLength <= LIMITE_INLINE_BYTES) {
       const urlPdf = dataUrlDe(mime, bytes);
       variantes.push([
         { type: "text", text: PROMPT_OCR },
-        { type: "file", file: { filename: fileName, file_data: urlPdf } },
+        { type: "image_url", image_url: { url: urlPdf } },
       ]);
     }
     let imagemExtraida: { mime: string; bytes: Uint8Array } | null = null;
@@ -321,8 +319,6 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
       "[documentos.server] Falha ao manipular páginas do PDF com pdf-lib:",
       errorMsg
     );
-    throw new Error(`Erro no pdf-lib: ${errorMsg}`);
-    
     let estimatedPages = 1;
     try {
       const binaryString = new TextDecoder("latin1").decode(
