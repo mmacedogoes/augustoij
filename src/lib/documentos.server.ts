@@ -68,7 +68,7 @@ function isTimeoutError(e: unknown): boolean {
     return e.name === "AbortError" || e.name === "TimeoutError";
   }
   if (e instanceof Error) {
-    return /timeout|timed out|abort/i.test(e.message);
+    return /timeout|timed out|abort|manual_abort/i.test(e.message);
   }
   return false;
 }
@@ -179,22 +179,28 @@ async function ocrGateway(
 
 
   const tentar = async (modelo: string, userContent: Array<Record<string, unknown>>) => {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(new Error("MANUAL_ABORT")), OCR_TIMEOUT_MS);
     try {
-      return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const fetchPromise = fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Lovable-API-Key": apiKey,
           "X-Lovable-AIG-SDK": "vercel-ai-sdk",
         },
-        signal: AbortSignal.timeout(OCR_TIMEOUT_MS),
+        signal: ctrl.signal,
         body: JSON.stringify({
           model: modelo,
           messages: [{ role: "user", content: userContent }],
           temperature: 0.1,
         }),
       });
+      const resp = await fetchPromise;
+      clearTimeout(to);
+      return resp;
     } catch (e) {
+      clearTimeout(to);
       // Se a requisição estourar o timeout rigoroso, NÃO tentamos outro modelo no mesmo
       // fluxo, pois excederíamos o limite de execução de 30s da Vercel (Edge/Serverless).
       // Ao invés disso, lançamos o erro. O cron será reexecutado e tentará novamente depois.
