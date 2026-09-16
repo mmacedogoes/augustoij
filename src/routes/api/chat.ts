@@ -393,12 +393,43 @@ export const Route = createFileRoute("/api/chat")({
           // ============================================================
           const { data: docsBase } = await supabase
             .from("documentos")
-            .select("tipo")
+            .select("id, tipo, nome_arquivo, processamento_meta")
             .eq("condominio_id", condominioId)
             .eq("status_processamento", "pronto")
             .in("tipo", ["convencao", "regimento"]);
           const { temConvencao, temRegimento, temBaseCondominial } =
             avaliarBaseCondominial(docsBase);
+
+          // Cobertura real da leitura: um documento marcado "pronto" pode ter
+          // apenas parte das páginas indexada. Sem este aviso a IA citava
+          // artigos que nunca estiveram na base.
+          let avisoCobertura = "";
+          try {
+            const incompletos: string[] = [];
+            for (const d of (docsBase ?? []) as Array<{
+              id: string;
+              nome_arquivo: string;
+              processamento_meta: { blocos_prontos?: number; total_blocos?: number } | null;
+            }>) {
+              const meta = d.processamento_meta ?? {};
+              const lidos = typeof meta.blocos_prontos === "number" ? meta.blocos_prontos : 0;
+              const total = typeof meta.total_blocos === "number" ? meta.total_blocos : 0;
+              const { count } = await supabase
+                .from("document_chunks")
+                .select("id", { count: "exact", head: true })
+                .eq("documento_id", d.id);
+              const poucoTexto = (count ?? 0) <= 1;
+              if ((total > 0 && lidos < total) || poucoTexto) {
+                incompletos.push(d.nome_arquivo);
+              }
+            }
+            if (incompletos.length > 0) {
+              avisoCobertura = `AVISO INTERNO DE COBERTURA: a leitura dos seguintes documentos deste condomínio está INCOMPLETA: ${incompletos.join(", ")}. Você NÃO possui o texto integral deles. É PROIBIDO citar números de artigos que não estejam literalmente nos trechos recebidos. Informe ao usuário que esses documentos precisam ser reprocessados na aba Documentos antes de uma fundamentação completa.\n\n`;
+            }
+          } catch (covErr) {
+            console.warn("[chat] checagem de cobertura documental:", covErr);
+          }
+
 
           // RAG retrieval: Busca Determinística de Artigos + Busca Híbrida (Dense Vector + Sparse Lexical + RRF)
           let contexto = "";
@@ -776,6 +807,9 @@ Sempre que o usuário relatar uma conduta de determinado morador ou unidade (ex.
 2. FUNDAMENTAÇÃO LEGAL PRIMÁRIA E CITAÇÃO EXPRESSA DOS ARTIGOS:
    - Como padrão inegociável, você DEVE usar SEMPRE as normas internas do próprio condomínio (Convenção, Regimento Interno e deliberações de Atas) com menção explícita aos seus artigos como a fundamentação primária e central de toda notificação e resposta.
    - As normas do Código Civil (ex.: Art. 1.336, IV, Art. 1.337) atuam apenas como fundamento complementar e subsidiário.
+   - ÂNCORA OBRIGATÓRIA (regra absoluta e inviolável): você só pode citar um artigo, cláusula, parágrafo ou inciso da Convenção, do Regimento Interno ou de Ata se o TEXTO correspondente estiver LITERALMENTE presente nos trechos do CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO desta requisição. É TERMINANTEMENTE PROIBIDO deduzir, estimar ou inventar número de artigo a partir de conhecimento geral, de outros condomínios ou da estrutura habitual de regimentos.
+   - Ao citar um artigo interno, transcreva entre aspas o trecho exato recuperado. Se você não consegue transcrever o texto, então o artigo NÃO está na base: trate o caso como lacuna normativa (item 3) em vez de citar o número.
+   - Se o CONTEXTO DOS DOCUMENTOS DO CONDOMÍNIO estiver vazio, incompleto ou sem a Convenção/Regimento, você DEVE avisar isso ao usuário ANTES de redigir qualquer peça, com a frase: "Atenção: a Convenção e/ou o Regimento Interno deste condomínio ainda não estão lidos por completo no sistema, portanto não posso citar seus artigos. Reprocesse os documentos na aba Documentos para uma fundamentação completa." Em seguida, se o usuário ainda assim quiser a peça, redija-a apenas com fundamento legal geral, identificado como subsidiário.
 3. CASO DE LACUNA NORMATIVA (CONDUTA SEM PREVISÃO EXPRESSA NA REGRA INTERNA):
    - Se a conduta relatada NÃO tiver artigo ou previsão específica no Regimento/Convenção deste condomínio, você DEVE declarar isso com transparência e clareza:
      "A Convenção e o Regimento Interno deste condomínio não possuem previsão específica sobre este fato..."
@@ -836,7 +870,7 @@ PERGUNTAS ESTRUTURADAS (opcional):
 - Não use nenhum destes formatos se a pergunta já estiver clara.`;
 
           const blocoConhecimentoGlobal = `${orientacoesBlock ? `ORIENTAÇÕES DA ADMINISTRAÇÃO:\n${orientacoesBlock}\n\n` : ""}${contextoKb ? `BASE DE CONHECIMENTO JURÍDICO (curada):\n\n${contextoKb}\n\n` : ""}`;
-          const blocoCondominio = `${blocoContextoCondominial({ contexto, temBaseCondominial })}${cadastroBlock}`;
+          const blocoCondominio = `${avisoCobertura}${blocoContextoCondominial({ contexto, temBaseCondominial })}${cadastroBlock}`;
           const blocoDinamico = `${historicoBlock}${
             attachmentContext && attachmentContext.trim()
               ? `DOCUMENTO ANEXADO PELO USUÁRIO NESTA CONVERSA (uso temporário${
