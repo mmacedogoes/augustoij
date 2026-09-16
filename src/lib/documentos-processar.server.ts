@@ -503,7 +503,9 @@ export async function processarDocumentoCore(
         status_processamento: possuiConteudoValido ? "pronto" : ing.toStatus(),
         processamento_meta: {
           ...metaAnterior,
-          etapa: possuiConteudoValido ? (metaAnterior.etapa ?? "ocr") : ing.stage,
+          etapa: possuiConteudoValido
+            ? ((metaAnterior.etapa as string | undefined) ?? "ocr")
+            : ing.stage,
           tentativas,
           travado_ate: null,
           mensagem: possuiConteudoValido ? null : ing.toHuman(),
