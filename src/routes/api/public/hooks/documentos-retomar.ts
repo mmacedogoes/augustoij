@@ -42,7 +42,8 @@ export const Route = createFileRoute("/api/public/hooks/documentos-retomar")({
         if (!apiKey) return Response.json({ ok: false, error: "no_api_key" }, { status: 500 });
         try {
           const { retomarDocumentosParados } = await import("@/lib/documentos-processar.server");
-          const r = await retomarDocumentosParados(apiKey);
+          // Orçamento de 18s (0.3 min) e limite de 1 doc para evitar crash no timeout de 30s da Vercel
+          const r = await retomarDocumentosParados(apiKey, 0.3, 1);
           return Response.json({ ok: true, ...r });
         } catch (e) {
           console.error("[documentos-retomar]", e);
