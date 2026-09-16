@@ -637,26 +637,47 @@ export async function retomarDocumentosParados(
     const userId = (cond?.owner_id as string | undefined) ?? "";
 
     try {
-      // Processa apenas um bloco por documento a cada rodada do cron para evitar
-      // vazamento de memória e OOM (Out of Memory) no servidor. O próximo bloco será
-      // processado na rodada seguinte.
+      // DEBUG: Log start
+      await supabaseAdmin
+        .from("documentos")
+        .update({
+          processamento_meta: {
+            ...meta,
+            debug_start: new Date().toISOString(),
+          },
+        })
+        .eq("id", doc.id);
+
       let r = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey);
+      if (r.ok && r.concluido) {
+        itens.push({ id: doc.id, nome: doc.nome_arquivo, resultado: "concluido" });
+      } else if (r.ok && !r.concluido) {
+        itens.push({
+          id: doc.id,
+          nome: doc.nome_arquivo,
+          resultado: "avancou",
+          detalhe: `${r.blocosProntos}/${r.totalBlocos} bloco(s)`,
+        });
+      } else {
+        itens.push({ id: doc.id, nome: doc.nome_arquivo, resultado: "erro", detalhe: r.aviso ?? "Erro" });
+      }
 
-      itens.push({
-        id: doc.id,
-        nome: doc.nome_arquivo,
-        resultado: r.concluido ? "concluido" : "avancou",
-        detalhe: `${r.blocosProntos}/${r.totalBlocos} bloco(s)`,
-      });
-
-      // Se consumiu recurso processando este documento, vamos parar por aqui
-      // para garantir que a função não estoure a memória (502) com o próximo documento.
       if (!r.concluido) {
         break;
       }
     } catch (err) {
       const e = err as Error;
-      itens.push({ id: doc.id, nome: doc.nome_arquivo, resultado: "erro", detalhe: "MY_NEW_ERROR: " + (e.stack || e.message) });
+      await supabaseAdmin
+        .from("documentos")
+        .update({
+          processamento_meta: {
+            ...meta,
+            debug_crash: e.stack || String(e),
+          },
+        })
+        .eq("id", doc.id);
+
+      itens.push({ id: doc.id, nome: doc.nome_arquivo, resultado: "erro", detalhe: e.message });
     }
   }
 
