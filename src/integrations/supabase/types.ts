@@ -3354,6 +3354,60 @@ export type Database = {
           },
         ]
       }
+      documento_artigos: {
+        Row: {
+          artigo_numero: number
+          artigo_rotulo: string
+          capitulo: string | null
+          condominio_id: string
+          conteudo: string
+          created_at: string
+          documento_id: string
+          id: string
+          tipo: string
+          titulo: string | null
+        }
+        Insert: {
+          artigo_numero: number
+          artigo_rotulo: string
+          capitulo?: string | null
+          condominio_id: string
+          conteudo: string
+          created_at?: string
+          documento_id: string
+          id?: string
+          tipo: string
+          titulo?: string | null
+        }
+        Update: {
+          artigo_numero?: number
+          artigo_rotulo?: string
+          capitulo?: string | null
+          condominio_id?: string
+          conteudo?: string
+          created_at?: string
+          documento_id?: string
+          id?: string
+          tipo?: string
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_artigos_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_artigos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos: {
         Row: {
           condominio_id: string
