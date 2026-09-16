@@ -503,7 +503,9 @@ export async function processarDocumentoCore(
         status_processamento: possuiConteudoValido ? "pronto" : ing.toStatus(),
         processamento_meta: {
           ...metaAnterior,
-          etapa: possuiConteudoValido ? (metaAnterior.etapa ?? "ocr") : ing.stage,
+          etapa: possuiConteudoValido
+            ? ((metaAnterior.etapa as string | undefined) ?? "ocr")
+            : ing.stage,
           tentativas,
           travado_ate: null,
           mensagem: possuiConteudoValido ? null : ing.toHuman(),
@@ -573,7 +575,9 @@ export async function retomarDocumentosParados(
   opts?: { limite?: number; minutosParado?: number; orcamentoMs?: number; documentoId?: string },
 ): Promise<{ verificados: number; itens: RetomadaItem[] }> {
   const limite = opts?.limite ?? 5;
-  const minutos = opts?.minutosParado ?? 3;
+  // 1 minuto: um documento que avançou um bloco na rodada anterior volta a ser
+  // elegível na rodada seguinte, sem esperar 3 minutos por bloco.
+  const minutos = opts?.minutosParado ?? 1;
   const orcamento = opts?.orcamentoMs ?? 240_000;
   const inicioGeral = Date.now();
 
@@ -591,18 +595,24 @@ export async function retomarDocumentosParados(
   if (error) throw new Error(error.message);
 
   const corte = Date.now() - minutos * 60_000;
+  const refDe = (d: { processamento_meta: unknown; created_at: unknown }) => {
+    const meta = (d.processamento_meta ?? {}) as Record<string, unknown>;
+    return typeof meta.atualizado_em === "string"
+      ? Date.parse(meta.atualizado_em)
+      : Date.parse(d.created_at as string);
+  };
   const parados = (candidatos ?? [])
     .filter((d) => {
       const meta = (d.processamento_meta ?? {}) as Record<string, unknown>;
       if (opts?.documentoId) return true;
       const travado = typeof meta.travado_ate === "string" ? Date.parse(meta.travado_ate) : 0;
       if (travado && travado > Date.now()) return false; // outra execução está cuidando
-      const ref =
-        typeof meta.atualizado_em === "string"
-          ? Date.parse(meta.atualizado_em)
-          : Date.parse(d.created_at as string);
+      const ref = refDe(d);
       return !ref || ref < corte;
     })
+    // Menos recentemente avançado primeiro: garante rodízio justo entre documentos
+    // em vez de um PDF longo monopolizar todas as rodadas do cron.
+    .sort((a, b) => (refDe(a) || 0) - (refDe(b) || 0))
     .slice(0, limite);
 
   const itens: RetomadaItem[] = [];

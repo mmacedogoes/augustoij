@@ -57,8 +57,9 @@ const OCR_FALLBACK_MODEL = "google/gemini-3-flash-preview";
 const PAGINAS_POR_BLOCO = 1;
 /** Chamadas simultâneas ao gateway. */
 const CONCORRENCIA_OCR = 1;
-/** Tempo máximo de espera pelo gateway antes de abortar (8s para manter requests dentro do limite edge). */
-const OCR_TIMEOUT_MS = 8_000;
+/** Tempo máximo de espera pelo gateway antes de abortar (30s: páginas escaneadas pesadas
+ *  costumam levar mais de 8s; ainda abaixo do limite do edge para evitar 524). */
+const OCR_TIMEOUT_MS = 30_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -153,11 +154,9 @@ async function ocrGateway(
         }),
       });
     } catch (e) {
-      if (isTimeoutError(e)) {
-        const err = new Error(`OCR abortado por timeout (${OCR_TIMEOUT_MS}ms): o gateway não respondeu a tempo`);
-        (err as Error & { retryavel?: boolean }).retryavel = false;
-        throw err;
-      }
+      // Timeout não encerra a leitura: devolvemos null para tentar a próxima
+      // variante de payload / modelo antes de desistir do bloco.
+      if (isTimeoutError(e)) return null;
       throw e;
     }
   };
@@ -167,6 +166,12 @@ async function ocrGateway(
   for (const modelo of [OCR_MODEL, OCR_FALLBACK_MODEL]) {
     for (const userContent of variantes) {
       const res = await tentar(modelo, userContent);
+      if (!res) {
+        ultimoStatus = 408;
+        ultimoCorpo = `tempo esgotado (${OCR_TIMEOUT_MS}ms) em ${modelo}`;
+        console.warn(`[ocrGateway] ${ultimoCorpo}`);
+        continue;
+      }
       if (res.ok) {
         const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
         const texto = json.choices?.[0]?.message?.content?.trim() ?? "";
@@ -187,7 +192,8 @@ async function ocrGateway(
   }
 
   const err = new Error(`OCR falhou (gateway ${ultimoStatus}): ${ultimoCorpo}`);
-  (err as Error & { retryavel?: boolean }).retryavel = false;
+  // Timeout é transitório: permite nova tentativa na próxima rodada.
+  (err as Error & { retryavel?: boolean }).retryavel = ultimoStatus === 408;
   throw err;
 }
 
@@ -200,7 +206,6 @@ async function ocrComRetry(
   try {
     return await ocrGateway(apiKey, fileName, mime, bytes);
   } catch (e) {
-    if (isTimeoutError(e)) throw e;
     const retryavel = (e as Error & { retryavel?: boolean }).retryavel !== false;
     if (!retryavel) throw e;
     await sleep(1000);
