@@ -216,7 +216,11 @@ export const reprocessarDocumento = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       if (!doc) throw new Error("Documento não encontrado");
 
-      const { processarDocumentoCore } = await import("./documentos-processar.server");
+      const { processarDocumentoCore, limparChunks } = await import(
+        "./documentos-processar.server"
+      );
+      // Releitura do zero: apaga os trechos antigos e zera o progresso de blocos.
+      if (data.reiniciar) await limparChunks(data.id);
       return await processarDocumentoCore(context.supabase, context.userId, data.id, apiKey, {
         reiniciar: data.reiniciar,
       });
