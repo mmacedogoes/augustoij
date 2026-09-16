@@ -195,9 +195,12 @@ async function ocrGateway(
         }),
       });
     } catch (e) {
-      // Timeout não encerra a leitura: devolvemos null para tentar a próxima
-      // variante de payload / modelo antes de desistir do bloco.
-      if (isTimeoutError(e)) return null;
+      // Se a requisição estourar o timeout rigoroso, NÃO tentamos outro modelo no mesmo
+      // fluxo, pois excederíamos o limite de execução de 30s da Vercel (Edge/Serverless).
+      // Ao invés disso, lançamos o erro. O cron será reexecutado e tentará novamente depois.
+      if (isTimeoutError(e)) {
+        throw new Error(`Timeout (${OCR_TIMEOUT_MS}ms) ao chamar Vision API. O documento é complexo demais para o momento.`);
+      }
       throw e;
     }
   };
@@ -207,12 +210,6 @@ async function ocrGateway(
   for (const modelo of [OCR_MODEL, OCR_FALLBACK_MODEL]) {
     for (const userContent of variantes) {
       const res = await tentar(modelo, userContent);
-      if (!res) {
-        ultimoStatus = 408;
-        ultimoCorpo = `tempo esgotado (${OCR_TIMEOUT_MS}ms) em ${modelo}`;
-        console.warn(`[ocrGateway] ${ultimoCorpo}`);
-        continue;
-      }
       if (res.ok) {
         const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
         const texto = json.choices?.[0]?.message?.content?.trim() ?? "";
