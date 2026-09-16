@@ -326,6 +326,33 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
       "[documentos.server] Falha ao manipular páginas do PDF com pdf-lib:",
       errorMsg
     );
+    
+    // Tenta extrair JPEGs embutidos para processá-los individualmente.
+    // Isso evita timeouts no Gemini (30s) ao enviar arquivos enormes de uma vez.
+    let imagensExtraidas: Array<{ mime: string; bytes: Uint8Array }> = [];
+    try {
+      imagensExtraidas = extrairImagensDoPdf(buffer);
+    } catch {
+      /* noop */
+    }
+
+    if (imagensExtraidas.length > 0) {
+      console.warn(`[documentos.server] Fallback: PDF dividido em ${imagensExtraidas.length} imagem(ns) JPEG.`);
+      const blocos = imagensExtraidas.map((_, i) => ({
+        indice: i,
+        inicio: i + 1,
+        fim: i + 1,
+      }));
+      return {
+        mime: "image/jpeg",
+        totalPaginas: imagensExtraidas.length,
+        blocos,
+        gerarBloco: async (indice: number) => imagensExtraidas[indice].bytes,
+      };
+    }
+
+    // Se falhar e não houver JPEGs detectáveis (ex: PDF desenhado), 
+    // retorna o PDF inteiro como um bloco único.
     let estimatedPages = 1;
     try {
       const binaryString = new TextDecoder("latin1").decode(
