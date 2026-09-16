@@ -21,13 +21,15 @@ export function isPdfFile(fileName: string): boolean {
 }
 
 function bufferToBase64(buffer: Uint8Array): string {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(buffer).toString("base64");
+  }
   let binary = "";
   const chunkSize = 0x8000;
   for (let i = 0; i < buffer.length; i += chunkSize) {
     const sub = buffer.subarray(i, i + chunkSize);
     binary += String.fromCharCode(...sub);
   }
-  // btoa is available in Workers and modern Node
   return btoa(binary);
 }
 
