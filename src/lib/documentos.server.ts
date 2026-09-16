@@ -1,5 +1,6 @@
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
+import { PDFDocument } from "pdf-lib";
 
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp|tiff?)$/i;
 const IMAGE_MIME: Record<string, string> = {
@@ -279,14 +280,12 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
   }
 
   try {
-    const pdfLib = await import("pdf-lib");
-    const PDFDocument = pdfLib.PDFDocument ?? (pdfLib as Record<string, unknown>).default;
-    if (!PDFDocument || typeof (PDFDocument as { load?: unknown }).load !== "function") {
+    if (!PDFDocument || typeof PDFDocument.load !== "function") {
       throw new Error("PDFDocument não disponível neste ambiente");
     }
     const copia = new Uint8Array(buffer.byteLength);
     copia.set(buffer);
-    const src = await (PDFDocument as typeof import("pdf-lib").PDFDocument).load(copia, {
+    const src = await PDFDocument.load(copia, {
       ignoreEncryption: true,
     });
     const total = src.getPageCount();
@@ -304,7 +303,7 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
       gerarBloco: async (indice: number) => {
         const b = blocos[indice];
         if (!b) throw new Error("Bloco inexistente.");
-        const out = await (PDFDocument as typeof import("pdf-lib").PDFDocument).create();
+        const out = await PDFDocument.create();
         const paginas = await out.copyPages(
           src,
           Array.from({ length: b.fim - b.inicio + 1 }, (_, k) => b.inicio - 1 + k),
