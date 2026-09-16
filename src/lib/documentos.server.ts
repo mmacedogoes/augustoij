@@ -285,47 +285,56 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
     };
   }
 
-  try {
-    const pdfLib = await import("pdf-lib");
-    const PDFDocument = pdfLib.PDFDocument ?? (pdfLib as Record<string, unknown>).default;
-    if (!PDFDocument || typeof (PDFDocument as { load?: unknown }).load !== "function") {
-      throw new Error("PDFDocument não disponível neste ambiente");
-    }
-    const copia = new Uint8Array(buffer.byteLength);
-    copia.set(buffer);
-    const src = await (PDFDocument as any).load(copia, {
-      ignoreEncryption: true,
-    });
-    const total = src.getPageCount();
+  // Previne OOM no Edge Runtime: se o PDF tiver mais de 10MB, o pdf-lib 
+  // vai estourar a memória ao tentar parsear o arquivo. Vai direto pro fallback.
+  const bypassPdfLib = buffer.byteLength > 10 * 1024 * 1024;
 
-    const blocos: Array<{ indice: number; inicio: number; fim: number }> = [];
-    for (let i = 0; i < total; i += PAGINAS_POR_BLOCO) {
-      const fim = Math.min(i + PAGINAS_POR_BLOCO, total);
-      blocos.push({ indice: blocos.length, inicio: i + 1, fim });
-    }
+  if (!bypassPdfLib) {
+    try {
+      const pdfLib = await import("pdf-lib");
+      const PDFDocument = pdfLib.PDFDocument ?? (pdfLib as Record<string, unknown>).default;
+      if (!PDFDocument || typeof (PDFDocument as { load?: unknown }).load !== "function") {
+        throw new Error("PDFDocument não disponível neste ambiente");
+      }
+      const copia = new Uint8Array(buffer.byteLength);
+      copia.set(buffer);
+      const src = await (PDFDocument as any).load(copia, {
+        ignoreEncryption: true,
+      });
+      const total = src.getPageCount();
 
-    return {
-      mime,
-      totalPaginas: total,
-      blocos,
-      gerarBloco: async (indice: number) => {
-        const b = blocos[indice];
-        if (!b) throw new Error("Bloco inexistente.");
-        const out = await (PDFDocument as any).create();
-        const paginas = await out.copyPages(
-          src,
-          Array.from({ length: b.fim - b.inicio + 1 }, (_, k) => b.inicio - 1 + k),
-        );
-        for (const p of paginas) out.addPage(p);
-        return await out.save();
-      },
-    };
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.warn(
-      "[documentos.server] Falha ao manipular páginas do PDF com pdf-lib:",
-      errorMsg
-    );
+      const blocos: Array<{ indice: number; inicio: number; fim: number }> = [];
+      for (let i = 0; i < total; i += PAGINAS_POR_BLOCO) {
+        const fim = Math.min(i + PAGINAS_POR_BLOCO, total);
+        blocos.push({ indice: blocos.length, inicio: i + 1, fim });
+      }
+
+      return {
+        mime,
+        totalPaginas: total,
+        blocos,
+        gerarBloco: async (indice: number) => {
+          const b = blocos[indice];
+          if (!b) throw new Error("Bloco inexistente.");
+          const out = await (PDFDocument as any).create();
+          const paginas = await out.copyPages(
+            src,
+            Array.from({ length: b.fim - b.inicio + 1 }, (_, k) => b.inicio - 1 + k),
+          );
+          for (const p of paginas) out.addPage(p);
+          return await out.save();
+        },
+      };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.warn(
+        "[documentos.server] Falha ao manipular páginas do PDF com pdf-lib:",
+        errorMsg
+      );
+    }
+  } else {
+    console.warn(`[documentos.server] PDF > 10MB detectado (${Math.round(buffer.byteLength/1024/1024)}MB). Fazendo bypass do pdf-lib para evitar OOM.`);
+  }
     
     // Tenta extrair JPEGs embutidos para processá-los individualmente.
     // Isso evita timeouts no Gemini (30s) ao enviar arquivos enormes de uma vez.

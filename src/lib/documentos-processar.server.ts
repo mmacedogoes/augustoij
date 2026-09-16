@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const BUCKET = "documentos";
 
 /** Orçamento de tempo de uma rodada (1 bloco por rodada para evitar timeout do Cloudflare/Edge). */
-const ORCAMENTO_MS = 10_000;
+const ORCAMENTO_MS = 60_000;
 
 export type ResultadoProcessamento = {
   ok: boolean;
