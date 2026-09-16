@@ -80,23 +80,33 @@ function isTimeoutError(e: unknown): boolean {
 function extrairImagensDoPdf(bytes: Uint8Array): Array<{ mime: string; bytes: Uint8Array }> {
   const imagens: Array<{ mime: string; bytes: Uint8Array }> = [];
   const len = bytes.length;
-  for (let i = 0; i < len - 1; i++) {
+  let i = 0;
+  while (i < len - 1) {
     if (bytes[i] === 0xff && bytes[i + 1] === 0xd8) {
       const start = i;
       let end = -1;
-      for (let j = start; j < len - 1; j++) {
+      let j = start;
+      while (j < len - 1) {
         if (bytes[j] === 0xff && bytes[j + 1] === 0xd9) {
           end = j + 2;
           break;
         }
+        j++;
       }
-      if (end > start && end - start > 1024) {
-        imagens.push({
-          mime: "image/jpeg",
-          bytes: bytes.subarray(start, end),
-        });
-        i = end - 1;
+      if (end > start) {
+        if (end - start > 1024) {
+          imagens.push({
+            mime: "image/jpeg",
+            bytes: bytes.subarray(start, end),
+          });
+        }
+        i = end; // Avança para não reprocessar bytes
+      } else {
+        // Se varreu até o fim e não achou FF D9, não há mais imagens completas
+        break;
       }
+    } else {
+      i++;
     }
   }
   return imagens;
