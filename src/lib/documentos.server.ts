@@ -79,31 +79,29 @@ function isTimeoutError(e: unknown): boolean {
  * Extrair o fluxo JPEG bruto permite enviá-lo como image/jpeg padrão para o gateway,
  * evitando rejeição do MIME application/pdf no endpoint de chat/completions.
  */
-function extrairImagemDoPdf(bytes: Uint8Array): { mime: string; bytes: Uint8Array } | null {
+function extrairImagensDoPdf(bytes: Uint8Array): Array<{ mime: string; bytes: Uint8Array }> {
+  const imagens: Array<{ mime: string; bytes: Uint8Array }> = [];
   const len = bytes.length;
-  let start = -1;
-  for (let i = 0; i < len - 3; i++) {
-    if (bytes[i] === 0xff && bytes[i + 1] === 0xd8 && bytes[i + 2] === 0xff) {
-      start = i;
-      break;
-    }
-  }
-  if (start >= 0) {
-    let end = -1;
-    for (let i = len - 2; i > start; i--) {
-      if (bytes[i] === 0xff && bytes[i + 1] === 0xd9) {
-        end = i + 2;
-        break;
+  for (let i = 0; i < len - 1; i++) {
+    if (bytes[i] === 0xff && bytes[i + 1] === 0xd8) {
+      const start = i;
+      let end = -1;
+      for (let j = start; j < len - 1; j++) {
+        if (bytes[j] === 0xff && bytes[j + 1] === 0xd9) {
+          end = j + 2;
+          break;
+        }
+      }
+      if (end > start && end - start > 1024) {
+        imagens.push({
+          mime: "image/jpeg",
+          bytes: bytes.subarray(start, end),
+        });
+        i = end - 1;
       }
     }
-    if (end > start && end - start > 1024) {
-      return {
-        mime: "image/jpeg",
-        bytes: bytes.subarray(start, end),
-      };
-    }
   }
-  return null;
+  return imagens;
 }
 
 async function ocrGateway(
@@ -135,23 +133,33 @@ async function ocrGateway(
         { type: "image_url", image_url: { url: urlPdf } },
       ]);
     }
-    let imagemExtraida: { mime: string; bytes: Uint8Array } | null = null;
+    let imagensExtraidas: Array<{ mime: string; bytes: Uint8Array }> = [];
     try {
-      imagemExtraida = extrairImagemDoPdf(bytes);
+      imagensExtraidas = extrairImagensDoPdf(bytes);
     } catch (err) {
       console.warn(
-        "[ocrGateway] Falha ao extrair imagem embutida do PDF:",
+        "[ocrGateway] Falha ao extrair imagens embutidas do PDF:",
         err instanceof Error ? err.message : String(err),
       );
     }
-    if (imagemExtraida && imagemExtraida.bytes.byteLength <= LIMITE_INLINE_BYTES) {
-      variantes.push([
-        { type: "text", text: PROMPT_OCR },
-        {
+    
+    // Filtra as imagens muito grandes (que passariam do limite juntas) 
+    // ou apenas as que caibam no limite se somadas.
+    let totalSize = 0;
+    const imagensValidas = imagensExtraidas.filter(img => {
+      if (img.bytes.byteLength > LIMITE_INLINE_BYTES) return false;
+      return true;
+    });
+
+    if (imagensValidas.length > 0) {
+      const contentArray: Record<string, unknown>[] = [{ type: "text", text: PROMPT_OCR }];
+      for (const img of imagensValidas) {
+        contentArray.push({
           type: "image_url",
-          image_url: { url: dataUrlDe(imagemExtraida.mime, imagemExtraida.bytes) },
-        },
-      ]);
+          image_url: { url: dataUrlDe(img.mime, img.bytes) },
+        });
+      }
+      variantes.push(contentArray);
     }
     if (variantes.length === 0) {
       throw new Error(
