@@ -316,10 +316,13 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
       },
     };
   } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     console.warn(
-      "[documentos.server] Falha ao manipular páginas do PDF com pdf-lib (processando arquivo completo via IA):",
-      err instanceof Error ? err.message : String(err),
+      "[documentos.server] Falha ao manipular páginas do PDF com pdf-lib:",
+      errorMsg
     );
+    throw new Error(`Erro no pdf-lib: ${errorMsg}`);
+    
     let estimatedPages = 1;
     try {
       const binaryString = new TextDecoder("latin1").decode(
