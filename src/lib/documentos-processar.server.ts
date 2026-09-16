@@ -303,35 +303,11 @@ export async function processarDocumentoCore(
       };
     }
 
-    // 2) Se o documento não tem camada de texto direto (escaneado), mas já possui chunks indexados
-    // e não foi solicitado reiniciar do zero, preservamos o conteúdo existente com status pronto.
-    const { count: chunksJaExistentes } = await supabaseAdmin
-      .from("document_chunks")
-      .select("id", { count: "exact", head: true })
-      .eq("documento_id", documento.id);
+    // 2) Documento escaneado: NÃO encerramos só porque já existe algum trecho
+    // indexado. Antes, um único bloco lido (às vezes apenas o cabeçalho) marcava
+    // o documento como "pronto" e a IA respondia sem o conteúdo real. A cobertura
+    // é conferida por bloco no passo 3.
 
-    if ((chunksJaExistentes ?? 0) > 0 && !opts?.reiniciar) {
-      await finalizar(true, {
-        modo: "hibrido",
-        chunks: chunksJaExistentes,
-        blocos_prontos: 1,
-        total_blocos: 1,
-        paginas_falhas: [],
-        aviso: null,
-      });
-      return {
-        ok: true,
-        concluido: true,
-        chunks: chunksJaExistentes ?? 0,
-        mode: "vision",
-        totalPaginas: 0,
-        paginasLidas: 0,
-        paginasFalhas: [],
-        blocosProntos: 1,
-        totalBlocos: 1,
-        aviso: null,
-      };
-    }
 
     // 3) OCR por blocos, retomável.
     const {
@@ -463,6 +439,10 @@ export async function processarDocumentoCore(
       blocos_prontos: blocosProntos,
       total_blocos: blocos.length,
       paginas_falhas: falhas,
+      // Motivo técnico da última falha de bloco — sem isso o documento só
+      // exibia a frase genérica "tentada várias vezes sem avançar".
+      ultimo_erro: ultimoErroOcr,
+
       aviso: concluido
         ? null
         : semTempo

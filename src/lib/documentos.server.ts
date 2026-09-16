@@ -111,31 +111,56 @@ async function ocrGateway(
   mime: string,
   bytes: Uint8Array,
 ): Promise<string> {
-  let efetivoMime = mime;
-  let efetivosBytes = bytes;
+  /** Acima disso a imagem embutida em base64 estoura a memória do runtime. */
+  const LIMITE_INLINE_BYTES = 6 * 1024 * 1024;
 
-  if (mime === "application/pdf") {
-    const imagemExtraida = extrairImagemDoPdf(bytes);
-    if (imagemExtraida) {
-      efetivoMime = imagemExtraida.mime;
-      efetivosBytes = imagemExtraida.bytes;
+  const variantes: Array<Array<Record<string, unknown>>> = [];
+  const dataUrlDe = (m: string, b: Uint8Array) => `data:${m};base64,${bufferToBase64(b)}`;
+
+  if (mime.startsWith("image/")) {
+    if (bytes.byteLength > LIMITE_INLINE_BYTES) {
+      throw new Error(`Página escaneada grande demais para leitura (${bytes.byteLength} bytes)`);
+    }
+    variantes.push([
+      { type: "text", text: PROMPT_OCR },
+      { type: "image_url", image_url: { url: dataUrlDe(mime, bytes) } },
+    ]);
+  } else {
+    // PDF: tentamos o próprio sub-PDF e, em paralelo de tentativas, a imagem
+    // JPEG embutida. Antes, quando a extração da imagem dava certo, o envio do
+    // PDF era descartado — e, quando falhava, o bloco morria sem alternativa.
+    if (bytes.byteLength <= LIMITE_INLINE_BYTES) {
+      const urlPdf = dataUrlDe(mime, bytes);
+      variantes.push([
+        { type: "text", text: PROMPT_OCR },
+        { type: "file", file: { filename: fileName, file_data: urlPdf } },
+      ]);
+    }
+    let imagemExtraida: { mime: string; bytes: Uint8Array } | null = null;
+    try {
+      imagemExtraida = extrairImagemDoPdf(bytes);
+    } catch (err) {
+      console.warn(
+        "[ocrGateway] Falha ao extrair imagem embutida do PDF:",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+    if (imagemExtraida && imagemExtraida.bytes.byteLength <= LIMITE_INLINE_BYTES) {
+      variantes.push([
+        { type: "text", text: PROMPT_OCR },
+        {
+          type: "image_url",
+          image_url: { url: dataUrlDe(imagemExtraida.mime, imagemExtraida.bytes) },
+        },
+      ]);
+    }
+    if (variantes.length === 0) {
+      throw new Error(
+        `Página escaneada grande demais para leitura (${bytes.byteLength} bytes). Reenvie o documento com resolução menor.`,
+      );
     }
   }
 
-  const dataUrl = `data:${efetivoMime};base64,${bufferToBase64(efetivosBytes)}`;
-
-  const blocoImagem = { type: "image_url", image_url: { url: dataUrl } };
-  const blocoArquivo = { type: "file", file: { filename: fileName, file_data: dataUrl } };
-  const variantes: Array<Array<Record<string, unknown>>> = [];
-
-  if (efetivoMime.startsWith("image/")) {
-    variantes.push([{ type: "text", text: PROMPT_OCR }, blocoImagem]);
-  } else {
-    variantes.push(
-      [{ type: "text", text: PROMPT_OCR }, blocoArquivo],
-      [{ type: "text", text: PROMPT_OCR }, blocoImagem],
-    );
-  }
 
   const tentar = async (modelo: string, userContent: Array<Record<string, unknown>>) => {
     try {

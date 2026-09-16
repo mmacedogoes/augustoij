@@ -533,6 +533,15 @@ export function DocumentosPanel({
     const s = d.status_processamento;
     const meta = d.processamento_meta;
     if (s === "pronto") {
+      const lidos = meta?.blocos_prontos ?? 0;
+      const total = meta?.total_blocos ?? 0;
+      if (total > 0 && lidos < total) {
+        return (
+          <span className="inline-flex items-center gap-1 text-xs text-amber-400">
+            <AlertTriangle className="h-3 w-3" /> Leitura incompleta · {lidos}/{total} bloco(s)
+          </span>
+        );
+      }
       const origem =
         meta?.modo === "ocr"
           ? " · OCR IA"
@@ -545,6 +554,7 @@ export function DocumentosPanel({
         </span>
       );
     }
+
     if (s === "processando") {
       const ref = meta?.atualizado_em ? Date.parse(meta.atualizado_em) : Date.parse(d.created_at);
       const paradoMin = Math.floor((Date.now() - ref) / 60_000);
