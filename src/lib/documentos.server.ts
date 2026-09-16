@@ -58,9 +58,8 @@ const OCR_FALLBACK_MODEL = "google/gemini-3-flash-preview";
 const PAGINAS_POR_BLOCO = 1;
 /** Chamadas simultâneas ao gateway. */
 const CONCORRENCIA_OCR = 1;
-/** Tempo máximo de espera pelo gateway antes de abortar (30s: páginas escaneadas pesadas
- *  costumam levar mais de 8s; ainda abaixo do limite do edge para evitar 524). */
-const OCR_TIMEOUT_MS = 30_000;
+/** Timeout agressivo (20s) para garantir que o worker aborta a requisição antes do proxy da Vercel (30s) matar o processo com 500. */
+const OCR_TIMEOUT_MS = 20_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

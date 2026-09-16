@@ -357,6 +357,7 @@ export async function processarDocumentoCore(
             `${documento.nome_arquivo} (p. ${bloco.inicio}-${bloco.fim})`,
             mime,
             bytes,
+            1, // Nunca retentar no mesmo cron loop para evitar timeout de 30s da Vercel
           );
 
           if (!txt.trim()) {
