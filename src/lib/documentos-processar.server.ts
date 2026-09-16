@@ -648,7 +648,7 @@ export async function retomarDocumentosParados(
       }
     } catch (err) {
       const e = err as Error;
-      itens.push({ id: doc.id, nome: doc.nome_arquivo, resultado: "erro", detalhe: e.stack || e.message });
+      itens.push({ id: doc.id, nome: doc.nome_arquivo, resultado: "erro", detalhe: "MY_NEW_ERROR: " + (e.stack || e.message) });
     }
   }
 
