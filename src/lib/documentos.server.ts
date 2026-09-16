@@ -1,5 +1,4 @@
-import mammoth from "mammoth";
-import * as XLSX from "xlsx";
+// mammoth and xlsx imported dynamically inside extractText
 
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp|tiff?)$/i;
 const IMAGE_MIME: Record<string, string> = {
@@ -294,7 +293,7 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
     }
     const copia = new Uint8Array(buffer.byteLength);
     copia.set(buffer);
-    const src = await (PDFDocument as typeof import("pdf-lib").PDFDocument).load(copia, {
+    const src = await (PDFDocument as any).load(copia, {
       ignoreEncryption: true,
     });
     const total = src.getPageCount();
@@ -312,7 +311,7 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
       gerarBloco: async (indice: number) => {
         const b = blocos[indice];
         if (!b) throw new Error("Bloco inexistente.");
-        const out = await (PDFDocument as typeof import("pdf-lib").PDFDocument).create();
+        const out = await (PDFDocument as any).create();
         const paginas = await out.copyPages(
           src,
           Array.from({ length: b.fim - b.inicio + 1 }, (_, k) => b.inicio - 1 + k),
@@ -516,6 +515,7 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
       }
     }
     if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
+      const mammoth = (await import("mammoth")).default;
       const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
       if (!result.value || !result.value.trim()) {
         throw new Error("DOCX sem texto extraível ou corrompido.");
@@ -533,7 +533,8 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
       return txt;
     }
     if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
-      let wb: XLSX.WorkBook;
+      const XLSX = await import("xlsx");
+      let wb: any;
       try {
         wb = XLSX.read(buffer, { type: "array" });
       } catch {
