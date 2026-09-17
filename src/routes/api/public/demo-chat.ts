@@ -75,7 +75,7 @@ export const Route = createFileRoute("/api/public/demo-chat")({
               "Lovable-API-Key": lovableKey,
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model: "google/gemini-1.5-flash",
               messages: [
                 {
                   role: "system",
@@ -133,7 +133,7 @@ export const Route = createFileRoute("/api/public/demo-chat")({
             await registrarEventoIa({
               userId: null,
               origem: "demo_chat",
-              model: "google/gemini-2.5-flash",
+              model: "google/gemini-1.5-flash",
               tokensInput: json.usage?.prompt_tokens ?? 0,
               tokensOutput: json.usage?.completion_tokens ?? 0,
               aigLogId,

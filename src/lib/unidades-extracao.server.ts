@@ -185,7 +185,7 @@ type ChamadaIA = {
   aigRunId: string | null;
 };
 
-const MODELO = "google/gemini-3.7-flash";
+const MODELO = "google/gemini-1.5-flash";
 const TAMANHO_LOTE = 80_000;
 const CONCORRENCIA = 6;
 const MAX_TENTATIVAS = 3;

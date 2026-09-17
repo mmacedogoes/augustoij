@@ -124,7 +124,7 @@ ${JSON.stringify(data.itens, null, 2)}`;
         "Lovable-API-Key": apiKey
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-1.5-flash",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" }
       })

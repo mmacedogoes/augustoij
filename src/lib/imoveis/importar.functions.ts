@@ -13,7 +13,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ensureSuperAdmin } from "./guard";
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-1.5-flash";
 const AIG_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 // ------- Input schemas ---------------------------------------------------

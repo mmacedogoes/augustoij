@@ -7,7 +7,7 @@ import { logAdminAction } from "../audit.server";
 import { registrarEventoIa, extractAigIds } from "../uso-ia.server";
 import { BUCKET_GRAVACOES } from "./gravacao.functions";
 
-const MODELO_TRANSCRICAO = "google/gemini-2.5-flash";
+const MODELO_TRANSCRICAO = "google/gemini-1.5-flash";
 
 /** Teto de áudio por bloco: acima disso o servidor fica sem memória. */
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
