@@ -346,11 +346,9 @@ export async function processarDocumentoCore(
         try {
           const bytes = await gerarBloco(bloco.indice);
           
-          // Limite estrito do Vercel Edge para payload de fetch é ~14MB.
-          // Se o bloco for maior que 5MB, ele vai causar um OOM ao gerar a string base64.
-          // Precisamos abortar graciosamente.
-          if (bytes.byteLength > 5 * 1024 * 1024) {
-            throw new Error(`Este PDF é grande demais (${Math.round(bytes.byteLength/1024/1024)}MB) e usa um formato de compressão que não pudemos dividir automaticamente. Por favor, divida o PDF em arquivos menores (ex: 5MB cada) e reenvie.`);
+          // Limite para payload inline: 12MB suporta páginas escaneadas densas/alta resolução.
+          if (bytes.byteLength > 12 * 1024 * 1024) {
+            throw new Error(`Esta página é grande demais (${Math.round(bytes.byteLength/1024/1024)}MB). Reduza a resolução do documento e reenvie.`);
           }
 
           const txt = await ocrBloco(

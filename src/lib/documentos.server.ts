@@ -188,8 +188,8 @@ async function ocrGateway(
   mime: string,
   bytes: Uint8Array,
 ): Promise<string> {
-  /** Acima disso a imagem embutida em base64 mais o JSON.stringify() estoura a memória do Vercel Edge Runtime (128MB). */
-  const LIMITE_INLINE_BYTES = 5 * 1024 * 1024;
+  /** Limite de segurança para envio inline de página individual (12MB suporta páginas escaneadas em alta resolução). */
+  const LIMITE_INLINE_BYTES = 12 * 1024 * 1024;
 
   const variantes: Array<Array<Record<string, unknown>>> = [];
   const dataUrlDe = (m: string, b: Uint8Array) => `data:${m};base64,${bufferToBase64(b)}`;
