@@ -141,7 +141,7 @@ export const processarImportacaoIA = createServerFn({ method: "POST" })
       const allLinhas: z.infer<typeof LinhaIAResult>[] = [];
       let totalInputTokens = 0;
       let totalOutputTokens = 0;
-      let lastModel = "google/gemini-1.5-flash";
+      let lastModel = "google/gemini-2.5-flash";
 
       for (const chunk of chunks) {
         const systemPrompt = `Você é um assistente especialista em extrair dados de inadimplência de condomínios brasileiros.

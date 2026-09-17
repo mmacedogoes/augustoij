@@ -19,7 +19,7 @@ import { gerarChecklistsInterno } from "./checklists.functions";
 import { sincronizarContratoNoAcervo } from "./ai-context.server";
 import { registrarAuditoriaContrato } from "./auditoria.server";
 
-const MODEL = "google/gemini-1.5-flash";
+const MODEL = "google/gemini-2.5-flash";
 const AIG_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MAX_BYTES = 10 * 1024 * 1024;
 

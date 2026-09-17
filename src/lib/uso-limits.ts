@@ -87,10 +87,10 @@ export function avaliarLimite(uso: UsoAtual): LimiteStatus {
 /** Modelo Lovable AI para o plano (nunca exibir na UI). */
 export function modeloParaPlano(planoId: PlanId): string {
   const plano = PLANS[planoId];
-  if (!plano) return "google/gemini-1.5-flash";
+  if (!plano) return "google/gemini-2.5-flash";
   return plano.modelo_ia === "modelo-economico"
-    ? "google/gemini-1.5-flash-8b"
-    : "google/gemini-1.5-flash";
+    ? "google/gemini-2.5-flash-lite"
+    : "google/gemini-2.5-flash";
 }
 
 /** Ordem dos planos para mostrar upgrades acima do atual. */

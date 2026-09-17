@@ -171,7 +171,7 @@ export const extractAttachmentForChat = createServerFn({ method: "POST" })
           "X-Lovable-AIG-SDK": "vercel-ai-sdk",
         },
         body: JSON.stringify({
-          model: "google/gemini-1.5-flash",
+          model: "google/gemini-2.5-flash",
           messages: [
             {
               role: "system",

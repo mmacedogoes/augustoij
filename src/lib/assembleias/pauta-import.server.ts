@@ -2,7 +2,7 @@
  * Extração dos itens de pauta a partir de um edital em PDF (ou TXT/DOCX).
  * Texto extraído localmente e, em PDF escaneado, enviado como arquivo à IA.
  */
-const MODEL = "google/gemini-1.5-flash";
+const MODEL = "google/gemini-2.5-flash";
 const AIG_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MAX_BYTES = 10 * 1024 * 1024;
 

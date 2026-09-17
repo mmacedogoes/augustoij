@@ -7,7 +7,7 @@ import { logAdminAction } from "../audit.server";
 import { registrarEventoIa, extractAigIds } from "../uso-ia.server";
 import { descreverResultado } from "./resultado-texto";
 
-const MODELO_ATA = "google/gemini-1.5-flash";
+const MODELO_ATA = "google/gemini-2.5-flash";
 
 export const TIPOS_LACUNA = [
   "dado_cadastral",

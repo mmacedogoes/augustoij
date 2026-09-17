@@ -52,8 +52,8 @@ const PROMPT_OCR =
   "7. Onde um caractere estiver ilegível, escreva [ilegível] no lugar — nunca adivinhe números.\n" +
   "8. NÃO resuma, NÃO interprete, NÃO adicione comentários — devolva APENAS o texto extraído.";
 
-const OCR_MODEL = "google/gemini-1.5-pro";
-const OCR_FALLBACK_MODEL = "google/gemini-1.5-flash";
+const OCR_MODEL = "google/gemini-2.5-pro";
+const OCR_FALLBACK_MODEL = "google/gemini-2.5-flash";
 /** Páginas por bloco de OCR (documentos longos são lidos em partes). */
 const PAGINAS_POR_BLOCO = 1;
 /** Chamadas simultâneas ao gateway. */
