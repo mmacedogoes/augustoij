@@ -619,7 +619,17 @@ export function UnidadesPanel({
       {openImport && (
         <ImportDialog
           onClose={() => setOpenImport(false)}
+          onImport={async (linhas) => {
+            const r = (await importFn({
+              data: { condominioId, linhas: linhas as never },
+            })) as {
+              unidadesCriadas: number;
+              unidadesAtualizadas: number;
+              condominosCriados: number;
+              erros: { linha: number; mensagem: string }[];
             };
+            refresh();
+            return r;
           }}
         />
       )}

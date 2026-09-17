@@ -71,7 +71,7 @@ export const Route = createFileRoute("/api/public/versao")({
           for (let i = 0; i < ops.fnArray.length; i++) {
             const fn = ops.fnArray[i];
             const args = ops.argsArray[i];
-            if (fn === OPS.paintImageXObject || fn === OPS.paintJpegXObject || fn === OPS.paintImageMaskXObject) {
+            if (fn === OPS.paintImageXObject || fn === (OPS as any)["paintJpegXObject"] || fn === OPS.paintImageMaskXObject) {
               imageOps.push({ fn, opName: Object.keys(OPS).find(k => (OPS as any)[k] === fn), args });
             }
           }

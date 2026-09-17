@@ -14,6 +14,7 @@ import {
 import {
   construirCenso,
   resolverIdentidade,
+  identificadorDaLinha,
   type Conhecida,
   type LinhaCenso,
 } from "./censo-linhas";
