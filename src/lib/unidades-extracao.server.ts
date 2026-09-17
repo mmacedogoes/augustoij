@@ -235,7 +235,7 @@ const TAMANHO_LOTE = 80_000;
 const CONCORRENCIA = 6;
 const MAX_TENTATIVAS = 3;
 /** Muda sempre que o prompt muda — invalida o cache de extração. */
-export const VERSAO_PROMPT = "2026-08-31.censo-linhas.v1";
+export const VERSAO_PROMPT = "2026-09-17.censo-linhas.v2";
 
 
 export class ExtracaoIncompletaError extends Error {
@@ -1285,8 +1285,9 @@ export async function extrairESalvarSugestaoUnidades(
       const textoResumido = textoCompleto.slice(0, 200000); 
       
       const routerPrompt = `Você é um classificador estrutural de convenções de condomínio.
-Analise o documento abaixo e identifique em quais páginas encontra-se o Quadro de Áreas, a Tabela de Frações Ideais, ou a descrição textual individualizada das unidades autônomas.
-Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encontrar nada claro, retorne { "paginas": [] }. Seja cirúrgico e evite o índice.`;
+Analise o documento abaixo e identifique em quais páginas encontra-se o Quadro de Áreas, a Tabela de Frações Ideais, ou a descrição textual que contenha as METRAGENS e FRAÇÕES das unidades.
+ATENÇÃO: Ignore páginas que apenas listam os números das unidades (como sumários, índices, regulamentos ou seções de "posição/situação") sem informar suas áreas. Seja cirúrgico.
+Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encontrar nada claro, retorne { "paginas": [] }.`;
 
       const routerRes = await chamarIaJson(apiKey, "Você é um analista.", routerPrompt + "\n\n" + textoResumido);
       const parsedRouter = routerRes.data as { paginas?: number[] };
@@ -1485,7 +1486,7 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     "Em cada medida, devolva o campo linha_id com o identificador da linha de onde o valor foi lido; NÃO redigite o trecho. " +
     "Leia cada trecho integralmente. Linhas agrupadas como '701A, 901A e 1501A' devem gerar uma linha para cada unidade somente se o texto atribuir explicitamente os mesmos valores ao grupo. " +
     "Devolva TODAS as medidas numéricas que o documento associa à unidade, cada uma com seu rótulo. " +
-    "Se o documento apenas listar os números das unidades e/ou nomes de condôminos (sem frações ou áreas expressas), extraia todas as unidades com medidas: []. " +
+    "Se houver múltiplas seções, priorize extrair as unidades a partir da seção mais detalhada (que contém as metragens e frações ideais). Ignore índices e listas simplificadas se o detalhamento existir em outro trecho. " +
     "Se o cabeçalho da coluna não estiver visível no trecho recebido, use campo indeterminado; nunca adivinhe o rótulo. " +
     "Preserve valor_bruto exatamente como impresso, inclusive %, ‰, barra e vírgula. Não converta escalas. " +
     "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
