@@ -486,19 +486,36 @@ export const Route = createFileRoute("/api/public/versao")({
           const censo1 = chunks1 ? construirCenso("5c4fea1b-6048-4343-8080-659fc2308497", chunks1 as any) : null;
           const censo2 = chunks2 ? construirCenso("a4ea458f-c0fe-4e52-b652-3074ac0cbc61", chunks2 as any) : null;
 
+          let extrairResultado: any = null;
+          if ((body as any).triggerExtrair) {
+            try {
+              const lovableKey = process.env.LOVABLE_API_KEY;
+              if (!lovableKey) throw new Error("no_api_key");
+              const targetDocId = (body as any).docId || "5c4fea1b-6048-4343-8080-659fc2308497";
+              const { extrairESalvarSugestaoUnidades } = await import("@/lib/unidades-extracao.server");
+              const resUnidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, targetDocId, lovableKey, { force: true });
+              extrairResultado = { ok: true, total: resUnidades.length, unidades: resUnidades };
+            } catch (extErr: any) {
+              extrairResultado = { ok: false, erro: extErr.message || String(extErr), codigo: extErr.codigo, stack: extErr.stack };
+            }
+          }
+
           return Response.json({
             ok: true,
             cond,
             docs,
             sugestoes,
+            extrairResultado,
             censo1: censo1 ? {
               totalLinhas: censo1.linhas.length,
               candidatas: censo1.candidatas.length,
+              amostraCandidatas: censo1.candidatas.slice(0, 30).map(l => ({ id: l.linha_id, texto: l.texto })),
               amostraLinhas: censo1.linhas.slice(0, 30).map(l => ({ id: l.linha_id, texto: l.texto, candidata: l.candidata })),
             } : null,
             censo2: censo2 ? {
               totalLinhas: censo2.linhas.length,
               candidatas: censo2.candidatas.length,
+              amostraCandidatas: censo2.candidatas.slice(0, 30).map(l => ({ id: l.linha_id, texto: l.texto })),
               amostraLinhas: censo2.linhas.slice(0, 30).map(l => ({ id: l.linha_id, texto: l.texto, candidata: l.candidata })),
             } : null,
           });

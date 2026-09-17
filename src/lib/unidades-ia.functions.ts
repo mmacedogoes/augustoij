@@ -271,11 +271,12 @@ export const extrairCondominosDeArquivo = createServerFn({ method: "POST" })
 
 export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { condominioId: string; force?: boolean }) =>
+  .inputValidator((input: { condominioId: string; force?: boolean; documentoId?: string }) =>
     z
       .object({
         condominioId: z.string().uuid(),
         force: z.boolean().optional().default(false),
+        documentoId: z.string().uuid().optional(),
       })
       .parse(input),
   )
@@ -286,58 +287,78 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
     await assertAcessoCondominio(context.supabase, context.userId, data.condominioId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: doc } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("documentos")
-      .select("id")
+      .select("id, status_processamento")
       .eq("condominio_id", data.condominioId)
       .eq("tipo", "convencao")
       .eq("status_processamento", "pronto")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!doc) return { status: "sem_convencao" as const };
+      .order("created_at", { ascending: false });
 
-    if (!data.force) {
-      const { data: existente } = await context.supabase
-        .from("sugestoes_unidades")
-        .select("id, status")
-        .eq("documento_id", doc.id)
-        .limit(1)
-        .maybeSingle();
-      if (existente) return { status: "ja_processada" as const };
+    if (data.documentoId) {
+      query = query.eq("id", data.documentoId);
     }
 
-    let unidades: UnidadeSugerida[];
-    try {
-      const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-      unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
-        force: data.force,
-      });
-    } catch (err: unknown) {
-      const controlado =
-        typeof err === "object" &&
-        err !== null &&
-        "codigo" in err &&
-        (err as { codigo?: unknown }).codigo === "extracao_incompleta";
-      if (controlado) {
-        return {
-          status: "incompleta" as const,
-          documentoId: doc.id,
-          mensagem: err instanceof Error ? err.message : "A extração requer revisão.",
-        };
+    const { data: docs } = await query;
+    if (!docs || docs.length === 0) return { status: "sem_convencao" as const };
+
+    let ultimoErroControlado: string | null = null;
+    let ultimoDocId = docs[0].id;
+
+    for (const doc of docs) {
+      ultimoDocId = doc.id;
+      if (!data.force) {
+        const { data: existente } = await context.supabase
+          .from("sugestoes_unidades")
+          .select("id, status")
+          .eq("documento_id", doc.id)
+          .limit(1)
+          .maybeSingle();
+        if (existente) return { status: "ja_processada" as const };
       }
-      throw err;
+
+      try {
+        const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+        const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
+          force: data.force,
+        });
+        if (unidades.length > 0) {
+          return { status: "gerada" as const, unidades, documentoId: doc.id };
+        }
+      } catch (err: unknown) {
+        const controlado =
+          typeof err === "object" &&
+          err !== null &&
+          "codigo" in err &&
+          (err as { codigo?: unknown }).codigo === "extracao_incompleta";
+        if (controlado) {
+          ultimoErroControlado = err instanceof Error ? err.message : "A extração requer revisão.";
+          continue;
+        }
+        throw err;
+      }
     }
-    if (unidades.length === 0) {
-      return { status: "vazio" as const, documentoId: doc.id };
+
+    if (ultimoErroControlado) {
+      return {
+        status: "incompleta" as const,
+        documentoId: ultimoDocId,
+        mensagem: ultimoErroControlado,
+      };
     }
-    return { status: "gerada" as const, unidades, documentoId: doc.id };
+
+    return { status: "vazio" as const, documentoId: ultimoDocId };
   });
 
 export const reprocessarConvencao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { condominioId: string }) =>
-    z.object({ condominioId: z.string().uuid() }).parse(input),
+  .inputValidator((input: { condominioId: string; documentoId?: string }) =>
+    z
+      .object({
+        condominioId: z.string().uuid(),
+        documentoId: z.string().uuid().optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -346,56 +367,74 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
     await assertAcessoCondominio(context.supabase, context.userId, data.condominioId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: doc } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("documentos")
-      .select("id, status_processamento")
+      .select("id, status_processamento, nome_arquivo")
       .eq("condominio_id", data.condominioId)
       .eq("tipo", "convencao")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!doc) return { status: "sem_convencao" as const };
-    if (doc.status_processamento !== "pronto") {
+      .order("created_at", { ascending: false });
+
+    if (data.documentoId) {
+      query = query.eq("id", data.documentoId);
+    }
+
+    const { data: docs } = await query;
+    if (!docs || docs.length === 0) return { status: "sem_convencao" as const };
+
+    const prontos = docs.filter((d) => d.status_processamento === "pronto");
+    if (prontos.length === 0) {
       return {
         status: "erro_leitura" as const,
         mensagem: "A leitura técnica ainda não terminou. Continue em Documentos > Reler documento.",
       };
     }
-    let unidades: UnidadeSugerida[] = [];
-    try {
-      const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-      unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
-        force: true,
-      });
-    } catch (err: unknown) {
-      const erroControlado =
-        typeof err === "object" &&
-        err !== null &&
-        "codigo" in err &&
-        (err as { codigo?: unknown }).codigo === "extracao_incompleta";
-      if (erroControlado) {
-        return {
-          status: "incompleta" as const,
-          documentoId: doc.id,
-          mensagem: err instanceof Error ? err.message : "A extração ficou incompleta.",
-          modo: "indice_completo",
-          chunks: 0,
-        };
+
+    let ultimoErroControlado: string | null = null;
+    let ultimoDocId = prontos[0].id;
+
+    for (const doc of prontos) {
+      ultimoDocId = doc.id;
+      try {
+        const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
+        const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
+          force: true,
+        });
+        if (unidades.length > 0) {
+          return {
+            status: "gerada" as const,
+            documentoId: doc.id,
+            unidades,
+            modo: "indice_completo",
+            chunks: 0,
+          };
+        }
+      } catch (err: unknown) {
+        const erroControlado =
+          typeof err === "object" &&
+          err !== null &&
+          "codigo" in err &&
+          (err as { codigo?: unknown }).codigo === "extracao_incompleta";
+        if (erroControlado) {
+          ultimoErroControlado = err instanceof Error ? err.message : "A extração ficou incompleta.";
+          continue;
+        }
+        throw err;
       }
-      throw err;
     }
-    if (unidades.length === 0) {
+
+    if (ultimoErroControlado) {
       return {
-        status: "sem_unidades" as const,
-        documentoId: doc.id,
+        status: "incompleta" as const,
+        documentoId: ultimoDocId,
+        mensagem: ultimoErroControlado,
         modo: "indice_completo",
         chunks: 0,
       };
     }
+
     return {
-      status: "gerada" as const,
-      documentoId: doc.id,
-      unidades,
+      status: "sem_unidades" as const,
+      documentoId: ultimoDocId,
       modo: "indice_completo",
       chunks: 0,
     };

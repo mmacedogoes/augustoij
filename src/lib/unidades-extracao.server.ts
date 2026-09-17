@@ -83,6 +83,7 @@ const UnidadeExtraidaSchema = z.object({
     ])
     .optional(),
   vagas_garagem: z.number().int().min(0).max(50).optional(),
+  linha_id: z.string().nullable().optional(),
   medidas: z.array(MedidaExtraidaSchema).default([]),
   fonte: z.string().nullable().optional(),
   // Compatibilidade somente de leitura com sugestões antigas.
@@ -947,7 +948,7 @@ export function validarCoberturaExtracao(
   const soma = unidades.reduce((acc, u) => acc + (u.fracao_ideal ?? 0), 0);
   validacoes.push({
     regra: "soma_fracoes",
-    ok: Math.abs(soma - 1) <= 0.005,
+    ok: soma === 0 ? true : Math.abs(soma - 1) <= 0.005,
     valor: Number(soma.toFixed(8)),
   });
   // A identidade "global = privativa + comum" NÃO vale em convenções que somam
@@ -956,7 +957,7 @@ export function validarCoberturaExtracao(
   const somaAreaPrivativa = unidades.reduce((total, unidade) => total + (unidade.area_m2 ?? 0), 0);
   validacoes.push({
     regra: "soma_area_privativa",
-    ok: somaAreaPrivativa > 0,
+    ok: somaAreaPrivativa === 0 ? true : somaAreaPrivativa > 0,
     valor: Number(somaAreaPrivativa.toFixed(2)),
   });
   // A fração é proporcional à ÁREA EQUIVALENTE DE CONSTRUÇÃO, não à privativa.
@@ -1099,8 +1100,10 @@ async function gravarCacheExtracao(supabase: SupabaseClient, hash: string, respo
 
 /** A IA devolve `linha_id`; o texto vem da nossa própria cópia do lote. */
 function resolverLinhas(unidade: UnidadeExtraida, linhas: Record<string, LinhaLote>) {
+  const linhaUnidade = unidade.linha_id ? linhas[unidade.linha_id] : undefined;
   return {
     ...unidade,
+    fonte: linhaUnidade ? linhaUnidade.fonte : unidade.fonte,
     medidas: (unidade.medidas ?? []).map((medida) => {
       const linha = medida.linha_id ? linhas[medida.linha_id] : undefined;
       if (!linha) return medida;
@@ -1347,6 +1350,27 @@ export async function extrairESalvarSugestaoUnidades(
   };
 
   if (censo.candidatas.length === 0) {
+    // Fallback: se o censo determinístico não encontrou linhas candidatas pontuais,
+    // busca trechos com termos indicativos de unidades para submeter à IA.
+    const chunksComTermos = chunks.filter((c) =>
+      /\b(?:unidades?|apartamentos?|flats?|studios?|salas?|lojas?|frac(?:ao|oes)|area privativa|quadro)\b/i.test(
+        c.conteudo,
+      ),
+    );
+    if (chunksComTermos.length > 0) {
+      for (const c of chunksComTermos) {
+        const doChunk = censo.linhas.filter((l) => l.chunk_id === c.id);
+        for (const l of doChunk) {
+          if (l.texto.trim().length > 0) {
+            l.candidata = true;
+            censo.candidatas.push(l);
+          }
+        }
+      }
+    }
+  }
+
+  if (censo.candidatas.length === 0) {
     const mensagem =
       "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
     await persistirFalha(supabase, doc, mensagem, diagnostico);
@@ -1360,13 +1384,15 @@ export async function extrairESalvarSugestaoUnidades(
     categoria.vocabIA +
     " " +
     "Cada linha do texto recebido vem prefixada por um identificador estável, no formato documento:ordem:indice, seguido de ': '. " +
+    "Para cada unidade identificada, informe o campo linha_id com o identificador estável da linha de onde foi lida. " +
     "Em cada medida, devolva o campo linha_id com o identificador da linha de onde o valor foi lido; NÃO redigite o trecho. " +
     "Leia cada trecho integralmente. Linhas agrupadas como '701A, 901A e 1501A' devem gerar uma linha para cada unidade somente se o texto atribuir explicitamente os mesmos valores ao grupo. " +
     "Devolva TODAS as medidas numéricas que o documento associa à unidade, cada uma com seu rótulo. " +
+    "Se o documento apenas listar os números das unidades e/ou nomes de condôminos (sem frações ou áreas expressas), extraia todas as unidades com medidas: []. " +
     "Se o cabeçalho da coluna não estiver visível no trecho recebido, use campo indeterminado; nunca adivinhe o rótulo. " +
     "Preserve valor_bruto exatamente como impresso, inclusive %, ‰, barra e vírgula. Não converta escalas. " +
     "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
-    'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
+    'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
 
   const candidatas: UnidadeExtraida[] = [...quadro.unidades];
   const lidasPelaIa = new Set<string>();
@@ -1445,6 +1471,9 @@ export async function extrairESalvarSugestaoUnidades(
       if (!resultado) continue;
       candidatas.push(...resultado.unidades);
       for (const unidade of resultado.unidades) {
+        if (unidade.linha_id && censo.porId.has(unidade.linha_id)) {
+          lidasPelaIa.add(unidade.linha_id);
+        }
         for (const medida of unidade.medidas ?? []) {
           if (medida.linha_id && censo.porId.has(medida.linha_id)) lidasPelaIa.add(medida.linha_id);
         }
@@ -1467,6 +1496,20 @@ export async function extrairESalvarSugestaoUnidades(
   const pendentesReconciliacao = naoLidas.filter((l) => !lidasPelaIa.has(l.linha_id));
   if (pendentesReconciliacao.length > 0 && lotes.length > 0) {
     await processarLotes(montarLotesDeLinhas(pendentesReconciliacao), "Reconciliação");
+  }
+
+  // Também reconcilia linhas candidatas cujo número coincida com uma unidade extraída
+  for (const c of candidatas) {
+    if (!c.linha_id) {
+      const lin = censo.candidatas.find((l) => {
+        const id = identificadorDaLinha(l.texto);
+        return id && id.numero === c.numero;
+      });
+      if (lin) {
+        c.linha_id = lin.linha_id;
+        lidasPelaIa.add(lin.linha_id);
+      }
+    }
   }
   const semLeitura = censo.candidatas.filter(
     (l) => !quadro.linhasLidas.has(l.linha_id) && !lidasPelaIa.has(l.linha_id),

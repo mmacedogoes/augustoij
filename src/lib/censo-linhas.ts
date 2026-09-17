@@ -43,7 +43,7 @@ export function semAcento(valor: string) {
 }
 
 const PREFIXO_UNIDADE =
-  /^(UNIDADES?|UNID|UN|APARTAMENTOS?|APTO|APART|AP|CASA|LOJA|SALA|LOTE|GALPAO|VAGA|BOX|N[º°O]|N)\.?\s*/;
+  /^(UNIDADES?|UNID|UN|APARTAMENTOS?|APTO|APART|AP|FLATS?|STUDIOS?|CASAS?|LOJAS?|SALAS?|LOTES?|CONJUNTOS?|CJ|GALPAO|VAGAS?|BOX|N[º°O]|N)\.?\s*/i;
 const PREFIXO_BLOCO = /^(?:BL|BLOCO|TORRE|QD|QUADRA)\.?\s*([A-Z0-9]{1,3})[\s\-–—/.]*(?=\d)/;
 const SEP = "[\\s\\-–—/.]";
 
@@ -84,15 +84,23 @@ export function tokenizarIdentificador(celula: string): Identificador | null {
 }
 
 export function celulasDaLinha(linha: string) {
-  if (linha.includes("|")) {
-    return linha
-      .trim()
-      .replace(/^\|/, "")
-      .replace(/\|$/, "")
-      .split("|")
-      .map((c) => c.trim());
+  const trim = linha.trim();
+  if (/[|!¦]/.test(trim)) {
+    return trim
+      .replace(/^[|!¦]/, "")
+      .replace(/[|!¦]$/, "")
+      .split(/[|!¦]/)
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
   }
-  return linha.split(/\s{2,}|;|\t/).map((c) => c.trim());
+  if (/^\s*\d{1,5}[A-Z]?\s*:\s*\S/i.test(trim)) {
+    const idx = trim.indexOf(":");
+    return [trim.slice(0, idx).trim(), trim.slice(idx + 1).trim()];
+  }
+  return trim
+    .split(/\s{2,}|;|\t/)
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
 }
 
 /** Primeiro token da linha que parece um identificador de unidade. */
@@ -101,7 +109,7 @@ export function identificadorDaLinha(linha: string): Identificador | null {
     const token = tokenizarIdentificador(celula);
     if (token) return token;
   }
-  const prosa = /(unidade|unid\.?|un\.?|apartamento|apto\.?|ap\.?|casa|loja|sala|lote|galp[aã]o)\s*n?[º°o]?\.?\s*([0-9]{1,5}\s*[-–—/]?\s*[a-z0-9]{0,3})/i.exec(
+  const prosa = /(unidade|unid\.?|un\.?|apartamento|apto\.?|ap\.?|flat|studio|casa|loja|sala|lote|conjunto|cj|galp[aã]o)\s*n?[º°o]?\.?\s*([0-9]{1,5}\s*[-–—/]?\s*[a-z0-9]{0,3})/i.exec(
     semAcento(linha),
   );
   if (prosa) return tokenizarIdentificador(prosa[0]);
@@ -109,6 +117,40 @@ export function identificadorDaLinha(linha: string): Identificador | null {
 }
 
 const temDecimal = (texto: string) => /\d+[.,]\d/.test(texto) || /\d\s*%/.test(texto);
+const temFracao = (texto: string) => /\b\d+\s*\/\s*\d+\b/.test(texto);
+
+export function ehLinhaCandidata(
+  linha: string,
+  identificador: Identificador | null,
+  contexto?: {
+    adjacenteIdentificador?: boolean;
+    emSecaoUnidades?: boolean;
+  },
+): boolean {
+  if (!identificador) return false;
+
+  // 1. Tem número decimal, percentual ou milésimo (área ou fração)
+  if (temDecimal(linha)) return true;
+
+  // 2. Tem fração ordinária expressa (ex: 1/10, 1/57)
+  if (temFracao(linha)) return true;
+
+  // 3. Tem prefixo explícito de unidade (Apto 101, Flat 505, Sala 111, Loja 2)
+  if (identificador.prefixo != null) return true;
+
+  // 4. Linha tabular ou com delimitador OCR (| ! ¦ : ou múltiplos espaços) com >= 2 células
+  const celulas = celulasDaLinha(linha);
+  if (celulas.length >= 2) return true;
+
+  // 5. Número de unidade isolado (ex: "102", "505", "1005") em contexto de lista/seção
+  if (/^\s*\d{2,5}[A-Z]?\s*$/i.test(linha)) {
+    if (contexto?.adjacenteIdentificador || contexto?.emSecaoUnidades) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 function normalizarTextoLinha(texto: string) {
   return semAcento(texto).toLowerCase().replace(/[|\t]+/g, " ").replace(/\s+/g, " ").trim();
@@ -152,14 +194,35 @@ export function construirCenso(documentoId: string, chunks: ChunkCenso[]): Censo
     const ref = `bloco ${meta.bloco ?? "?"}, páginas ${meta.pagina_inicio ?? "?"}-${meta.pagina_fim ?? "?"}, trecho ${meta.trecho ?? "?"}, ordem ${ordem}`;
     const doChunk: LinhaCenso[] = [];
     const texto = chunk.conteudo.split("\n");
+    const idsPre = texto.map((l) => (l.trim() ? identificadorDaLinha(l) : null));
+    let emSecaoUnidades = false;
+
     for (let i = 0; i < texto.length; i++) {
       const linha = texto[i];
       if (!linha.trim()) continue;
       const titulo = REGEX_TITULO_BLOCO.exec(linha);
       if (titulo && !/^\s*\|/.test(linha)) blocoContexto = titulo[1].toUpperCase();
+
+      if (
+        /\b(?:unidades?|flats?|studios?|apartamentos?|salas?|lojas?|quadro|frac(?:ao|oes)|relacao|tabela|proprietario)\b/i.test(
+          linha,
+        )
+      ) {
+        emSecaoUnidades = true;
+      }
+
       const normal = normalizarTextoLinha(linha);
-      const identificador = identificadorDaLinha(linha);
-      const candidata = Boolean(identificador) && temDecimal(linha);
+      const identificador = idsPre[i];
+      const adjacenteIdentificador = Boolean(
+        (i > 0 && idsPre[i - 1]) ||
+        (i < idsPre.length - 1 && idsPre[i + 1]) ||
+        (i > 1 && idsPre[i - 2]) ||
+        (i < idsPre.length - 2 && idsPre[i + 2]),
+      );
+      const candidata = ehLinhaCandidata(linha, identificador, {
+        adjacenteIdentificador,
+        emSecaoUnidades,
+      });
       const chaveDedup = `${blocoContexto ?? ""}|${normal}`;
       if (vistas.has(chaveDedup)) continue;
       vistas.add(chaveDedup);
