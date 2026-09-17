@@ -52,8 +52,8 @@ const PROMPT_OCR =
   "7. Onde um caractere estiver ilegível, escreva [ilegível] no lugar — nunca adivinhe números.\n" +
   "8. NÃO resuma, NÃO interprete, NÃO adicione comentários — devolva APENAS o texto extraído.";
 
-const OCR_MODEL = "google/gemini-2.5-pro";
-const OCR_FALLBACK_MODEL = "google/gemini-2.5-flash";
+const OCR_MODEL = "google/gemini-2.5-flash";
+const OCR_FALLBACK_MODEL = "google/gemini-2.5-flash-lite";
 /** Páginas por bloco de OCR (documentos longos são lidos em partes). */
 const PAGINAS_POR_BLOCO = 1;
 /** Chamadas simultâneas ao gateway. */
@@ -134,14 +134,9 @@ async function ocrGateway(
       { type: "image_url", image_url: { url: dataUrlDe(mime, bytes) } },
     ]);
   } else {
-    // PDF: tentamos o próprio sub-PDF via image_url (OpenRouter Gemini suporta PDF via data URI em image_url).
-    if (bytes.byteLength <= LIMITE_INLINE_BYTES) {
-      const urlPdf = dataUrlDe(mime, bytes);
-      variantes.push([
-        { type: "text", text: PROMPT_OCR },
-        { type: "image_url", image_url: { url: urlPdf } },
-      ]);
-    }
+    // PDF: o Gemini 2.5 NÃO aceita application/pdf diretamente em image_url.
+    // A única forma confiável é extrair as imagens JPEG/PNG embutidas no PDF
+    // e enviá-las como image/jpeg no campo image_url.
     let imagensExtraidas: Array<{ mime: string; bytes: Uint8Array }> = [];
     try {
       imagensExtraidas = extrairImagensDoPdf(bytes);
@@ -152,13 +147,8 @@ async function ocrGateway(
       );
     }
     
-    // Filtra as imagens muito grandes (que passariam do limite juntas) 
-    // ou apenas as que caibam no limite se somadas.
-    let totalSize = 0;
-    const imagensValidas = imagensExtraidas.filter(img => {
-      if (img.bytes.byteLength > LIMITE_INLINE_BYTES) return false;
-      return true;
-    });
+    // Filtra imagens válidas e que caibam no limite de memória
+    const imagensValidas = imagensExtraidas.filter(img => img.bytes.byteLength <= LIMITE_INLINE_BYTES);
 
     if (imagensValidas.length > 0) {
       const contentArray: Record<string, unknown>[] = [{ type: "text", text: PROMPT_OCR }];
@@ -170,9 +160,13 @@ async function ocrGateway(
       }
       variantes.push(contentArray);
     }
+
     if (variantes.length === 0) {
+      // PDF não contém imagens JPEG extraíveis (pode ser vetorial sem camada de texto,
+      // ou usar compressão CCITT/JBIG2 que não gera JPEGs raw).
       throw new Error(
-        `Página escaneada grande demais para leitura (${bytes.byteLength} bytes). Reenvie o documento com resolução menor.`,
+        `Este PDF não contém imagens JPEG extraíveis (${Math.round(bytes.byteLength/1024)}KB). ` +
+        `Se for um PDF escaneado, tente exportá-lo como imagem (JPG/PNG) antes de reenviar.`,
       );
     }
   }

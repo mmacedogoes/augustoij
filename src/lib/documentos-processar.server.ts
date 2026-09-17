@@ -2,8 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const BUCKET = "documentos";
 
-/** Orçamento de tempo de uma rodada (1 bloco por rodada para evitar timeout do Cloudflare/Edge). */
-const ORCAMENTO_MS = 5_000;
+/** Orçamento de tempo de uma rodada (o cron passa 18s via orcamentoMs; o processamento direto usa 25s). */
+const ORCAMENTO_MS = 25_000;
 
 export type ResultadoProcessamento = {
   ok: boolean;
@@ -43,9 +43,10 @@ export async function processarDocumentoCore(
   userId: string,
   documentoId: string,
   apiKey: string,
-  opts?: { reiniciar?: boolean },
+  opts?: { reiniciar?: boolean; orcamentoMs?: number },
 ): Promise<ResultadoProcessamento> {
   const inicio = Date.now();
+  const orcamentoEfetivo = opts?.orcamentoMs ?? ORCAMENTO_MS;
   const { data: doc, error: errGet } = await supabase
     .from("documentos")
     .select("id, condominio_id, storage_path, nome_arquivo, tipo, processamento_meta")
@@ -335,7 +336,7 @@ export async function processarDocumentoCore(
 
     const worker = async () => {
       for (;;) {
-        if (Date.now() - inicio > ORCAMENTO_MS) {
+        if (Date.now() - inicio > orcamentoEfetivo) {
           semTempo = true;
           return;
         }
@@ -648,7 +649,7 @@ export async function retomarDocumentosParados(
         })
         .eq("id", doc.id);
 
-      let r = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey);
+      let r = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey, { orcamentoMs: orcamento });
       if (r.ok && r.concluido) {
         itens.push({ id: doc.id, nome: doc.nome_arquivo, resultado: "concluido" });
       } else if (r.ok && !r.concluido) {
