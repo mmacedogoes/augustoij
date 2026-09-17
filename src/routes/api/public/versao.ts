@@ -468,7 +468,7 @@ export const Route = createFileRoute("/api/public/versao")({
 
           const { data: sugestoes } = await supabaseAdmin
             .from("sugestoes_unidades")
-            .select("id, documento_id, status, total_sugerido, diagnostico, erro_mensagem, created_at")
+            .select("id, documento_id, status, payload, created_at")
             .eq("condominio_id", condominioId)
             .order("created_at", { ascending: false });
 
