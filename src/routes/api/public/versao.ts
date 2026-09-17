@@ -70,62 +70,22 @@ export const Route = createFileRoute("/api/public/versao")({
           const { data: doc } = await supabaseAdmin.from("documentos").select("*").eq("id", docId).single();
           if (!doc) return Response.json({ error: "doc_not_found" });
 
-          // Create 10-minute signed URL
-          const { data: signData, error: signErr } = await supabaseAdmin.storage
-            .from("documentos")
-            .createSignedUrl(doc.storage_path, 600);
+          const { data: file, error: dlErr } = await supabaseAdmin.storage.from("documentos").download(doc.storage_path);
+          if (dlErr || !file) return Response.json({ error: "download_failed", dlErr });
 
-          if (signErr || !signData?.signedUrl) {
-            return Response.json({ error: "signed_url_failed", signErr });
-          }
-
-          const signedUrl = signData.signedUrl;
-
-          // Call gateway with signed URL
-          const callGateway = async (label: string, content: any[]) => {
-            try {
-              const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Lovable-API-Key": apiKey,
-                  "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-                },
-                signal: AbortSignal.timeout(20000),
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-flash",
-                  messages: [{ role: "user", content }],
-                  temperature: 0.1,
-                }),
-              });
-              const text = await res.text();
-              return { status: res.status, body: text.slice(0, 500) };
-            } catch (e: any) {
-              return { error: e.message };
-            }
-          };
-
-          const resImageUrl = await callGateway("signed_image_url", [
-            { type: "text", text: "Transcreva o título e os primeiros 3 artigos deste documento." },
-            { type: "image_url", image_url: { url: signedUrl } },
-          ]);
-
-          const resFileUrl = await callGateway("file_url", [
-            { type: "text", text: "Transcreva o título e os primeiros 3 artigos deste documento." },
-            { type: "file", file: { file_data: signedUrl } },
-          ]);
-
-          const resDocumentUri = await callGateway("document_uri", [
-            { type: "text", text: "Transcreva o título e os primeiros 3 artigos deste documento." },
-            { type: "document", uri: signedUrl, mime_type: "application/pdf" },
-          ]);
+          const buffer = new Uint8Array(await file.arrayBuffer());
+          const firstBytes = Array.from(buffer.subarray(0, 32)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+          const asciiHeader = new TextDecoder("latin1").decode(buffer.subarray(0, 64));
+          const lastBytes = Array.from(buffer.subarray(buffer.length - 32)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+          const asciiTail = new TextDecoder("latin1").decode(buffer.subarray(buffer.length - 64));
 
           return Response.json({
             ok: true,
-            fullSignedUrl: signedUrl,
-            resImageUrl,
-            resFileUrl,
-            resDocumentUri,
+            fileSize: buffer.byteLength,
+            firstBytesHex: firstBytes,
+            asciiHeader: asciiHeader,
+            lastBytesHex: lastBytes,
+            asciiTail: asciiTail,
           });
         }
         if (action === "seed-artigos") {
