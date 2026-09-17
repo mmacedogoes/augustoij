@@ -25,6 +25,7 @@ import {
   type LeituraDescritiva,
   type TentativaDescritiva,
 } from "./convencao-descritiva";
+import { carregarTextoIntegral } from "./extracao/fonte";
 
 
 
@@ -206,6 +207,10 @@ export type DiagnosticoExtracao = {
   /** A tentativa de leitura descritiva — registrada SEMPRE, deu certo ou não. */
   tentativa_descritiva?: TentativaDescritiva;
   rol_artigo_2?: { total_declarado: number | null; identificadores: string[] } | null;
+  /** Fonte do texto usada na extração. */
+  fonte?: "storage_md" | "reconstruido_md" | "fallback_chunks" | string;
+  total_paginas?: number;
+  total_caracteres?: number;
 };
 
 
@@ -1282,24 +1287,25 @@ export async function extrairESalvarSugestaoUnidades(
   }));
 
   const inicio = Date.now();
-  let chunks = await carregarTodosChunks(supabase, doc.id);
+  const carregamento = await carregarTextoIntegral(supabase, doc.id);
+  const { fonte: fonteUsada, totalPaginas, totalCaracteres } = carregamento;
+  let { paginas, textoIntegral } = carregamento;
 
   // NOVO: LLM Router (Passo 1 do Agentic Workflow) ou Human-in-the-Loop
   if (opts.paginaInicio || opts.paginaFim) {
     const inicioFiltro = opts.paginaInicio || 1;
     const fimFiltro = opts.paginaFim || 99999;
-    chunks = chunks.filter(c => {
-      const pInit = c.metadata?.pagina_inicio ?? 1;
-      const pFim = c.metadata?.pagina_fim ?? 99999;
-      return pInit <= fimFiltro && pFim >= inicioFiltro;
-    });
-  } else if (chunks.length > 5 && !opts.force) {
+    paginas = paginas.filter((p) => p.numero <= fimFiltro && p.numero >= inicioFiltro);
+    textoIntegral = paginas.map((p) => p.texto).join("\n");
+  } else if (paginas.length > 5 && !opts.force) {
     // Se o documento é grande e o usuário não forçou páginas manuais, tenta rotear as páginas.
     try {
-      const textoCompleto = chunks.map(c => `[Páginas ${c.metadata?.pagina_inicio}-${c.metadata?.pagina_fim}]\n${c.conteudo}`).join("\n---\n");
+      const textoCompleto = paginas
+        .map((p) => `[Página ${p.numero}]\n${p.texto}`)
+        .join("\n---\n");
       // Trunca para evitar estouro absurdo, Flash aguenta até 1M, mas enviamos max 200k chars
-      const textoResumido = textoCompleto.slice(0, 200000); 
-      
+      const textoResumido = textoCompleto.slice(0, 200000);
+
       const routerPrompt = `Você é um classificador estrutural de convenções de condomínio.
 Analise o documento abaixo e identifique em quais páginas encontra-se o Quadro de Áreas, a Tabela de Frações Ideais, ou a descrição textual que contenha as METRAGENS e FRAÇÕES das unidades.
 ATENÇÃO: Ignore páginas que apenas listam os números das unidades (como sumários, índices, regulamentos ou seções de "posição/situação") sem informar suas áreas. Seja cirúrgico.
@@ -1307,33 +1313,37 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
 
       const routerRes = await chamarIaJson(apiKey, "Você é um analista.", routerPrompt + "\n\n" + textoResumido);
       const parsedRouter = routerRes.data as { paginas?: number[] };
-      
+
       if (Array.isArray(parsedRouter.paginas) && parsedRouter.paginas.length > 0) {
         const paginasFiltro = new Set(parsedRouter.paginas);
-        const filtered = chunks.filter(c => {
-          const pInit = c.metadata?.pagina_inicio ?? 1;
-          const pFim = c.metadata?.pagina_fim ?? 99999;
-          for (let p = pInit; p <= pFim; p++) {
-            if (paginasFiltro.has(p)) return true;
-          }
-          return false;
-        });
+        const filtered = paginas.filter((p) => paginasFiltro.has(p.numero));
         if (filtered.length > 0) {
-          chunks = filtered;
-          console.log(`LLM Router filtrou o documento para ${chunks.length} chunks nas páginas:`, parsedRouter.paginas);
+          paginas = filtered;
+          textoIntegral = paginas.map((p) => p.texto).join("\n");
+          console.log(`LLM Router filtrou o documento para ${paginas.length} páginas:`, parsedRouter.paginas);
         }
       }
     } catch (e) {
-      console.error("Erro no LLM Router, prosseguindo com todos os chunks", e);
+      console.error("Erro no LLM Router, prosseguindo com todas as páginas", e);
     }
   }
+
+  // Converte as páginas fiéis em ChunkRow estruturados para o censo e parser de quadros
+  const chunks: ChunkRow[] = paginas.map((p, idx) => ({
+    id: `pag-${p.numero}`,
+    conteudo: p.texto,
+    metadata: {
+      ordem_global: idx,
+      pagina_inicio: p.numero,
+      pagina_fim: p.numero,
+      bloco: p.numero,
+      trecho: idx,
+    },
+  }));
 
   // 0) SEÇÃO DESCRITIVA — a fonte de verdade da convenção. Rol do Artigo 2,
   //    segmentação por bloco descritivo, rótulos com preenchimento por pontos e
   //    as quatro conferências: tudo regex e aritmética, ZERO token de IA.
-  const textoIntegral = ordenarChunks(chunks)
-    .map((c) => c.conteudo)
-    .join("\n");
   const descritiva = interpretarConvencaoDescritiva(textoIntegral);
   if (descritiva.ok) {
     const unidades = unidadesDaLeituraDescritiva(descritiva, conhecidas);
@@ -1391,6 +1401,9 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       unidades_confianca_alta: unidades.filter((u) => u.confianca === "alta").length,
       unidades_pendentes_revisao: unidades.filter((u) => u.confianca !== "alta").length,
       duracao_ms: Date.now() - inicio,
+      fonte: fonteUsada,
+      total_paginas: totalPaginas,
+      total_caracteres: totalCaracteres,
       tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "secao_descritiva" },
       observacao:
         `Leitura determinística da seção descritiva: ${descritiva.balanco.blocos_descritivos} blocos descritivos, ${unidades.length} unidades após expansão` +
@@ -1472,6 +1485,9 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       leitura: "quadro_ia",
       tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "censo_de_linhas" },
       total_trechos: chunks.length,
+      fonte: fonteUsada,
+      total_paginas: totalPaginas,
+      total_caracteres: totalCaracteres,
     };
     await persistirFalha(supabase, doc, mensagem, diagnosticoVazio);
     throw new ExtracaoIncompletaError(mensagem, diagnosticoVazio);
@@ -1497,6 +1513,9 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     chamadas_ia: 0,
     chamadas_em_cache: 0,
     erros: [],
+    fonte: fonteUsada,
+    total_paginas: totalPaginas,
+    total_caracteres: totalCaracteres,
   };
 
 

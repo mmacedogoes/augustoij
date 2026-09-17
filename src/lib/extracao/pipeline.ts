@@ -24,7 +24,7 @@ function quebrarTextoEmChunksSinteticos(texto: string, documentoId = "fixture-do
         const pagMatch = /(?:P[aá]gina\s+(\d+))/i.exec(conteudo);
         const pagina = pagMatch ? Number(pagMatch[1]) : i + 1;
         return {
-          id: chunk-,
+          id: `chunk-${i}`,
           conteudo: conteudo.trim(),
           metadata: {
             ordem_global: i,
@@ -46,7 +46,7 @@ function quebrarTextoEmChunksSinteticos(texto: string, documentoId = "fixture-do
     buffer.push(linhas[i]);
     if (buffer.length >= 60 || (buffer.length >= 30 && linhas[i].trim() === "")) {
       chunks.push({
-        id: chunk-,
+        id: `chunk-${chunkIdx}`,
         conteudo: buffer.join("\n"),
         metadata: {
           ordem_global: chunkIdx,
@@ -62,7 +62,7 @@ function quebrarTextoEmChunksSinteticos(texto: string, documentoId = "fixture-do
 
   if (buffer.length > 0) {
     chunks.push({
-      id: chunk-,
+      id: `chunk-${chunkIdx}`,
       conteudo: buffer.join("\n"),
       metadata: {
         ordem_global: chunkIdx,

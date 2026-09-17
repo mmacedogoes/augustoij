@@ -33,7 +33,7 @@ export const listarDocumentosParaFixtures = createServerFn({ method: "GET" })
 
     const { data, error } = await context.supabase
       .from("documentos")
-      .select(
+      .select(`
         id,
         condominio_id,
         nome_arquivo,
@@ -44,7 +44,7 @@ export const listarDocumentosParaFixtures = createServerFn({ method: "GET" })
           id,
           nome
         )
-      )
+      `)
       .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
@@ -76,7 +76,7 @@ export const obterTextoDocumento = createServerFn({ method: "GET" })
     const { condominioId, documentoId } = data;
 
     // 1) Tentar carregar a transcrição consolidada do bucket "documentos"
-    const storagePath = ${condominioId}/transcricoes/.md;
+    const storagePath = `${condominioId}/transcricoes/${documentoId}.md`;
     const { data: fileData, error: storageErr } = await context.supabase.storage
       .from("documentos")
       .download(storagePath);
@@ -95,7 +95,7 @@ export const obterTextoDocumento = createServerFn({ method: "GET" })
       .eq("documento_id", documentoId);
 
     if (chunksErr) {
-      throw new Error(Falha ao ler chunks do documento: );
+      throw new Error(`Falha ao ler chunks do documento: ${chunksErr.message}`);
     }
 
     if (!chunks || chunks.length === 0) {
@@ -114,7 +114,7 @@ export const obterTextoDocumento = createServerFn({ method: "GET" })
   });
 
 /**
- * Obtém a extração atual salva em sugestoes_unidades e formata no schema esperado.
+ * Obtém a extração atual salva em `sugestoes_unidades` e formata no schema esperado.
  */
 export const obterExtracaoAtualFormatada = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

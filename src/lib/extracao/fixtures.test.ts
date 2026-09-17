@@ -21,7 +21,7 @@ type DivergenciaUnidade = {
 };
 
 function chaveUnidade(u: { escopo: string | null; numero: string }): string {
-  return u.escopo ? ${u.escopo}- : u.numero;
+  return u.escopo ? `${u.escopo}-${u.numero}` : u.numero;
 }
 
 function dentroTolerancia(a: number | null, b: number | null, tol: number): boolean {
@@ -49,11 +49,11 @@ describe("Regressão de Extração de Unidades (Fixtures)", () => {
   }
 
   for (const slug of fixtureSlugs) {
-    it(deve extrair unidades com fidelidade para o fixture: , () => {
-      const esperadoPath = path.join(fixturesDir, ${slug}.esperado.json);
-      const textoPath = path.join(fixturesDir, ${slug}.txt);
+    it(`deve extrair unidades com fidelidade para o fixture: ${slug}`, () => {
+      const esperadoPath = path.join(fixturesDir, `${slug}.esperado.json`);
+      const textoPath = path.join(fixturesDir, `${slug}.txt`);
 
-      expect(fs.existsSync(textoPath), Arquivo de texto não encontrado: .txt).toBe(true);
+      expect(fs.existsSync(textoPath), `Arquivo de texto não encontrado: ${slug}.txt`).toBe(true);
 
       const esperadoRaw = fs.readFileSync(esperadoPath, "utf-8");
       const esperado: FixtureEsperada = JSON.parse(esperadoRaw);
@@ -134,20 +134,20 @@ describe("Regressão de Extração de Unidades (Fixtures)", () => {
 
       if (divergencias.length > 0 || extraido.total !== esperado.total) {
         const linhasRelatorio: string[] = [
-          Falha na regressão do fixture "":,
-            Total esperado:  | Total extraído: ,
-            Divergências encontradas ( unidades):,
+          `Falha na regressão do fixture "${slug}":`,
+          `  Total esperado: ${esperado.total} | Total extraído: ${extraido.total}`,
+          `  Divergências encontradas (${divergencias.length} unidades):`,
         ];
 
         for (const div of divergencias) {
           if (div.tipo === "ausente_no_recebido") {
-            linhasRelatorio.push(    - Unidade []: AUSENTE na extração);
+            linhasRelatorio.push(`    - Unidade [${div.chave}]: AUSENTE na extração`);
           } else if (div.tipo === "inesperada_no_recebido") {
-            linhasRelatorio.push(    - Unidade []: INESPERADA (não consta no gabarito));
+            linhasRelatorio.push(`    - Unidade [${div.chave}]: INESPERADA (não consta no gabarito)`);
           } else if (div.tipo === "campo_divergente") {
-            linhasRelatorio.push(    - Unidade []: divergência nos campos:);
+            linhasRelatorio.push(`    - Unidade [${div.chave}]: divergência nos campos:`);
             for (const d of div.detalhes || []) {
-              linhasRelatorio.push(        * : esperado [], recebido []);
+              linhasRelatorio.push(`        * ${d.campo}: esperado [${d.esperado}], recebido [${d.recebido}]`);
             }
           }
         }
