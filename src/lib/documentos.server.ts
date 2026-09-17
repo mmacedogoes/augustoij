@@ -299,7 +299,19 @@ async function ocrGateway(
       );
     }
 
-    const imagensValidas = imagensExtraidas.filter(img => img.bytes.byteLength <= LIMITE_INLINE_BYTES);
+    let imagensValidas = imagensExtraidas.filter(img => img.bytes.byteLength <= LIMITE_INLINE_BYTES);
+
+    if (imagensValidas.length === 0) {
+      try {
+        const { extrairImagemPaginaPdf } = await import("@/lib/pdf-image-extractor.server");
+        const extraImg = await extrairImagemPaginaPdf(bytes, 0);
+        if (extraImg && extraImg.bytes.byteLength <= LIMITE_INLINE_BYTES) {
+          imagensValidas.push(extraImg);
+        }
+      } catch (err) {
+        console.warn("[ocrGateway] Falha no fallback extrairImagemPaginaPdf:", err);
+      }
+    }
 
     if (imagensValidas.length > 0) {
       const contentArray: Record<string, unknown>[] = [{ type: "text", text: PROMPT_OCR }];
@@ -492,7 +504,43 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
     };
   }
 
-  // 3. Se for um PDF sem imagens escaneadas (ex: desenho vetorial puro sem camadas de bitmap),
+  // 3. Fallback inteligente com PDF.js para páginas escaneadas com CCITTFaxDecode (Grupo 4 Fax / 1bpp), JBIG2, Flate, etc.
+  try {
+    const { getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(buffer.slice());
+    const totalPages = pdf.numPages;
+    if (totalPages > 0) {
+      const { extrairImagemPaginaPdf } = await import("@/lib/pdf-image-extractor.server");
+      const imgPag1 = await extrairImagemPaginaPdf(buffer, 0);
+      if (imgPag1 && imgPag1.bytes.byteLength > 1000) {
+        console.log(
+          `[prepararPlanoOcr] PDF com ${totalPages} página(s) escaneada(s) decodificada(s) via PDF.js (${imgPag1.mime}).`,
+        );
+        const blocos = Array.from({ length: totalPages }, (_, i) => ({
+          indice: i,
+          inicio: i + 1,
+          fim: i + 1,
+        }));
+        return {
+          mime: imgPag1.mime,
+          totalPaginas: totalPages,
+          blocos,
+          gerarBloco: async (indice: number) => {
+            if (indice === 0) return imgPag1.bytes;
+            const img = await extrairImagemPaginaPdf(buffer, indice);
+            if (!img) {
+              throw new Error(`Falha ao decodificar página escaneada ${indice + 1} do PDF.`);
+            }
+            return img.bytes;
+          },
+        };
+      }
+    }
+  } catch (pdfjsErr) {
+    console.warn("[prepararPlanoOcr] Falha na extração de páginas via PDF.js:", pdfjsErr);
+  }
+
+  // 4. Se for um PDF sem imagens escaneadas (ex: desenho vetorial puro sem camadas de bitmap),
   // estima o total de páginas a partir dos marcadores /Type /Page em todo o buffer
   let estimatedPages = 1;
   try {
