@@ -161,6 +161,9 @@ export const Route = createFileRoute("/api/public/versao")({
             searchPos = objIdx + 3;
           }
 
+          // Inspect page objects
+          const pageMatches = Array.from(latin1.matchAll(/(\d+\s+\d+\s+obj[\s\S]*?\/Type\s*\/Page\b[\s\S]*?>>)/g)).slice(0, 2).map(m => m[1]);
+
           return Response.json({
             ok: true,
             fileSize: buffer.byteLength,
@@ -168,7 +171,55 @@ export const Route = createFileRoute("/api/public/versao")({
             unpdfTextLength: unpdfText.length,
             unpdfErr,
             debugCandidates,
+            pageMatches,
           });
+        }
+        if (action === "advance-doc") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { processarDocumentoCore } = await import("@/lib/documentos-processar.server");
+          const docId = (body as any).docId;
+          if (!docId) return Response.json({ error: "missing_docId" }, { status: 400 });
+
+          const apiKey = process.env.LOVABLE_API_KEY;
+          if (!apiKey) return Response.json({ error: "no_api_key" }, { status: 500 });
+
+          const { data: doc } = await supabaseAdmin
+            .from("documentos")
+            .select("id, condominio_id, nome_arquivo")
+            .eq("id", docId)
+            .single();
+          if (!doc) return Response.json({ error: "doc_not_found" });
+
+          const { data: cond } = await supabaseAdmin
+            .from("condominios")
+            .select("owner_id")
+            .eq("id", doc.condominio_id)
+            .maybeSingle();
+          const userId = (cond?.owner_id as string | undefined) ?? "";
+
+          const orcamentoMs = typeof (body as any).orcamentoMs === "number" ? (body as any).orcamentoMs : 20_000;
+          const res = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey, { orcamentoMs });
+          return Response.json({ ok: true, docId: doc.id, nomeArquivo: doc.nome_arquivo, resultado: res });
+        }
+        if (action === "reset-doc") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const docId = (body as any).docId;
+          if (!docId) return Response.json({ error: "missing_docId" }, { status: 400 });
+          const { error } = await supabaseAdmin
+            .from("documentos")
+            .update({
+              status_processamento: "processando",
+              processamento_meta: {
+                etapa: "ocr",
+                tentativas: 0,
+                travado_ate: null,
+                aviso: null,
+                atualizado_em: new Date().toISOString(),
+              },
+            })
+            .eq("id", docId);
+          if (error) return Response.json({ error: error.message }, { status: 500 });
+          return Response.json({ ok: true, reset: docId });
         }
         if (action === "seed-artigos") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

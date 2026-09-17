@@ -375,8 +375,16 @@ export async function processarDocumentoCore(
           for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
         }
 
-        // Retorna imediatamente após cada bloco processado para que o navegador
-        // receba a resposta HTTP em menos de 8s e exiba a barra de progresso em tempo real
+        // Se for chamada com orçamento estendido (ex: cron ou avanço em lote) e ainda
+        // houver tempo seguro (ao menos 5s), continua processando mais blocos
+        const decorrido = Date.now() - inicio;
+        const tempoRestante = orcamentoEfetivo - decorrido;
+        if (opts?.orcamentoMs && tempoRestante >= 5_000 && cursor < pendentes.length) {
+          continue;
+        }
+
+        // Retorna após o bloco processado para chamadas do navegador, garantindo
+        // resposta HTTP rápida e exibição da barra de progresso em tempo real
         if (cursor < pendentes.length) {
           semTempo = true;
           return;

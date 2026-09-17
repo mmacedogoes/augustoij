@@ -41,9 +41,27 @@ export const Route = createFileRoute("/api/public/hooks/documentos-retomar")({
         const apiKey = process.env.LOVABLE_API_KEY;
         if (!apiKey) return Response.json({ ok: false, error: "no_api_key" }, { status: 500 });
         try {
+          let body: Record<string, unknown> = {};
+          try {
+            body = (await request.json()) as Record<string, unknown>;
+          } catch {
+            /* noop */
+          }
+          const url = new URL(request.url, "https://augustoij.com.br");
+          const documentoId =
+            (body.documentoId as string | undefined) ||
+            url.searchParams.get("documentoId") ||
+            undefined;
+          const orcamentoMs =
+            typeof body.orcamentoMs === "number" ? body.orcamentoMs : 18_000;
+
           const { retomarDocumentosParados } = await import("@/lib/documentos-processar.server");
-          // Orçamento de 18s (0.3 min) e limite de 1 doc para evitar crash no timeout de 30s da Vercel
-          const r = await retomarDocumentosParados(apiKey, { limite: 1, orcamentoMs: 18_000 });
+          // Orçamento padrão de 18s (0.3 min) e limite de 1 doc para evitar crash no timeout de 30s da Vercel
+          const r = await retomarDocumentosParados(apiKey, {
+            limite: 1,
+            orcamentoMs,
+            documentoId,
+          });
           return Response.json({ ok: true, ...r });
         } catch (e) {
           console.error("[documentos-retomar]", e);
