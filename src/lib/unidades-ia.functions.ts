@@ -352,11 +352,13 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
 
 export const reprocessarConvencao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { condominioId: string; documentoId?: string }) =>
+  .inputValidator((input: { condominioId: string; documentoId?: string; paginaInicio?: number; paginaFim?: number }) =>
     z
       .object({
         condominioId: z.string().uuid(),
         documentoId: z.string().uuid().optional(),
+        paginaInicio: z.number().int().positive().optional(),
+        paginaFim: z.number().int().positive().optional(),
       })
       .parse(input),
   )
@@ -398,6 +400,8 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
         const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
         const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
           force: true,
+          paginaInicio: data.paginaInicio,
+          paginaFim: data.paginaFim,
         });
         if (unidades.length > 0) {
           return {

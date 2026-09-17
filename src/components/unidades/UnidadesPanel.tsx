@@ -229,11 +229,25 @@ export function UnidadesPanel({
   }
   useEffect(refresh, [condominioId]);
 
+  const [openReprocessDialog, setOpenReprocessDialog] = useState(false);
+  const [paginaInicio, setPaginaInicio] = useState("");
+  const [paginaFim, setPaginaFim] = useState("");
+
   async function reprocessar() {
+    setOpenReprocessDialog(false);
     setReprocessando(true);
     const t = toast.loading("Baixando e reinterpretando a convenção com OCR/visão…");
     try {
-      const r = (await reprocessarFn({ data: { condominioId } })) as
+      const pInicio = paginaInicio ? parseInt(paginaInicio, 10) : undefined;
+      const pFim = paginaFim ? parseInt(paginaFim, 10) : undefined;
+
+      const r = (await reprocessarFn({ 
+        data: { 
+          condominioId,
+          paginaInicio: pInicio,
+          paginaFim: pFim,
+        } 
+      })) as
         | { status: "sem_convencao" }
         | { status: "erro_download"; mensagem?: string }
         | { status: "erro_leitura"; mensagem?: string }
@@ -484,7 +498,7 @@ export function UnidadesPanel({
               variant="ghost"
               size="sm"
               disabled={reprocessando}
-              onClick={reprocessar}
+              onClick={() => setOpenReprocessDialog(true)}
               className="transition-colors"
               title="Baixa a convenção do storage, força OCR/visão quando necessário e extrai as unidades com IA."
             >
@@ -605,16 +619,6 @@ export function UnidadesPanel({
       {openImport && (
         <ImportDialog
           onClose={() => setOpenImport(false)}
-          onImport={async (linhas) => {
-            const r = await importFn({
-              data: { condominioId, linhas: linhas as never },
-            });
-            refresh();
-            return r as {
-              unidadesCriadas: number;
-              unidadesAtualizadas: number;
-              condominosCriados: number;
-              erros: { linha: number; mensagem: string }[];
             };
           }}
         />
@@ -754,6 +758,45 @@ export function UnidadesPanel({
                 Importar via CSV estruturado (avançado)
               </button>
             </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {openReprocessDialog && (
+        <Dialog open={openReprocessDialog} onOpenChange={setOpenReprocessDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reprocessar Convenção</DialogTitle>
+              <DialogDescription>
+                Se a extração automática falhou devido à formatação complexa do documento, você pode ajudar a IA informando em quais páginas a lista de unidades se encontra.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Página Inicial (Opcional)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="Ex: 5" 
+                    value={paginaInicio}
+                    onChange={(e) => setPaginaInicio(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Página Final (Opcional)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="Ex: 10" 
+                    value={paginaFim}
+                    onChange={(e) => setPaginaFim(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpenReprocessDialog(false)}>Cancelar</Button>
+              <Button onClick={reprocessar}>Iniciar Extração</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

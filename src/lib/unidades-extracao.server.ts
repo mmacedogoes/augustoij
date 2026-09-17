@@ -27,24 +27,47 @@ import {
 
 
 
-export const CampoMedidaSchema = z.enum([
-  "area_privativa",
-  "area_comum",
-  "area_global",
-  "area_equivalente",
-  "fracao_terreno",
-  "fracao_coisas_comuns",
-  "coeficiente_rateio",
-  "indeterminado",
-]);
+export const CampoMedidaSchema = z.preprocess(
+  (val) => {
+    if (typeof val !== "string") return "indeterminado";
+    const allowed = [
+      "area_privativa",
+      "area_comum",
+      "area_global",
+      "area_equivalente",
+      "fracao_terreno",
+      "fracao_coisas_comuns",
+      "coeficiente_rateio",
+      "indeterminado",
+    ];
+    return allowed.includes(val) ? val : "indeterminado";
+  },
+  z.enum([
+    "area_privativa",
+    "area_comum",
+    "area_global",
+    "area_equivalente",
+    "fracao_terreno",
+    "fracao_coisas_comuns",
+    "coeficiente_rateio",
+    "indeterminado",
+  ])
+);
 
-export const EscalaMedidaSchema = z.enum([
-  "percentual",
-  "decimal",
-  "milesimo",
-  "fracao_ordinaria",
-  "m2",
-]);
+export const EscalaMedidaSchema = z.preprocess(
+  (val) => {
+    if (typeof val !== "string") return "decimal";
+    const allowed = ["percentual", "decimal", "milesimo", "fracao_ordinaria", "m2"];
+    return allowed.includes(val) ? val : "decimal";
+  },
+  z.enum([
+    "percentual",
+    "decimal",
+    "milesimo",
+    "fracao_ordinaria",
+    "m2",
+  ])
+);
 
 export const MedidaExtraidaSchema = z.object({
   campo: CampoMedidaSchema,
@@ -71,7 +94,12 @@ const UnidadeExtraidaSchema = z.object({
   numero: z.string().min(1),
   tipo: z
     .preprocess(
-      (val) => (typeof val === "string" ? val.toLowerCase().trim() : val),
+      (val) => {
+        if (typeof val !== "string") return "outro";
+        const t = val.toLowerCase().trim();
+        const allowed = ["apartamento", "casa", "lote", "terreno", "sala_comercial", "loja", "galpao", "vaga_avulsa", "outro"];
+        return allowed.includes(t) ? t : "outro";
+      },
       z
         .enum([
           "apartamento",
@@ -91,7 +119,15 @@ const UnidadeExtraidaSchema = z.object({
     z.number().int().min(0).max(50).optional(),
   ),
   linha_id: z.string().nullable().optional(),
-  medidas: z.array(MedidaExtraidaSchema).default([]),
+  medidas: z.preprocess(
+    (val) => {
+      if (Array.isArray(val)) {
+        return val.filter(m => MedidaExtraidaSchema.safeParse(m).success);
+      }
+      return [];
+    },
+    z.array(MedidaExtraidaSchema)
+  ).default([]),
   fonte: z.string().nullable().optional(),
   // Compatibilidade somente de leitura com sugestões antigas.
   fracao_ideal: z.number().positive().nullable().optional(),
@@ -1197,11 +1233,10 @@ export function unidadesDaLeituraDescritiva(
 
 
 export async function extrairESalvarSugestaoUnidades(
-
   supabase: SupabaseClient,
   documentoId: string,
   apiKey: string,
-  opts: { force?: boolean } = {},
+  opts: { force?: boolean; paginaInicio?: number; paginaFim?: number } = {},
 ): Promise<UnidadeExtraida[]> {
   const { data: doc, error } = await supabase
     .from("documentos")
@@ -1230,7 +1265,50 @@ export async function extrairESalvarSugestaoUnidades(
   }));
 
   const inicio = Date.now();
-  const chunks = await carregarTodosChunks(supabase, doc.id);
+  let chunks = await carregarTodosChunks(supabase, doc.id);
+
+  // NOVO: LLM Router (Passo 1 do Agentic Workflow) ou Human-in-the-Loop
+  if (opts.paginaInicio || opts.paginaFim) {
+    const inicioFiltro = opts.paginaInicio || 1;
+    const fimFiltro = opts.paginaFim || 99999;
+    chunks = chunks.filter(c => {
+      const pInit = c.metadata?.pagina_inicio ?? 1;
+      const pFim = c.metadata?.pagina_fim ?? 99999;
+      return pInit <= fimFiltro && pFim >= inicioFiltro;
+    });
+  } else if (chunks.length > 5 && !opts.force) {
+    // Se o documento é grande e o usuário não forçou páginas manuais, tenta rotear as páginas.
+    try {
+      const textoCompleto = chunks.map(c => `[Páginas ${c.metadata?.pagina_inicio}-${c.metadata?.pagina_fim}]\n${c.conteudo}`).join("\n---\n");
+      // Trunca para evitar estouro absurdo, Flash aguenta até 1M, mas enviamos max 200k chars
+      const textoResumido = textoCompleto.slice(0, 200000); 
+      
+      const routerPrompt = `Você é um classificador estrutural de convenções de condomínio.
+Analise o documento abaixo e identifique em quais páginas encontra-se o Quadro de Áreas, a Tabela de Frações Ideais, ou a descrição textual individualizada das unidades autônomas.
+Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encontrar nada claro, retorne { "paginas": [] }. Seja cirúrgico e evite o índice.`;
+
+      const routerRes = await chamarIaJson(apiKey, "Você é um analista.", routerPrompt + "\n\n" + textoResumido);
+      const parsedRouter = routerRes.data as { paginas?: number[] };
+      
+      if (Array.isArray(parsedRouter.paginas) && parsedRouter.paginas.length > 0) {
+        const paginasFiltro = new Set(parsedRouter.paginas);
+        const filtered = chunks.filter(c => {
+          const pInit = c.metadata?.pagina_inicio ?? 1;
+          const pFim = c.metadata?.pagina_fim ?? 99999;
+          for (let p = pInit; p <= pFim; p++) {
+            if (paginasFiltro.has(p)) return true;
+          }
+          return false;
+        });
+        if (filtered.length > 0) {
+          chunks = filtered;
+          console.log(`LLM Router filtrou o documento para ${chunks.length} chunks nas páginas:`, parsedRouter.paginas);
+        }
+      }
+    } catch (e) {
+      console.error("Erro no LLM Router, prosseguindo com todos os chunks", e);
+    }
+  }
 
   // 0) SEÇÃO DESCRITIVA — a fonte de verdade da convenção. Rol do Artigo 2,
   //    segmentação por bloco descritivo, rótulos com preenchimento por pontos e
@@ -1451,16 +1529,33 @@ export async function extrairESalvarSugestaoUnidades(
               return chamada.data;
             })());
           const parsed = bruto as { unidades?: unknown[]; diagnostico?: DiagnosticoExtracao };
-          const resultado = z.array(UnidadeExtraidaSchema).safeParse(parsed.unidades ?? []);
-          if (!resultado.success) {
-            throw new Error(
-              `JSON incompatível no lote ${i + 1}: ${resultado.error.issues[0]?.message ?? "formato inválido"}`,
-            );
+          const unidadesValidas: UnidadeExtraida[] = [];
+          const errosUnidade: string[] = [];
+
+          if (Array.isArray(parsed.unidades)) {
+            for (let j = 0; j < parsed.unidades.length; j++) {
+              const u = parsed.unidades[j];
+              const r = UnidadeExtraidaSchema.safeParse(u);
+              if (r.success) {
+                unidadesValidas.push(r.data);
+              } else {
+                errosUnidade.push(`Unidade index ${j} ignorada: ${r.error.issues[0]?.message}`);
+              }
+            }
+          } else {
+            errosUnidade.push("O campo 'unidades' não é um array válido.");
           }
+
+          if (errosUnidade.length > 0) {
+            console.warn(`Avisos de parse no lote ${i + 1}:`, errosUnidade);
+            if (!parsed.diagnostico) parsed.diagnostico = { total_lotes: grupo.length, lotes_processados: 0, unidades_encontradas: 0 };
+            parsed.diagnostico.erros = [...(parsed.diagnostico.erros || []), ...errosUnidade];
+          }
+
           resultados[i] = {
-            unidades: resultado.data.map((u) => resolverLinhas(u, lote.linhas)),
+            unidades: unidadesValidas.map((u) => resolverLinhas(u, lote.linhas)),
             diagnostico: parsed.diagnostico,
-            cache: Boolean(cacheado),
+            cache: !!cacheado,
           };
         } catch (errorLote) {
           diagnostico.lotes_com_erro = (diagnostico.lotes_com_erro ?? 0) + 1;
