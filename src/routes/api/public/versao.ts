@@ -120,6 +120,7 @@ export const Route = createFileRoute("/api/public/versao")({
             totalImagesFound: descs.length,
             unpdfTextLength: unpdfText.length,
             unpdfErr,
+            rawDict: imgMatches[0] ?? "",
             sampleDims,
           });
         }
