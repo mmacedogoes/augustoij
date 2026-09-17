@@ -81,7 +81,7 @@ export const Route = createFileRoute("/api/public/versao")({
         }
         if (action === "debug-ocr") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { extrairDescritoresImagensPdf } = await import("@/lib/documentos.server");
+          const { extrairDescritoresImagensPdf, extractText } = await import("@/lib/documentos.server");
           const docId = body.docId || "81c99c9a-fb73-4f43-9c8d-eda500988c56";
 
           const { data: doc } = await supabaseAdmin.from("documentos").select("*").eq("id", docId).single();
@@ -93,11 +93,34 @@ export const Route = createFileRoute("/api/public/versao")({
           const buffer = new Uint8Array(await file.arrayBuffer());
           const descs = extrairDescritoresImagensPdf(buffer);
 
+          let unpdfText = "";
+          let unpdfErr = "";
+          try {
+            unpdfText = await extractText(buffer, doc.nome_arquivo);
+          } catch (e: any) {
+            unpdfErr = e.message || String(e);
+          }
+
+          // Scan all images without filter to see their dimensions
+          const latin1 = new TextDecoder("latin1").decode(buffer);
+          const allImages: Array<{ width: number; height: number; len: number; isFlate: boolean; isDct: boolean }> = [];
+          const matches = latin1.matchAll(/(?:<<[\s\S]*?>>)\s*stream/g);
+          // Just scan first 30 images in the PDF
+          const imgMatches = latin1.match(/\/Subtype\s*\/Image[\s\S]*?>>/g) ?? [];
+          const sampleDims = imgMatches.slice(0, 10).map(m => {
+            const w = m.match(/\/Width\s+(\d+)/)?.[1] ?? "?";
+            const h = m.match(/\/Height\s+(\d+)/)?.[1] ?? "?";
+            const l = m.match(/\/Length\s+(\d+)/)?.[1] ?? "?";
+            return `W=${w},H=${h},L=${l}`;
+          });
+
           return Response.json({
             ok: true,
             fileSize: buffer.byteLength,
             totalImagesFound: descs.length,
-            descriptors: descs.slice(0, 5),
+            unpdfTextLength: unpdfText.length,
+            unpdfErr,
+            sampleDims,
           });
         }
         if (action === "seed-artigos") {
