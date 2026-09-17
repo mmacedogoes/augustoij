@@ -1667,7 +1667,8 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     const lin = censo.candidatas.find((l) => {
       if (c.linha_id && l.linha_id === c.linha_id) return true;
       const id = identificadorDaLinha(l.texto);
-      return id && id.numero === c.numero && (c.bloco == null || id.sufixoBloco === c.bloco);
+      const blocoLinha = l.bloco_contexto ?? id?.sufixoBloco ?? null;
+      return id && id.numero === c.numero && (c.bloco == null || blocoLinha === c.bloco || id?.sufixoBloco === c.bloco);
     });
     if (lin) {
       c.linha_id = lin.linha_id;

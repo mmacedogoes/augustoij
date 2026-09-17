@@ -33,7 +33,16 @@ export type LinhaCenso = {
   fonte: string;
 };
 
-export const REGEX_TITULO_BLOCO = /\b(?:bloco|torre|quadra)\s+([a-z0-9]{1,3})\b/i;
+import {
+  reconhecerAncora,
+  reconhecerEscopo,
+  gerarChaveIdentidade,
+  PADROES_ESCOPO,
+} from "./extracao/ancoras";
+
+export { reconhecerAncora, reconhecerEscopo, gerarChaveIdentidade, PADROES_ESCOPO };
+
+export const REGEX_TITULO_BLOCO = PADROES_ESCOPO;
 
 export function semAcento(valor: string) {
   return valor
@@ -71,7 +80,7 @@ export function tokenizarIdentificador(celula: string): Identificador | null {
     t = t.slice(mBloco[0].length).trim();
   }
   const direto = new RegExp(
-    `^(\\d{1,5})(?:${SEP}*(?:BL|BLOCO|TORRE|QD|QUADRA)?\\.?\\s*([A-Z0-9]{1,3}))?$`,
+    `^(\\d{1,5})(?:${SEP}*(?:BL|BLOCO|TORRE|QD|QUADRA)?\\.?\\s*([A-Z])(?![a-zA-Z0-9]))?$`,
   ).exec(t);
   if (direto) {
     return { prefixo, numero: direto[1], sufixoBloco: sufixoBloco ?? direto[2] ?? null };
@@ -105,14 +114,18 @@ export function celulasDaLinha(linha: string) {
 
 /** Primeiro token da linha que parece um identificador de unidade. */
 export function identificadorDaLinha(linha: string): Identificador | null {
+  const ancora = reconhecerAncora(linha);
+  if (ancora) {
+    return {
+      prefixo: ancora.padrao,
+      numero: ancora.numero,
+      sufixoBloco: ancora.sufixo,
+    };
+  }
   for (const celula of celulasDaLinha(linha)) {
     const token = tokenizarIdentificador(celula);
     if (token) return token;
   }
-  const prosa = /(unidade|unid\.?|un\.?|apartamento|apto\.?|ap\.?|flat|studio|casa|loja|sala|lote|conjunto|cj|galp[aã]o)\s*n?[º°o]?\.?\s*([0-9]{1,5}\s*[-–—/]?\s*[a-z0-9]{0,3})/i.exec(
-    semAcento(linha),
-  );
-  if (prosa) return tokenizarIdentificador(prosa[0]);
   return null;
 }
 
@@ -216,8 +229,8 @@ export function construirCenso(documentoId: string, chunks: ChunkCenso[]): Censo
     for (let i = 0; i < texto.length; i++) {
       const linha = texto[i];
       if (!linha.trim()) continue;
-      const titulo = REGEX_TITULO_BLOCO.exec(linha);
-      if (titulo && !/^\s*\|/.test(linha)) blocoContexto = titulo[1].toUpperCase();
+      const escopo = reconhecerEscopo(linha);
+      if (escopo && !/^\s*\|/.test(linha)) blocoContexto = escopo;
 
       if (
         /\b(?:unidades?|flats?|studios?|apartamentos?|salas?|lojas?|quadro|frac(?:ao|oes)|relacao|tabela|proprietario)\b/i.test(
