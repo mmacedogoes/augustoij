@@ -176,6 +176,9 @@ export const Route = createFileRoute("/api/public/versao")({
         }
         if (action === "diagnostico-download") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { validarUploadSeguro } = await import("@/lib/seguranca-lgpd.server");
+          const { extractText, prepararPlanoOcr } = await import("@/lib/documentos.server");
+
           const docId = (body as any).docId || "5c4fea1b-6048-4343-8080-659fc2308497";
           const { data: doc } = await supabaseAdmin.from("documentos").select("*").eq("id", docId).single();
           if (!doc) return Response.json({ error: "doc_not_found" });
@@ -185,47 +188,58 @@ export const Route = createFileRoute("/api/public/versao")({
           const dlErr = dlRes.error;
 
           let arrayBufLen = 0;
-          let blobSize = fileBlob?.size ?? -1;
-          let blobType = fileBlob?.type ?? "";
-          let arrayBufErr = "";
+          let validacaoRes: any = null;
+          let extractTextRes = "";
+          let extractTextErr = "";
+          let planoOcrRes: any = null;
+          let planoOcrErr = "";
+
           if (fileBlob) {
             try {
               const ab = await fileBlob.arrayBuffer();
-              arrayBufLen = ab.byteLength;
-            } catch (e: any) {
-              arrayBufErr = e.message || String(e);
-            }
-          }
+              const buffer = new Uint8Array(ab);
+              arrayBufLen = buffer.byteLength;
 
-          // Test signed url fetch
-          const signedRes = await supabaseAdmin.storage.from("documentos").createSignedUrl(doc.storage_path, 300);
-          let fetchStatus = 0;
-          let fetchLen = 0;
-          let fetchErr = "";
-          if (signedRes.data?.signedUrl) {
-            try {
-              const f = await fetch(signedRes.data.signedUrl);
-              fetchStatus = f.status;
-              const fBuf = await f.arrayBuffer();
-              fetchLen = fBuf.byteLength;
-            } catch (e: any) {
-              fetchErr = e.message || String(e);
+              try {
+                validacaoRes = validarUploadSeguro(buffer, doc.nome_arquivo);
+              } catch (e: any) {
+                validacaoRes = { err: e.message || String(e) };
+              }
+
+              try {
+                extractTextRes = (await extractText(buffer, doc.nome_arquivo)).slice(0, 300);
+              } catch (e: any) {
+                extractTextErr = e.message || String(e);
+              }
+
+              try {
+                const plano = await prepararPlanoOcr(buffer, doc.nome_arquivo);
+                planoOcrRes = {
+                  mime: plano.mime,
+                  totalPaginas: plano.totalPaginas,
+                  totalBlocos: plano.blocos.length,
+                };
+              } catch (e: any) {
+                planoOcrErr = e.message || String(e);
+              }
+            } catch (abErr: any) {
+              extractTextErr = "arrayBuffer failed: " + (abErr.message || String(abErr));
             }
           }
 
           return Response.json({
             ok: true,
             docId,
+            nomeArquivo: doc.nome_arquivo,
             storage_path: doc.storage_path,
-            blobSize,
-            blobType,
+            blobSize: fileBlob?.size,
             arrayBufLen,
-            arrayBufErr,
-            dlErr: dlErr?.message ?? null,
-            signedUrlExists: !!signedRes.data?.signedUrl,
-            fetchStatus,
-            fetchLen,
-            fetchErr,
+            dlErr: dlErr?.message,
+            validacaoRes,
+            extractTextRes,
+            extractTextErr,
+            planoOcrRes,
+            planoOcrErr,
           });
         }
         if (action === "advance-doc") {
