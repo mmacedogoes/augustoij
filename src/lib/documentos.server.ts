@@ -59,8 +59,8 @@ const OCR_FALLBACK_MODEL = "google/gemini-2.5-flash-lite";
 const PAGINAS_POR_BLOCO = 1;
 /** Chamadas simultâneas ao gateway. */
 const CONCORRENCIA_OCR = 1;
-/** Timeout agressivo (20s) para garantir que o worker aborta a requisição antes do proxy da Vercel (30s) matar o processo com 500. */
-const OCR_TIMEOUT_MS = 20_000;
+/** Timeout agressivo (12s por modelo) para garantir que o fallback execute e nunca estoure o limite de 30s da Vercel. */
+const OCR_TIMEOUT_MS = 12_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -338,11 +338,13 @@ async function ocrGateway(
       });
       return resp;
     } catch (e) {
-      // Se a requisição estourar o timeout rigoroso, NÃO tentamos outro modelo no mesmo
-      // fluxo, pois excederíamos o limite de execução de 30s da Vercel (Edge/Serverless).
-      // Ao invés disso, lançamos o erro. O cron será reexecutado e tentará novamente depois.
       if (isTimeoutError(e)) {
-        throw new Error(`Timeout (${OCR_TIMEOUT_MS}ms) ao chamar Vision API. O documento é complexo demais para o momento.`);
+        console.warn(`[ocrGateway] ${modelo} timeout (${OCR_TIMEOUT_MS}ms), tentando fallback se disponível`);
+        return {
+          ok: false,
+          status: 408,
+          text: async () => `Timeout (${OCR_TIMEOUT_MS}ms) no modelo ${modelo}`,
+        } as Response;
       }
       throw e;
     }
@@ -364,9 +366,9 @@ async function ocrGateway(
       ultimoStatus = res.status;
       ultimoCorpo = (await res.text().catch(() => "")).slice(0, 300);
       console.warn(`[ocrGateway] ${modelo} retornou ${res.status}: ${ultimoCorpo.slice(0, 120)}`);
-      if (res.status === 408 || res.status === 429 || res.status === 402 || res.status >= 500) {
-        const err = new Error(`OCR falhou (gateway ${res.status}): ${ultimoCorpo}`);
-        (err as Error & { retryavel?: boolean }).retryavel = res.status !== 402;
+      if (res.status === 402) {
+        const err = new Error(`OCR falhou (gateway 402): ${ultimoCorpo}`);
+        (err as Error & { retryavel?: boolean }).retryavel = false;
         throw err;
       }
     }

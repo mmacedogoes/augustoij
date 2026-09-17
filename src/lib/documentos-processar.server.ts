@@ -360,6 +360,16 @@ export async function processarDocumentoCore(
 
           if (!txt.trim()) {
             for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
+            // Registra lacuna para não travar a leitura do documento
+            try {
+              await indexar([`[Página ${bloco.inicio}: página em branco ou sem texto detectável]`], {
+                origem: "ocr_lacuna",
+                bloco: bloco.indice,
+                pagina_inicio: bloco.inicio,
+                pagina_fim: bloco.fim,
+              });
+            } catch { /* noop */ }
+            prontos.add(bloco.indice);
             continue;
           }
           novosChunks += await indexar([txt], {
@@ -373,6 +383,17 @@ export async function processarDocumentoCore(
           ultimoErroOcr = err instanceof Error ? err.message : String(err);
           console.warn(`[ocr] bloco ${bloco.inicio}-${bloco.fim} falhou:`, ultimoErroOcr);
           for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
+
+          // Registra como lacuna para que a leitura das demais páginas possa prosseguir
+          try {
+            await indexar([`[Página ${bloco.inicio}: não foi possível extrair o texto desta página (${ultimoErroOcr})]`], {
+              origem: "ocr_lacuna",
+              bloco: bloco.indice,
+              pagina_inicio: bloco.inicio,
+              pagina_fim: bloco.fim,
+            });
+            prontos.add(bloco.indice);
+          } catch { /* noop */ }
         }
 
         // Se for chamada com orçamento estendido (ex: cron ou avanço em lote) e ainda
