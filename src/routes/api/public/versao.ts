@@ -20,36 +20,24 @@ export const Route = createFileRoute("/api/public/versao")({
         }
         if (action === "debug-ocr") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { prepararPlanoOcr } = await import("@/lib/documentos.server");
           const apiKey = process.env.LOVABLE_API_KEY ?? "";
           const docId = body.docId || "81c99c9a-fb73-4f43-9c8d-eda500988c56";
 
           const { data: doc } = await supabaseAdmin.from("documentos").select("*").eq("id", docId).single();
           if (!doc) return Response.json({ error: "doc_not_found" });
 
-          const { data: file, error: dlErr } = await supabaseAdmin.storage.from("documentos").download(doc.storage_path);
-          if (dlErr || !file) return Response.json({ error: "download_failed", dlErr });
+          // Create 10-minute signed URL
+          const { data: signData, error: signErr } = await supabaseAdmin.storage
+            .from("documentos")
+            .createSignedUrl(doc.storage_path, 600);
 
-          const buffer = new Uint8Array(await file.arrayBuffer());
-          const plano = await prepararPlanoOcr(buffer, doc.nome_arquivo);
-          const blocoBytes = await plano.gerarBloco(0);
-
-          const isPdf = blocoBytes[0] === 0x25 && blocoBytes[1] === 0x50 && blocoBytes[2] === 0x44 && blocoBytes[3] === 0x46; // %PDF
-          const b64 = Buffer.from(blocoBytes).toString("base64");
-
-          let pdfLibError: string | null = null;
-          let pdfLibPageCount: number | null = null;
-          try {
-            const pdfLib = await import("pdf-lib");
-            const PDFDocument = pdfLib.PDFDocument ?? (pdfLib as Record<string, unknown>).default;
-            const src = await (PDFDocument as any).load(buffer, { ignoreEncryption: true });
-            pdfLibPageCount = src.getPageCount();
-          } catch (e: any) {
-            pdfLibError = e.message || String(e);
+          if (signErr || !signData?.signedUrl) {
+            return Response.json({ error: "signed_url_failed", signErr });
           }
-          results.pdfLibError = pdfLibError;
-          results.pdfLibPageCount = pdfLibPageCount;
 
+          const signedUrl = signData.signedUrl;
+
+          // Call gateway with signed URL
           const callGateway = async (label: string, content: any[]) => {
             try {
               const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -59,7 +47,7 @@ export const Route = createFileRoute("/api/public/versao")({
                   "Lovable-API-Key": apiKey,
                   "X-Lovable-AIG-SDK": "vercel-ai-sdk",
                 },
-                signal: AbortSignal.timeout(15000),
+                signal: AbortSignal.timeout(20000),
                 body: JSON.stringify({
                   model: "google/gemini-2.5-flash",
                   messages: [{ role: "user", content }],
@@ -67,46 +55,22 @@ export const Route = createFileRoute("/api/public/versao")({
                 }),
               });
               const text = await res.text();
-              results[label] = { status: res.status, body: text.slice(0, 300) };
+              return { status: res.status, body: text.slice(0, 500) };
             } catch (e: any) {
-              results[label] = { error: e.message };
+              return { error: e.message };
             }
           };
 
-          // Option A: PDF as image_url (sent as application/pdf)
-          if (isPdf) {
-            await callGateway("optA_pdf_image_url", [
-              { type: "text", text: "Transcreva a primeira linha" },
-              { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
-            ]);
-          }
-
-          // Option B: As image_url with data:image/jpeg;base64
-          await callGateway("optB_jpeg_image_url", [
-            { type: "text", text: "Transcreva o título deste documento" },
-            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+          const resImageUrl = await callGateway("signed_image_url", [
+            { type: "text", text: "Transcreva o título e os primeiros 3 artigos deste documento." },
+            { type: "image_url", image_url: { url: signedUrl } },
           ]);
 
-          // Option B: check embedded JPEGs
-          const { extrairImagensDoPdf } = await import("@/lib/documentos.server") as any;
-          // Test stream extraction
-          let imgCount = 0;
-          let imgSizes: number[] = [];
-          try {
-            // Find images manually to inspect
-            let i = 0;
-            while (i < blocoBytes.length - 4) {
-              if (blocoBytes[i] === 0xff && blocoBytes[i+1] === 0xd8) {
-                imgCount++;
-                imgSizes.push(i);
-              }
-              i++;
-            }
-          } catch {}
-          results.jpegStartsFound = imgCount;
-          results.first10JpegOffsets = imgSizes.slice(0, 10);
-
-          return Response.json({ ok: true, results });
+          return Response.json({
+            ok: true,
+            signedUrl: signedUrl.slice(0, 80) + "...",
+            resImageUrl,
+          });
         }
         if (action === "seed-artigos") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
