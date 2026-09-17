@@ -1,3 +1,4 @@
+import { inflateSync, inflateRawSync } from "node:zlib";
 // mammoth and xlsx imported dynamically inside extractText
 
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp|tiff?)$/i;
@@ -78,108 +79,160 @@ function isTimeoutError(e: unknown): boolean {
  * Extrair o fluxo JPEG bruto permite enviá-lo como image/jpeg padrão para o gateway,
  * evitando rejeição do MIME application/pdf no endpoint de chat/completions.
  */
+export interface DescritorImagemPdf {
+  indice: number;
+  objNum: string;
+  dataStart: number;
+  length: number;
+  isFlate: boolean;
+}
+
 /**
- * Extrai imagens JPEG completas e válidas de streams /DCTDecode embutidos no PDF.
- * Procura os marcadores 'stream' e 'endstream' para garantir que a imagem não
- * seja truncada por bytes 0xFF 0xD9 que ocorram no meio dos dados comprimidos.
+ * Localiza todos os streams de imagens válidas no PDF via varredura sequencial de objetos,
+ * saltando os blocos de dados binários para evitar falsos positivos.
  */
-function extrairImagensDoPdf(bytes: Uint8Array): Array<{ mime: string; bytes: Uint8Array }> {
-  const imagens: Array<{ mime: string; bytes: Uint8Array }> = [];
+export function extrairDescritoresImagensPdf(bytes: Uint8Array): DescritorImagemPdf[] {
+  const descriptors: DescritorImagemPdf[] = [];
   const len = bytes.length;
-  
-  let i = 0;
-  while (i < len - 16) {
-    // Procura por 'stream' (ASCII: 115, 116, 114, 101, 97, 109)
-    if (
-      bytes[i] === 115 &&
-      bytes[i + 1] === 116 &&
-      bytes[i + 2] === 114 &&
-      bytes[i + 3] === 101 &&
-      bytes[i + 4] === 97 &&
-      bytes[i + 5] === 109
-    ) {
-      let dataStart = i + 6;
-      while (dataStart < len && (bytes[dataStart] === 10 || bytes[dataStart] === 13 || bytes[dataStart] === 32)) {
-        dataStart++;
-      }
+  const latin1 = new TextDecoder("latin1").decode(bytes);
+  let pos = 0;
 
-      // Verifica se o stream começa com JPEG SOI (0xFF 0xD8)
-      if (dataStart < len - 4 && bytes[dataStart] === 0xff && bytes[dataStart + 1] === 0xd8) {
-        // Encontra o 'endstream' correspondente (ASCII: 101, 110, 100, 115, 116, 114, 101, 97, 109)
-        let endStreamPos = -1;
-        for (let j = dataStart + 2; j < len - 9; j++) {
-          if (
-            bytes[j] === 101 &&
-            bytes[j + 1] === 110 &&
-            bytes[j + 2] === 100 &&
-            bytes[j + 3] === 115 &&
-            bytes[j + 4] === 116 &&
-            bytes[j + 5] === 114 &&
-            bytes[j + 6] === 101 &&
-            bytes[j + 7] === 97 &&
-            bytes[j + 8] === 109
-          ) {
-            endStreamPos = j;
-            break;
+  while (pos < len - 20) {
+    const objIdx = latin1.indexOf("obj", pos);
+    if (objIdx < 0) break;
+
+    const lineStart = Math.max(0, objIdx - 30);
+    const prefix = latin1.substring(lineStart, objIdx);
+    const objMatch = prefix.match(/(\d+)\s+(\d+)\s+$/);
+
+    if (objMatch) {
+      const objNum = objMatch[1];
+      const dictStart = objIdx + 3;
+      const streamIdx = latin1.indexOf("stream", dictStart);
+      const endobjIdx = latin1.indexOf("endobj", dictStart);
+
+      if (
+        streamIdx > 0 &&
+        (endobjIdx < 0 || streamIdx < endobjIdx) &&
+        streamIdx - dictStart < 3000
+      ) {
+        const dict = latin1.substring(dictStart, streamIdx);
+        const isImage = /\/Subtype\s*\/Image\b/.test(dict);
+        const isDct = /DCTDecode/.test(dict);
+        const isFlate = /FlateDecode/.test(dict);
+
+        let dataStart = streamIdx + 6;
+        while (
+          dataStart < len &&
+          (bytes[dataStart] === 10 || bytes[dataStart] === 13 || bytes[dataStart] === 32)
+        ) {
+          dataStart++;
+        }
+
+        let streamLen = -1;
+        const lenMatch = dict.match(/\/Length\s+(\d+)/);
+        if (lenMatch) {
+          streamLen = parseInt(lenMatch[1], 10);
+        }
+
+        if (streamLen <= 0 || dataStart + streamLen > len) {
+          const endstreamIdx = latin1.indexOf("endstream", dataStart);
+          if (endstreamIdx > dataStart) {
+            streamLen = endstreamIdx - dataStart;
           }
         }
 
-        if (endStreamPos > dataStart) {
-          // Retrocede a partir de endstream procurando o EOI do JPEG (0xFF 0xD9)
-          let eoiPos = -1;
-          for (let k = endStreamPos - 1; k >= dataStart + 2 && k >= endStreamPos - 32; k--) {
-            if (bytes[k] === 0xd9 && bytes[k - 1] === 0xff) {
-              eoiPos = k + 1;
-              break;
-            }
-          }
-
-          const imgEnd = eoiPos > 0 ? eoiPos : endStreamPos;
-          const imgBytes = bytes.subarray(dataStart, imgEnd);
-
-          if (imgBytes.byteLength > 2048) {
-            imagens.push({
-              mime: "image/jpeg",
-              bytes: imgBytes,
-            });
-          }
-          i = endStreamPos + 9;
-          continue;
-        }
-      }
-    }
-    i++;
-  }
-
-  // Fallback caso o PDF tenha formato fora do padrão 'stream'/'endstream'
-  if (imagens.length === 0) {
-    let j = 0;
-    while (j < len - 4) {
-      if (bytes[j] === 0xff && bytes[j + 1] === 0xd8 && bytes[j + 2] === 0xff) {
-        const start = j;
-        let end = -1;
-        for (let k = start + 2048; k < len - 1; k++) {
-          if (bytes[k] === 0xff && bytes[k + 1] === 0xd9) {
-            if (k + 2 >= len || bytes[k + 2] === 10 || bytes[k + 2] === 13 || bytes[k + 2] === 101) {
-              end = k + 2;
-              break;
-            }
-          }
-        }
-        if (end > start && end - start > 2048) {
-          imagens.push({
-            mime: "image/jpeg",
-            bytes: bytes.subarray(start, end),
+        if ((isImage || isDct) && streamLen > 100) {
+          const firstByte = bytes[dataStart];
+          const isZlib = firstByte === 0x78 || isFlate;
+          descriptors.push({
+            indice: descriptors.length,
+            objNum,
+            dataStart,
+            length: streamLen,
+            isFlate: isZlib,
           });
-          j = end;
-          continue;
         }
+
+        pos = dataStart + Math.max(1, streamLen);
+        continue;
       }
-      j++;
     }
+    pos = objIdx + 3;
   }
 
-  return imagens;
+  return descriptors;
+}
+
+/**
+ * Descomprime e extrai uma imagem individual sob demanda a partir de seu descritor.
+ * Garante que apenas JPEG com delimitadores SOI (0xFF 0xD8) e EOI (0xFF 0xD9) íntegros
+ * sejam retornados, eliminando qualquer lixo ou padding de final de stream.
+ */
+export function extrairImagemPorDescritor(
+  bytes: Uint8Array,
+  desc: DescritorImagemPdf,
+): { mime: string; bytes: Uint8Array } | null {
+  if (desc.length <= 0 || desc.dataStart + desc.length > bytes.length) {
+    return null;
+  }
+
+  let data: Uint8Array | null = null;
+  const rawSlice = bytes.subarray(desc.dataStart, desc.dataStart + desc.length);
+
+  if (desc.isFlate) {
+    try {
+      data = inflateSync(rawSlice);
+    } catch {
+      try {
+        data = inflateRawSync(rawSlice.subarray(2));
+      } catch {
+        try {
+          data = inflateRawSync(rawSlice);
+        } catch {
+          data = null;
+        }
+      }
+    }
+  } else {
+    data = rawSlice;
+  }
+
+  if (!data || data.byteLength < 512) {
+    return null;
+  }
+
+  // Verifica se inicia com JPEG SOI (0xFF 0xD8)
+  if (data[0] === 0xff && data[1] === 0xd8) {
+    // Localiza o EOI (0xFF 0xD9) mais próximo do final para evitar bytes residuais
+    let eoi = -1;
+    for (let k = data.byteLength - 2; k >= Math.max(2, data.byteLength - 1024); k--) {
+      if (data[k] === 0xff && data[k + 1] === 0xd9) {
+        eoi = k + 2;
+        break;
+      }
+    }
+    const cleanBytes = eoi > 0 ? data.subarray(0, eoi) : data;
+    return {
+      mime: "image/jpeg",
+      bytes: cleanBytes,
+    };
+  }
+
+  return null;
+}
+
+/** Extrai todas as imagens em memória (mantido para compatibilidade). */
+export function extrairImagensDoPdf(bytes: Uint8Array): Array<{ mime: string; bytes: Uint8Array }> {
+  const descs = extrairDescritoresImagensPdf(bytes);
+  const imgs: Array<{ mime: string; bytes: Uint8Array }> = [];
+  for (const d of descs) {
+    const img = extrairImagemPorDescritor(bytes, d);
+    if (img && img.bytes.byteLength > 2048) {
+      imgs.push(img);
+    }
+  }
+  return imgs;
 }
 
 async function ocrGateway(
@@ -188,9 +241,7 @@ async function ocrGateway(
   mime: string,
   bytes: Uint8Array,
 ): Promise<string> {
-  /** Limite de segurança para envio inline de página individual (12MB suporta páginas escaneadas em alta resolução). */
   const LIMITE_INLINE_BYTES = 12 * 1024 * 1024;
-
   const variantes: Array<Array<Record<string, unknown>>> = [];
   const dataUrlDe = (m: string, b: Uint8Array) => `data:${m};base64,${bufferToBase64(b)}`;
 
@@ -203,7 +254,7 @@ async function ocrGateway(
       { type: "image_url", image_url: { url: dataUrlDe(mime, bytes) } },
     ]);
   } else {
-    // 1. Tenta extrair imagem JPEG íntegra embutida na página do PDF
+    // Se o mime for application/pdf ou outro, tenta extrair a imagem da página
     let imagensExtraidas: Array<{ mime: string; bytes: Uint8Array }> = [];
     try {
       imagensExtraidas = extrairImagensDoPdf(bytes);
@@ -225,21 +276,11 @@ async function ocrGateway(
         });
       }
       variantes.push(contentArray);
-    }
-
-    // 2. Se for PDF e couber no limite inline, envia também o sub-PDF diretamente.
-    // O Gemini suporta PDF via data URI em image_url para páginas vetoriais ou compostas.
-    if (bytes.byteLength <= LIMITE_INLINE_BYTES) {
-      variantes.push([
-        { type: "text", text: PROMPT_OCR },
-        { type: "image_url", image_url: { url: dataUrlDe("application/pdf", bytes) } },
-      ]);
-    }
-
-    if (variantes.length === 0) {
+    } else {
+      // NUNCA envia application/pdf em image_url para o gateway (causava 400: Provided image is not valid)
       throw new Error(
-        `Página do PDF grande demais para leitura inline (${Math.round(bytes.byteLength/1024)}KB). ` +
-        `Divida ou reduza a resolução do documento e reenvie.`,
+        `Não foi possível extrair a imagem escaneada do PDF para leitura visual. ` +
+        `Envie um PDF com camada de texto digital ou imagens legíveis.`,
       );
     }
   }
@@ -361,88 +402,75 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
     };
   }
 
+  // 1. Tenta identificar imagens escaneadas no PDF através dos descritores leves
   try {
-    const pdfLib = await import("pdf-lib");
-    const PDFDocument = pdfLib.PDFDocument ?? (pdfLib as Record<string, unknown>).default;
-    if (!PDFDocument || typeof (PDFDocument as { load?: unknown }).load !== "function") {
-      throw new Error("PDFDocument não disponível neste ambiente");
-    }
-    const src = await (PDFDocument as any).load(buffer, {
-      ignoreEncryption: true,
-    });
-    const total = src.getPageCount();
-
-    const blocos: Array<{ indice: number; inicio: number; fim: number }> = [];
-    for (let i = 0; i < total; i += PAGINAS_POR_BLOCO) {
-      const fim = Math.min(i + PAGINAS_POR_BLOCO, total);
-      blocos.push({ indice: blocos.length, inicio: i + 1, fim });
-    }
-
-    return {
-      mime,
-      totalPaginas: total,
-      blocos,
-      gerarBloco: async (indice: number) => {
-        const b = blocos[indice];
-        if (!b) throw new Error("Bloco inexistente.");
-        const out = await (PDFDocument as any).create();
-        const paginas = await out.copyPages(
-          src,
-          Array.from({ length: b.fim - b.inicio + 1 }, (_, k) => b.inicio - 1 + k),
-        );
-        for (const p of paginas) out.addPage(p);
-        return await out.save();
-      },
-    };
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.warn(
-      "[documentos.server] Falha ao manipular páginas do PDF com pdf-lib, acionando fallback de streams:",
-      errorMsg
-    );
-  }
-    
-    // Tenta extrair JPEGs embutidos para processá-los individualmente.
-    // Isso evita timeouts no Gemini (30s) ao enviar arquivos enormes de uma vez.
-    let imagensExtraidas: Array<{ mime: string; bytes: Uint8Array }> = [];
-    try {
-      imagensExtraidas = extrairImagensDoPdf(buffer);
-    } catch {
-      /* noop */
-    }
-
-    if (imagensExtraidas.length > 0) {
-      console.warn(`[documentos.server] Fallback: PDF dividido em ${imagensExtraidas.length} imagem(ns) JPEG.`);
-      const blocos = imagensExtraidas.map((_, i) => ({
+    const descritores = extrairDescritoresImagensPdf(buffer);
+    if (descritores.length > 0) {
+      console.log(
+        `[prepararPlanoOcr] PDF contém ${descritores.length} página(s) escaneada(s) detectada(s).`,
+      );
+      const blocos = descritores.map((_, i) => ({
         indice: i,
         inicio: i + 1,
         fim: i + 1,
       }));
       return {
         mime: "image/jpeg",
-        totalPaginas: imagensExtraidas.length,
+        totalPaginas: descritores.length,
         blocos,
-        gerarBloco: async (indice: number) => imagensExtraidas[indice].bytes,
+        gerarBloco: async (indice: number) => {
+          const d = descritores[indice];
+          if (!d) throw new Error(`Bloco ${indice} inexistente no PDF.`);
+          const img = extrairImagemPorDescritor(buffer, d);
+          if (!img) {
+            throw new Error(`Falha ao descomprimir página escaneada ${indice + 1} do PDF.`);
+          }
+          return img.bytes;
+        },
       };
     }
+  } catch (scanErr) {
+    console.warn("[prepararPlanoOcr] Falha na varredura de descritores de imagem:", scanErr);
+  }
 
-    // Se falhar e não houver JPEGs detectáveis (ex: PDF desenhado), 
-    // retorna o PDF inteiro como um bloco único.
-    let estimatedPages = 1;
-    try {
-      const binaryString = new TextDecoder("latin1").decode(
-        buffer.subarray(0, Math.min(buffer.length, 1024 * 512)),
-      );
-      const matches = binaryString.match(/\/Type\s*\/Page\b/g);
-      if (matches && matches.length > 0) estimatedPages = matches.length;
-    } catch {
-      /* noop */
-    }
+  // 2. Se falhar e não houver descritores, tenta fallback com imagens diretas
+  let imagensExtraidas: Array<{ mime: string; bytes: Uint8Array }> = [];
+  try {
+    imagensExtraidas = extrairImagensDoPdf(buffer);
+  } catch {
+    /* noop */
+  }
 
+  if (imagensExtraidas.length > 0) {
+    console.warn(`[documentos.server] Fallback: PDF dividido em ${imagensExtraidas.length} imagem(ns) JPEG.`);
+    const blocos = imagensExtraidas.map((_, i) => ({
+      indice: i,
+      inicio: i + 1,
+      fim: i + 1,
+    }));
     return {
-      mime,
-      totalPaginas: estimatedPages,
-      blocos: [{ indice: 0, inicio: 1, fim: estimatedPages }],
+      mime: "image/jpeg",
+      totalPaginas: imagensExtraidas.length,
+      blocos,
+      gerarBloco: async (indice: number) => imagensExtraidas[indice].bytes,
+    };
+  }
+
+  // 3. Se for um PDF sem imagens escaneadas (ex: desenho vetorial puro sem camadas de bitmap),
+  // estima o total de páginas a partir dos marcadores /Type /Page em todo o buffer
+  let estimatedPages = 1;
+  try {
+    const latin1 = new TextDecoder("latin1").decode(buffer);
+    const matches = latin1.match(/\/Type\s*\/Page\b/g);
+    if (matches && matches.length > 0) estimatedPages = matches.length;
+  } catch {
+    /* noop */
+  }
+
+  return {
+    mime,
+    totalPaginas: estimatedPages,
+    blocos: [{ indice: 0, inicio: 1, fim: estimatedPages }],
     gerarBloco: async () => buffer,
   };
 }
@@ -516,7 +544,7 @@ export async function extractTextWithVisionDetalhado(
         const txt = await ocrComRetry(
           apiKey,
           `${fileName} (p. ${bloco.inicio}-${bloco.fim})`,
-          mime,
+          plano.mime,
           bytes,
         );
         if (txt.trim()) partes[idx] = txt.trim();

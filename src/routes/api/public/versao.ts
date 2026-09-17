@@ -20,29 +20,15 @@ export const Route = createFileRoute("/api/public/versao")({
             const buffer = new Uint8Array(await file.arrayBuffer());
             const header = new TextDecoder("ascii").decode(buffer.subarray(0, 200));
 
-            let pdfLibError: string | null = null;
-            let pageCount: number | null = null;
-            try {
-              const pdfLib = await import("pdf-lib");
-              const PDFDocument = pdfLib.PDFDocument ?? (pdfLib as any).default;
-              const src = await (PDFDocument as any).load(buffer, { ignoreEncryption: true });
-              pageCount = src.getPageCount();
-            } catch (e: any) {
-              pdfLibError = e.message || String(e);
-            }
-
-            // Find all /Filter and /Subtype in the PDF
-            const textSample = new TextDecoder("latin1").decode(buffer.subarray(0, 10000));
-            const filterMatches = textSample.match(/\/Filter\s*(\/[A-Za-z0-9]+|\[[^\]]+\])/g) ?? [];
-            const subtypeMatches = textSample.match(/\/Subtype\s*\/[A-Za-z0-9]+/g) ?? [];
+            const { extrairDescritoresImagensPdf } = await import("@/lib/documentos.server");
+            const descs = extrairDescritoresImagensPdf(buffer);
 
             return Response.json({
               fileSize: buffer.byteLength,
               header,
-              pageCount,
-              pdfLibError,
-              filterMatches: filterMatches.slice(0, 5),
-              subtypeMatches: subtypeMatches.slice(0, 5),
+              pageCount: descs.length,
+              descriptorsFound: descs.length,
+              sampleDescriptors: descs.slice(0, 5),
             });
           } catch (e: any) {
             return Response.json({ error: e.message || String(e), stack: e.stack });
@@ -56,15 +42,46 @@ export const Route = createFileRoute("/api/public/versao")({
       POST: async ({ request }) => {
         try {
           const url = new URL(request.url, "https://augustoij.com.br");
-          const body = (await request.json().catch(() => ({}))) as Record<string, string>;
+          const body = (await request.json().catch(() => ({}))) as Record<string, any>;
           const secret = request.headers.get("x-secret") || body.secret || url.searchParams.get("secret");
           const action = request.headers.get("x-action") || body.action || url.searchParams.get("action");
         if (secret !== "arvoredo-embed-2026") {
           return Response.json({ error: "unauthorized", rawUrl: request.url }, { status: 401 });
         }
+        if (action === "test-ocr-page") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { prepararPlanoOcr, ocrBloco } = await import("@/lib/documentos.server");
+          const apiKey = process.env.LOVABLE_API_KEY ?? "";
+          const docId = body.docId || "81c99c9a-fb73-4f43-9c8d-eda500988c56";
+          const blocoIndex = typeof body.blocoIndex === "number" ? body.blocoIndex : 0;
+
+          const { data: doc } = await supabaseAdmin.from("documentos").select("*").eq("id", docId).single();
+          if (!doc) return Response.json({ error: "doc_not_found" });
+
+          const { data: file, error: dlErr } = await supabaseAdmin.storage.from("documentos").download(doc.storage_path);
+          if (dlErr || !file) return Response.json({ error: "download_failed", dlErr });
+
+          const buffer = new Uint8Array(await file.arrayBuffer());
+          const plano = await prepararPlanoOcr(buffer, doc.nome_arquivo);
+          const blockBytes = await plano.gerarBloco(blocoIndex);
+          const txt = await ocrBloco(apiKey, `${doc.nome_arquivo} (p. ${blocoIndex + 1})`, plano.mime, blockBytes);
+
+          return Response.json({
+            ok: true,
+            docId,
+            nomeArquivo: doc.nome_arquivo,
+            totalPaginas: plano.totalPaginas,
+            totalBlocos: plano.blocos.length,
+            planoMime: plano.mime,
+            blocoIndex,
+            blocoBytesLength: blockBytes.byteLength,
+            ocrTextoLength: txt.length,
+            ocrTextoPreview: txt.slice(0, 500),
+          });
+        }
         if (action === "debug-ocr") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const apiKey = process.env.LOVABLE_API_KEY ?? "";
+          const { extrairDescritoresImagensPdf } = await import("@/lib/documentos.server");
           const docId = body.docId || "81c99c9a-fb73-4f43-9c8d-eda500988c56";
 
           const { data: doc } = await supabaseAdmin.from("documentos").select("*").eq("id", docId).single();
@@ -74,18 +91,13 @@ export const Route = createFileRoute("/api/public/versao")({
           if (dlErr || !file) return Response.json({ error: "download_failed", dlErr });
 
           const buffer = new Uint8Array(await file.arrayBuffer());
-          const firstBytes = Array.from(buffer.subarray(0, 32)).map(b => b.toString(16).padStart(2, '0')).join(' ');
-          const asciiHeader = new TextDecoder("latin1").decode(buffer.subarray(0, 64));
-          const lastBytes = Array.from(buffer.subarray(buffer.length - 32)).map(b => b.toString(16).padStart(2, '0')).join(' ');
-          const asciiTail = new TextDecoder("latin1").decode(buffer.subarray(buffer.length - 64));
+          const descs = extrairDescritoresImagensPdf(buffer);
 
           return Response.json({
             ok: true,
             fileSize: buffer.byteLength,
-            firstBytesHex: firstBytes,
-            asciiHeader: asciiHeader,
-            lastBytesHex: lastBytes,
-            asciiTail: asciiTail,
+            totalImagesFound: descs.length,
+            descriptors: descs.slice(0, 5),
           });
         }
         if (action === "seed-artigos") {
