@@ -130,7 +130,14 @@ export function ehLinhaCandidata(
   if (!identificador) return false;
 
   // 1. Tem número decimal, percentual ou milésimo (área ou fração)
-  if (temDecimal(linha)) return true;
+  if (temDecimal(linha)) {
+    // Exceção: linha que só descreve área coletiva do edifício sem identificar uma unidade específica.
+    // Ex: "Área de Uso Comum de 1.305,74m2" — não tem prefixo de unidade (Apto, Lote, etc.)
+    const descricaoAreaColetiva =
+      /^[\-–•]?\s*(?:área|area)\s+(?:de|do|da)\s+(?:uso|constru|vaga|solo|terreno)/i.test(linha.trim()) &&
+      identificador.prefixo == null;
+    if (!descricaoAreaColetiva) return true;
+  }
 
   // 2. Tem fração ordinária expressa (ex: 1/10, 1/57)
   if (temFracao(linha)) return true;

@@ -231,11 +231,11 @@ type ChamadaIA = {
 };
 
 const MODELO = "google/gemini-2.5-flash";
-const TAMANHO_LOTE = 80_000;
+const TAMANHO_LOTE = 25_000;
 const CONCORRENCIA = 6;
 const MAX_TENTATIVAS = 3;
 /** Muda sempre que o prompt muda — invalida o cache de extração. */
-export const VERSAO_PROMPT = "2026-09-17.censo-linhas.v3";
+export const VERSAO_PROMPT = "2026-09-17.censo-linhas.v4";
 
 
 export class ExtracaoIncompletaError extends Error {
@@ -583,15 +583,35 @@ function valorApareceNoTrecho(medida: z.infer<typeof MedidaExtraidaSchema>) {
 }
 
 /** Nunca apaga em silêncio: reprovadas vão para `medidas_descartadas` com o motivo. */
-function validarProveniencia(unidade: UnidadeExtraida) {
+function validarProveniencia(unidade: UnidadeExtraida, censo: { porId: Map<string, { pagina: number | null; texto?: string }> }) {
   const medidas: UnidadeExtraida["medidas"] = [];
   const descartadas: NonNullable<UnidadeExtraida["medidas_descartadas"]> = [
     ...(unidade.medidas_descartadas ?? []),
   ];
+  // Página onde a linha principal da unidade foi identificada
+  const paginaUnidade = unidade.linha_id ? (censo.porId.get(unidade.linha_id)?.pagina ?? null) : null;
   for (const medida of unidade.medidas ?? []) {
+    // Regra 1: O valor numérico deve estar presente no trecho
     if (!valorApareceNoTrecho(medida)) {
       descartadas.push({ medida, motivo: "valor_nao_confere" });
       continue;
+    }
+    // Regra 2 (prosa): Se a unidade não tem bloco, aceitar medidas da mesma página.
+    // Se a unidade tem bloco, exigir que o trecho contenha a identidade (número + bloco).
+    if (unidade.bloco) {
+      // Documento tabular — aplica a regra estrita de identidade
+      if (!trechoContemIdentidade(unidade, medida.trecho, medida.bloco_contexto)) {
+        descartadas.push({ medida, motivo: "identidade_nao_confere" });
+        continue;
+      }
+    } else {
+      // Documento proseado — aceitar medidas na mesma página da unidade
+      const paginaMedida = medida.pagina ?? (medida.linha_id ? (censo.porId.get(medida.linha_id)?.pagina ?? null) : null);
+      if (paginaUnidade !== null && paginaMedida !== null && paginaMedida !== paginaUnidade) {
+        // Medida de outra página — descarta
+        descartadas.push({ medida, motivo: "identidade_nao_confere" });
+        continue;
+      }
     }
     medidas.push(medida);
   }
@@ -749,6 +769,7 @@ function detectarEscalaGlobal(grupos: Map<string, UnidadeExtraida[]>) {
 export function consolidar(
   candidatas: UnidadeExtraida[],
   conhecidas: Array<{ bloco: string | null; numero: string }>,
+  censo: { porId: Map<string, { pagina: number | null; texto?: string }> } = { porId: new Map() },
 ) {
   const grupos = new Map<string, UnidadeExtraida[]>();
   const orfas: NonNullable<DiagnosticoExtracao["orfas"]> = [];
@@ -778,7 +799,7 @@ export function consolidar(
       bloco: identidade.bloco,
       numero: identidade.numero,
       regras_aplicadas: [...(bruta.regras_aplicadas ?? []), identidade.regra],
-    });
+    }, censo);
     const key = chaveUnidade(atualizada.bloco ?? null, atualizada.numero);
     grupos.set(key, [...(grupos.get(key) ?? []), atualizada]);
   }
@@ -1636,7 +1657,7 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
 
 
   const { unidades, conflitos, escala, somasHipoteses, regras, medidasDescartadas, orfas } =
-    consolidar(candidatas, conhecidas);
+    consolidar(candidatas, conhecidas, censo);
   diagnostico.orfas = orfas;
   diagnostico.balanco = montarBalanco({
     linhasCandidatas: censo.candidatas.length,
