@@ -48,6 +48,73 @@ export const Route = createFileRoute("/api/public/versao")({
         if (secret !== "arvoredo-embed-2026") {
           return Response.json({ error: "unauthorized", rawUrl: request.url }, { status: 401 });
         }
+        if (action === "test-pdfjs-images") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { getDocumentProxy, getResolvedPDFJS } = await import("unpdf");
+          const docId = body.docId || "5c4fea1b-6048-4343-8080-659fc2308497";
+
+          const { data: doc } = await supabaseAdmin.from("documentos").select("*").eq("id", docId).single();
+          if (!doc) return Response.json({ error: "doc_not_found" });
+
+          const { data: file, error: dlErr } = await supabaseAdmin.storage.from("documentos").download(doc.storage_path);
+          if (dlErr || !file) return Response.json({ error: "download_failed", dlErr });
+
+          const buffer = new Uint8Array(await file.arrayBuffer());
+          const pdf = await getDocumentProxy(buffer.slice());
+          const numPages = pdf.numPages;
+          const page1 = await pdf.getPage(1);
+          const ops = await page1.getOperatorList();
+          const pdfjs = await getResolvedPDFJS();
+          const OPS = pdfjs.OPS;
+
+          const imageOps: any[] = [];
+          for (let i = 0; i < ops.fnArray.length; i++) {
+            const fn = ops.fnArray[i];
+            const args = ops.argsArray[i];
+            if (fn === OPS.paintImageXObject || fn === OPS.paintJpegXObject || fn === OPS.paintImageMaskXObject) {
+              imageOps.push({ fn, opName: Object.keys(OPS).find(k => (OPS as any)[k] === fn), args });
+            }
+          }
+
+          let imgObjDetails: any = null;
+          let imgErr: any = null;
+          if (imageOps.length > 0 && imageOps[0].args?.[0]) {
+            const imgId = imageOps[0].args[0];
+            try {
+              const rawObj = await new Promise((resolve) => {
+                if (typeof (page1 as any).objs?.get === "function") {
+                  try {
+                    (page1 as any).objs.get(imgId, (data: any) => resolve(data));
+                  } catch (e) {
+                    resolve(null);
+                  }
+                } else {
+                  resolve(null);
+                }
+              });
+              if (rawObj) {
+                imgObjDetails = {
+                  keys: Object.keys(rawObj as object),
+                  width: (rawObj as any).width,
+                  height: (rawObj as any).height,
+                  dataLen: (rawObj as any).data ? (rawObj as any).data.length : 0,
+                  kind: (rawObj as any).kind,
+                };
+              }
+            } catch (e: any) {
+              imgErr = e.message || String(e);
+            }
+          }
+
+          return Response.json({
+            ok: true,
+            numPages,
+            fnCount: ops.fnArray.length,
+            imageOps,
+            imgObjDetails,
+            imgErr,
+          });
+        }
         if (action === "test-ocr-page") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { prepararPlanoOcr, ocrBloco } = await import("@/lib/documentos.server");
