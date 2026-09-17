@@ -5,11 +5,54 @@ import { APP_BUILD_TIME } from "@/lib/versao";
 export const Route = createFileRoute("/api/public/versao")({
   server: {
     handlers: {
-      GET: async () =>
-        Response.json(
+      GET: async ({ request }) => {
+        const url = new URL(request.url, "https://augustoij.com.br");
+        if (url.searchParams.get("inspect") === "1") {
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const docId = "81c99c9a-fb73-4f43-9c8d-eda500988c56";
+            const { data: doc } = await supabaseAdmin.from("documentos").select("storage_path").eq("id", docId).single();
+            if (!doc) return Response.json({ error: "doc_not_found" });
+
+            const { data: file, error: dlErr } = await supabaseAdmin.storage.from("documentos").download(doc.storage_path);
+            if (dlErr || !file) return Response.json({ error: "dl_failed", dlErr });
+
+            const buffer = new Uint8Array(await file.arrayBuffer());
+            const header = new TextDecoder("ascii").decode(buffer.subarray(0, 200));
+
+            let pdfLibError: string | null = null;
+            let pageCount: number | null = null;
+            try {
+              const pdfLib = await import("pdf-lib");
+              const PDFDocument = pdfLib.PDFDocument ?? (pdfLib as any).default;
+              const src = await (PDFDocument as any).load(buffer, { ignoreEncryption: true });
+              pageCount = src.getPageCount();
+            } catch (e: any) {
+              pdfLibError = e.message || String(e);
+            }
+
+            // Find all /Filter and /Subtype in the PDF
+            const textSample = new TextDecoder("latin1").decode(buffer.subarray(0, 10000));
+            const filterMatches = textSample.match(/\/Filter\s*(\/[A-Za-z0-9]+|\[[^\]]+\])/g) ?? [];
+            const subtypeMatches = textSample.match(/\/Subtype\s*\/[A-Za-z0-9]+/g) ?? [];
+
+            return Response.json({
+              fileSize: buffer.byteLength,
+              header,
+              pageCount,
+              pdfLibError,
+              filterMatches: filterMatches.slice(0, 5),
+              subtypeMatches: subtypeMatches.slice(0, 5),
+            });
+          } catch (e: any) {
+            return Response.json({ error: e.message || String(e), stack: e.stack });
+          }
+        }
+        return Response.json(
           { build: APP_BUILD_TIME },
           { headers: { "cache-control": "no-store" } },
-        ),
+        );
+      },
       POST: async ({ request }) => {
         try {
           const url = new URL(request.url, "https://augustoij.com.br");
