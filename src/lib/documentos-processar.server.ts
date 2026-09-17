@@ -425,7 +425,7 @@ export async function processarDocumentoCore(
     // Rodada sem nenhum trecho novo e com bloco falhando: em vez de deixar o
     // documento preso em "processando" para sempre, marcamos erro legível
     // depois de algumas tentativas seguidas sem avanço.
-    if (novosChunks === 0 && falhas.length > 0 && tentativas >= 3) {
+    if (novosChunks === 0 && falhas.length > 0 && tentativas >= 6) {
       throw new IngestError(
         "ocr",
         "A leitura das páginas escaneadas falhou repetidamente",
