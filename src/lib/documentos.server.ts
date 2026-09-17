@@ -142,7 +142,22 @@ export function extrairDescritoresImagensPdf(bytes: Uint8Array): DescritorImagem
           }
         }
 
-        if ((isImage || isDct) && streamLen > 100) {
+        let width = 0;
+        let height = 0;
+        const wMatch = dict.match(/\/Width\s+(\d+)/);
+        if (wMatch) width = parseInt(wMatch[1], 10);
+        const hMatch = dict.match(/\/Height\s+(\d+)/);
+        if (hMatch) height = parseInt(hMatch[1], 10);
+
+        // Uma página escaneada autêntica possui dimensões de página (ao menos 300x300)
+        // ou tamanho considerável (>= 15KB). Imagens menores (ícones, vinhetas, carimbos)
+        // são descartadas para evitar falsos positivos de páginas.
+        const ehPaginaDoc =
+          (width >= 300 && height >= 300) ||
+          (width === 0 && streamLen >= 15000) ||
+          streamLen >= 25000;
+
+        if ((isImage || isDct) && ehPaginaDoc && streamLen > 100) {
           const firstByte = bytes[dataStart];
           const isZlib = firstByte === 0x78 || isFlate;
           descriptors.push({
