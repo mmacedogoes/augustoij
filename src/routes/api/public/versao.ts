@@ -37,13 +37,18 @@ export const Route = createFileRoute("/api/public/versao")({
           const isPdf = blocoBytes[0] === 0x25 && blocoBytes[1] === 0x50 && blocoBytes[2] === 0x44 && blocoBytes[3] === 0x46; // %PDF
           const b64 = Buffer.from(blocoBytes).toString("base64");
 
-          // Test formats
-          const results: Record<string, any> = {
-            totalPaginas: plano.totalPaginas,
-            mime: plano.mime,
-            bloco0Size: blocoBytes.byteLength,
-            isPdf,
-          };
+          let pdfLibError: string | null = null;
+          let pdfLibPageCount: number | null = null;
+          try {
+            const pdfLib = await import("pdf-lib");
+            const PDFDocument = pdfLib.PDFDocument ?? (pdfLib as Record<string, unknown>).default;
+            const src = await (PDFDocument as any).load(buffer, { ignoreEncryption: true });
+            pdfLibPageCount = src.getPageCount();
+          } catch (e: any) {
+            pdfLibError = e.message || String(e);
+          }
+          results.pdfLibError = pdfLibError;
+          results.pdfLibPageCount = pdfLibPageCount;
 
           const callGateway = async (label: string, content: any[]) => {
             try {
@@ -68,10 +73,18 @@ export const Route = createFileRoute("/api/public/versao")({
             }
           };
 
-          // Option A: PDF as image_url
-          await callGateway("optA_pdf_image_url", [
-            { type: "text", text: "Transcreva a primeira linha" },
-            { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
+          // Option A: PDF as image_url (sent as application/pdf)
+          if (isPdf) {
+            await callGateway("optA_pdf_image_url", [
+              { type: "text", text: "Transcreva a primeira linha" },
+              { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
+            ]);
+          }
+
+          // Option B: As image_url with data:image/jpeg;base64
+          await callGateway("optB_jpeg_image_url", [
+            { type: "text", text: "Transcreva o título deste documento" },
+            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
           ]);
 
           // Option B: check embedded JPEGs
