@@ -457,7 +457,7 @@ export async function processarDocumentoCore(
     // 1) Caminho rápido: documento com camada de texto.
     let texto = "";
     try {
-      texto = await extractText(buffer, documento.nome_arquivo);
+      texto = await extractText(buffer.slice(), documento.nome_arquivo);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg !== "__NEEDS_VISION__") {

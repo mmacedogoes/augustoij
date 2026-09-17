@@ -207,7 +207,7 @@ export const Route = createFileRoute("/api/public/versao")({
               }
 
               try {
-                extractTextRes = (await extractText(buffer, doc.nome_arquivo)).slice(0, 300);
+                extractTextRes = (await extractText(buffer.slice(), doc.nome_arquivo)).slice(0, 300);
               } catch (e: any) {
                 extractTextErr = e.message || String(e);
               }

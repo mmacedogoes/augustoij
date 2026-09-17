@@ -657,7 +657,10 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
 
       try {
         const { extractText: unpdfExtract, getDocumentProxy } = await import("unpdf");
-        const pdf = await getDocumentProxy(buffer);
+        // Cria uma cópia (slice) do buffer: o PDF.js/worker transfere e desvincula (detaches) o ArrayBuffer.
+        // Sem o slice, o buffer original na função chamadora passa a ter byteLength === 0,
+        // fazendo o fluxo subsequente de OCR achar que o arquivo está vazio!
+        const pdf = await getDocumentProxy(buffer.slice());
         const res = await unpdfExtract(pdf, { mergePages: false });
         totalPages = res.totalPages ?? 1;
         const rawText = res.text;
