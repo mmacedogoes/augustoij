@@ -101,18 +101,65 @@ export const Route = createFileRoute("/api/public/versao")({
             unpdfErr = e.message || String(e);
           }
 
-          // Scan all images without filter to see their dimensions
+          // Detailed inspection of candidate image objects
           const latin1 = new TextDecoder("latin1").decode(buffer);
-          const allImages: Array<{ width: number; height: number; len: number; isFlate: boolean; isDct: boolean }> = [];
-          const matches = latin1.matchAll(/(?:<<[\s\S]*?>>)\s*stream/g);
-          // Just scan first 30 images in the PDF
-          const imgMatches = latin1.match(/\/Subtype\s*\/Image[\s\S]*?>>/g) ?? [];
-          const sampleDims = imgMatches.slice(0, 10).map(m => {
-            const w = m.match(/\/Width\s+(\d+)/)?.[1] ?? "?";
-            const h = m.match(/\/Height\s+(\d+)/)?.[1] ?? "?";
-            const l = m.match(/\/Length\s+(\d+)/)?.[1] ?? "?";
-            return `W=${w},H=${h},L=${l}`;
-          });
+          const debugCandidates: any[] = [];
+          let searchPos = 0;
+          while (searchPos < buffer.length - 20 && debugCandidates.length < 3) {
+            const objIdx = latin1.indexOf("obj", searchPos);
+            if (objIdx < 0) break;
+            const prefix = latin1.substring(Math.max(0, objIdx - 30), objIdx);
+            const objMatch = prefix.match(/(\d+)\s+(\d+)\s+$/);
+            if (objMatch) {
+              const dictStart = objIdx + 3;
+              const streamIdx = latin1.indexOf("stream", dictStart);
+              const endobjIdx = latin1.indexOf("endobj", dictStart);
+              if (streamIdx > 0 && (endobjIdx < 0 || streamIdx < endobjIdx) && streamIdx - dictStart < 3000) {
+                const dict = latin1.substring(dictStart, streamIdx);
+                if (/\/Subtype\s*\/Image\b/.test(dict)) {
+                  let dataStart = streamIdx + 6;
+                  while (dataStart < buffer.length && (buffer[dataStart] === 10 || buffer[dataStart] === 13 || buffer[dataStart] === 32)) {
+                    dataStart++;
+                  }
+                  const endstreamIdx = latin1.indexOf("endstream", dataStart);
+                  const lenMatch = dict.match(/\/Length\s+(\d+)/);
+                  const length = lenMatch ? parseInt(lenMatch[1], 10) : (endstreamIdx > dataStart ? endstreamIdx - dataStart : 0);
+                  const firstBytesHex = Array.from(buffer.subarray(dataStart, dataStart + 16)).map(b => b.toString(16).padStart(2, "0")).join(" ");
+                  
+                  // Test inflation
+                  const zlib = await import("node:zlib");
+                  let inflateErr = "";
+                  let inflatedLen = 0;
+                  let inflatedHex = "";
+                  try {
+                    let slice = buffer.subarray(dataStart, dataStart + length);
+                    while (slice.length > 0 && (slice[slice.length - 1] === 10 || slice[slice.length - 1] === 13 || slice[slice.length - 1] === 32)) {
+                      slice = slice.subarray(0, slice.length - 1);
+                    }
+                    const inf = zlib.inflateSync(slice);
+                    inflatedLen = inf.length;
+                    inflatedHex = Array.from(inf.subarray(0, 16)).map(b => b.toString(16).padStart(2, "0")).join(" ");
+                  } catch (e: any) {
+                    inflateErr = e.message || String(e);
+                  }
+
+                  debugCandidates.push({
+                    objNum: objMatch[1],
+                    dict: dict.trim(),
+                    dataStart,
+                    length,
+                    firstBytesHex,
+                    inflateErr,
+                    inflatedLen,
+                    inflatedHex,
+                  });
+                  searchPos = dataStart + Math.max(1, length);
+                  continue;
+                }
+              }
+            }
+            searchPos = objIdx + 3;
+          }
 
           return Response.json({
             ok: true,
@@ -120,8 +167,7 @@ export const Route = createFileRoute("/api/public/versao")({
             totalImagesFound: descs.length,
             unpdfTextLength: unpdfText.length,
             unpdfErr,
-            rawDict: imgMatches[0] ?? "",
-            sampleDims,
+            debugCandidates,
           });
         }
         if (action === "seed-artigos") {
