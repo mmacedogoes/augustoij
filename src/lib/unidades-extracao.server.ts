@@ -1334,20 +1334,23 @@ export async function extrairESalvarSugestaoUnidades(
   if (censo.candidatas.length < 15) {
     // Fallback: se o censo determinístico não encontrou linhas suficientes,
     // busca trechos com termos indicativos de unidades para submeter à IA.
-    const chunksComTermos = chunks.filter((c) =>
-      /\b(?:unidades?|apartamentos?|flats?|studios?|salas?|lojas?|frac(?:ao|oes)|area privativa|quadro)\b/i.test(
-        c.conteudo,
-      ),
-    );
+    const chunksComTermos = chunks.filter((c) => {
+      const normal = c.conteudo
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+      return /\b(?:unidades?|apartamentos?|flats?|studios?|salas?|lojas?|fracao|fracoes|area.*?privativa|quadro)\b/.test(
+        normal,
+      );
+    });
     if (chunksComTermos.length > 0) {
-      for (const c of chunksComTermos) {
-        const doChunk = censo.linhas.filter((l) => l.chunk_id === c.id);
-        for (const l of doChunk) {
-          if (l.texto.trim().length > 0 && !l.candidata) {
-            l.candidata = true;
-            censo.candidatas.push(l);
-          }
-        }
+      const idsChunks = new Set(chunksComTermos.map((c) => c.id));
+      censo.candidatas = censo.linhas.filter(
+        (l) => l.candidata || (idsChunks.has(l.chunk_id) && l.texto.trim().length > 0)
+      );
+      // Ensure candidata flag is set for all
+      for (const l of censo.candidatas) {
+        l.candidata = true;
       }
     }
   }
