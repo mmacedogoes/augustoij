@@ -450,6 +450,59 @@ export const Route = createFileRoute("/api/public/versao")({
 
           return Response.json({ ok: true, processados: resultados.length, resultados });
         }
+        if (action === "inspect-condominio-extracao") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const condominioId = (body as any).condominioId || "69f3989c-b591-44e6-b53c-1b69f080e0c1";
+
+          const { data: cond } = await supabaseAdmin
+            .from("condominios")
+            .select("*")
+            .eq("id", condominioId)
+            .single();
+
+          const { data: docs } = await supabaseAdmin
+            .from("documentos")
+            .select("id, nome_arquivo, tipo, status_processamento, created_at, processamento_meta")
+            .eq("condominio_id", condominioId)
+            .order("created_at", { ascending: false });
+
+          const { data: sugestoes } = await supabaseAdmin
+            .from("sugestoes_unidades")
+            .select("id, documento_id, status, total_sugerido, diagnostico, erro_mensagem, created_at")
+            .eq("condominio_id", condominioId)
+            .order("created_at", { ascending: false });
+
+          const { data: chunks1 } = await supabaseAdmin
+            .from("document_chunks")
+            .select("id, conteudo, metadata")
+            .eq("documento_id", "5c4fea1b-6048-4343-8080-659fc2308497");
+
+          const { data: chunks2 } = await supabaseAdmin
+            .from("document_chunks")
+            .select("id, conteudo, metadata")
+            .eq("documento_id", "a4ea458f-c0fe-4e52-b652-3074ac0cbc61");
+
+          const { construirCenso } = await import("@/lib/censo-linhas");
+          const censo1 = chunks1 ? construirCenso("5c4fea1b-6048-4343-8080-659fc2308497", chunks1 as any) : null;
+          const censo2 = chunks2 ? construirCenso("a4ea458f-c0fe-4e52-b652-3074ac0cbc61", chunks2 as any) : null;
+
+          return Response.json({
+            ok: true,
+            cond,
+            docs,
+            sugestoes,
+            censo1: censo1 ? {
+              totalLinhas: censo1.linhas.length,
+              candidatas: censo1.candidatas.length,
+              amostraLinhas: censo1.linhas.slice(0, 30).map(l => ({ id: l.linha_id, texto: l.texto, candidata: l.candidata })),
+            } : null,
+            censo2: censo2 ? {
+              totalLinhas: censo2.linhas.length,
+              candidatas: censo2.candidatas.length,
+              amostraLinhas: censo2.linhas.slice(0, 30).map(l => ({ id: l.linha_id, texto: l.texto, candidata: l.candidata })),
+            } : null,
+          });
+        }
         if (action === "seed-artigos") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const artigos = (body as any).artigos;
