@@ -235,7 +235,7 @@ const TAMANHO_LOTE = 80_000;
 const CONCORRENCIA = 6;
 const MAX_TENTATIVAS = 3;
 /** Muda sempre que o prompt muda — invalida o cache de extração. */
-export const VERSAO_PROMPT = "2026-09-17.censo-linhas.v2";
+export const VERSAO_PROMPT = "2026-09-17.censo-linhas.v3";
 
 
 export class ExtracaoIncompletaError extends Error {
@@ -589,10 +589,6 @@ function validarProveniencia(unidade: UnidadeExtraida) {
     ...(unidade.medidas_descartadas ?? []),
   ];
   for (const medida of unidade.medidas ?? []) {
-    if (!trechoContemIdentidade(unidade, medida.trecho, medida.bloco_contexto)) {
-      descartadas.push({ medida, motivo: "identidade_nao_confere" });
-      continue;
-    }
     if (!valorApareceNoTrecho(medida)) {
       descartadas.push({ medida, motivo: "valor_nao_confere" });
       continue;
