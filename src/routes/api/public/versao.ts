@@ -174,6 +174,60 @@ export const Route = createFileRoute("/api/public/versao")({
             pageMatches,
           });
         }
+        if (action === "diagnostico-download") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const docId = (body as any).docId || "5c4fea1b-6048-4343-8080-659fc2308497";
+          const { data: doc } = await supabaseAdmin.from("documentos").select("*").eq("id", docId).single();
+          if (!doc) return Response.json({ error: "doc_not_found" });
+
+          const dlRes = await supabaseAdmin.storage.from("documentos").download(doc.storage_path);
+          const fileBlob = dlRes.data;
+          const dlErr = dlRes.error;
+
+          let arrayBufLen = 0;
+          let blobSize = fileBlob?.size ?? -1;
+          let blobType = fileBlob?.type ?? "";
+          let arrayBufErr = "";
+          if (fileBlob) {
+            try {
+              const ab = await fileBlob.arrayBuffer();
+              arrayBufLen = ab.byteLength;
+            } catch (e: any) {
+              arrayBufErr = e.message || String(e);
+            }
+          }
+
+          // Test signed url fetch
+          const signedRes = await supabaseAdmin.storage.from("documentos").createSignedUrl(doc.storage_path, 300);
+          let fetchStatus = 0;
+          let fetchLen = 0;
+          let fetchErr = "";
+          if (signedRes.data?.signedUrl) {
+            try {
+              const f = await fetch(signedRes.data.signedUrl);
+              fetchStatus = f.status;
+              const fBuf = await f.arrayBuffer();
+              fetchLen = fBuf.byteLength;
+            } catch (e: any) {
+              fetchErr = e.message || String(e);
+            }
+          }
+
+          return Response.json({
+            ok: true,
+            docId,
+            storage_path: doc.storage_path,
+            blobSize,
+            blobType,
+            arrayBufLen,
+            arrayBufErr,
+            dlErr: dlErr?.message ?? null,
+            signedUrlExists: !!signedRes.data?.signedUrl,
+            fetchStatus,
+            fetchLen,
+            fetchErr,
+          });
+        }
         if (action === "advance-doc") {
           try {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
