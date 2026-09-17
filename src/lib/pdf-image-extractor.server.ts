@@ -192,7 +192,7 @@ export async function extrairImagemPaginaPdf(
     const args = ops.argsArray[i];
     if (
       fn === OPS.paintImageXObject ||
-      fn === OPS.paintJpegXObject ||
+      fn === (OPS as Record<string, number>)["paintJpegXObject"] ||
       fn === OPS.paintImageMaskXObject ||
       fn === OPS.paintInlineImageXObject
     ) {
