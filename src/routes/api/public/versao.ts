@@ -225,6 +225,90 @@ export const Route = createFileRoute("/api/public/versao")({
           if (error) return Response.json({ error: error.message }, { status: 500 });
           return Response.json({ ok: true, reset: docId });
         }
+        if (action === "obter-md") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { consolidarMdDeDocumentoPronto } = await import("@/lib/documentos-processar.server");
+          const docId = (body as any).docId;
+          if (!docId) return Response.json({ error: "missing_docId" }, { status: 400 });
+
+          const { data: doc, error } = await supabaseAdmin
+            .from("documentos")
+            .select("id, condominio_id, nome_arquivo, status_processamento, processamento_meta")
+            .eq("id", docId)
+            .single();
+          if (error || !doc) return Response.json({ error: error?.message || "doc_not_found" }, { status: 404 });
+
+          let mdPath = (doc.processamento_meta as any)?.md_storage_path;
+          let totalChars = (doc.processamento_meta as any)?.md_total_caracteres;
+
+          // Se ainda não tiver gerado o md, consolida agora sob demanda
+          if (!mdPath && doc.status_processamento === "pronto") {
+            const resConsolida = await consolidarMdDeDocumentoPronto(supabaseAdmin, docId);
+            if (resConsolida.ok) {
+              mdPath = resConsolida.mdStoragePath;
+              totalChars = resConsolida.totalCaracteres;
+            }
+          }
+
+          if (!mdPath) {
+            return Response.json({
+              ok: false,
+              error: "md_not_available",
+              statusProcessamento: doc.status_processamento,
+            }, { status: 400 });
+          }
+
+          const { data: file, error: dlErr } = await supabaseAdmin.storage
+            .from("documentos")
+            .download(mdPath);
+          if (dlErr || !file) {
+            return Response.json({ error: dlErr?.message || "download_failed" }, { status: 500 });
+          }
+
+          const textoMd = await file.text();
+          return Response.json({
+            ok: true,
+            docId,
+            nomeArquivo: doc.nome_arquivo,
+            mdStoragePath: mdPath,
+            totalCaracteres: totalChars ?? textoMd.length,
+            preview: textoMd.slice(0, 1500),
+            conteudoCompleto: (body as any).completo ? textoMd : undefined,
+          });
+        }
+        if (action === "backfill-md") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { consolidarMdDeDocumentoPronto } = await import("@/lib/documentos-processar.server");
+          const docId = (body as any).docId;
+
+          if (docId) {
+            const res = await consolidarMdDeDocumentoPronto(supabaseAdmin, docId);
+            return Response.json({ ok: res.ok, docId, resultado: res });
+          }
+
+          // Se não passou docId, busca até 15 documentos prontos que ainda não possuem md_storage_path
+          const { data: docs, error } = await supabaseAdmin
+            .from("documentos")
+            .select("id, nome_arquivo")
+            .eq("status_processamento", "pronto")
+            .is("processamento_meta->md_storage_path", null)
+            .limit(15);
+          if (error) return Response.json({ error: error.message }, { status: 500 });
+
+          const resultados: Array<{ docId: string; nome: string; ok: boolean; mdPath?: string; erro?: string }> = [];
+          for (const d of docs ?? []) {
+            const r = await consolidarMdDeDocumentoPronto(supabaseAdmin, d.id);
+            resultados.push({
+              docId: d.id,
+              nome: d.nome_arquivo,
+              ok: r.ok,
+              mdPath: r.mdStoragePath,
+              erro: r.erro,
+            });
+          }
+
+          return Response.json({ ok: true, processados: resultados.length, resultados });
+        }
         if (action === "seed-artigos") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const artigos = (body as any).artigos;

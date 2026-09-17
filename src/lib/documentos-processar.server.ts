@@ -29,6 +29,194 @@ type DocRow = {
 };
 
 /**
+ * Salva a transcrição intermediária de um bloco no Supabase Storage.
+ * Isso permite reconstruir a íntegra do documento em Markdown (.md) sem perda entre rodadas de processamento.
+ */
+async function salvarBlocoOcrTemp(
+  supabaseAdmin: SupabaseClient,
+  condominioId: string,
+  documentoId: string,
+  indiceBloco: number,
+  texto: string,
+): Promise<void> {
+  try {
+    const path = `${condominioId}/transcricoes_temp/${documentoId}/bloco_${indiceBloco}.txt`;
+    await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(path, new TextEncoder().encode(texto), {
+        contentType: "text/plain; charset=utf-8",
+        upsert: true,
+      });
+  } catch (err) {
+    console.warn(`[md] Falha ao salvar temporário do bloco ${indiceBloco}:`, err);
+  }
+}
+
+/**
+ * Consolida todas as páginas/blocos de um documento num arquivo Markdown (.md) único
+ * e salva no Storage sob <condominio_id>/transcricoes/<documento_id>.md.
+ */
+async function consolidarEMdStorage(
+  supabaseAdmin: SupabaseClient,
+  documento: { id: string; condominio_id: string; nome_arquivo: string; tipo: string },
+  opts: {
+    modo: "texto" | "ocr";
+    textoDireto?: string;
+    blocos?: Array<{ indice: number; inicio: number; fim: number }>;
+  },
+): Promise<{ mdStoragePath: string; totalCaracteres: number } | null> {
+  try {
+    const partesMd: string[] = [];
+    partesMd.push(`# ${documento.tipo.toUpperCase()}: ${documento.nome_arquivo}\n`);
+    partesMd.push(`<!-- Condomínio ID: ${documento.condominio_id} -->`);
+    partesMd.push(`<!-- Documento ID: ${documento.id} -->`);
+    partesMd.push(`<!-- Modo de Leitura: ${opts.modo} -->`);
+    partesMd.push(`<!-- Data de Consolidação: ${new Date().toISOString()} -->\n`);
+
+    if (opts.modo === "texto" && opts.textoDireto) {
+      partesMd.push(opts.textoDireto.trim());
+    } else if (opts.modo === "ocr" && opts.blocos && opts.blocos.length > 0) {
+      for (const b of opts.blocos) {
+        const blocoPath = `${documento.condominio_id}/transcricoes_temp/${documento.id}/bloco_${b.indice}.txt`;
+        let textoPagina = "";
+        try {
+          const { data: bFile } = await supabaseAdmin.storage.from(BUCKET).download(blocoPath);
+          if (bFile) {
+            textoPagina = await bFile.text();
+          }
+        } catch {
+          // Fallback via chunks indexados no banco
+        }
+        if (!textoPagina) {
+          const { data: chunksDb } = await supabaseAdmin
+            .from("document_chunks")
+            .select("conteudo")
+            .eq("documento_id", documento.id)
+            .contains("metadata", { bloco: b.indice })
+            .order("metadata->ordem_global", { ascending: true });
+          if (chunksDb && chunksDb.length > 0) {
+            textoPagina = chunksDb.map((c) => c.conteudo).join("\n\n");
+          }
+        }
+        const pagInicio = b.inicio;
+        const pagFim = b.fim;
+        const rotuloPagina = pagInicio === pagFim ? `Página ${pagInicio}` : `Páginas ${pagInicio} a ${pagFim}`;
+        partesMd.push(`\n---\n## ${rotuloPagina}\n\n${textoPagina.trim() || `[${rotuloPagina}: Sem texto detectado]`}`);
+      }
+    }
+
+    const mdCompleto = partesMd.join("\n");
+    const mdStoragePath = `${documento.condominio_id}/transcricoes/${documento.id}.md`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(mdStoragePath, new TextEncoder().encode(mdCompleto), {
+        contentType: "text/markdown; charset=utf-8",
+        upsert: true,
+      });
+    if (upErr) {
+      console.warn("[md] Falha ao fazer upload do markdown consolidado:", upErr);
+      return null;
+    }
+
+    // Limpa temporários
+    if (opts.blocos && opts.blocos.length > 0) {
+      try {
+        const caminhosTemp = opts.blocos.map(
+          (b) => `${documento.condominio_id}/transcricoes_temp/${documento.id}/bloco_${b.indice}.txt`
+        );
+        await supabaseAdmin.storage.from(BUCKET).remove(caminhosTemp);
+      } catch { /* noop */ }
+    }
+
+    return { mdStoragePath, totalCaracteres: mdCompleto.length };
+  } catch (err) {
+    console.warn("[md] Erro ao consolidar markdown no storage:", err);
+    return null;
+  }
+}
+
+/**
+ * Reconstrói e salva o arquivo .md de um documento que já está no status 'pronto'
+ * a partir de seus chunks existentes no banco.
+ */
+export async function consolidarMdDeDocumentoPronto(
+  supabaseAdmin: SupabaseClient,
+  documentoId: string,
+): Promise<{ ok: boolean; mdStoragePath?: string; totalCaracteres?: number; erro?: string }> {
+  const { data: doc, error: docErr } = await supabaseAdmin
+    .from("documentos")
+    .select("id, condominio_id, nome_arquivo, tipo, processamento_meta")
+    .eq("id", documentoId)
+    .single();
+  if (docErr || !doc) return { ok: false, erro: docErr?.message ?? "Documento não encontrado" };
+
+  const { data: chunks, error: chErr } = await supabaseAdmin
+    .from("document_chunks")
+    .select("conteudo, metadata")
+    .eq("documento_id", documentoId);
+  if (chErr || !chunks || chunks.length === 0) {
+    return { ok: false, erro: "Nenhum chunk encontrado para este documento" };
+  }
+
+  // Agrupa chunks por bloco
+  const partesMd: string[] = [];
+  partesMd.push(`# ${doc.tipo.toUpperCase()}: ${doc.nome_arquivo}\n`);
+  partesMd.push(`<!-- Condomínio ID: ${doc.condominio_id} -->`);
+  partesMd.push(`<!-- Documento ID: ${doc.id} -->`);
+  partesMd.push(`<!-- Modo: Reconstruído de Chunks -->`);
+  partesMd.push(`<!-- Data de Consolidação: ${new Date().toISOString()} -->`);
+  partesMd.push(`<!-- Total de Chunks: ${chunks.length} -->\n`);
+
+  const blocosMap = new Map<number, string[]>();
+  const chunksSemBloco: string[] = [];
+
+  for (const c of chunks) {
+    const b = c.metadata?.bloco;
+    if (typeof b === "number") {
+      if (!blocosMap.has(b)) blocosMap.set(b, []);
+      blocosMap.get(b)!.push(c.conteudo);
+    } else {
+      chunksSemBloco.push(c.conteudo);
+    }
+  }
+
+  if (blocosMap.size > 0) {
+    const indices = Array.from(blocosMap.keys()).sort((a, b) => a - b);
+    for (const idx of indices) {
+      const conteudo = blocosMap.get(idx)!.join("\n\n");
+      partesMd.push(`\n---\n## Página / Bloco ${idx + 1}\n\n${conteudo}`);
+    }
+  } else {
+    partesMd.push(chunksSemBloco.join("\n\n"));
+  }
+
+  const mdCompleto = partesMd.join("\n");
+  const mdStoragePath = `${doc.condominio_id}/transcricoes/${doc.id}.md`;
+  const { error: upErr } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .upload(mdStoragePath, new TextEncoder().encode(mdCompleto), {
+      contentType: "text/markdown; charset=utf-8",
+      upsert: true,
+    });
+  if (upErr) return { ok: false, erro: upErr.message };
+
+  const metaAnterior = (doc.processamento_meta ?? {}) as Record<string, unknown>;
+  await supabaseAdmin
+    .from("documentos")
+    .update({
+      processamento_meta: {
+        ...metaAnterior,
+        md_storage_path: mdStoragePath,
+        md_total_caracteres: mdCompleto.length,
+        md_gerado_em: new Date().toISOString(),
+      },
+    })
+    .eq("id", documentoId);
+
+  return { ok: true, mdStoragePath, totalCaracteres: mdCompleto.length };
+}
+
+/**
  * Lê, transcreve (OCR por visão quando necessário) e indexa um documento.
  *
  * Documentos escaneados longos são lidos em BLOCOS de páginas e cada bloco é
@@ -282,6 +470,10 @@ export async function processarDocumentoCore(
     if (texto.trim()) {
       await supabaseAdmin.from("document_chunks").delete().eq("documento_id", documento.id);
       const n = await indexar([texto], { origem: "texto" });
+      const mdInfo = await consolidarEMdStorage(supabaseAdmin, documento, {
+        modo: "texto",
+        textoDireto: texto,
+      });
       await finalizar(true, {
         modo: "texto",
         chunks: n,
@@ -289,6 +481,9 @@ export async function processarDocumentoCore(
         total_blocos: 1,
         paginas_falhas: [],
         aviso: null,
+        md_storage_path: mdInfo?.mdStoragePath ?? null,
+        md_total_caracteres: mdInfo?.totalCaracteres ?? null,
+        md_gerado_em: mdInfo ? new Date().toISOString() : null,
       });
       return {
         ok: true,
@@ -360,15 +555,17 @@ export async function processarDocumentoCore(
 
           if (!txt.trim()) {
             for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
+            const placeholderBranco = `[Página ${bloco.inicio}: página em branco ou sem texto detectável]`;
             // Registra lacuna para não travar a leitura do documento
             try {
-              await indexar([`[Página ${bloco.inicio}: página em branco ou sem texto detectável]`], {
+              await indexar([placeholderBranco], {
                 origem: "ocr_lacuna",
                 bloco: bloco.indice,
                 pagina_inicio: bloco.inicio,
                 pagina_fim: bloco.fim,
               });
             } catch { /* noop */ }
+            await salvarBlocoOcrTemp(supabaseAdmin, documento.condominio_id, documento.id, bloco.indice, placeholderBranco);
             prontos.add(bloco.indice);
             continue;
           }
@@ -378,15 +575,17 @@ export async function processarDocumentoCore(
             pagina_inicio: bloco.inicio,
             pagina_fim: bloco.fim,
           });
+          await salvarBlocoOcrTemp(supabaseAdmin, documento.condominio_id, documento.id, bloco.indice, txt);
           prontos.add(bloco.indice);
         } catch (err) {
           ultimoErroOcr = err instanceof Error ? err.message : String(err);
           console.warn(`[ocr] bloco ${bloco.inicio}-${bloco.fim} falhou:`, ultimoErroOcr);
           for (let p = bloco.inicio; p <= bloco.fim; p++) falhas.push(p);
 
+          const placeholderErro = `[Página ${bloco.inicio}: não foi possível extrair o texto desta página (${ultimoErroOcr})]`;
           // Registra como lacuna para que a leitura das demais páginas possa prosseguir
           try {
-            await indexar([`[Página ${bloco.inicio}: não foi possível extrair o texto desta página (${ultimoErroOcr})]`], {
+            await indexar([placeholderErro], {
               origem: "ocr_lacuna",
               bloco: bloco.indice,
               pagina_inicio: bloco.inicio,
@@ -394,6 +593,7 @@ export async function processarDocumentoCore(
             });
             prontos.add(bloco.indice);
           } catch { /* noop */ }
+          await salvarBlocoOcrTemp(supabaseAdmin, documento.condominio_id, documento.id, bloco.indice, placeholderErro);
         }
 
         // Se for chamada com orçamento estendido (ex: cron ou avanço em lote) e ainda
@@ -466,6 +666,15 @@ export async function processarDocumentoCore(
     // Só é definitivo quando não sobrou bloco algum. Se ainda há pendentes
     // (falta de tempo ou falhas transitórias), a próxima rodada retoma.
     const concluido = restantes.length === 0;
+
+    let mdInfo: { mdStoragePath: string; totalCaracteres: number } | null = null;
+    if (concluido) {
+      mdInfo = await consolidarEMdStorage(supabaseAdmin, documento, {
+        modo: "ocr",
+        blocos,
+      });
+    }
+
     falhas.sort((a, b) => a - b);
     const paginasPendentes = restantes.reduce((acc, b) => acc + (b.fim - b.inicio + 1), 0);
     await finalizar(concluido, {
@@ -478,6 +687,9 @@ export async function processarDocumentoCore(
       // Motivo técnico da última falha de bloco — sem isso o documento só
       // exibia a frase genérica "tentada várias vezes sem avançar".
       ultimo_erro: ultimoErroOcr,
+      md_storage_path: mdInfo?.mdStoragePath ?? null,
+      md_total_caracteres: mdInfo?.totalCaracteres ?? null,
+      md_gerado_em: mdInfo ? new Date().toISOString() : null,
 
       aviso: concluido
         ? null
