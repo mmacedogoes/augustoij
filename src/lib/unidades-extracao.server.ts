@@ -70,19 +70,26 @@ const UnidadeExtraidaSchema = z.object({
   bloco: z.string().nullable().optional(),
   numero: z.string().min(1),
   tipo: z
-    .enum([
-      "apartamento",
-      "casa",
-      "lote",
-      "terreno",
-      "sala_comercial",
-      "loja",
-      "galpao",
-      "vaga_avulsa",
-      "outro",
-    ])
-    .optional(),
-  vagas_garagem: z.number().int().min(0).max(50).optional(),
+    .preprocess(
+      (val) => (typeof val === "string" ? val.toLowerCase().trim() : val),
+      z
+        .enum([
+          "apartamento",
+          "casa",
+          "lote",
+          "terreno",
+          "sala_comercial",
+          "loja",
+          "galpao",
+          "vaga_avulsa",
+          "outro",
+        ])
+        .optional(),
+    ),
+  vagas_garagem: z.preprocess(
+    (val) => (val == null || val === "" ? undefined : Number(val)),
+    z.number().int().min(0).max(50).optional(),
+  ),
   linha_id: z.string().nullable().optional(),
   medidas: z.array(MedidaExtraidaSchema).default([]),
   fonte: z.string().nullable().optional(),
