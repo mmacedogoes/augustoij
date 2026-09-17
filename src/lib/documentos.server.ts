@@ -139,6 +139,14 @@ export function extrairDescritoresImagensPdf(bytes: Uint8Array): DescritorImagem
           const endstreamIdx = latin1.indexOf("endstream", dataStart);
           if (endstreamIdx > dataStart) {
             streamLen = endstreamIdx - dataStart;
+            while (
+              streamLen > 0 &&
+              (bytes[dataStart + streamLen - 1] === 10 ||
+                bytes[dataStart + streamLen - 1] === 13 ||
+                bytes[dataStart + streamLen - 1] === 32)
+            ) {
+              streamLen--;
+            }
           }
         }
 
@@ -196,7 +204,15 @@ export function extrairImagemPorDescritor(
   }
 
   let data: Uint8Array | null = null;
-  const rawSlice = bytes.subarray(desc.dataStart, desc.dataStart + desc.length);
+  let rawSlice = bytes.subarray(desc.dataStart, desc.dataStart + desc.length);
+  while (
+    rawSlice.length > 0 &&
+    (rawSlice[rawSlice.length - 1] === 10 ||
+      rawSlice[rawSlice.length - 1] === 13 ||
+      rawSlice[rawSlice.length - 1] === 32)
+  ) {
+    rawSlice = rawSlice.subarray(0, rawSlice.length - 1);
+  }
 
   if (desc.isFlate) {
     try {
