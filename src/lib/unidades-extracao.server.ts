@@ -234,8 +234,7 @@ const MODELO = "google/gemini-2.5-flash";
 const TAMANHO_LOTE = 25_000;
 const CONCORRENCIA = 6;
 const MAX_TENTATIVAS = 3;
-/** Muda sempre que o prompt muda — invalida o cache de extração. */
-export const VERSAO_PROMPT = "2026-09-17.censo-linhas.v4";
+export const VERSAO_PROMPT = "2026-09-17.censo-linhas.v5";
 
 
 export class ExtracaoIncompletaError extends Error {
@@ -1452,9 +1451,19 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     }
   }
 
-  // 3) Para a IA vão apenas as LINHAS que ninguém leu — nunca trechos inteiros.
+  // 3) Para a IA: detectar se o documento é proseado ou tabular.
+  // Documentos proseados (< 30% das linhas do chunk são candidatas) precisam de contexto completo de parágrafo.
+  // Documentos tabulares (>= 30% candidatas por chunk) funcionam bem com linhas isoladas.
   const naoLidas = censo.candidatas.filter((l) => !quadro.linhasLidas.has(l.linha_id));
-  let lotes = montarLotesDeLinhas(naoLidas);
+  const chunksComCandidatas = new Set(naoLidas.map((l) => l.chunk_id));
+  const chunksRelevantes = chunks.filter((c) => chunksComCandidatas.has(c.id));
+  const totalLinhasRelevantes = chunksRelevantes.reduce(
+    (sum, c) => sum + c.conteudo.split("\n").filter((l) => l.trim()).length, 0
+  );
+  const isproseado = chunksRelevantes.length > 0 && (naoLidas.length / Math.max(1, totalLinhasRelevantes)) < 0.3;
+  let lotes = isproseado
+    ? montarLotes(chunksRelevantes as ChunkRow[]) // contexto completo de parágrafo
+    : montarLotesDeLinhas(naoLidas);              // linhas isoladas (documentos tabulares)
   
   if (censo.candidatas.length === 0) {
     const mensagem =
@@ -1627,19 +1636,27 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
   // Reconciliação: uma segunda passada só com as linhas que continuam sem leitura.
   const pendentesReconciliacao = naoLidas.filter((l) => !lidasPelaIa.has(l.linha_id));
   if (pendentesReconciliacao.length > 0 && lotes.length > 0) {
-    await processarLotes(montarLotesDeLinhas(pendentesReconciliacao), "Reconciliação");
+    const lotesReconciliacao = isproseado
+      ? montarLotes(chunksRelevantes.filter((c) => pendentesReconciliacao.some((p) => p.chunk_id === c.id)) as ChunkRow[])
+      : montarLotesDeLinhas(pendentesReconciliacao);
+    await processarLotes(lotesReconciliacao, "Reconciliação");
   }
 
-  // Também reconcilia linhas candidatas cujo número coincida com uma unidade extraída
+  // Reconcilia linhas lidas pela IA: em documentos proseados ou montados por trechos,
+  // associa a unidade extraída à linha candidata correspondente do censo.
   for (const c of candidatas) {
-    if (!c.linha_id) {
-      const lin = censo.candidatas.find((l) => {
-        const id = identificadorDaLinha(l.texto);
-        return id && id.numero === c.numero;
-      });
-      if (lin) {
-        c.linha_id = lin.linha_id;
-        lidasPelaIa.add(lin.linha_id);
+    const lin = censo.candidatas.find((l) => {
+      if (c.linha_id && l.linha_id === c.linha_id) return true;
+      const id = identificadorDaLinha(l.texto);
+      return id && id.numero === c.numero && (c.bloco == null || id.sufixoBloco === c.bloco);
+    });
+    if (lin) {
+      c.linha_id = lin.linha_id;
+      lidasPelaIa.add(lin.linha_id);
+    }
+    for (const m of c.medidas ?? []) {
+      if (m.linha_id && censo.porId.has(m.linha_id)) {
+        lidasPelaIa.add(m.linha_id);
       }
     }
   }

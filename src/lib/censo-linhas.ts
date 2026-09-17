@@ -129,25 +129,34 @@ export function ehLinhaCandidata(
 ): boolean {
   if (!identificador) return false;
 
+  // Linhas que descrevem áreas gerais/coletivas ou partes comuns do condomínio não são candidatas a unidades
+  const descricaoAreaColetiva =
+    /^[\-–•]?\s*(?:área|area)\s+(?:de|do|da)\s+(?:uso|constru|vaga|solo|terreno|lazer)/i.test(linha.trim()) &&
+    identificador.prefixo == null;
+  if (descricaoAreaColetiva) return false;
+
+  // Linhas de artigos de direitos/deveres/administração/convenção geral não são unidades
+  if (/^\s*(?:ARTIGO|ART\.|PARÁGRAFO|PARAGRAFO|CAP[IÍ]TULO)\b/i.test(linha) && identificador.prefixo == null) {
+    return false;
+  }
+
   // 1. Tem número decimal, percentual ou milésimo (área ou fração)
+  // Requer que a linha tenha um identificador com prefixo ou esteja adjacente a um identificador
   if (temDecimal(linha)) {
-    // Exceção: linha que só descreve área coletiva do edifício sem identificar uma unidade específica.
-    // Ex: "Área de Uso Comum de 1.305,74m2" — não tem prefixo de unidade (Apto, Lote, etc.)
-    const descricaoAreaColetiva =
-      /^[\-–•]?\s*(?:área|area)\s+(?:de|do|da)\s+(?:uso|constru|vaga|solo|terreno)/i.test(linha.trim()) &&
-      identificador.prefixo == null;
-    if (!descricaoAreaColetiva) return true;
+    if (identificador.prefixo != null || contexto?.adjacenteIdentificador || /m2|m²|fracao|fração|cota/i.test(linha)) {
+      return true;
+    }
   }
 
   // 2. Tem fração ordinária expressa (ex: 1/10, 1/57)
   if (temFracao(linha)) return true;
 
-  // 3. Tem prefixo explícito de unidade (Apto 101, Flat 505, Sala 111, Loja 2)
+  // 3. Tem prefixo explícito de unidade (Apto 101, Flat 505, Sala 111, Loja 2, Lote 12)
   if (identificador.prefixo != null) return true;
 
   // 4. Linha tabular ou com delimitador OCR (| ! ¦ : ou múltiplos espaços) com >= 2 células
   const celulas = celulasDaLinha(linha);
-  if (celulas.length >= 2) return true;
+  if (celulas.length >= 2 && (contexto?.emSecaoUnidades || contexto?.adjacenteIdentificador)) return true;
 
   // 5. Número de unidade isolado (ex: "102", "505", "1005") em contexto de lista/seção
   if (/^\s*\d{2,5}[A-Z]?\s*$/i.test(linha)) {
