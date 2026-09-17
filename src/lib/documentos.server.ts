@@ -160,13 +160,18 @@ export function extrairDescritoresImagensPdf(bytes: Uint8Array): DescritorImagem
         if ((isImage || isDct) && ehPaginaDoc && streamLen > 100) {
           const firstByte = bytes[dataStart];
           const isZlib = firstByte === 0x78 || isFlate;
-          descriptors.push({
+          const candidate: DescritorImagemPdf = {
             indice: descriptors.length,
             objNum,
             dataStart,
             length: streamLen,
             isFlate: isZlib,
-          });
+          };
+          const validImg = extrairImagemPorDescritor(bytes, candidate);
+          if (validImg && validImg.bytes.byteLength >= 5000) {
+            candidate.indice = descriptors.length;
+            descriptors.push(candidate);
+          }
         }
 
         pos = dataStart + Math.max(1, streamLen);
