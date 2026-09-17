@@ -1331,9 +1331,43 @@ export async function extrairESalvarSugestaoUnidades(
   const { extrairUnidadesDeQuadros } = await import("./quadro-parser");
   const quadro = extrairUnidadesDeQuadros(censo);
 
+  if (censo.candidatas.length < 15) {
+    // Fallback: se o censo determinístico não encontrou linhas suficientes,
+    // busca trechos com termos indicativos de unidades para submeter à IA.
+    const chunksComTermos = chunks.filter((c) =>
+      /\b(?:unidades?|apartamentos?|flats?|studios?|salas?|lojas?|frac(?:ao|oes)|area privativa|quadro)\b/i.test(
+        c.conteudo,
+      ),
+    );
+    if (chunksComTermos.length > 0) {
+      for (const c of chunksComTermos) {
+        const doChunk = censo.linhas.filter((l) => l.chunk_id === c.id);
+        for (const l of doChunk) {
+          if (l.texto.trim().length > 0 && !l.candidata) {
+            l.candidata = true;
+            censo.candidatas.push(l);
+          }
+        }
+      }
+    }
+  }
+
   // 3) Para a IA vão apenas as LINHAS que ninguém leu — nunca trechos inteiros.
   const naoLidas = censo.candidatas.filter((l) => !quadro.linhasLidas.has(l.linha_id));
-  const lotes = montarLotesDeLinhas(naoLidas);
+  let lotes = montarLotesDeLinhas(naoLidas);
+  
+  if (censo.candidatas.length === 0) {
+    const mensagem =
+      "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
+    const diagnosticoVazio: DiagnosticoExtracao = {
+      leitura: "quadro_ia",
+      tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "censo_de_linhas" },
+      total_trechos: chunks.length,
+    };
+    await persistirFalha(supabase, doc, mensagem, diagnosticoVazio);
+    throw new ExtracaoIncompletaError(mensagem, diagnosticoVazio);
+  }
+
   const diagnostico: DiagnosticoExtracao = {
     leitura: "quadro_ia",
     // A tentativa descritiva aparece mesmo quando o caminho não foi usado.
@@ -1356,33 +1390,7 @@ export async function extrairESalvarSugestaoUnidades(
     erros: [],
   };
 
-  if (censo.candidatas.length === 0) {
-    // Fallback: se o censo determinístico não encontrou linhas candidatas pontuais,
-    // busca trechos com termos indicativos de unidades para submeter à IA.
-    const chunksComTermos = chunks.filter((c) =>
-      /\b(?:unidades?|apartamentos?|flats?|studios?|salas?|lojas?|frac(?:ao|oes)|area privativa|quadro)\b/i.test(
-        c.conteudo,
-      ),
-    );
-    if (chunksComTermos.length > 0) {
-      for (const c of chunksComTermos) {
-        const doChunk = censo.linhas.filter((l) => l.chunk_id === c.id);
-        for (const l of doChunk) {
-          if (l.texto.trim().length > 0) {
-            l.candidata = true;
-            censo.candidatas.push(l);
-          }
-        }
-      }
-    }
-  }
 
-  if (censo.candidatas.length === 0) {
-    const mensagem =
-      "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
-    await persistirFalha(supabase, doc, mensagem, diagnostico);
-    throw new ExtracaoIncompletaError(mensagem, diagnostico);
-  }
 
 
   const categoria = getCategoriaMeta(normalizeCategoria(cond?.categoria as string | null));
