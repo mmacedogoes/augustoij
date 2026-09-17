@@ -110,10 +110,22 @@ export const Route = createFileRoute("/api/public/versao")({
             { type: "image_url", image_url: { url: signedUrl } },
           ]);
 
+          const resFileUrl = await callGateway("file_url", [
+            { type: "text", text: "Transcreva o título e os primeiros 3 artigos deste documento." },
+            { type: "file", file: { file_data: signedUrl } },
+          ]);
+
+          const resDocumentUri = await callGateway("document_uri", [
+            { type: "text", text: "Transcreva o título e os primeiros 3 artigos deste documento." },
+            { type: "document", uri: signedUrl, mime_type: "application/pdf" },
+          ]);
+
           return Response.json({
             ok: true,
-            signedUrl: signedUrl.slice(0, 80) + "...",
+            fullSignedUrl: signedUrl,
             resImageUrl,
+            resFileUrl,
+            resDocumentUri,
           });
         }
         if (action === "seed-artigos") {
