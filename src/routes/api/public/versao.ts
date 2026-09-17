@@ -344,6 +344,12 @@ export const Route = createFileRoute("/api/public/versao")({
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const docId = (body as any).docId;
           if (!docId) return Response.json({ error: "missing_docId" }, { status: 400 });
+
+          if ((body as any).limparChunks) {
+            await supabaseAdmin.from("document_chunks").delete().eq("documento_id", docId);
+            await supabaseAdmin.from("documento_artigos").delete().eq("documento_id", docId);
+          }
+
           const { error } = await supabaseAdmin
             .from("documentos")
             .update({
