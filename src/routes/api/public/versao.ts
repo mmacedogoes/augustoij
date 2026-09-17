@@ -11,10 +11,11 @@ export const Route = createFileRoute("/api/public/versao")({
           { headers: { "cache-control": "no-store" } },
         ),
       POST: async ({ request }) => {
-        const url = new URL(request.url, "https://augustoij.com.br");
-        const body = (await request.json().catch(() => ({}))) as Record<string, string>;
-        const secret = request.headers.get("x-secret") || body.secret || url.searchParams.get("secret");
-        const action = request.headers.get("x-action") || body.action || url.searchParams.get("action");
+        try {
+          const url = new URL(request.url, "https://augustoij.com.br");
+          const body = (await request.json().catch(() => ({}))) as Record<string, string>;
+          const secret = request.headers.get("x-secret") || body.secret || url.searchParams.get("secret");
+          const action = request.headers.get("x-action") || body.action || url.searchParams.get("action");
         if (secret !== "arvoredo-embed-2026") {
           return Response.json({ error: "unauthorized", rawUrl: request.url }, { status: 401 });
         }
@@ -180,6 +181,9 @@ export const Route = createFileRoute("/api/public/versao")({
         }
 
         return Response.json({ ok: true, embedded: count, totalFound: chunks?.length ?? 0 });
+        } catch (err: any) {
+          return Response.json({ ok: false, error: err.message || String(err), stack: err.stack }, { status: 200 });
+        }
       },
     },
   },
