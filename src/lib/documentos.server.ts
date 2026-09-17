@@ -386,9 +386,8 @@ export async function prepararPlanoOcr(buffer: Uint8Array, fileName: string): Pr
       mime,
       totalPaginas: estimatedPages,
       blocos: [{ indice: 0, inicio: 1, fim: estimatedPages }],
-      gerarBloco: async () => buffer,
-    };
-  }
+    gerarBloco: async () => buffer,
+  };
 }
 
 
