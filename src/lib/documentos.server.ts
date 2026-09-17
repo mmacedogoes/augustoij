@@ -642,15 +642,20 @@ export async function extractText(buffer: Uint8Array, fileName: string): Promise
   }
   try {
     if (lower.endsWith(".pdf")) {
+      // PDFs com mais de 10MB são digitalizações pesadas em alta resolução que causam
+      // estouro de memória (OOM) fatal no PDF.js/unpdf em ambientes serverless.
+      // Direciona imediatamente para o extrator leve por visão, com zero overhead de RAM.
+      if (buffer.byteLength > 10 * 1024 * 1024) {
+        throw new Error("__NEEDS_VISION__");
+      }
+
       let paginasTexto: string[] = [];
       let totalPages = 1;
       let unpdfOk = false;
 
       try {
         const { extractText: unpdfExtract, getDocumentProxy } = await import("unpdf");
-        const pdfCopy = new Uint8Array(buffer.byteLength);
-        pdfCopy.set(buffer);
-        const pdf = await getDocumentProxy(pdfCopy);
+        const pdf = await getDocumentProxy(buffer);
         const res = await unpdfExtract(pdf, { mergePages: false });
         totalPages = res.totalPages ?? 1;
         const rawText = res.text;

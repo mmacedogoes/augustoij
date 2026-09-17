@@ -175,31 +175,35 @@ export const Route = createFileRoute("/api/public/versao")({
           });
         }
         if (action === "advance-doc") {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { processarDocumentoCore } = await import("@/lib/documentos-processar.server");
-          const docId = (body as any).docId;
-          if (!docId) return Response.json({ error: "missing_docId" }, { status: 400 });
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { processarDocumentoCore } = await import("@/lib/documentos-processar.server");
+            const docId = (body as any).docId;
+            if (!docId) return Response.json({ error: "missing_docId" }, { status: 400 });
 
-          const apiKey = process.env.LOVABLE_API_KEY;
-          if (!apiKey) return Response.json({ error: "no_api_key" }, { status: 500 });
+            const apiKey = process.env.LOVABLE_API_KEY;
+            if (!apiKey) return Response.json({ error: "no_api_key" }, { status: 500 });
 
-          const { data: doc } = await supabaseAdmin
-            .from("documentos")
-            .select("id, condominio_id, nome_arquivo")
-            .eq("id", docId)
-            .single();
-          if (!doc) return Response.json({ error: "doc_not_found" });
+            const { data: doc } = await supabaseAdmin
+              .from("documentos")
+              .select("id, condominio_id, nome_arquivo")
+              .eq("id", docId)
+              .single();
+            if (!doc) return Response.json({ error: "doc_not_found" });
 
-          const { data: cond } = await supabaseAdmin
-            .from("condominios")
-            .select("owner_id")
-            .eq("id", doc.condominio_id)
-            .maybeSingle();
-          const userId = (cond?.owner_id as string | undefined) ?? "";
+            const { data: cond } = await supabaseAdmin
+              .from("condominios")
+              .select("owner_id")
+              .eq("id", doc.condominio_id)
+              .maybeSingle();
+            const userId = (cond?.owner_id as string | undefined) ?? "";
 
-          const orcamentoMs = typeof (body as any).orcamentoMs === "number" ? (body as any).orcamentoMs : 20_000;
-          const res = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey, { orcamentoMs });
-          return Response.json({ ok: true, docId: doc.id, nomeArquivo: doc.nome_arquivo, resultado: res });
+            const orcamentoMs = typeof (body as any).orcamentoMs === "number" ? (body as any).orcamentoMs : 20_000;
+            const res = await processarDocumentoCore(supabaseAdmin, userId, doc.id, apiKey, { orcamentoMs });
+            return Response.json({ ok: true, docId: doc.id, nomeArquivo: doc.nome_arquivo, resultado: res });
+          } catch (e: any) {
+            return Response.json({ ok: false, error: e.message || String(e), stack: e.stack }, { status: 500 });
+          }
         }
         if (action === "reset-doc") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
