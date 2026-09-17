@@ -18,6 +18,83 @@ export const Route = createFileRoute("/api/public/versao")({
         if (secret !== "arvoredo-embed-2026") {
           return Response.json({ error: "unauthorized", rawUrl: request.url }, { status: 401 });
         }
+        if (action === "debug-ocr") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { prepararPlanoOcr } = await import("@/lib/documentos.server");
+          const apiKey = process.env.LOVABLE_API_KEY ?? "";
+          const docId = body.docId || "81c99c9a-fb73-4f43-9c8d-eda500988c56";
+
+          const { data: doc } = await supabaseAdmin.from("documentos").select("*").eq("id", docId).single();
+          if (!doc) return Response.json({ error: "doc_not_found" });
+
+          const { data: file, error: dlErr } = await supabaseAdmin.storage.from("documentos").download(doc.storage_path);
+          if (dlErr || !file) return Response.json({ error: "download_failed", dlErr });
+
+          const buffer = new Uint8Array(await file.arrayBuffer());
+          const plano = await prepararPlanoOcr(buffer, doc.nome_arquivo);
+          const blocoBytes = await plano.gerarBloco(0);
+
+          const isPdf = blocoBytes[0] === 0x25 && blocoBytes[1] === 0x50 && blocoBytes[2] === 0x44 && blocoBytes[3] === 0x46; // %PDF
+          const b64 = Buffer.from(blocoBytes).toString("base64");
+
+          // Test formats
+          const results: Record<string, any> = {
+            totalPaginas: plano.totalPaginas,
+            mime: plano.mime,
+            bloco0Size: blocoBytes.byteLength,
+            isPdf,
+          };
+
+          const callGateway = async (label: string, content: any[]) => {
+            try {
+              const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Lovable-API-Key": apiKey,
+                  "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+                },
+                signal: AbortSignal.timeout(15000),
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash",
+                  messages: [{ role: "user", content }],
+                  temperature: 0.1,
+                }),
+              });
+              const text = await res.text();
+              results[label] = { status: res.status, body: text.slice(0, 300) };
+            } catch (e: any) {
+              results[label] = { error: e.message };
+            }
+          };
+
+          // Option A: PDF as image_url
+          await callGateway("optA_pdf_image_url", [
+            { type: "text", text: "Transcreva a primeira linha" },
+            { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
+          ]);
+
+          // Option B: check embedded JPEGs
+          const { extrairImagensDoPdf } = await import("@/lib/documentos.server") as any;
+          // Test stream extraction
+          let imgCount = 0;
+          let imgSizes: number[] = [];
+          try {
+            // Find images manually to inspect
+            let i = 0;
+            while (i < blocoBytes.length - 4) {
+              if (blocoBytes[i] === 0xff && blocoBytes[i+1] === 0xd8) {
+                imgCount++;
+                imgSizes.push(i);
+              }
+              i++;
+            }
+          } catch {}
+          results.jpegStartsFound = imgCount;
+          results.first10JpegOffsets = imgSizes.slice(0, 10);
+
+          return Response.json({ ok: true, results });
+        }
         if (action === "seed-artigos") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const artigos = (body as any).artigos;
