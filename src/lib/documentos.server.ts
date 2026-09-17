@@ -153,9 +153,7 @@ export function extrairDescritoresImagensPdf(bytes: Uint8Array): DescritorImagem
         // ou tamanho considerável (>= 15KB). Imagens menores (ícones, vinhetas, carimbos)
         // são descartadas para evitar falsos positivos de páginas.
         const ehPaginaDoc =
-          (width >= 300 && height >= 300) ||
-          (width === 0 && streamLen >= 15000) ||
-          streamLen >= 25000;
+          width >= 300 || height >= 300 || streamLen >= 15000;
 
         if ((isImage || isDct) && ehPaginaDoc && streamLen > 100) {
           const firstByte = bytes[dataStart];
