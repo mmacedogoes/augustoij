@@ -3408,50 +3408,6 @@ export type Database = {
           },
         ]
       }
-      documentos: {
-        Row: {
-          condominio_id: string
-          created_at: string
-          id: string
-          nome_arquivo: string
-          processamento_meta: Json
-          status_processamento: string
-          storage_path: string
-          tipo: Database["public"]["Enums"]["tipo_documento"]
-          titulo: string | null
-        }
-        Insert: {
-          condominio_id: string
-          created_at?: string
-          id?: string
-          nome_arquivo: string
-          processamento_meta?: Json
-          status_processamento?: string
-          storage_path: string
-          tipo?: Database["public"]["Enums"]["tipo_documento"]
-          titulo?: string | null
-        }
-        Update: {
-          condominio_id?: string
-          created_at?: string
-          id?: string
-          nome_arquivo?: string
-          processamento_meta?: Json
-          status_processamento?: string
-          storage_path?: string
-          tipo?: Database["public"]["Enums"]["tipo_documento"]
-          titulo?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "documentos_condominio_id_fkey"
-            columns: ["condominio_id"]
-            isOneToOne: false
-            referencedRelation: "condominios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       documento_registros: {
         Row: {
           ancora: string | null
@@ -3514,6 +3470,50 @@ export type Database = {
             columns: ["documento_id"]
             isOneToOne: false
             referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos: {
+        Row: {
+          condominio_id: string
+          created_at: string
+          id: string
+          nome_arquivo: string
+          processamento_meta: Json
+          status_processamento: string
+          storage_path: string
+          tipo: Database["public"]["Enums"]["tipo_documento"]
+          titulo: string | null
+        }
+        Insert: {
+          condominio_id: string
+          created_at?: string
+          id?: string
+          nome_arquivo: string
+          processamento_meta?: Json
+          status_processamento?: string
+          storage_path: string
+          tipo?: Database["public"]["Enums"]["tipo_documento"]
+          titulo?: string | null
+        }
+        Update: {
+          condominio_id?: string
+          created_at?: string
+          id?: string
+          nome_arquivo?: string
+          processamento_meta?: Json
+          status_processamento?: string
+          storage_path?: string
+          tipo?: Database["public"]["Enums"]["tipo_documento"]
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
             referencedColumns: ["id"]
           },
         ]
@@ -3682,72 +3682,6 @@ export type Database = {
         }
         Relationships: []
       }
-      extracao_ledger: {
-        Row: {
-          condominio_id: string
-          created_at: string
-          documento_id: string
-          escopo: string | null
-          estado: "lido" | "lido_com_ressalva" | "nao_lido"
-          id: string
-          medidas: Json
-          medidas_rejeitadas: Json
-          motivos: Json
-          numero: string
-          origem: "rotulo" | "ia" | "manual" | "ausente"
-          registro_id: string | null
-          trecho_fonte: string | null
-          updated_at: string
-        }
-        Insert: {
-          condominio_id: string
-          created_at?: string
-          documento_id: string
-          escopo?: string | null
-          estado: "lido" | "lido_com_ressalva" | "nao_lido"
-          id?: string
-          medidas?: Json
-          medidas_rejeitadas?: Json
-          motivos?: Json
-          numero: string
-          origem?: "rotulo" | "ia" | "manual" | "ausente"
-          registro_id?: string | null
-          trecho_fonte?: string | null
-          updated_at?: string
-        }
-        Update: {
-          condominio_id?: string
-          created_at?: string
-          documento_id?: string
-          escopo?: string | null
-          estado?: "lido" | "lido_com_ressalva" | "nao_lido"
-          id?: string
-          medidas?: Json
-          medidas_rejeitadas?: Json
-          motivos?: Json
-          numero?: string
-          origem?: "rotulo" | "ia" | "manual" | "ausente"
-          registro_id?: string | null
-          trecho_fonte?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "extracao_ledger_condominio_id_fkey"
-            columns: ["condominio_id"]
-            isOneToOne: false
-            referencedRelation: "condominios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "extracao_ledger_documento_id_fkey"
-            columns: ["documento_id"]
-            isOneToOne: false
-            referencedRelation: "documentos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       extracao_jobs: {
         Row: {
           atualizado_em: string
@@ -3787,6 +3721,72 @@ export type Database = {
             foreignKeyName: "extracao_jobs_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: true
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extracao_ledger: {
+        Row: {
+          condominio_id: string
+          created_at: string
+          documento_id: string
+          escopo: string | null
+          estado: string
+          id: string
+          medidas: Json
+          medidas_rejeitadas: Json
+          motivos: Json
+          numero: string
+          origem: string
+          registro_id: string | null
+          trecho_fonte: string | null
+          updated_at: string
+        }
+        Insert: {
+          condominio_id: string
+          created_at?: string
+          documento_id: string
+          escopo?: string | null
+          estado: string
+          id?: string
+          medidas?: Json
+          medidas_rejeitadas?: Json
+          motivos?: Json
+          numero: string
+          origem?: string
+          registro_id?: string | null
+          trecho_fonte?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condominio_id?: string
+          created_at?: string
+          documento_id?: string
+          escopo?: string | null
+          estado?: string
+          id?: string
+          medidas?: Json
+          medidas_rejeitadas?: Json
+          motivos?: Json
+          numero?: string
+          origem?: string
+          registro_id?: string | null
+          trecho_fonte?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extracao_ledger_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extracao_ledger_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
             referencedRelation: "documentos"
             referencedColumns: ["id"]
           },
