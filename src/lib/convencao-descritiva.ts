@@ -147,15 +147,57 @@ export const REGEX_ROL =
 
 const REGEX_ROL_GLOBAL = new RegExp(REGEX_ROL.source, "gi");
 
+import { expandirIntervalos, lerRegistro } from "./extracao/rotulos";
+
 function identificadoresDoCorpo(corpo: string) {
   const identificadores: string[] = [];
   let blocoAtual: string | null = null;
+
+  // Extrai e expande intervalos do tipo "101 a 104", "201 até 204", "101-104", "101–104"
+  const regexIntervalo = /\b(\d{1,5})\s*([A-Za-z])?\s*(?:a|at[ée]|ao|[-–—])\s*(\d{1,5})\s*([A-Za-z])?\b/gi;
+  const intervalosMatch: Array<{ start: number; end: number; ids: string[] }> = [];
+
+  let m: RegExpExecArray | null;
+  while ((m = regexIntervalo.exec(corpo)) !== null) {
+    const numInicio = m[1];
+    const sufixoInicio = (m[2] ?? "").toUpperCase();
+    const numFim = m[3];
+    const sufixoFim = (m[4] ?? sufixoInicio ?? "").toUpperCase();
+
+    if (numInicio.length === numFim.length) {
+      const ini = Number(numInicio);
+      const fim = Number(numFim);
+      if (Number.isFinite(ini) && Number.isFinite(fim) && ini <= fim && fim - ini <= 500) {
+        const ids: string[] = [];
+        const sufixo = sufixoFim || sufixoInicio;
+        for (let n = ini; n <= fim; n++) {
+          ids.push(`${String(n).padStart(numInicio.length, "0")}${sufixo}`);
+        }
+        intervalosMatch.push({
+          start: m.index,
+          end: m.index + m[0].length,
+          ids,
+        });
+      }
+    }
+  }
+
   const token = /(?:bloco|torre|quadra)\s*:?\s*([A-Za-z0-9]{1,3})\s*:?|(\d{2,5})\s*([A-Za-z])?(?![\d.,])/gi;
   for (let t = token.exec(corpo); t; t = token.exec(corpo)) {
     if (t[1]) {
       blocoAtual = t[1].toUpperCase();
       continue;
     }
+    const idx = t.index;
+    const interv = intervalosMatch.find((im) => idx >= im.start && idx < im.end);
+    if (interv) {
+      for (const id of interv.ids) {
+        const bloco = /[A-Za-z]$/.test(id) ? "" : (blocoAtual ?? "");
+        identificadores.push(`${id}${bloco}`);
+      }
+      continue;
+    }
+
     const numero = t[2];
     if (!numero) continue;
     const bloco = (t[3] ?? blocoAtual ?? "").toUpperCase();
@@ -196,8 +238,15 @@ const REGEX_SINGULAR =
   /A\s+unidade\s+aut[oôó]noma\s+de\s+N\.?\s*[º°o]?\s*([0-9]{1,5}\s*[A-Z]?)\s+possui/gi;
 const REGEX_PLURAL =
   /As\s+unidades\s+aut[oôó]nomas\s+de\s+N\.?\s*[º°o]?\s*(.+?)\s+possuem/gi;
+const REGEX_GENERICO_SINGULAR =
+  /(?:A\s+)?(?:unidade|apartamento|casa|sala|loja|lote)(?:\s+aut[oôó]noma)?\s+(?:de\s+)?N\.?\s*[º°o]?\s*([0-9]{1,5}\s*[A-Z]?)\s*(?:possui|com\s+[áa]rea|contendo)/gi;
+const REGEX_GENERICO_PLURAL =
+  /(?:As\s+)?(?:unidades|apartamentos|casas|salas|lojas|lotes)(?:\s+aut[oôó]nomas)?\s+(?:de\s+)?N\.?\s*[º°o]?\s*(.+?)\s*(?:possuem|com\s+[áa]rea|contendo)/gi;
 
 export function expandirIdentificadores(lista: string): string[] {
+  const expandidos = expandirIntervalos(lista);
+  if (expandidos.length > 0) return expandidos;
+
   return lista
     .split(/,|\se\s/i)
     .map((parte) => parte.trim())
@@ -220,12 +269,15 @@ export const REGEX_CAPACIDADE = /capacidade\s+para\s+(\d+)/i;
 export function segmentarBlocosDescritivos(prosa: string): BlocoDescritivo[] {
   type Marca = { inicio: number; fim: number; ids: string[] };
   const marcas: Marca[] = [];
-  for (const re of [REGEX_SINGULAR, REGEX_PLURAL]) {
+  for (const re of [REGEX_SINGULAR, REGEX_PLURAL, REGEX_GENERICO_SINGULAR, REGEX_GENERICO_PLURAL]) {
     re.lastIndex = 0;
     for (let m = re.exec(prosa); m; m = re.exec(prosa)) {
       const ids = expandirIdentificadores(m[1]);
       if (ids.length === 0) continue;
-      marcas.push({ inicio: m.index, fim: m.index + m[0].length, ids });
+      // Evita duplicar a mesma marcação de início
+      if (!marcas.some((item) => Math.abs(item.inicio - m.index) < 10)) {
+        marcas.push({ inicio: m.index, fim: m.index + m[0].length, ids });
+      }
     }
   }
   marcas.sort((a, b) => a.inicio - b.inicio);
@@ -257,6 +309,25 @@ export function segmentarBlocosDescritivos(prosa: string): BlocoDescritivo[] {
     }
     const v = REGEX_VAGAS.exec(corpo);
     bloco.vagas = v ? Number(v[1]) : null;
+
+    // Generalização via lerRegistro: preenche qualquer campo ainda vazio a partir das famílias
+    const medidas = lerRegistro(corpo);
+    for (const med of medidas) {
+      if (med.campo === "area_privativa" && bloco.area_privativa == null) {
+        bloco.area_privativa = med.valor_numerico;
+      } else if (med.campo === "area_comum" && bloco.area_comum == null) {
+        bloco.area_comum = med.valor_numerico;
+      } else if (med.campo === "area_total" && bloco.area_total == null) {
+        bloco.area_total = med.valor_numerico;
+      } else if (med.campo === "area_equivalente" && bloco.area_equivalente == null) {
+        bloco.area_equivalente = med.valor_numerico;
+      } else if (med.campo === "fracao_ideal" && bloco.fracao_ideal == null) {
+        bloco.fracao_ideal = med.valor_numerico;
+      } else if (med.campo === "vagas" && bloco.vagas == null) {
+        bloco.vagas = med.valor_numerico;
+      }
+    }
+
     return bloco;
   });
 }
