@@ -27,8 +27,7 @@ import {
 } from "./convencao-descritiva";
 import { carregarTextoIntegral } from "./extracao/fonte";
 import { segmentarRegistros, type RegistroUnidade } from "./extracao/segmentador";
-
-
+import { gerarChaveIdentidade } from "./extracao/ancoras";
 
 export const CampoMedidaSchema = z.preprocess(
   (val) => {
@@ -38,6 +37,7 @@ export const CampoMedidaSchema = z.preprocess(
       "area_comum",
       "area_global",
       "area_equivalente",
+      "area_garagem",
       "fracao_terreno",
       "fracao_coisas_comuns",
       "coeficiente_rateio",
@@ -50,6 +50,7 @@ export const CampoMedidaSchema = z.preprocess(
     "area_comum",
     "area_global",
     "area_equivalente",
+    "area_garagem",
     "fracao_terreno",
     "fracao_coisas_comuns",
     "coeficiente_rateio",
@@ -260,7 +261,7 @@ const MAX_TENTATIVAS = 3;
 
 export const PROMPT_SISTEMA_BASE =
   "Extraia dados literais de unidades autônomas de uma convenção condominial brasileira. " +
-  "Cada linha do texto recebido vem prefixada por um identificador estável, no formato documento:ordem:indice, seguido de ': '. " +
+  "Cada linha do texto recebido vem prefixada por um identificador, seguido de ': '. Ao informar linha_id, copie o identificador EXATAMENTE como ele aparece antes da linha — não o reescreva, não o reformate e não invente um. " +
   "Para cada unidade identificada, informe o campo linha_id com o identificador estável da linha de onde foi lida. " +
   "Em cada medida, devolva o campo linha_id com o identificador da linha de onde o valor foi lido; NÃO redigite o trecho. " +
   "Leia cada trecho integralmente. Linhas agrupadas como '701A, 901A e 1501A' devem gerar uma linha para cada unidade somente se o texto atribuir explicitamente os mesmos valores ao grupo. " +
@@ -269,7 +270,7 @@ export const PROMPT_SISTEMA_BASE =
   "Se o cabeçalho da coluna não estiver visível no trecho recebido, use campo indeterminado; nunca adivinhe o rótulo. " +
   "Preserve valor_bruto exatamente como impresso, inclusive %, ‰, barra e vírgula. Não converta escalas. " +
   "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
-  'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
+  'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|area_garagem|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
 
 function obterConteudoArquivo(moduloRaw: string | undefined, nomeArquivo: string): string {
   if (typeof moduloRaw === "string" && moduloRaw.length > 0) {
@@ -650,21 +651,71 @@ function valorApareceNoTrecho(medida: z.infer<typeof MedidaExtraidaSchema>) {
 }
 
 /** Nunca apaga em silêncio: reprovadas vão para `medidas_descartadas` com o motivo. */
-function validarProveniencia(unidade: UnidadeExtraida, censo: { porId: Map<string, { pagina: number | null; texto?: string }> }) {
+function validarProveniencia(
+  unidade: UnidadeExtraida,
+  censo: { porId: Map<string, { pagina: number | null; texto?: string }> },
+  registros?: RegistroUnidade[],
+) {
   const medidas: UnidadeExtraida["medidas"] = [];
   const descartadas: NonNullable<UnidadeExtraida["medidas_descartadas"]> = [
     ...(unidade.medidas_descartadas ?? []),
   ];
+
+  // 1) Localiza o registro da unidade pela identidade `${escopo ?? ""}|${numero}`
+  const chave = gerarChaveIdentidade(unidade.numero, null, unidade.bloco ?? null);
+  const registro = registros?.find((r) => {
+    const chaveReg = gerarChaveIdentidade(r.numero, r.sufixo, r.escopo);
+    const chaveRegSemSufixo = gerarChaveIdentidade(r.numero, null, r.escopo);
+    return (
+      chaveReg === chave ||
+      chaveRegSemSufixo === chave ||
+      (r.numero === unidade.numero && (unidade.bloco == null || r.escopo === unidade.bloco))
+    );
+  });
+
   // Página onde a linha principal da unidade foi identificada
-  const paginaUnidade = unidade.linha_id ? (censo.porId.get(unidade.linha_id)?.pagina ?? null) : null;
+  const paginaUnidade = unidade.linha_id
+    ? (censo.porId.get(unidade.linha_id)?.pagina ?? null)
+    : (registro?.pagina ?? null);
+
+  // Para cada medida sem trecho, preenche com o texto e página do registro
+  if (registro) {
+    for (const medida of unidade.medidas ?? []) {
+      if (!medida.trecho || medida.trecho.trim() === "") {
+        medida.trecho = registro.texto;
+        medida.pagina = registro.pagina;
+        if (!medida.bloco_contexto && (registro.escopo || unidade.bloco)) {
+          medida.bloco_contexto = registro.escopo ?? unidade.bloco;
+        }
+      }
+    }
+  }
+
+  let temMedidaSemProveniencia = false;
+
   for (const medida of unidade.medidas ?? []) {
-    // Regra 1: O valor numérico deve estar presente no trecho
+    const trecho = (medida.trecho ?? "").trim();
+
+    // Caso 1: NÃO existe trecho nenhum (nem da medida, nem do registro) -> NÃO rejeite!
+    if (!trecho) {
+      medidas.push(medida);
+      temMedidaSemProveniencia = true;
+      continue;
+    }
+
+    // Caso 2: Existe trecho e o valor numérico NÃO aparece nele -> rejeita com "valor_nao_confere"
     if (!valorApareceNoTrecho(medida)) {
       descartadas.push({ medida, motivo: "valor_nao_confere" });
       continue;
     }
-    // Regra 2 (prosa): Se a unidade não tem bloco, aceitar medidas da mesma página.
-    // Se a unidade tem bloco, exigir que o trecho contenha a identidade (número + bloco).
+
+    // Se a medida veio do registro segmentado da própria unidade, o trecho já pertence a ela
+    if (registro && (medida.trecho === registro.texto || medida.trecho.trim() === registro.texto.trim())) {
+      medidas.push(medida);
+      continue;
+    }
+
+    // Regra 2 (prosa vs bloco para outras fontes de trecho):
     if (unidade.bloco) {
       // Documento tabular — aplica a regra estrita de identidade
       if (!trechoContemIdentidade(unidade, medida.trecho, medida.bloco_contexto)) {
@@ -673,7 +724,9 @@ function validarProveniencia(unidade: UnidadeExtraida, censo: { porId: Map<strin
       }
     } else {
       // Documento proseado — aceitar medidas na mesma página da unidade
-      const paginaMedida = medida.pagina ?? (medida.linha_id ? (censo.porId.get(medida.linha_id)?.pagina ?? null) : null);
+      const paginaMedida =
+        medida.pagina ??
+        (medida.linha_id ? (censo.porId.get(medida.linha_id)?.pagina ?? null) : null);
       if (paginaUnidade !== null && paginaMedida !== null && paginaMedida !== paginaUnidade) {
         // Medida de outra página — descarta
         descartadas.push({ medida, motivo: "identidade_nao_confere" });
@@ -682,7 +735,29 @@ function validarProveniencia(unidade: UnidadeExtraida, censo: { porId: Map<strin
     }
     medidas.push(medida);
   }
-  return { ...unidade, medidas, medidas_descartadas: descartadas };
+
+  const regrasAplicadas = [...(unidade.regras_aplicadas ?? [])];
+  const motivos = [...(unidade.motivos ?? [])];
+  let estado = unidade.estado;
+
+  if (temMedidaSemProveniencia) {
+    if (!regrasAplicadas.includes("sem_proveniencia")) {
+      regrasAplicadas.push("sem_proveniencia");
+    }
+    if (!motivos.includes("sem_proveniencia")) {
+      motivos.push("sem_proveniencia");
+    }
+    estado = "lido_com_ressalva";
+  }
+
+  return {
+    ...unidade,
+    medidas,
+    medidas_descartadas: descartadas,
+    regras_aplicadas: regrasAplicadas,
+    motivos,
+    estado,
+  };
 }
 
 
@@ -837,6 +912,7 @@ export function consolidar(
   candidatas: UnidadeExtraida[],
   conhecidas: Array<{ bloco: string | null; numero: string }>,
   censo: { porId: Map<string, { pagina: number | null; texto?: string }> } = { porId: new Map() },
+  registros?: RegistroUnidade[],
 ) {
   const grupos = new Map<string, UnidadeExtraida[]>();
   const orfas: NonNullable<DiagnosticoExtracao["orfas"]> = [];
@@ -861,18 +937,32 @@ export function consolidar(
       });
       continue;
     }
-    const atualizada = validarProveniencia({
-      ...bruta,
-      bloco: identidade.bloco,
-      numero: identidade.numero,
-      regras_aplicadas: [...(bruta.regras_aplicadas ?? []), identidade.regra],
-    }, censo);
+    const atualizada = validarProveniencia(
+      {
+        ...bruta,
+        bloco: identidade.bloco,
+        numero: identidade.numero,
+        regras_aplicadas: [...(bruta.regras_aplicadas ?? []), identidade.regra],
+      },
+      censo,
+      registros,
+    );
     const key = chaveUnidade(atualizada.bloco ?? null, atualizada.numero);
     grupos.set(key, [...(grupos.get(key) ?? []), atualizada]);
   }
   const escala = detectarEscalaGlobal(grupos);
   const conflitos: string[] = [];
   const regrasGlobais = new Set<string>();
+
+  // Trava para promoção de indeterminado a área:
+  // só promove se NENHUMA unidade no documento inteiro tiver area_privativa identificada.
+  const documentoTemAreaPrivativa = [...grupos.values()].some((grupo) =>
+    grupo.some((u) =>
+      u.medidas.some(
+        (m) => m.campo === "area_privativa" && valorCanonico(m, escala.escala) != null,
+      ),
+    ),
+  );
 
   const parciais = [...grupos.entries()]
     .sort(([a], [b]) => a.localeCompare(b, "pt-BR", { numeric: true }))
@@ -907,11 +997,9 @@ export function consolidar(
       const comum = resolverValorComEvidencia(medidas, "area_comum", escala.escala, coerentes);
       let area = privativa.valor;
       let areaMedida = privativa.medida;
-      if (area == null && !privativa.conflito && global.valor != null && comum.valor != null) {
-        area = Number((global.valor - comum.valor).toFixed(2));
-        areaMedida = global.medida;
-        regras.push("area_global_menos_comum");
-      } else if (area != null) regras.push("area_privativa");
+      if (area != null) {
+        regras.push("area_privativa");
+      }
 
       const terreno = resolverValorComEvidencia(medidas, "fracao_terreno", escala.escala);
       const rateio = resolverValorComEvidencia(medidas, "coeficiente_rateio", escala.escala);
@@ -939,10 +1027,11 @@ export function consolidar(
       else if (coisasComuns.valor != null) regras.push("fracao_coisas_comuns");
 
       // Candidatas a promoção quando o rótulo não estava visível no trecho.
+      // SÓ promove indeterminado a área quando, no documento inteiro, NENHUMA unidade tiver area_privativa identificada.
       const indeterminadas = medidas.filter((m) => m.campo === "indeterminado");
       const indetArea = indeterminadas.filter((m) => m.escala === "m2");
       const indetFracao = indeterminadas.filter((m) => m.escala !== "m2");
-      if (area == null && indetArea.length === 1) {
+      if (!documentoTemAreaPrivativa && area == null && indetArea.length === 1) {
         const valor = valorCanonico(indetArea[0], escala.escala);
         if (valor != null) {
           area = valor;
@@ -950,6 +1039,11 @@ export function consolidar(
           regras.push("promovido_de_indeterminado_area");
         }
       }
+
+      if (area == null) {
+        regras.push("area_privativa_ausente");
+      }
+
       let promocaoFracao: { valor: number; medida: Medida } | null = null;
       if (fracao == null && !terreno.conflito && indetFracao.length === 1) {
         const valor = valorCanonico(indetFracao[0], escala.escala);
@@ -998,6 +1092,22 @@ export function consolidar(
   const unidades = parciais.map((p) => {
     const completa = p.area != null && p.fracao != null;
     const pendentePromocao = p.regras.includes("promocao_desfeita_soma_nao_fecha");
+    const motivos: string[] = [...new Set([...(p.base.motivos ?? []), ...p.regras])];
+    if (p.area == null && !motivos.includes("area_privativa_ausente")) {
+      motivos.push("area_privativa_ausente");
+    }
+    let estado = p.base.estado;
+    if (p.area == null) {
+      estado = "nao_lido";
+    } else if (!estado) {
+      estado =
+        p.conflito
+          ? "lido_com_ressalva"
+          : completa && !pendentePromocao
+            ? "lido"
+            : "lido_com_ressalva";
+    }
+
     return {
       ...p.base,
       medidas: p.medidas,
@@ -1015,6 +1125,8 @@ export function consolidar(
         : completa && !pendentePromocao
           ? ("alta" as const)
           : ("media" as const),
+      estado,
+      motivos,
       candidatos: Object.fromEntries(
         [...new Set(p.medidas.map((m) => m.campo))].map((campo) => [
           campo,
@@ -1225,28 +1337,6 @@ async function gravarCacheExtracao(supabase: SupabaseClient, hash: string, respo
       { onConflict: "hash_lote,versao_prompt" },
     );
 }
-
-/** A IA devolve `linha_id`; o texto vem da nossa própria cópia do lote. */
-function resolverLinhas(unidade: UnidadeExtraida, linhas: Record<string, LinhaLote>) {
-  const linhaUnidade = unidade.linha_id ? linhas[unidade.linha_id] : undefined;
-  return {
-    ...unidade,
-    fonte: linhaUnidade ? linhaUnidade.fonte : unidade.fonte,
-    medidas: (unidade.medidas ?? []).map((medida) => {
-      const linha = medida.linha_id ? linhas[medida.linha_id] : undefined;
-      if (!linha) return medida;
-      return {
-        ...medida,
-        trecho: linha.texto,
-        pagina: linha.pagina ?? medida.pagina ?? null,
-        bloco: linha.bloco ?? medida.bloco ?? null,
-        fonte: linha.fonte,
-        bloco_contexto: linha.bloco_contexto,
-      };
-    }),
-  };
-}
-
 const decimalBr = (valor: number, casas = 2) => valor.toFixed(casas).replace(".", ",");
 
 /** Converte a leitura determinística da seção descritiva no formato de sugestão. */
@@ -1831,7 +1921,7 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     );
 
     const { unidades, conflitos, escala, somasHipoteses, regras, medidasDescartadas, orfas } =
-      consolidar(candidatas, conhecidas, censo);
+      consolidar(candidatas, conhecidas, censo, registros);
 
     const diagnostico: DiagnosticoExtracao = {
       leitura: "quadro_ia",
@@ -1870,11 +1960,7 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       escala_fracao: escala,
       somas_hipoteses: somasHipoteses,
       medidas_descartadas: medidasDescartadas,
-      regra_area: regras.includes("area_privativa")
-        ? "area_privativa"
-        : regras.includes("area_global_menos_comum")
-          ? "area_global_menos_comum"
-          : null,
+      regra_area: regras.includes("area_privativa") ? "area_privativa" : null,
       unidades_encontradas: unidades.length,
       unidades_com_fracao: unidades.filter((u) => u.fracao_ideal != null).length,
       unidades_com_area: unidades.filter((u) => u.area_m2 != null).length,
@@ -2088,9 +2174,11 @@ async function persistirExtracao(entrada: {
     if (!u.linha_id && matchingReg) {
       u.linha_id = matchingReg.registro_id;
     }
-    if (!u.estado) {
-      if (u.fracao_ideal == null && u.area_m2 == null) {
-        u.estado = "nao_lido";
+    if (u.area_m2 == null) {
+      u.estado = "nao_lido";
+    } else if (!u.estado) {
+      if (u.fracao_ideal == null) {
+        u.estado = "lido_com_ressalva";
       } else if (
         u.confianca !== "alta" ||
         (u.medidas_descartadas && u.medidas_descartadas.length > 0)
@@ -2108,9 +2196,14 @@ async function persistirExtracao(entrada: {
         ...(u.regras_aplicadas ?? []),
         ...(u.medidas_descartadas?.map((m) => `Rejeitada (${m.medida.campo}): ${m.motivo}`) ?? []),
       ];
+      if (u.area_m2 == null && !u.motivos.includes("area_privativa_ausente")) {
+        u.motivos.push("area_privativa_ausente");
+      }
       if (u.estado === "nao_lido" && u.motivos.length === 0) {
         u.motivos = ["Sem medidas extraídas para esta unidade"];
       }
+    } else if (u.area_m2 == null && !u.motivos.includes("area_privativa_ausente")) {
+      u.motivos.push("area_privativa_ausente");
     }
   }
 

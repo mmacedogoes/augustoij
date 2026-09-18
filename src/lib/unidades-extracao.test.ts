@@ -10,6 +10,7 @@ import {
   type UnidadeExtraida,
   type DiagnosticoExtracao,
 } from "./unidades-extracao.server";
+import type { RegistroUnidade } from "./extracao/segmentador";
 
 type Medida = NonNullable<UnidadeExtraida["medidas"]>[number];
 const medida = (
@@ -25,10 +26,28 @@ const medida = (
   pagina: 12,
   bloco: 2,
 });
-const unidade = (numero: string, medidas: Medida[], bloco = "A"): UnidadeExtraida => ({
+const unidade = (numero: string, medidas: Medida[], bloco: string | null = "A"): UnidadeExtraida => ({
   bloco,
   numero,
   medidas,
+});
+
+const registroMock = (
+  numero: string,
+  texto: string,
+  escopo: string | null = null,
+): RegistroUnidade => ({
+  registro_id: `doc:1:0`,
+  documento_id: "doc",
+  pagina: 1,
+  offset_inicio: 0,
+  offset_fim: texto.length,
+  escopo,
+  numero,
+  sufixo: null,
+  padrao_ancora: "apartamento_de_n",
+  ancora: `Apartamento ${numero}`,
+  texto,
 });
 
 describe("normalização brasileira", () => {
@@ -79,20 +98,105 @@ describe("extração NBR 12721", () => {
     });
   });
 
-  it("usa área global menos comum como fallback documentado", () => {
-    const trecho = "Unidade 601A: área comum 42,10 m², área global 357,60 m², fração 1,9956%";
+  it("a área é a privativa, nunca global menos comum", () => {
+    const trecho = "Unidade 101: área comum 43,6055 m², área global 131,5055 m², fração 0,033395";
     const resultado = consolidar(
       [
-        unidade("601", [
-          medida("area_comum", "42,10", "m2", trecho),
-          medida("area_global", "357,60", "m2", trecho),
-          medida("fracao_terreno", "1,9956%", "percentual", trecho),
-        ]),
+        unidade(
+          "101",
+          [
+            medida("area_comum", "43,6055", "m2", trecho),
+            medida("area_global", "131,5055", "m2", trecho),
+            medida("fracao_terreno", "0,033395", "decimal", trecho),
+          ],
+          null,
+        ),
       ],
-      [{ bloco: "A", numero: "601" }],
+      [{ bloco: null, numero: "101" }],
     );
-    expect(resultado.unidades[0]?.area_m2).toBe(315.5);
-    expect(resultado.regras).toContain("area_global_menos_comum");
+    expect(resultado.unidades[0]?.area_m2).toBeNull();
+    expect(resultado.unidades[0]?.area_m2).not.toBe(87.9);
+    expect(resultado.unidades[0]?.motivos).toContain("area_privativa_ausente");
+  });
+
+  it("medida com valor presente no registro é aceita", () => {
+    const textoRegistro =
+      "O Apartamento 101 possui área real privativa de 75,90 m2, área de uso comum de 43,6055 m2, área de garagem de 12,00 m2, perfazendo a área real total de 131,5055 m2, com fração ideal no terreno de 0,033395 e área equivalente de 36,0669 m2.";
+    const u101 = unidade(
+      "101",
+      [
+        medida("area_privativa", "75,90", "m2", ""),
+        medida("area_comum", "43,6055", "m2", ""),
+        medida("area_garagem", "12,00", "m2", ""),
+        medida("area_global", "131,5055", "m2", ""),
+        medida("fracao_terreno", "0,033395", "decimal", ""),
+        medida("area_equivalente", "36,0669", "m2", ""),
+      ],
+      null,
+    );
+    const registros = [registroMock("101", textoRegistro)];
+    const resultado = consolidar(
+      [u101],
+      [{ bloco: null, numero: "101" }],
+      { porId: new Map() },
+      registros,
+    );
+
+    expect(resultado.unidades[0]?.medidas).toHaveLength(6);
+    expect(resultado.unidades[0]?.medidas_descartadas ?? []).toHaveLength(0);
+    expect(resultado.unidades[0]?.area_m2).toBe(75.9);
+    expect(resultado.unidades[0]?.fracao_ideal).toBeCloseTo(0.033395, 6);
+  });
+
+  it("medida sem proveniência nenhuma não é rejeitada", () => {
+    const u101 = unidade(
+      "101",
+      [
+        medida("area_privativa", "75,90", "m2", ""),
+        medida("area_comum", "43,6055", "m2", ""),
+        medida("area_garagem", "12,00", "m2", ""),
+        medida("area_global", "131,5055", "m2", ""),
+        medida("fracao_terreno", "0,033395", "decimal", ""),
+        medida("area_equivalente", "36,0669", "m2", ""),
+      ],
+      null,
+    );
+    // Sem registro correspondente
+    const resultado = consolidar(
+      [u101],
+      [{ bloco: null, numero: "101" }],
+      { porId: new Map() },
+      [],
+    );
+
+    expect(resultado.unidades[0]?.medidas).toHaveLength(6);
+    expect(resultado.unidades[0]?.regras_aplicadas).toContain("sem_proveniencia");
+    const valorNaoConfere = (resultado.unidades[0]?.medidas_descartadas ?? []).filter(
+      (d) => d.motivo === "valor_nao_confere",
+    );
+    expect(valorNaoConfere).toHaveLength(0);
+    expect(resultado.medidasDescartadas["valor_nao_confere"] ?? 0).toBe(0);
+  });
+
+  it("valor ausente do registro continua sendo rejeitado", () => {
+    const textoRegistro =
+      "O Apartamento 101 possui área real privativa de 75,90 m2 e área de uso comum de 43,6055 m2.";
+    const u101 = unidade(
+      "101",
+      [medida("area_privativa", "999,99", "m2", "")],
+      null,
+    );
+    const registros = [registroMock("101", textoRegistro)];
+    const resultado = consolidar(
+      [u101],
+      [{ bloco: null, numero: "101" }],
+      { porId: new Map() },
+      registros,
+    );
+
+    expect(resultado.unidades[0]?.medidas).toHaveLength(0);
+    expect(resultado.unidades[0]?.medidas_descartadas ?? []).toHaveLength(1);
+    expect(resultado.unidades[0]?.medidas_descartadas?.[0]?.motivo).toBe("valor_nao_confere");
   });
 
   it("só conflita valores do mesmo campo além da tolerância", () => {

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * src/lib/extracao/rotulos.ts
  *
  * Famílias de rótulos e extrator determinístico de medidas em textos de registros.
@@ -11,7 +11,8 @@ export type FamiliaRotulo =
   | "area_equivalente"
   | "area_terreno"
   | "fracao_ideal"
-  | "vagas";
+  | "vagas"
+  | "area_garagem";
 
 export type MedidaLida = {
   campo: FamiliaRotulo;
@@ -54,6 +55,9 @@ export const PADROES_FAMILIAS: Record<FamiliaRotulo, RegExp[]> = {
   ],
   vagas: [
     /(\d+)\s*(?:\([^)]*\))?\s*vagas?\s+de\s+garagem/i,
+  ],
+  area_garagem: [
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:garagem|vaga|estacionamento)/i,
   ],
 };
 
