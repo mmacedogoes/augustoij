@@ -246,11 +246,63 @@ type ChamadaIA = {
   aigRunId: string | null;
 };
 
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import ancorasRaw from "./extracao/ancoras?raw";
+import segmentadorRaw from "./extracao/segmentador?raw";
+import rotulosRaw from "./extracao/rotulos?raw";
+
 const MODELO = "google/gemini-2.5-flash";
 const TAMANHO_LOTE = 25_000;
 const CONCORRENCIA = 6;
 const MAX_TENTATIVAS = 3;
-export const VERSAO_PROMPT = "2026-09-17.censo-linhas.v5";
+
+export const PROMPT_SISTEMA_BASE =
+  "Extraia dados literais de unidades autônomas de uma convenção condominial brasileira. " +
+  "Cada linha do texto recebido vem prefixada por um identificador estável, no formato documento:ordem:indice, seguido de ': '. " +
+  "Para cada unidade identificada, informe o campo linha_id com o identificador estável da linha de onde foi lida. " +
+  "Em cada medida, devolva o campo linha_id com o identificador da linha de onde o valor foi lido; NÃO redigite o trecho. " +
+  "Leia cada trecho integralmente. Linhas agrupadas como '701A, 901A e 1501A' devem gerar uma linha para cada unidade somente se o texto atribuir explicitamente os mesmos valores ao grupo. " +
+  "Devolva TODAS as medidas numéricas que o documento associa à unidade, cada uma com seu rótulo. " +
+  "Se houver múltiplas seções, priorize extrair as unidades a partir da seção mais detalhada (que contém as metragens e frações ideais). Ignore índices e listas simplificadas se o detalhamento existir em outro trecho. " +
+  "Se o cabeçalho da coluna não estiver visível no trecho recebido, use campo indeterminado; nunca adivinhe o rótulo. " +
+  "Preserve valor_bruto exatamente como impresso, inclusive %, ‰, barra e vírgula. Não converta escalas. " +
+  "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
+  'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
+
+function obterConteudoArquivo(moduloRaw: string | undefined, nomeArquivo: string): string {
+  if (typeof moduloRaw === "string" && moduloRaw.length > 0) {
+    return moduloRaw;
+  }
+  try {
+    const fullPath = path.resolve(process.cwd(), "src/lib/extracao", nomeArquivo);
+    if (fs.existsSync(fullPath)) {
+      return fs.readFileSync(fullPath, "utf-8");
+    }
+  } catch {
+    // fallback seguro
+  }
+  return "";
+}
+
+export function calcularVersaoPipeline(): string {
+  const cAncoras = obterConteudoArquivo(ancorasRaw, "ancoras.ts");
+  const cSegmentador = obterConteudoArquivo(segmentadorRaw, "segmentador.ts");
+  const cRotulos = obterConteudoArquivo(rotulosRaw, "rotulos.ts");
+
+  const combinado = [
+    cAncoras,
+    cSegmentador,
+    cRotulos,
+    PROMPT_SISTEMA_BASE,
+  ].join("\n---PIPELINE_HASH_SEPARATOR---\n");
+
+  const hash = createHash("sha256").update(combinado).digest("hex").slice(0, 16);
+  return `pipeline_${hash}`;
+}
+
+export const VERSAO_PROMPT = calcularVersaoPipeline();
 
 
 export class ExtracaoIncompletaError extends Error {
@@ -1263,14 +1315,29 @@ export function unidadesDaLeituraDescritiva(
   });
 }
 
+export type ResultadoRodadaExtracao = {
+  ok: boolean;
+  concluido: boolean;
+  etapa: string;
+  total: number;
+  concluidos: number;
+  estado: "processando" | "pronto" | "falhou";
+  aviso?: string | null;
+  erro?: string;
+  unidades?: UnidadeExtraida[];
+};
 
-
-export async function extrairESalvarSugestaoUnidades(
+export async function processarExtracaoRodada(
   supabase: SupabaseClient,
   documentoId: string,
   apiKey: string,
-  opts: { force?: boolean; paginaInicio?: number; paginaFim?: number } = {},
-): Promise<UnidadeExtraida[]> {
+  opts: {
+    reiniciar?: boolean;
+    paginaInicio?: number;
+    paginaFim?: number;
+    orcamentoMs?: number;
+  } = {},
+): Promise<ResultadoRodadaExtracao> {
   const { data: doc, error } = await supabase
     .from("documentos")
     .select("id, condominio_id, nome_arquivo, status_processamento")
@@ -1281,480 +1348,625 @@ export async function extrairESalvarSugestaoUnidades(
   if (doc.status_processamento !== "pronto")
     throw new Error("Documento ainda não foi processado por completo.");
 
-  const { data: cond, error: condError } = await supabase
+  const { data: cond } = await supabase
     .from("condominios")
     .select("categoria, qtd_unidades, owner_id")
     .eq("id", doc.condominio_id)
     .maybeSingle();
-  if (condError) throw new Error(condError.message);
-  const { data: existentes, error: unidadesError } = await supabase
+  const { data: existentes } = await supabase
     .from("unidades")
     .select("bloco, numero")
     .eq("condominio_id", doc.condominio_id);
-  if (unidadesError) throw new Error(unidadesError.message);
   const conhecidas = (existentes ?? []).map((u) => ({
     bloco: u.bloco as string | null,
     numero: String(u.numero),
   }));
 
-  const inicio = Date.now();
-  const carregamento = await carregarTextoIntegral(supabase, doc.id);
-  const { fonte: fonteUsada, totalPaginas, totalCaracteres } = carregamento;
-  let { paginas, textoIntegral } = carregamento;
+  const { data: jobDb } = await supabase
+    .from("extracao_jobs")
+    .select("*")
+    .eq("documento_id", doc.id)
+    .maybeSingle();
 
-  // NOVO: LLM Router (Passo 1 do Agentic Workflow) ou Human-in-the-Loop
-  if (opts.paginaInicio || opts.paginaFim) {
-    const inicioFiltro = opts.paginaInicio || 1;
-    const fimFiltro = opts.paginaFim || 99999;
-    paginas = paginas.filter((p) => p.numero <= fimFiltro && p.numero >= inicioFiltro);
-    textoIntegral = paginas.map((p) => p.texto).join("\n");
-  } else if (paginas.length > 5 && !opts.force) {
-    // Se o documento é grande e o usuário não forçou páginas manuais, tenta rotear as páginas.
-    try {
-      const textoCompleto = paginas
-        .map((p) => `[Página ${p.numero}]\n${p.texto}`)
-        .join("\n---\n");
-      // Trunca para evitar estouro absurdo, Flash aguenta até 1M, mas enviamos max 200k chars
-      const textoResumido = textoCompleto.slice(0, 200000);
+  let job = jobDb;
 
-      const routerPrompt = `Você é um classificador estrutural de convenções de condomínio.
+  if (opts.reiniciar || !job || job.estado === "pronto" || job.estado === "falhou") {
+    const { data: novoJob, error: novoErr } = await supabase
+      .from("extracao_jobs")
+      .upsert(
+        {
+          documento_id: doc.id,
+          etapa: "carregamento_e_roteamento",
+          total: 4,
+          concluidos: 0,
+          estado: "processando",
+          erro: null,
+          metadata: {},
+          atualizado_em: new Date().toISOString(),
+        },
+        { onConflict: "documento_id" },
+      )
+      .select("*")
+      .single();
+    if (novoErr) throw new Error(novoErr.message);
+    job = novoJob;
+  }
+
+  const meta = ((job.metadata as Record<string, unknown>) ?? {}) as Record<string, unknown>;
+
+  try {
+    // 1) ETAPA: Carregamento e Roteamento de páginas
+    if (job.etapa === "carregamento_e_roteamento") {
+      const carregamento = await carregarTextoIntegral(supabase, doc.id);
+      let { paginas, textoIntegral } = carregamento;
+      const { fonte: fonteUsada, totalPaginas, totalCaracteres } = carregamento;
+
+      // LLM Router se doc > 5 páginas e sem filtro manual
+      if (opts.paginaInicio || opts.paginaFim) {
+        const inicioFiltro = opts.paginaInicio || 1;
+        const fimFiltro = opts.paginaFim || 99999;
+        paginas = paginas.filter((p) => p.numero <= fimFiltro && p.numero >= inicioFiltro);
+        textoIntegral = paginas.map((p) => p.texto).join("\n");
+      } else if (paginas.length > 5) {
+        try {
+          const textoCompleto = paginas
+            .map((p) => `[Página ${p.numero}]\n${p.texto}`)
+            .join("\n---\n");
+          const textoResumido = textoCompleto.slice(0, 200000);
+
+          const routerPrompt = `Você é um classificador estrutural de convenções de condomínio.
 Analise o documento abaixo e identifique em quais páginas encontra-se o Quadro de Áreas, a Tabela de Frações Ideais, ou a descrição textual que contenha as METRAGENS e FRAÇÕES das unidades.
 ATENÇÃO: Ignore páginas que apenas listam os números das unidades (como sumários, índices, regulamentos ou seções de "posição/situação") sem informar suas áreas. Seja cirúrgico.
 Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encontrar nada claro, retorne { "paginas": [] }.`;
 
-      const routerRes = await chamarIaJson(apiKey, "Você é um analista.", routerPrompt + "\n\n" + textoResumido);
-      const parsedRouter = routerRes.data as { paginas?: number[] };
+          const routerRes = await chamarIaJson(apiKey, "Você é um analista.", routerPrompt + "\n\n" + textoResumido);
+          const parsedRouter = routerRes.data as { paginas?: number[] };
 
-      if (Array.isArray(parsedRouter.paginas) && parsedRouter.paginas.length > 0) {
-        const paginasFiltro = new Set(parsedRouter.paginas);
-        const filtered = paginas.filter((p) => paginasFiltro.has(p.numero));
-        if (filtered.length > 0) {
-          paginas = filtered;
-          textoIntegral = paginas.map((p) => p.texto).join("\n");
-          console.log(`LLM Router filtrou o documento para ${paginas.length} páginas:`, parsedRouter.paginas);
+          if (Array.isArray(parsedRouter.paginas) && parsedRouter.paginas.length > 0) {
+            const paginasFiltro = new Set(parsedRouter.paginas);
+            const filtered = paginas.filter((p) => paginasFiltro.has(p.numero));
+            if (filtered.length > 0) {
+              paginas = filtered;
+              textoIntegral = paginas.map((p) => p.texto).join("\n");
+            }
+          }
+        } catch (e) {
+          console.error("Erro no LLM Router, prosseguindo com todas as páginas", e);
         }
       }
-    } catch (e) {
-      console.error("Erro no LLM Router, prosseguindo com todas as páginas", e);
+
+      await supabase
+        .from("extracao_jobs")
+        .update({
+          etapa: "segmentacao_e_descritiva",
+          total: 4,
+          concluidos: 1,
+          estado: "processando",
+          metadata: {
+            paginas,
+            textoIntegral,
+            fonteUsada,
+            totalPaginas,
+            totalCaracteres,
+          },
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq("documento_id", doc.id);
+
+      return {
+        ok: true,
+        concluido: false,
+        etapa: "carregamento_e_roteamento",
+        total: 4,
+        concluidos: 1,
+        estado: "processando",
+      };
     }
-  }
 
-  // Converte as páginas fiéis em ChunkRow estruturados para o censo e parser de quadros
-  const chunks: ChunkRow[] = paginas.map((p, idx) => ({
-    id: `pag-${p.numero}`,
-    conteudo: p.texto,
-    metadata: {
-      ordem_global: idx,
-      pagina_inicio: p.numero,
-      pagina_fim: p.numero,
-      bloco: p.numero,
-      trecho: idx,
-    },
-  }));
+    // 2) ETAPA: Segmentação determinística e Leitura Descritiva
+    if (job.etapa === "segmentacao_e_descritiva") {
+      const paginas = (meta.paginas as Array<{ numero: number; texto: string }>) ?? [];
+      const textoIntegral = (meta.textoIntegral as string) ?? "";
+      const fonteUsada = (meta.fonteUsada as string) ?? "storage";
+      const totalPaginas = (meta.totalPaginas as number) ?? paginas.length;
+      const totalCaracteres = (meta.totalCaracteres as number) ?? textoIntegral.length;
 
-  // 0) Segmentação determinística por registros (recorrente em todo o documento)
-  const registros = segmentarRegistros(paginas, doc.id);
+      const chunks: ChunkRow[] = paginas.map((p, idx) => ({
+        id: `pag-${p.numero}`,
+        conteudo: p.texto,
+        metadata: {
+          ordem_global: idx,
+          pagina_inicio: p.numero,
+          pagina_fim: p.numero,
+          bloco: p.numero,
+          trecho: idx,
+        },
+      }));
 
-  // 0.1) Classificação determinística da tipologia por contagem de âncoras e termos
-  const { detectarTipologia } = await import("./extracao/tipologia");
-  const tipologiaDetectada = detectarTipologia(paginas);
-  const categoriaCadastrada = cond?.categoria ? normalizeCategoria(cond.categoria as string) : null;
-  const tipologiaNormalizada = normalizeCategoria(tipologiaDetectada);
+      const registros = segmentarRegistros(paginas, doc.id);
 
-  const divergiu = Boolean(categoriaCadastrada && categoriaCadastrada !== tipologiaNormalizada);
-  const avisoTipologiaDivergente = divergiu
-    ? {
-        cadastrada: (cond?.categoria as string) || "predio",
-        detectada: tipologiaDetectada,
-        mensagem: `A convenção aparenta ser de "${getCategoriaMeta(tipologiaDetectada).label}", mas o condomínio está cadastrado como "${getCategoriaMeta(cond?.categoria as string).label}".`,
-      }
-    : null;
-
-  // 0.2) SEÇÃO DESCRITIVA — a fonte de verdade da convenção. Rol do Artigo 2,
-  //    segmentação por bloco descritivo, rótulos com preenchimento por pontos e
-  //    as quatro conferências: tudo regex e aritmética, ZERO token de IA.
-  const descritiva = interpretarConvencaoDescritiva(textoIntegral);
-  if (descritiva.ok) {
-    const unidades = unidadesDaLeituraDescritiva(descritiva, conhecidas);
-    const diagnostico: DiagnosticoExtracao = {
-      leitura: "secao_descritiva",
-      total_trechos: chunks.length,
-      trechos_selecionados: 0,
-      prefiltro: "seção descritiva lida sem IA",
-      chamadas_ia: 0,
-      chamadas_em_cache: 0,
-      tokens_input: 0,
-      tokens_output: 0,
-      total_lotes: 0,
-      lotes_processados: 0,
-      lotes_com_erro: 0,
-      erros: [],
-      conflitos: [],
-      escala_fracao: "decimal",
-      regra_area: "area_real_privativa",
-      total_declarado_no_texto: descritiva.rol?.total_declarado ?? null,
-      quadro_fracoes_encontrado: true,
-      rol_artigo_2: descritiva.rol
+      const { detectarTipologia } = await import("./extracao/tipologia");
+      const tipologiaDetectada = detectarTipologia(paginas);
+      const categoriaCadastrada = cond?.categoria ? normalizeCategoria(cond.categoria as string) : null;
+      const tipologiaNormalizada = normalizeCategoria(tipologiaDetectada);
+      const divergiu = Boolean(categoriaCadastrada && categoriaCadastrada !== tipologiaNormalizada);
+      const avisoTipologiaDivergente = divergiu
         ? {
-            total_declarado: descritiva.rol.total_declarado,
-            identificadores: descritiva.rol.identificadores,
+            cadastrada: (cond?.categoria as string) || "predio",
+            detectada: tipologiaDetectada,
+            mensagem: `A convenção aparenta ser de "${getCategoriaMeta(tipologiaDetectada).label}", mas o condomínio está cadastrado como "${getCategoriaMeta(cond?.categoria as string).label}".`,
+          }
+        : null;
+
+      const descritiva = interpretarConvencaoDescritiva(textoIntegral);
+      if (descritiva.ok) {
+        const unidades = unidadesDaLeituraDescritiva(descritiva, conhecidas);
+        const diagnostico: DiagnosticoExtracao = {
+          leitura: "secao_descritiva",
+          total_trechos: chunks.length,
+          trechos_selecionados: 0,
+          prefiltro: "seção descritiva lida sem IA",
+          chamadas_ia: 0,
+          chamadas_em_cache: 0,
+          tokens_input: 0,
+          tokens_output: 0,
+          total_lotes: 0,
+          lotes_processados: 0,
+          lotes_com_erro: 0,
+          erros: [],
+          conflitos: [],
+          escala_fracao: "decimal",
+          regra_area: "area_real_privativa",
+          total_declarado_no_texto: descritiva.rol?.total_declarado ?? null,
+          quadro_fracoes_encontrado: true,
+          rol_artigo_2: descritiva.rol
+            ? {
+                total_declarado: descritiva.rol.total_declarado,
+                identificadores: descritiva.rol.identificadores,
+              }
+            : null,
+          conferencias: descritiva.conferencias,
+          balanco_descritivo: descritiva.balanco,
+          balanco: {
+            linhas_candidatas: descritiva.balanco.identificadores_no_rol || descritiva.unidades.length,
+            lidas_pelo_parser: descritiva.unidades.length,
+            lidas_pela_ia: 0,
+            nao_lidas: descritiva.faltando.length,
+            unidades_resolvidas: unidades.length,
+            sem_correspondencia: descritiva.sobrando.length,
+            soma_fracoes: descritiva.balanco.soma_fracoes,
+            fecha: descritiva.balanco.fecha,
+          },
+          linhas_nao_lidas: descritiva.faltando.map((id) => ({
+            linha_id: id,
+            texto: `Identificador ${id} consta do rol do Artigo 2 e não foi lido na seção descritiva.`,
+            pagina: null,
+          })),
+          orfas: descritiva.sobrando.map((id) => ({
+            numero: id,
+            bloco: null,
+            texto: `Unidade ${id} descrita no documento e ausente do rol do Artigo 2.`,
+            pagina: null,
+            linha_id: null,
+          })),
+          unidades_encontradas: unidades.length,
+          unidades_com_fracao: unidades.filter((u) => u.fracao_ideal != null).length,
+          unidades_com_area: unidades.filter((u) => u.area_m2 != null).length,
+          unidades_confianca_alta: unidades.filter((u) => u.confianca === "alta").length,
+          unidades_pendentes_revisao: unidades.filter((u) => u.confianca !== "alta").length,
+          duracao_ms: 0,
+          fonte: fonteUsada,
+          total_paginas: totalPaginas,
+          total_caracteres: totalCaracteres,
+          tipologia_detectada: tipologiaDetectada,
+          tipologia_divergente: avisoTipologiaDivergente,
+          tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "secao_descritiva" },
+          observacao:
+            `Leitura determinística da seção descritiva: ${descritiva.balanco.blocos_descritivos} blocos descritivos, ${unidades.length} unidades após expansão` +
+            (descritiva.soma_ok
+              ? "."
+              : `; a soma das frações deu ${descritiva.balanco.soma_fracoes} e a sugestão foi marcada para revisão.`) +
+            (descritiva.regras_aplicadas.length
+              ? ` Regras de escala: ${descritiva.regras_aplicadas.join("; ")}.`
+              : ""),
+        };
+
+        const unidadesFinais = await persistirExtracao({
+          supabase,
+          doc,
+          unidades,
+          diagnostico,
+          conhecidas,
+          escala: "decimal",
+          qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
+          force: false,
+          pendenciasExtras:
+            descritiva.faltando.length +
+            descritiva.sobrando.length +
+            descritiva.duplicadas.length +
+            (descritiva.soma_ok ? 0 : 1),
+          registros,
+        });
+
+        await supabase
+          .from("extracao_jobs")
+          .update({
+            etapa: "concluido",
+            total: 4,
+            concluidos: 4,
+            estado: "pronto",
+            erro: null,
+            atualizado_em: new Date().toISOString(),
+          })
+          .eq("documento_id", doc.id);
+
+        return {
+          ok: true,
+          concluido: true,
+          etapa: "concluido",
+          total: 4,
+          concluidos: 4,
+          estado: "pronto",
+          unidades: unidadesFinais,
+        };
+      }
+
+      // Prepara lotes para leitura com IA
+      const censo = construirCenso(doc.id, chunks);
+      const { extrairUnidadesDeQuadros } = await import("./quadro-parser");
+      const quadro = extrairUnidadesDeQuadros(censo);
+      const naoLidas = censo.candidatas.filter((l) => !quadro.linhasLidas.has(l.linha_id));
+      const chunksComCandidatas = new Set(naoLidas.map((l) => l.chunk_id));
+      const chunksRelevantes = chunks.filter((c) => chunksComCandidatas.has(c.id));
+      const lotes = montarLotes(chunksRelevantes as ChunkRow[]);
+
+      if (censo.candidatas.length === 0) {
+        const mensagem = "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
+        const diagnosticoVazio: DiagnosticoExtracao = {
+          leitura: "quadro_ia",
+          tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "censo_de_linhas" },
+          total_trechos: chunks.length,
+          fonte: fonteUsada,
+          total_paginas: totalPaginas,
+          total_caracteres: totalCaracteres,
+          tipologia_detectada: tipologiaDetectada,
+          tipologia_divergente: avisoTipologiaDivergente,
+        };
+        await persistirFalha(supabase, doc, mensagem, diagnosticoVazio);
+        await supabase
+          .from("extracao_jobs")
+          .update({
+            etapa: "falhou",
+            estado: "falhou",
+            erro: mensagem,
+            atualizado_em: new Date().toISOString(),
+          })
+          .eq("documento_id", doc.id);
+        throw new ExtracaoIncompletaError(mensagem, diagnosticoVazio);
+      }
+
+      await supabase
+        .from("extracao_jobs")
+        .update({
+          etapa: lotes.length > 0 ? "leitura_ia" : "gravacao",
+          total: lotes.length || 4,
+          concluidos: 0,
+          estado: "processando",
+          metadata: {
+            ...meta,
+            lotes,
+            candidatas: quadro.unidades,
+            linhasLidasQuadroIds: Array.from(quadro.linhasLidas),
+            naoLidasLinhasIds: naoLidas.map((l) => l.linha_id),
+            chunksCount: chunks.length,
+            tipologiaDetectada,
+            avisoTipologiaDivergente,
+            descritivaTentativa: descritiva.tentativa,
+            descritivaRol: descritiva.rol,
+            cursorLote: 0,
+            tokensInput: 0,
+            tokensOutput: 0,
+            chamadasIa: 0,
+            chamadasCache: 0,
+          },
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq("documento_id", doc.id);
+
+      return {
+        ok: true,
+        concluido: false,
+        etapa: "segmentacao_e_descritiva",
+        total: lotes.length || 4,
+        concluidos: 0,
+        estado: "processando",
+      };
+    }
+
+    // 3) ETAPA: Leitura dos lotes com IA (Gemini)
+    if (job.etapa === "leitura_ia") {
+      const lotes = (meta.lotes as Lote[]) ?? [];
+      let cursor = (meta.cursorLote as number) ?? 0;
+      const candidatas = (meta.candidatas as UnidadeExtraida[]) ?? [];
+      let tokensInput = (meta.tokensInput as number) ?? 0;
+      let tokensOutput = (meta.tokensOutput as number) ?? 0;
+      let chamadasIa = (meta.chamadasIa as number) ?? 0;
+      let chamadasCache = (meta.chamadasCache as number) ?? 0;
+      const tipologiaDetectada = (meta.tipologiaDetectada as string) ?? "predio";
+
+      const categoria = getCategoriaMeta(tipologiaDetectada);
+      const system = PROMPT_SISTEMA_BASE.replace(
+        "de uma convenção condominial brasileira. ",
+        `de uma convenção condominial brasileira. ${categoria.vocabIA} `,
+      );
+
+      const startMs = Date.now();
+      const budgetMs = opts.orcamentoMs ?? 18_000;
+      const maxLotesNestaRodada = 2;
+      let processadosNestaRodada = 0;
+
+      while (cursor < lotes.length && processadosNestaRodada < maxLotesNestaRodada && Date.now() - startMs < budgetMs) {
+        const lote = lotes[cursor];
+        const hash = await hashLote(lote.texto);
+        const cacheado = await lerCacheExtracao(supabase, hash);
+        let bruto: unknown;
+        if (cacheado) {
+          chamadasCache++;
+          bruto = cacheado;
+        } else {
+          chamadasIa++;
+          const chamada = await chamarIaJson(
+            apiKey,
+            system,
+            `Arquivo: ${doc.nome_arquivo}\nLote ${cursor + 1}/${lotes.length}:\n${lote.texto}`,
+          );
+          tokensInput += chamada.usage.prompt_tokens;
+          tokensOutput += chamada.usage.completion_tokens;
+          await gravarCacheExtracao(supabase, hash, chamada.data);
+          bruto = chamada.data;
+        }
+
+        const parsed = bruto as { unidades?: unknown[] };
+        if (Array.isArray(parsed.unidades)) {
+          for (const u of parsed.unidades) {
+            const r = UnidadeExtraidaSchema.safeParse(u);
+            if (r.success) {
+              candidatas.push(r.data);
+            }
+          }
+        }
+
+        cursor++;
+        processadosNestaRodada++;
+      }
+
+      const concluidoLotes = cursor >= lotes.length;
+      const proximaEtapa = concluidoLotes ? "gravacao" : "leitura_ia";
+
+      await supabase
+        .from("extracao_jobs")
+        .update({
+          etapa: proximaEtapa,
+          total: lotes.length,
+          concluidos: cursor,
+          estado: "processando",
+          metadata: {
+            ...meta,
+            cursorLote: cursor,
+            candidatas,
+            tokensInput,
+            tokensOutput,
+            chamadasIa,
+            chamadasCache,
+          },
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq("documento_id", doc.id);
+
+      if (!concluidoLotes) {
+        return {
+          ok: true,
+          concluido: false,
+          etapa: "leitura_ia",
+          total: lotes.length,
+          concluidos: cursor,
+          estado: "processando",
+        };
+      }
+    }
+
+    // 4) ETAPA: Gravação, Reconciliação do Rol e Ledger
+    const metaAtual = ((job.metadata as Record<string, unknown>) ?? {}) as Record<string, unknown>;
+    const paginas = (metaAtual.paginas as Array<{ numero: number; texto: string }>) ?? [];
+    const candidatas = (metaAtual.candidatas as UnidadeExtraida[]) ?? [];
+    const fonteUsada = (metaAtual.fonteUsada as string) ?? "storage";
+    const totalPaginas = (metaAtual.totalPaginas as number) ?? paginas.length;
+    const totalCaracteres = (metaAtual.totalCaracteres as number) ?? 0;
+    const tipologiaDetectada = (metaAtual.tipologiaDetectada as string) ?? "predio";
+    const avisoTipologiaDivergente = metaAtual.avisoTipologiaDivergente as any;
+    const descritivaTentativa = metaAtual.descritivaTentativa as any;
+    const descritivaRol = metaAtual.descritivaRol as any;
+    const tokensInput = (metaAtual.tokensInput as number) ?? 0;
+    const tokensOutput = (metaAtual.tokensOutput as number) ?? 0;
+    const chamadasIa = (metaAtual.chamadasIa as number) ?? 0;
+    const chamadasCache = (metaAtual.chamadasCache as number) ?? 0;
+    const lotes = (metaAtual.lotes as Lote[]) ?? [];
+    const linhasLidasQuadroIds = new Set((metaAtual.linhasLidasQuadroIds as string[]) ?? []);
+
+    const chunks: ChunkRow[] = paginas.map((p, idx) => ({
+      id: `pag-${p.numero}`,
+      conteudo: p.texto,
+      metadata: {
+        ordem_global: idx,
+        pagina_inicio: p.numero,
+        pagina_fim: p.numero,
+        bloco: p.numero,
+        trecho: idx,
+      },
+    }));
+    const censo = construirCenso(doc.id, chunks);
+    const registros = segmentarRegistros(paginas, doc.id);
+
+    const lidasPelaIa = new Set<string>();
+    for (const c of candidatas) {
+      const lin = censo.candidatas.find((l) => {
+        if (c.linha_id && l.linha_id === c.linha_id) return true;
+        const id = identificadorDaLinha(l.texto);
+        const blocoLinha = l.bloco_contexto ?? id?.sufixoBloco ?? null;
+        return id && id.numero === c.numero && (c.bloco == null || blocoLinha === c.bloco || id?.sufixoBloco === c.bloco);
+      });
+      if (lin) {
+        c.linha_id = lin.linha_id;
+        lidasPelaIa.add(lin.linha_id);
+      }
+      for (const m of c.medidas ?? []) {
+        if (m.linha_id && censo.porId.has(m.linha_id)) {
+          lidasPelaIa.add(m.linha_id);
+        }
+      }
+    }
+
+    const semLeitura = censo.candidatas.filter(
+      (l) => !linhasLidasQuadroIds.has(l.linha_id) && !lidasPelaIa.has(l.linha_id),
+    );
+
+    const { unidades, conflitos, escala, somasHipoteses, regras, medidasDescartadas, orfas } =
+      consolidar(candidatas, conhecidas, censo);
+
+    const diagnostico: DiagnosticoExtracao = {
+      leitura: "quadro_ia",
+      tentativa_descritiva: { ...descritivaTentativa, caminho_usado: "censo_de_linhas" },
+      rol_artigo_2: descritivaRol
+        ? {
+            total_declarado: descritivaRol.total_declarado,
+            identificadores: descritivaRol.identificadores,
           }
         : null,
-      conferencias: descritiva.conferencias,
-      balanco_descritivo: descritiva.balanco,
-      balanco: {
-        linhas_candidatas: descritiva.balanco.identificadores_no_rol || descritiva.unidades.length,
-        lidas_pelo_parser: descritiva.unidades.length,
-        lidas_pela_ia: 0,
-        nao_lidas: descritiva.faltando.length,
-        unidades_resolvidas: unidades.length,
-        sem_correspondencia: descritiva.sobrando.length,
-        soma_fracoes: descritiva.balanco.soma_fracoes,
-        fecha: descritiva.balanco.fecha,
-      },
-      linhas_nao_lidas: descritiva.faltando.map((id) => ({
-        linha_id: id,
-        texto: `Identificador ${id} consta do rol do Artigo 2 e não foi lido na seção descritiva.`,
-        pagina: null,
-      })),
-      orfas: descritiva.sobrando.map((id) => ({
-        numero: id,
-        bloco: null,
-        texto: `Unidade ${id} descrita no documento e ausente do rol do Artigo 2.`,
-        pagina: null,
-        linha_id: null,
-      })),
+      total_trechos: chunks.length,
+      trechos_selecionados: chunks.length,
+      prefiltro: `linhas candidatas ${censo.candidatas.length}`,
+      linhas_do_quadro: linhasLidasQuadroIds.size,
+      total_lotes: lotes.length,
+      lotes_processados: lotes.length,
+      lotes_com_erro: 0,
+      chamadas_ia: chamadasIa,
+      chamadas_em_cache: chamadasCache,
+      erros: [],
+      fonte: fonteUsada,
+      total_paginas: totalPaginas,
+      total_caracteres: totalCaracteres,
+      tipologia_detectada: tipologiaDetectada,
+      tipologia_divergente: avisoTipologiaDivergente,
+      orfas,
+      balanco: montarBalanco({
+        linhasCandidatas: censo.candidatas.length,
+        lidasPeloParser: censo.candidatas.filter((l) => linhasLidasQuadroIds.has(l.linha_id)).length,
+        lidasPelaIa: censo.candidatas.filter((l) => lidasPelaIa.has(l.linha_id)).length,
+        naoLidas: semLeitura.length,
+        unidades,
+        semCorrespondencia: orfas.length,
+      }),
+      conflitos,
+      escala_fracao: escala,
+      somas_hipoteses: somasHipoteses,
+      medidas_descartadas: medidasDescartadas,
+      regra_area: regras.includes("area_privativa")
+        ? "area_privativa"
+        : regras.includes("area_global_menos_comum")
+          ? "area_global_menos_comum"
+          : null,
       unidades_encontradas: unidades.length,
       unidades_com_fracao: unidades.filter((u) => u.fracao_ideal != null).length,
       unidades_com_area: unidades.filter((u) => u.area_m2 != null).length,
       unidades_confianca_alta: unidades.filter((u) => u.confianca === "alta").length,
       unidades_pendentes_revisao: unidades.filter((u) => u.confianca !== "alta").length,
-      duracao_ms: Date.now() - inicio,
-      fonte: fonteUsada,
-      total_paginas: totalPaginas,
-      total_caracteres: totalCaracteres,
-      tipologia_detectada: tipologiaDetectada,
-      tipologia_divergente: avisoTipologiaDivergente,
-      tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "secao_descritiva" },
-      observacao:
-        `Leitura determinística da seção descritiva: ${descritiva.balanco.blocos_descritivos} blocos descritivos, ${unidades.length} unidades após expansão` +
-        (descritiva.soma_ok
-          ? "."
-          : `; a soma das frações deu ${descritiva.balanco.soma_fracoes} e a sugestão foi marcada para revisão.`) +
-        (descritiva.regras_aplicadas.length
-          ? ` Regras de escala: ${descritiva.regras_aplicadas.join("; ")}.`
-          : ""),
+      duracao_ms: 0,
+      linhas_nao_lidas: semLeitura.map((l) => ({
+        linha_id: l.linha_id,
+        texto: l.texto,
+        pagina: l.pagina,
+      })),
+      tokens_input: tokensInput,
+      tokens_output: tokensOutput,
     };
-    return persistirExtracao({
+
+    const unidadesFinais = await persistirExtracao({
       supabase,
       doc,
       unidades,
       diagnostico,
       conhecidas,
-      escala: "decimal",
+      escala,
       qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
-      force: Boolean(opts.force),
-      pendenciasExtras:
-        descritiva.faltando.length +
-        descritiva.sobrando.length +
-        descritiva.duplicadas.length +
-        (descritiva.soma_ok ? 0 : 1),
+      force: false,
+      pendenciasExtras: semLeitura.length + orfas.length,
       registros,
     });
-  }
 
+    await supabase
+      .from("extracao_jobs")
+      .update({
+        etapa: "concluido",
+        total: lotes.length || 4,
+        concluidos: lotes.length || 4,
+        estado: "pronto",
+        erro: null,
+        atualizado_em: new Date().toISOString(),
+      })
+      .eq("documento_id", doc.id);
 
-
-  // Censo determinístico: linhas do documento
-  const censo = construirCenso(doc.id, chunks);
-
-  // 2) Parser determinístico: quadros em Markdown não precisam de IA.
-  const { extrairUnidadesDeQuadros } = await import("./quadro-parser");
-  const quadro = extrairUnidadesDeQuadros(censo);
-
-  // 3) Lotes montados com contexto completo (nunca linhas isoladas)
-  const naoLidas = censo.candidatas.filter((l) => !quadro.linhasLidas.has(l.linha_id));
-  const chunksComCandidatas = new Set(naoLidas.map((l) => l.chunk_id));
-  const chunksRelevantes = chunks.filter((c) => chunksComCandidatas.has(c.id));
-  const lotes = montarLotes(chunksRelevantes as ChunkRow[]);
-  
-  if (censo.candidatas.length === 0) {
-    const mensagem =
-      "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
-    const diagnosticoVazio: DiagnosticoExtracao = {
-      leitura: "quadro_ia",
-      tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "censo_de_linhas" },
-      total_trechos: chunks.length,
-      fonte: fonteUsada,
-      total_paginas: totalPaginas,
-      total_caracteres: totalCaracteres,
-      tipologia_detectada: tipologiaDetectada,
-      tipologia_divergente: avisoTipologiaDivergente,
+    return {
+      ok: true,
+      concluido: true,
+      etapa: "concluido",
+      total: lotes.length || 4,
+      concluidos: lotes.length || 4,
+      estado: "pronto",
+      unidades: unidadesFinais,
     };
-    await persistirFalha(supabase, doc, mensagem, diagnosticoVazio);
-    throw new ExtracaoIncompletaError(mensagem, diagnosticoVazio);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await supabase
+      .from("extracao_jobs")
+      .update({
+        estado: "falhou",
+        erro: msg,
+        atualizado_em: new Date().toISOString(),
+      })
+      .eq("documento_id", doc.id);
+    throw err;
   }
+}
 
-  const diagnostico: DiagnosticoExtracao = {
-    leitura: "quadro_ia",
-    // A tentativa descritiva aparece mesmo quando o caminho não foi usado.
-    tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "censo_de_linhas" },
-    rol_artigo_2: descritiva.rol
-      ? {
-          total_declarado: descritiva.rol.total_declarado,
-          identificadores: descritiva.rol.identificadores,
-        }
-      : null,
-    total_trechos: chunks.length,
-    trechos_selecionados: new Set(naoLidas.map((l) => l.chunk_id)).size,
-    prefiltro: `linhas candidatas ${censo.candidatas.length}; para a IA ${naoLidas.length}`,
-    linhas_do_quadro: quadro.linhasLidas.size,
-    total_lotes: lotes.length,
-    lotes_processados: 0,
-    lotes_com_erro: 0,
-    chamadas_ia: 0,
-    chamadas_em_cache: 0,
-    erros: [],
-    fonte: fonteUsada,
-    total_paginas: totalPaginas,
-    total_caracteres: totalCaracteres,
-    tipologia_detectada: tipologiaDetectada,
-    tipologia_divergente: avisoTipologiaDivergente,
-  };
-
-
-
-
-  // Extrai pela tipologia DETECTADA (se divergir da categoria cadastrada, não força nem falha)
-  const categoria = getCategoriaMeta(tipologiaDetectada);
-  const system =
-    "Extraia dados literais de unidades autônomas de uma convenção condominial brasileira. " +
-    categoria.vocabIA +
-    " " +
-    "Cada linha do texto recebido vem prefixada por um identificador estável, no formato documento:ordem:indice, seguido de ': '. " +
-    "Para cada unidade identificada, informe o campo linha_id com o identificador estável da linha de onde foi lida. " +
-    "Em cada medida, devolva o campo linha_id com o identificador da linha de onde o valor foi lido; NÃO redigite o trecho. " +
-    "Leia cada trecho integralmente. Linhas agrupadas como '701A, 901A e 1501A' devem gerar uma linha para cada unidade somente se o texto atribuir explicitamente os mesmos valores ao grupo. " +
-    "Devolva TODAS as medidas numéricas que o documento associa à unidade, cada uma com seu rótulo. " +
-    "Se houver múltiplas seções, priorize extrair as unidades a partir da seção mais detalhada (que contém as metragens e frações ideais). Ignore índices e listas simplificadas se o detalhamento existir em outro trecho. " +
-    "Se o cabeçalho da coluna não estiver visível no trecho recebido, use campo indeterminado; nunca adivinhe o rótulo. " +
-    "Preserve valor_bruto exatamente como impresso, inclusive %, ‰, barra e vírgula. Não converta escalas. " +
-    "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
-    'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
-
-  const candidatas: UnidadeExtraida[] = [...quadro.unidades];
-  const lidasPelaIa = new Set<string>();
-  let tokensInput = 0;
-  let tokensOutput = 0;
-  let ultimoLogId: string | null = null;
-  let ultimoRunId: string | null = null;
-
-  const processarLotes = async (grupo: Lote[], rotulo: string) => {
-    if (grupo.length === 0) return;
-    const resultados = new Array<{
-      unidades: UnidadeExtraida[];
-      diagnostico?: DiagnosticoExtracao;
-      cache: boolean;
-    } | null>(grupo.length).fill(null);
-    let cursor = 0;
-    const worker = async () => {
-      for (;;) {
-        const i = cursor++;
-        if (i >= grupo.length) return;
-        const lote = grupo[i];
-        try {
-          const hash = await hashLote(lote.texto);
-          const cacheado = await lerCacheExtracao(supabase, hash);
-          const bruto =
-            cacheado ??
-            (await (async () => {
-              const chamada = await chamarIaJson(
-                apiKey,
-                system,
-                `Arquivo: ${doc.nome_arquivo}\n${rotulo} ${i + 1}/${grupo.length}:\n${lote.texto}`,
-              );
-              tokensInput += chamada.usage.prompt_tokens;
-              tokensOutput += chamada.usage.completion_tokens;
-              ultimoLogId = chamada.aigLogId;
-              ultimoRunId = chamada.aigRunId;
-              await gravarCacheExtracao(supabase, hash, chamada.data);
-              return chamada.data;
-            })());
-          const parsed = bruto as { unidades?: unknown[]; diagnostico?: DiagnosticoExtracao };
-          const unidadesValidas: UnidadeExtraida[] = [];
-          const errosUnidade: string[] = [];
-
-          if (Array.isArray(parsed.unidades)) {
-            for (let j = 0; j < parsed.unidades.length; j++) {
-              const u = parsed.unidades[j];
-              const r = UnidadeExtraidaSchema.safeParse(u);
-              if (r.success) {
-                unidadesValidas.push(r.data);
-              } else {
-                errosUnidade.push(`Unidade index ${j} ignorada: ${r.error.issues[0]?.message}`);
-              }
-            }
-          } else {
-            errosUnidade.push("O campo 'unidades' não é um array válido.");
-          }
-
-          if (errosUnidade.length > 0) {
-            console.warn(`Avisos de parse no lote ${i + 1}:`, errosUnidade);
-            if (!parsed.diagnostico) parsed.diagnostico = { total_lotes: grupo.length, lotes_processados: 0, unidades_encontradas: 0 };
-            parsed.diagnostico.erros = [...(parsed.diagnostico.erros || []), ...errosUnidade];
-          }
-
-          resultados[i] = {
-            unidades: unidadesValidas.map((u) => resolverLinhas(u, lote.linhas)),
-            diagnostico: parsed.diagnostico,
-            cache: !!cacheado,
-          };
-        } catch (errorLote) {
-          diagnostico.lotes_com_erro = (diagnostico.lotes_com_erro ?? 0) + 1;
-          diagnostico.erros?.push(
-            `${rotulo} ${i + 1}: ${errorLote instanceof Error ? errorLote.message : "falha desconhecida"}`,
-          );
-        }
-        await supabase
-          .from("documentos")
-          .update({
-            processamento_meta: {
-              etapa: "interpretacao_unidades",
-              lotes_concluidos: resultados.filter(Boolean).length,
-              total_lotes: grupo.length,
-              lotes_com_erro: diagnostico.lotes_com_erro,
-              atualizado_em: new Date().toISOString(),
-            },
-          })
-          .eq("id", doc.id);
-      }
-    };
-    await Promise.all(
-      Array.from({ length: Math.min(CONCORRENCIA, Math.max(1, grupo.length)) }, () => worker()),
-    );
-    for (const resultado of resultados) {
-      if (!resultado) continue;
-      candidatas.push(...resultado.unidades);
-      for (const unidade of resultado.unidades) {
-        if (unidade.linha_id && censo.porId.has(unidade.linha_id)) {
-          lidasPelaIa.add(unidade.linha_id);
-        }
-        for (const medida of unidade.medidas ?? []) {
-          if (medida.linha_id && censo.porId.has(medida.linha_id)) lidasPelaIa.add(medida.linha_id);
-        }
-      }
-      diagnostico.lotes_processados = (diagnostico.lotes_processados ?? 0) + 1;
-      if (resultado.cache) diagnostico.chamadas_em_cache = (diagnostico.chamadas_em_cache ?? 0) + 1;
-      else diagnostico.chamadas_ia = (diagnostico.chamadas_ia ?? 0) + 1;
-      diagnostico.total_declarado_no_texto ??=
-        resultado.diagnostico?.total_declarado_no_texto ?? null;
-      diagnostico.quadro_fracoes_encontrado =
-        diagnostico.quadro_fracoes_encontrado === true ||
-        quadro.linhasLidas.size > 0 ||
-        resultado.diagnostico?.quadro_fracoes_encontrado === true;
-    }
-  };
-
-  await processarLotes(lotes, "Lote");
-
-  // Reconciliação: uma segunda passada só com as linhas que continuam sem leitura.
-  const pendentesReconciliacao = naoLidas.filter((l) => !lidasPelaIa.has(l.linha_id));
-  if (pendentesReconciliacao.length > 0 && lotes.length > 0) {
-    const lotesReconciliacao = montarLotes(
-      chunksRelevantes.filter((c) => pendentesReconciliacao.some((p) => p.chunk_id === c.id)) as ChunkRow[],
-    );
-    await processarLotes(lotesReconciliacao, "Reconciliação");
-  }
-
-  // Reconcilia linhas lidas pela IA: em documentos proseados ou montados por trechos,
-  // associa a unidade extraída à linha candidata correspondente do censo.
-  for (const c of candidatas) {
-    const lin = censo.candidatas.find((l) => {
-      if (c.linha_id && l.linha_id === c.linha_id) return true;
-      const id = identificadorDaLinha(l.texto);
-      const blocoLinha = l.bloco_contexto ?? id?.sufixoBloco ?? null;
-      return id && id.numero === c.numero && (c.bloco == null || blocoLinha === c.bloco || id?.sufixoBloco === c.bloco);
-    });
-    if (lin) {
-      c.linha_id = lin.linha_id;
-      lidasPelaIa.add(lin.linha_id);
-    }
-    for (const m of c.medidas ?? []) {
-      if (m.linha_id && censo.porId.has(m.linha_id)) {
-        lidasPelaIa.add(m.linha_id);
-      }
-    }
-  }
-  const semLeitura = censo.candidatas.filter(
-    (l) => !quadro.linhasLidas.has(l.linha_id) && !lidasPelaIa.has(l.linha_id),
-  );
-  diagnostico.linhas_nao_lidas = semLeitura.map((l) => ({
-    linha_id: l.linha_id,
-    texto: l.texto,
-    pagina: l.pagina,
-  }));
-  diagnostico.tokens_input = tokensInput;
-  diagnostico.tokens_output = tokensOutput;
-
-
-
-  const { unidades, conflitos, escala, somasHipoteses, regras, medidasDescartadas, orfas } =
-    consolidar(candidatas, conhecidas, censo);
-  diagnostico.orfas = orfas;
-  diagnostico.balanco = montarBalanco({
-    linhasCandidatas: censo.candidatas.length,
-    lidasPeloParser: censo.candidatas.filter((l) => quadro.linhasLidas.has(l.linha_id)).length,
-    lidasPelaIa: censo.candidatas.filter((l) => lidasPelaIa.has(l.linha_id)).length,
-    naoLidas: semLeitura.length,
-    unidades,
-    semCorrespondencia: orfas.length,
+export async function extrairESalvarSugestaoUnidades(
+  supabase: SupabaseClient,
+  documentoId: string,
+  apiKey: string,
+  opts: { force?: boolean; paginaInicio?: number; paginaFim?: number } = {},
+): Promise<UnidadeExtraida[]> {
+  let r = await processarExtracaoRodada(supabase, documentoId, apiKey, {
+    reiniciar: true,
+    paginaInicio: opts.paginaInicio,
+    paginaFim: opts.paginaFim,
   });
-  diagnostico.conflitos = conflitos;
-  diagnostico.escala_fracao = escala;
-  diagnostico.somas_hipoteses = somasHipoteses;
-  diagnostico.medidas_descartadas = medidasDescartadas;
-  diagnostico.regra_area = regras.includes("area_privativa")
-    ? "area_privativa"
-    : regras.includes("area_global_menos_comum")
-      ? "area_global_menos_comum"
-      : null;
-  diagnostico.unidades_encontradas = unidades.length;
-  diagnostico.unidades_com_fracao = unidades.filter((u) => u.fracao_ideal != null).length;
-  diagnostico.unidades_com_area = unidades.filter((u) => u.area_m2 != null).length;
-  diagnostico.unidades_confianca_alta = unidades.filter((u) => u.confianca === "alta").length;
-  diagnostico.unidades_pendentes_revisao = unidades.filter((u) => u.confianca !== "alta").length;
-  diagnostico.duracao_ms = Date.now() - inicio;
 
-
-  try {
-    const { registrarEventoIa } = await import("./uso-ia.server");
-    await registrarEventoIa({
-      userId: (cond?.owner_id as string | null) ?? null,
-      condominioId: doc.condominio_id,
-      origem: "importacao_convencao",
-      model: MODELO,
-      tokensInput,
-      tokensOutput,
-      aigLogId: ultimoLogId,
-      aigRunId: ultimoRunId,
-      meta: { etapa: "extracao", documento_id: doc.id, ...diagnostico },
+  let rodadas = 1;
+  while (!r.concluido && rodadas < 50) {
+    r = await processarExtracaoRodada(supabase, documentoId, apiKey, {
+      paginaInicio: opts.paginaInicio,
+      paginaFim: opts.paginaFim,
     });
-  } catch (telemetryError) {
-    console.error("[uso-ia] importacao_convencao:", telemetryError);
+    rodadas++;
+    if (!r.ok || r.estado === "falhou") {
+      throw new Error(r.erro || "Falha durante o processamento da extração.");
+    }
   }
 
-  return persistirExtracao({
-    supabase,
-    doc,
-    unidades,
-    diagnostico,
-    conhecidas,
-    escala,
-    qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
-    force: Boolean(opts.force),
-    pendenciasExtras: semLeitura.length + orfas.length + (diagnostico.lotes_com_erro ?? 0),
-    registros,
-  });
+  if (!r.ok || r.estado === "falhou") {
+    throw new Error(r.erro || "Falha ao extrair unidades.");
+  }
+
+  return r.unidades ?? [];
 }
 
 /**

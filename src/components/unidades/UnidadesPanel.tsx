@@ -265,35 +265,68 @@ export function UnidadesPanel({
   const [openReprocessDialog, setOpenReprocessDialog] = useState(false);
   const [paginaInicio, setPaginaInicio] = useState("");
   const [paginaFim, setPaginaFim] = useState("");
+  const [progresso, setProgresso] = useState<string | null>(null);
 
   async function reprocessar() {
     setOpenReprocessDialog(false);
     setReprocessando(true);
-    const t = toast.loading("Baixando e reinterpretando a convenção com OCR/visão…");
+    setProgresso("Iniciando extração da convenção…");
+    const t = toast.loading("Iniciando extração da convenção…");
     try {
       const pInicio = paginaInicio ? parseInt(paginaInicio, 10) : undefined;
       const pFim = paginaFim ? parseInt(paginaFim, 10) : undefined;
 
-      const r = (await reprocessarFn({ 
+      let r = (await reprocessarFn({ 
         data: { 
           condominioId,
           paginaInicio: pInicio,
           paginaFim: pFim,
+          reiniciar: true,
         } 
-      })) as
-        | { status: "sem_convencao" }
-        | { status: "erro_download"; mensagem?: string }
-        | { status: "erro_leitura"; mensagem?: string }
-        | { status: "erro_indexacao"; mensagem?: string }
-        | { status: "vazio_extracao" }
-        | { status: "incompleta"; mensagem: string }
-        | { status: "sem_unidades"; modo: string; chunks: number }
-        | {
-            status: "gerada";
-            unidades: UnidadeSugerida[];
-            modo: string;
-            chunks: number;
-          };
+      })) as any;
+
+      let rodadas = 1;
+      let semAvanco = 0;
+      let anterior = r?.concluidos ?? 0;
+
+      while (!r.concluido && rodadas < 50 && semAvanco < 3) {
+        if (r.status === "incompleta" || r.status === "erro_leitura" || r.status === "sem_convencao") {
+          break;
+        }
+
+        const etapaRotulo =
+          r.etapa === "carregamento_e_roteamento"
+            ? "Carregando e roteando páginas"
+            : r.etapa === "segmentacao_e_descritiva"
+              ? "Segmentando registros e analisando frações"
+              : r.etapa === "leitura_ia"
+                ? `Lendo lotes com IA (${r.concluidos}/${r.total || "?"})`
+                : r.etapa === "gravacao"
+                  ? "Gravando ledger e registros"
+                  : `Etapa: ${r.etapa}`;
+
+        const msgProgresso = `${etapaRotulo}…`;
+        setProgresso(msgProgresso);
+        toast.loading(msgProgresso, { id: t });
+
+        r = (await reprocessarFn({
+          data: {
+            condominioId,
+            paginaInicio: pInicio,
+            paginaFim: pFim,
+            reiniciar: false,
+          },
+        })) as any;
+
+        rodadas += 1;
+        if ((r?.concluidos ?? 0) > anterior) {
+          anterior = r?.concluidos ?? 0;
+          semAvanco = 0;
+        } else {
+          semAvanco += 1;
+        }
+      }
+
       toast.dismiss(t);
       switch (r.status) {
         case "sem_convencao":
@@ -319,14 +352,14 @@ export function UnidadesPanel({
           break;
         case "sem_unidades":
           toast.warning(
-            `Convenção reprocessada (${r.chunks} trechos, modo: ${r.modo}), mas a IA não localizou uma lista de ${vocab.unidade.toLowerCase()}s. Confirme se o arquivo enviado é a convenção completa (com quadro de frações/anexos).`,
+            `Convenção reprocessada, mas a IA não localizou uma lista de ${vocab.unidade.toLowerCase()}s. Confirme se o arquivo enviado é a convenção completa (com quadro de frações/anexos).`,
           );
           refresh();
           break;
         case "gerada":
           setErroExtracao(null);
           toast.success(
-            `${r.unidades.length} ${vocab.unidade.toLowerCase()}(s) identificada(s) após reprocessamento (${r.modo}).`,
+            `${r.unidades.length} ${vocab.unidade.toLowerCase()}(s) identificada(s) após reprocessamento.`,
           );
           refresh();
           break;
@@ -336,6 +369,7 @@ export function UnidadesPanel({
       toast.error(e instanceof Error ? e.message : "Falha ao reprocessar a convenção");
     } finally {
       setReprocessando(false);
+      setProgresso(null);
     }
   }
 
@@ -543,6 +577,16 @@ export function UnidadesPanel({
             </Card>
           );
         })()}
+
+      {progresso && (
+        <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-3 text-xs font-medium text-primary animate-pulse">
+          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold">Extração de unidades em andamento…</p>
+            <p className="text-muted-foreground mt-0.5">{progresso}</p>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>

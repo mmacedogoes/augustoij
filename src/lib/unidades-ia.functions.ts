@@ -319,9 +319,7 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
 
       try {
         const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-        const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
-          force: data.force,
-        });
+        const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey);
         if (unidades.length > 0) {
           return { status: "gerada" as const, unidades, documentoId: doc.id };
         }
@@ -352,15 +350,23 @@ export const detectarUnidadesConvencaoExistente = createServerFn({ method: "POST
 
 export const reprocessarConvencao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { condominioId: string; documentoId?: string; paginaInicio?: number; paginaFim?: number }) =>
-    z
-      .object({
-        condominioId: z.string().uuid(),
-        documentoId: z.string().uuid().optional(),
-        paginaInicio: z.number().int().positive().optional(),
-        paginaFim: z.number().int().positive().optional(),
-      })
-      .parse(input),
+  .inputValidator(
+    (input: {
+      condominioId: string;
+      documentoId?: string;
+      paginaInicio?: number;
+      paginaFim?: number;
+      reiniciar?: boolean;
+    }) =>
+      z
+        .object({
+          condominioId: z.string().uuid(),
+          documentoId: z.string().uuid().optional(),
+          paginaInicio: z.number().int().positive().optional(),
+          paginaFim: z.number().int().positive().optional(),
+          reiniciar: z.boolean().optional(),
+        })
+        .parse(input),
   )
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -381,12 +387,13 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
     }
 
     const { data: docs } = await query;
-    if (!docs || docs.length === 0) return { status: "sem_convencao" as const };
+    if (!docs || docs.length === 0) return { status: "sem_convencao" as const, concluido: true };
 
     const prontos = docs.filter((d) => d.status_processamento === "pronto");
     if (prontos.length === 0) {
       return {
         status: "erro_leitura" as const,
+        concluido: true,
         mensagem: "A leitura técnica ainda não terminou. Continue em Documentos > Reler documento.",
       };
     }
@@ -397,19 +404,38 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
     for (const doc of prontos) {
       ultimoDocId = doc.id;
       try {
-        const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-        const unidades = await extrairESalvarSugestaoUnidades(supabaseAdmin, doc.id, apiKey, {
-          force: true,
+        const { processarExtracaoRodada } = await import("./unidades-extracao.server");
+        const rodada = await processarExtracaoRodada(supabaseAdmin, doc.id, apiKey, {
+          reiniciar: data.reiniciar,
           paginaInicio: data.paginaInicio,
           paginaFim: data.paginaFim,
         });
-        if (unidades.length > 0) {
+
+        if (!rodada.concluido) {
+          return {
+            status: "processando" as const,
+            concluido: false,
+            documentoId: doc.id,
+            etapa: rodada.etapa,
+            total: rodada.total,
+            concluidos: rodada.concluidos,
+            unidades: rodada.unidades ?? [],
+            modo: "indice_completo",
+            chunks: rodada.total,
+          };
+        }
+
+        if ((rodada.unidades?.length ?? 0) > 0) {
           return {
             status: "gerada" as const,
+            concluido: true,
             documentoId: doc.id,
-            unidades,
+            unidades: rodada.unidades!,
             modo: "indice_completo",
-            chunks: 0,
+            chunks: rodada.total,
+            etapa: rodada.etapa,
+            total: rodada.total,
+            concluidos: rodada.concluidos,
           };
         }
       } catch (err: unknown) {
@@ -429,6 +455,7 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
     if (ultimoErroControlado) {
       return {
         status: "incompleta" as const,
+        concluido: true,
         documentoId: ultimoDocId,
         mensagem: ultimoErroControlado,
         modo: "indice_completo",
@@ -438,6 +465,7 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
 
     return {
       status: "sem_unidades" as const,
+      concluido: true,
       documentoId: ultimoDocId,
       modo: "indice_completo",
       chunks: 0,

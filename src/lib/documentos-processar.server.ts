@@ -412,7 +412,7 @@ export async function processarDocumentoCore(
     if (concluido && documento.tipo === "convencao") {
       try {
         const { extrairESalvarSugestaoUnidades } = await import("./unidades-extracao.server");
-        await extrairESalvarSugestaoUnidades(supabaseAdmin, documento.id, apiKey, { force: true });
+        await extrairESalvarSugestaoUnidades(supabaseAdmin, documento.id, apiKey);
       } catch (autoErr) {
         console.error("[processarDocumentoCore] auto-extração de unidades falhou", autoErr);
         const mensagem =

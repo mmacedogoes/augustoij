@@ -3748,6 +3748,50 @@ export type Database = {
           },
         ]
       }
+      extracao_jobs: {
+        Row: {
+          atualizado_em: string
+          concluidos: number
+          documento_id: string
+          erro: string | null
+          estado: string
+          etapa: string
+          id: string
+          metadata: Json | null
+          total: number
+        }
+        Insert: {
+          atualizado_em?: string
+          concluidos?: number
+          documento_id: string
+          erro?: string | null
+          estado?: string
+          etapa: string
+          id?: string
+          metadata?: Json | null
+          total?: number
+        }
+        Update: {
+          atualizado_em?: string
+          concluidos?: number
+          documento_id?: string
+          erro?: string | null
+          estado?: string
+          etapa?: string
+          id?: string
+          metadata?: Json | null
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extracao_jobs_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: true
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_mensagens: {
         Row: {
           anexos: Json
