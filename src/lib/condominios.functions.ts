@@ -37,7 +37,7 @@ const createSchema = z.object({
   cidade: z.string().trim().min(2).max(120).optional().nullable(),
   qtd_unidades: z.number().int().min(0).max(100000).optional().nullable(),
   categoria: z
-    .enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"])
+    .enum(["predio", "casas", "casas_lotes", "salas_comerciais", "shopping", "galpoes", "misto"])
     .optional(),
 });
 
@@ -113,9 +113,52 @@ const updateSchema = z.object({
   cidade: z.string().trim().min(2).max(120).optional().nullable(),
   qtd_unidades: z.number().int().min(0).max(100000).optional().nullable(),
   categoria: z
-    .enum(["predio", "casas", "salas_comerciais", "shopping", "galpoes"])
+    .enum(["predio", "casas", "casas_lotes", "salas_comerciais", "shopping", "galpoes", "misto"])
     .optional(),
 });
+
+export const updateCategoriaCondominio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        condominioId: z.string().uuid(),
+        categoria: z.enum([
+          "predio",
+          "casas",
+          "casas_lotes",
+          "salas_comerciais",
+          "shopping",
+          "galpoes",
+          "misto",
+        ]),
+      })
+      .parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { isDonoDoAmbienteDoCondominio } = await import("@/lib/conta-master.server");
+    const { data: condo } = await supabaseAdmin
+      .from("condominios")
+      .select("owner_id")
+      .eq("id", data.condominioId)
+      .maybeSingle();
+    if (!condo) throw new Error("Condomínio não encontrado.");
+    const donoAmbiente = await isDonoDoAmbienteDoCondominio(context.userId, data.condominioId);
+    if (condo.owner_id !== context.userId && !donoAmbiente) {
+      throw new Error("Apenas o dono do condomínio pode editar estes dados.");
+    }
+    const { normalizeCategoria } = await import("@/lib/categorias-condominio");
+    const categoriaDb = normalizeCategoria(data.categoria);
+    const { data: row, error } = await supabaseAdmin
+      .from("condominios")
+      .update({ categoria: categoriaDb, updated_at: new Date().toISOString() })
+      .eq("id", data.condominioId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
 
 export const updateCondominio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

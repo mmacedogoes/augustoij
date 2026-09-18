@@ -211,6 +211,12 @@ export type DiagnosticoExtracao = {
   fonte?: "storage_md" | "reconstruido_md" | "fallback_chunks" | string;
   total_paginas?: number;
   total_caracteres?: number;
+  tipologia_detectada?: string | null;
+  tipologia_divergente?: {
+    cadastrada: string;
+    detectada: string;
+    mensagem?: string;
+  } | null;
 };
 
 
@@ -1341,7 +1347,22 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     },
   }));
 
-  // 0) SEÇÃO DESCRITIVA — a fonte de verdade da convenção. Rol do Artigo 2,
+  // 0) Classificação determinística da tipologia por contagem de âncoras e termos
+  const { detectarTipologia } = await import("./extracao/tipologia");
+  const tipologiaDetectada = detectarTipologia(paginas);
+  const categoriaCadastrada = cond?.categoria ? normalizeCategoria(cond.categoria as string) : null;
+  const tipologiaNormalizada = normalizeCategoria(tipologiaDetectada);
+
+  const divergiu = Boolean(categoriaCadastrada && categoriaCadastrada !== tipologiaNormalizada);
+  const avisoTipologiaDivergente = divergiu
+    ? {
+        cadastrada: (cond?.categoria as string) || "predio",
+        detectada: tipologiaDetectada,
+        mensagem: `A convenção aparenta ser de "${getCategoriaMeta(tipologiaDetectada).label}", mas o condomínio está cadastrado como "${getCategoriaMeta(cond?.categoria as string).label}".`,
+      }
+    : null;
+
+  // 0.1) SEÇÃO DESCRITIVA — a fonte de verdade da convenção. Rol do Artigo 2,
   //    segmentação por bloco descritivo, rótulos com preenchimento por pontos e
   //    as quatro conferências: tudo regex e aritmética, ZERO token de IA.
   const descritiva = interpretarConvencaoDescritiva(textoIntegral);
@@ -1404,6 +1425,8 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       fonte: fonteUsada,
       total_paginas: totalPaginas,
       total_caracteres: totalCaracteres,
+      tipologia_detectada: tipologiaDetectada,
+      tipologia_divergente: avisoTipologiaDivergente,
       tentativa_descritiva: { ...descritiva.tentativa, caminho_usado: "secao_descritiva" },
       observacao:
         `Leitura determinística da seção descritiva: ${descritiva.balanco.blocos_descritivos} blocos descritivos, ${unidades.length} unidades após expansão` +
@@ -1460,6 +1483,8 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       fonte: fonteUsada,
       total_paginas: totalPaginas,
       total_caracteres: totalCaracteres,
+      tipologia_detectada: tipologiaDetectada,
+      tipologia_divergente: avisoTipologiaDivergente,
     };
     await persistirFalha(supabase, doc, mensagem, diagnosticoVazio);
     throw new ExtracaoIncompletaError(mensagem, diagnosticoVazio);
@@ -1488,12 +1513,15 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     fonte: fonteUsada,
     total_paginas: totalPaginas,
     total_caracteres: totalCaracteres,
+    tipologia_detectada: tipologiaDetectada,
+    tipologia_divergente: avisoTipologiaDivergente,
   };
 
 
 
 
-  const categoria = getCategoriaMeta(normalizeCategoria(cond?.categoria as string | null));
+  // Extrai pela tipologia DETECTADA (se divergir da categoria cadastrada, não força nem falha)
+  const categoria = getCategoriaMeta(tipologiaDetectada);
   const system =
     "Extraia dados literais de unidades autônomas de uma convenção condominial brasileira. " +
     categoria.vocabIA +

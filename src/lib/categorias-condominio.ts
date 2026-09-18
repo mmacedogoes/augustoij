@@ -6,9 +6,11 @@
 export type CategoriaCondominio =
   | "predio"
   | "casas"
+  | "casas_lotes"
   | "salas_comerciais"
   | "shopping"
-  | "galpoes";
+  | "galpoes"
+  | "misto";
 
 export type TipoUnidadePadrao =
   | "apartamento"
@@ -52,6 +54,14 @@ export const CATEGORIAS_CONDOMINIO: CategoriaMeta[] = [
       'Este condomínio é de CASAS/LOTES organizados por QUADRAS. Use "bloco" para a QUADRA (ex: Q1, Quadra A) e "numero" para o LOTE/CASA (ex: 001, 042). Tipo padrão: "lote" (ou "casa" se a convenção especificar casas construídas, "terreno" se explicitar terrenos sem edificação). REGRA IMPORTANTE DE DISTRIBUIÇÃO: se a convenção declarar "N quadras e M lotes" (ex: "36 quadras e 662 lotes"), SEMPRE distribua os lotes entre as quadras — não devolva apenas os lotes sem quadra. Se a divisão exata por quadra não constar, distribua uniformemente (M/N lotes por quadra, arredondando as sobras nas primeiras quadras) e nomeie as quadras como Q1..QN.',
   },
   {
+    id: "casas_lotes",
+    label: "Condomínio de casas / lotes",
+    descricaoCurta: "Casas ou lotes distribuídos em quadras",
+    vocab: { bloco: "Quadra", numero: "Lote", unidade: "Lote", tipoPadrao: "lote" },
+    vocabIA:
+      'Este condomínio é de CASAS/LOTES organizados por QUADRAS. Use "bloco" para a QUADRA (ex: Q1, Quadra A) e "numero" para o LOTE/CASA (ex: 001, 042). Tipo padrão: "lote" (ou "casa" se a convenção especificar casas construídas, "terreno" se explicitar terrenos sem edificação). REGRA IMPORTANTE DE DISTRIBUIÇÃO: se a convenção declarar "N quadras e M lotes" (ex: "36 quadras e 662 lotes"), SEMPRE distribua os lotes entre as quadras — não devolva apenas os lotes sem quadra.',
+  },
+  {
     id: "salas_comerciais",
     label: "Salas comerciais / lojas",
     descricaoCurta: "Edifício comercial de salas ou lojas",
@@ -75,6 +85,14 @@ export const CATEGORIAS_CONDOMINIO: CategoriaMeta[] = [
     vocabIA:
       'Este condomínio é LOGÍSTICO/INDUSTRIAL, com GALPÕES. Use "bloco" para o SETOR/MÓDULO (ex: A, B) e "numero" para o GALPÃO (ex: G01, G02). Tipo padrão: "galpao".',
   },
+  {
+    id: "misto",
+    label: "Uso misto (residencial e comercial)",
+    descricaoCurta: "Condomínio com apartamentos, lojas e salas",
+    vocab: { bloco: "Bloco/Setor", numero: "Unidade", unidade: "Unidade", tipoPadrao: "outro" },
+    vocabIA:
+      'Este condomínio é de USO MISTO (combina unidades residenciais e comerciais). Identifique a tipologia de cada unidade específica (tipo: "apartamento", "loja", "sala_comercial", "casa", "lote", "vaga_avulsa").',
+  },
 ];
 
 const MAP: Record<CategoriaCondominio, CategoriaMeta> = Object.fromEntries(
@@ -82,10 +100,12 @@ const MAP: Record<CategoriaCondominio, CategoriaMeta> = Object.fromEntries(
 ) as Record<CategoriaCondominio, CategoriaMeta>;
 
 export function normalizeCategoria(raw: string | null | undefined): CategoriaCondominio {
+  if (raw === "casas_lotes") return "casas";
   if (raw && raw in MAP) return raw as CategoriaCondominio;
   return "predio";
 }
 
 export function getCategoriaMeta(raw: string | null | undefined): CategoriaMeta {
-  return MAP[normalizeCategoria(raw)];
+  const norm = normalizeCategoria(raw);
+  return MAP[norm] ?? MAP.predio;
 }

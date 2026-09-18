@@ -63,6 +63,8 @@ export function RevisarUnidadesDialog({
   existentes = [],
   vocab = { bloco: "Bloco", numero: "Número", unidade: "Unidade", tipoPadrao: "apartamento" },
   qtdMaxima = null,
+  tipologiaDivergente = null,
+  onAtualizarCategoria,
   onClose,
   onConfirmar,
 }: {
@@ -83,12 +85,19 @@ export function RevisarUnidadesDialog({
       | "outro";
   };
   qtdMaxima?: number | null;
+  tipologiaDivergente?: {
+    cadastrada: string;
+    detectada: string;
+    mensagem?: string;
+  } | null;
+  onAtualizarCategoria?: (detectada: string) => Promise<void>;
   onClose: () => void;
   onConfirmar: (
     linhas: Record<string, unknown>[],
     estrategia: "manter" | "preencher",
   ) => Promise<void>;
 }) {
+  const [atualizandoCategoria, setAtualizandoCategoria] = useState(false);
   const tipoPadrao = vocab.tipoPadrao;
   const [linhas, setLinhas] = useState<Linha[]>(() => {
     const parseNum = (s: string | null | undefined) => {
@@ -189,6 +198,42 @@ export function RevisarUnidadesDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto -mx-6 px-6">
+          {tipologiaDivergente && (
+            <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-100">
+              <div className="flex items-start gap-2 max-w-xl">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Tipologia divergente detectada na convenção</p>
+                  <p className="mt-0.5 text-muted-foreground dark:text-amber-200/80">
+                    {tipologiaDivergente.mensagem ||
+                      `A convenção aparenta ser de "${tipologiaDivergente.detectada}", mas o condomínio está cadastrado como "${tipologiaDivergente.cadastrada}".`}
+                  </p>
+                </div>
+              </div>
+              {onAtualizarCategoria && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={atualizandoCategoria}
+                  className="h-8 text-xs font-medium border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 shrink-0"
+                  onClick={async () => {
+                    setAtualizandoCategoria(true);
+                    try {
+                      await onAtualizarCategoria(tipologiaDivergente.detectada);
+                    } finally {
+                      setAtualizandoCategoria(false);
+                    }
+                  }}
+                >
+                  {atualizandoCategoria ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : null}
+                  Atualizar a categoria do condomínio para {tipologiaDivergente.detectada}
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Desktop table */}
           <div className="hidden md:block">
             <div className="grid grid-cols-[80px_100px_140px_120px_100px_80px_40px] gap-2 pb-2 text-xs font-medium text-muted-foreground border-b sticky top-0 bg-background z-10">

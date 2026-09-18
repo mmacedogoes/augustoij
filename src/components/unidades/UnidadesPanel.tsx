@@ -11,8 +11,9 @@ import type {
 } from "@/lib/convencao-descritiva";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp, History } from "lucide-react";
+import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp, History, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { updateCategoriaCondominio } from "@/lib/condominios.functions";
 import {
   listUnidades,
   createUnidade,
@@ -125,6 +126,7 @@ export function UnidadesPanel({
   const updateSugestaoFn = useServerFn(atualizarStatusSugestao);
   const extrairCondFn = useServerFn(extrairCondominosDeArquivo);
   const reprocessarFn = useServerFn(reprocessarConvencao);
+  const updateCategoriaFn = useServerFn(updateCategoriaCondominio);
 
   const [loading, setLoading] = useState(true);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -136,6 +138,7 @@ export function UnidadesPanel({
   const [openImport, setOpenImport] = useState(false);
   const [openView, setOpenView] = useState<Unidade | null>(null);
   const [openHistorico, setOpenHistorico] = useState<Unidade | null>(null);
+  const [atualizandoCategoria, setAtualizandoCategoria] = useState(false);
   const [sugestoes, setSugestoes] = useState<
     {
       id: string;
@@ -157,6 +160,12 @@ export function UnidadesPanel({
           balanco_descritivo?: BalancoDescritivo | null;
           tentativa_descritiva?: TentativaDescritiva | null;
           conferencias?: Conferencia[];
+          tipologia_detectada?: string | null;
+          tipologia_divergente?: {
+            cadastrada: string;
+            detectada: string;
+            mensagem?: string;
+          } | null;
         };
       };
     }[]
@@ -165,6 +174,11 @@ export function UnidadesPanel({
   const [revisarUnidades, setRevisarUnidades] = useState<{
     sugestaoId: string | null;
     unidades: UnidadeSugerida[];
+    tipologiaDivergente?: {
+      cadastrada: string;
+      detectada: string;
+      mensagem?: string;
+    } | null;
   } | null>(null);
   const [revisarCondominos, setRevisarCondominos] = useState<{
     condominos: CondominoSugerido[];
@@ -173,6 +187,25 @@ export function UnidadesPanel({
   const [extraindo, setExtraindo] = useState(false);
   const [openImportUnificado, setOpenImportUnificado] = useState(false);
   const [categoria, setCategoria] = useState<CategoriaCondominio>("predio");
+
+  async function handleAtualizarCategoria(detectada: string) {
+    setAtualizandoCategoria(true);
+    try {
+      await updateCategoriaFn({
+        data: {
+          condominioId,
+          categoria: detectada as any,
+        },
+      });
+      setCategoria(normalizeCategoria(detectada));
+      toast.success(`Categoria do condomínio atualizada para ${detectada}.`);
+    } catch (e) {
+      console.error("Erro ao atualizar categoria:", e);
+      toast.error("Não foi possível atualizar a categoria do condomínio.");
+    } finally {
+      setAtualizandoCategoria(false);
+    }
+  }
   const [qtdConvencao, setQtdConvencao] = useState<number | null>(null);
   const [reprocessando, setReprocessando] = useState(false);
 
@@ -458,6 +491,32 @@ export function UnidadesPanel({
 
                   />
                 )}
+                {sugestao.payload.diagnostico?.tipologia_divergente && (
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-100">
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                      <span>
+                        {sugestao.payload.diagnostico.tipologia_divergente.mensagem ||
+                          `Tipologia detectada (${sugestao.payload.diagnostico.tipologia_divergente.detectada}) diverge da categoria (${sugestao.payload.diagnostico.tipologia_divergente.cadastrada}).`}
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={atualizandoCategoria}
+                      className="h-7 text-xs border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 font-medium"
+                      onClick={() =>
+                        handleAtualizarCategoria(
+                          sugestao.payload.diagnostico!.tipologia_divergente!.detectada,
+                        )
+                      }
+                    >
+                      {atualizandoCategoria && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                      Atualizar a categoria do condomínio para{" "}
+                      {sugestao.payload.diagnostico.tipologia_divergente.detectada}
+                    </Button>
+                  </div>
+                )}
               </div>
               <Button
                 size="sm"
@@ -465,6 +524,7 @@ export function UnidadesPanel({
                   setRevisarUnidades({
                     sugestaoId: sugestao.id,
                     unidades: sugestao.payload.unidades ?? [],
+                    tipologiaDivergente: sugestao.payload.diagnostico?.tipologia_divergente ?? null,
                   })
                 }
               >
@@ -668,6 +728,8 @@ export function UnidadesPanel({
           existentes={unidades.map((u) => ({ bloco: u.bloco, numero: u.numero }))}
           vocab={vocab}
           qtdMaxima={qtdConvencao}
+          tipologiaDivergente={revisarUnidades.tipologiaDivergente}
+          onAtualizarCategoria={handleAtualizarCategoria}
           onClose={() => setRevisarUnidades(null)}
           onConfirmar={async (linhas, estrategia) => {
             const r = (await importFn({
