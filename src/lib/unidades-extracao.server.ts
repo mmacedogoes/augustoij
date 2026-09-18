@@ -1433,50 +1433,22 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
 
 
 
-  // 1) Censo determinístico: a meta da extração é a lista de linhas candidatas.
+  // 1) Segmentação determinística por registros
+  const { segmentarRegistros } = await import("./extracao/segmentador");
+  const registros = segmentarRegistros(paginas, doc.id);
+
+  // Censo determinístico: linhas do documento
   const censo = construirCenso(doc.id, chunks);
 
   // 2) Parser determinístico: quadros em Markdown não precisam de IA.
   const { extrairUnidadesDeQuadros } = await import("./quadro-parser");
   const quadro = extrairUnidadesDeQuadros(censo);
 
-  if (censo.candidatas.length < 15) {
-    // Fallback: se o censo determinístico não encontrou linhas suficientes,
-    // busca trechos com termos indicativos de unidades para submeter à IA.
-    const chunksComTermos = chunks.filter((c) => {
-      const normal = c.conteudo
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase();
-      return /\b(?:unidades?|apartamentos?|flats?|studios?|salas?|lojas?|fracao|fracoes|area.*?privativa|quadro)\b/.test(
-        normal,
-      );
-    });
-    if (chunksComTermos.length > 0) {
-      const idsChunks = new Set(chunksComTermos.map((c) => c.id));
-      censo.candidatas = censo.linhas.filter(
-        (l) => l.candidata || (idsChunks.has(l.chunk_id) && l.texto.trim().length > 0)
-      );
-      // Ensure candidata flag is set for all
-      for (const l of censo.candidatas) {
-        l.candidata = true;
-      }
-    }
-  }
-
-  // 3) Para a IA: detectar se o documento é proseado ou tabular.
-  // Documentos proseados (< 30% das linhas do chunk são candidatas) precisam de contexto completo de parágrafo.
-  // Documentos tabulares (>= 30% candidatas por chunk) funcionam bem com linhas isoladas.
+  // 3) Lotes montados com contexto completo (nunca linhas isoladas)
   const naoLidas = censo.candidatas.filter((l) => !quadro.linhasLidas.has(l.linha_id));
   const chunksComCandidatas = new Set(naoLidas.map((l) => l.chunk_id));
   const chunksRelevantes = chunks.filter((c) => chunksComCandidatas.has(c.id));
-  const totalLinhasRelevantes = chunksRelevantes.reduce(
-    (sum, c) => sum + c.conteudo.split("\n").filter((l) => l.trim()).length, 0
-  );
-  const isproseado = chunksRelevantes.length > 0 && (naoLidas.length / Math.max(1, totalLinhasRelevantes)) < 0.3;
-  let lotes = isproseado
-    ? montarLotes(chunksRelevantes as ChunkRow[]) // contexto completo de parágrafo
-    : montarLotesDeLinhas(naoLidas);              // linhas isoladas (documentos tabulares)
+  const lotes = montarLotes(chunksRelevantes as ChunkRow[]);
   
   if (censo.candidatas.length === 0) {
     const mensagem =
@@ -1655,9 +1627,9 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
   // Reconciliação: uma segunda passada só com as linhas que continuam sem leitura.
   const pendentesReconciliacao = naoLidas.filter((l) => !lidasPelaIa.has(l.linha_id));
   if (pendentesReconciliacao.length > 0 && lotes.length > 0) {
-    const lotesReconciliacao = isproseado
-      ? montarLotes(chunksRelevantes.filter((c) => pendentesReconciliacao.some((p) => p.chunk_id === c.id)) as ChunkRow[])
-      : montarLotesDeLinhas(pendentesReconciliacao);
+    const lotesReconciliacao = montarLotes(
+      chunksRelevantes.filter((c) => pendentesReconciliacao.some((p) => p.chunk_id === c.id)) as ChunkRow[],
+    );
     await processarLotes(lotesReconciliacao, "Reconciliação");
   }
 

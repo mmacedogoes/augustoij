@@ -240,21 +240,7 @@ export function construirCenso(documentoId: string, chunks: ChunkCenso[]): Censo
         emSecaoUnidades = true;
       }
 
-      const normal = normalizarTextoLinha(linha);
       const identificador = idsPre[i];
-      const adjacenteIdentificador = Boolean(
-        (i > 0 && idsPre[i - 1]) ||
-        (i < idsPre.length - 1 && idsPre[i + 1]) ||
-        (i > 1 && idsPre[i - 2]) ||
-        (i < idsPre.length - 2 && idsPre[i + 2]),
-      );
-      const candidata = ehLinhaCandidata(linha, identificador, {
-        adjacenteIdentificador,
-        emSecaoUnidades,
-      });
-      const chaveDedup = `${blocoContexto ?? ""}|${normal}`;
-      if (vistas.has(chaveDedup)) continue;
-      vistas.add(chaveDedup);
       const item: LinhaCenso = {
         linha_id: `${documentoId}:${ordem}:${i}`,
         chunk_id: chunk.id,
@@ -264,7 +250,7 @@ export function construirCenso(documentoId: string, chunks: ChunkCenso[]): Censo
         ordem_global: ordem,
         indice: i,
         bloco_contexto: meta.bloco_contexto ?? blocoContexto,
-        candidata,
+        candidata: true,
         fonte: ref,
       };
       linhas.push(item);
