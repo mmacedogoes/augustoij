@@ -149,7 +149,7 @@ function Page() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = ${slug || "documento"}.txt;
+    link.download = `${slug || "documento"}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -184,7 +184,7 @@ function Page() {
         </div>
 
         <Button variant="outline" size="sm" onClick={carregarDocumentos} disabled={loading}>
-          <RefreshCw className={h-4 w-4 mr-2 } /> Atualizar
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Atualizar
         </Button>
       </header>
 
@@ -227,7 +227,11 @@ function Page() {
                   <button
                     key={doc.documentoId}
                     onClick={() => setDocSelecionado(doc)}
-                    className={w-full text-left p-2.5 rounded-md transition-colors text-xs border }
+                    className={`w-full text-left p-2.5 rounded-md transition-colors text-xs border ${
+                      ativo
+                        ? "border-primary bg-primary/10"
+                        : "border-transparent hover:border-border hover:bg-muted/50"
+                    }`}
                   >
                     <div className="flex items-center gap-1.5 truncate">
                       <Building2 className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -309,7 +313,7 @@ function Page() {
                     <div>
                       <span className="text-muted-foreground block">Tamanho Texto:</span>
                       <span className="font-medium">
-                        {textoDoc ? ${(textoDoc.length / 1024).toFixed(1)} KB : "0 KB"}
+                        {textoDoc ? `${(textoDoc.length / 1024).toFixed(1)} KB` : "0 KB"}
                       </span>
                     </div>
                     <div>
