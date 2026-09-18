@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   PADROES_ANCORA,
   PADROES_ESCOPO,
@@ -14,7 +14,7 @@ describe("Biblioteca de Reconhecimento de Âncoras e Escopo", () => {
       expect(res).not.toBeNull();
       expect(res?.numero).toBe("101");
       expect(res?.sufixo).toBeNull();
-      expect(res?.padrao).toBe("apartamento_de_n");
+      expect(res?.padrao).toBe("apartamento");
       expect(gerarChaveIdentidade(res!.numero, res!.sufixo)).toBe("|101");
     });
 
@@ -23,16 +23,16 @@ describe("Biblioteca de Reconhecimento de Âncoras e Escopo", () => {
       expect(res).not.toBeNull();
       expect(res?.numero).toBe("101");
       expect(res?.sufixo).toBe("A");
-      expect(res?.padrao).toBe("apartamento_de_n");
+      expect(res?.padrao).toBe("apartamento");
       expect(gerarChaveIdentidade(res!.numero, res!.sufixo)).toBe("|101A");
     });
 
-    it("reconhece 'Unidade nº 101 –'", () => {
-      const res = reconhecerAncora("Unidade nº 101 –");
+    it("reconhece 'Unidade autônoma nº 101 –'", () => {
+      const res = reconhecerAncora("Unidade autônoma nº 101 –");
       expect(res).not.toBeNull();
       expect(res?.numero).toBe("101");
       expect(res?.sufixo).toBeNull();
-      expect(res?.padrao).toBe("unidade_simples");
+      expect(res?.padrao).toBe("unidade_autonoma");
       expect(gerarChaveIdentidade(res!.numero, res!.sufixo)).toBe("|101");
     });
 
@@ -54,7 +54,7 @@ describe("Biblioteca de Reconhecimento de Âncoras e Escopo", () => {
       expect(gerarChaveIdentidade(res!.numero, res!.sufixo)).toBe("|01");
     });
 
-    it("reconhece 'unidade autonoma', 'casa', 'sala/loja', 'box/vaga'", () => {
+    it("reconhece 'unidade autonoma', 'casa', 'sala/loja'", () => {
       const aut = reconhecerAncora("Unidade Autônoma nº 402");
       expect(aut?.padrao).toBe("unidade_autonoma");
       expect(aut?.numero).toBe("402");
@@ -67,10 +67,59 @@ describe("Biblioteca de Reconhecimento de Âncoras e Escopo", () => {
       const sala = reconhecerAncora("Sala nº 304");
       expect(sala?.padrao).toBe("sala_loja");
       expect(sala?.numero).toBe("304");
+    });
 
-      const vaga = reconhecerAncora("Box de Garagem nº 15");
-      expect(vaga?.padrao).toBe("box_vaga");
-      expect(vaga?.numero).toBe("15");
+    it("a) âncoras das redações reais: 8 casam com número certo e 3 devolvem nulo", () => {
+      // 8 que devem casar
+      const c1 = reconhecerAncora("A unidade autônoma habitacional (Apartamento) de n° 101");
+      expect(c1).not.toBeNull();
+      expect(c1?.numero).toBe("101");
+
+      const c2 = reconhecerAncora("A unidade autônoma de N.º 601A");
+      expect(c2).not.toBeNull();
+      expect(c2?.numero).toBe("601");
+      expect(c2?.sufixo).toBe("A");
+
+      const c3 = reconhecerAncora("APARTAMENTO DE N°: - 101");
+      expect(c3).not.toBeNull();
+      expect(c3?.numero).toBe("101");
+
+      const c4 = reconhecerAncora("Lote 05 - área de terreno");
+      expect(c4).not.toBeNull();
+      expect(c4?.numero).toBe("05");
+
+      const c5 = reconhecerAncora("Apartamento nº 1.201-B");
+      expect(c5).not.toBeNull();
+      expect(c5?.numero).toBe("1201");
+      expect(c5?.sufixo).toBe("B");
+
+      const c6 = reconhecerAncora("A unidade autônoma residencial (Casa) de nº 12");
+      expect(c6).not.toBeNull();
+      expect(c6?.numero).toBe("12");
+
+      const c7 = reconhecerAncora("| 101 | 40,9462 | m² |");
+      expect(c7).not.toBeNull();
+      expect(c7?.numero).toBe("101");
+
+      const c8 = reconhecerAncora("A unidade autônoma de N.º 601A possui");
+      expect(c8).not.toBeNull();
+      expect(c8?.numero).toBe("601");
+      expect(c8?.sufixo).toBe("A");
+
+      // 3 que devem devolver nulo
+      expect(
+        reconhecerAncora(
+          "Permitir o ingresso do Síndico em sua unidade autônoma (lote), quando indispensável",
+        ),
+      ).toBeNull();
+      expect(
+        reconhecerAncora("É vedado ao condômino alterar a fachada da unidade autônoma"),
+      ).toBeNull();
+      expect(
+        reconhecerAncora(
+          "As despesas serão rateadas entre as unidades autônomas na proporção de suas frações ideais",
+        ),
+      ).toBeNull();
     });
   });
 

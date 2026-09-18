@@ -60,9 +60,14 @@ export function BalancoExtracao({
 }) {
   const d = balancoDescritivo;
 
-  const noRol = d
-    ? (d.identificadores_no_rol || d.unidades_apos_expansao)
-    : (balanco?.linhas_candidatas || balanco?.unidades_resolvidas || 0);
+  const temRolDeclarado = Boolean(
+    (tentativa?.rol_localizado && (tentativa?.identificadores_no_rol || tentativa?.unidades_apos_expansao)) ||
+    (d?.identificadores_no_rol && d.identificadores_no_rol > 0),
+  );
+  const valorRol = temRolDeclarado
+    ? (d?.identificadores_no_rol || tentativa?.identificadores_no_rol || d?.unidades_apos_expansao || tentativa?.unidades_apos_expansao)
+    : null;
+
   const lidas = d
     ? (d.casadas_com_o_rol || Math.max(0, d.unidades_apos_expansao - d.nao_lidas))
     : ((balanco?.lidas_pelo_parser ?? 0) + (balanco?.lidas_pela_ia ?? 0));
@@ -75,7 +80,11 @@ export function BalancoExtracao({
   return (
     <div className="mt-3 w-full rounded-lg border border-border/60 bg-background/60 p-3">
       <div className="mb-3 px-2.5 py-1.5 rounded-md bg-muted/60 border text-xs font-mono font-medium flex flex-wrap items-center gap-1.5 text-foreground">
-        <span className="font-semibold text-primary">{noRol} no rol</span>
+        {valorRol != null ? (
+          <span className="font-semibold text-primary">{valorRol} no rol</span>
+        ) : (
+          <span className="text-muted-foreground">— no rol</span>
+        )}
         <span>·</span>
         <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{lidas} lidas</span>
         <span>·</span>
@@ -105,7 +114,7 @@ export function BalancoExtracao({
             />
             <Item
               rotulo="Identificadores no rol"
-              valor={String(tentativa.identificadores_no_rol)}
+              valor={tentativa.rol_localizado && tentativa.identificadores_no_rol > 0 ? String(tentativa.identificadores_no_rol) : "—"}
             />
             <Item
               rotulo="Blocos descritivos"

@@ -5,40 +5,21 @@ export type AncoraReconhecida = {
   ancora: string;
 };
 
+const NUM = "(?<![\\d.])(\\d{1,3}(?:\\.\\d{3})+|\\d{1,5})(?!\\d)";
+const SUF = "(?:\\s*[-–—]?\\s*([A-Z])\\b)?";
+const ancora = (nome: string, substantivo: string, lacuna: number) => ({
+  nome,
+  re: new RegExp(`\\b(?:${substantivo})\\b[^\\d\\n]{0,${lacuna}}${NUM}${SUF}`, "i"),
+});
+
 export const PADROES_ANCORA = [
-  {
-    nome: "apartamento_de_n",
-    re: /\b(?:APARTAMENTO|APTO?|AP)\.?\s*(?:DE\s*)?N?[º°o]?\s*[:.\-–—]*\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?(?![a-zA-Z0-9])/i,
-  },
-  {
-    nome: "unidade_autonoma",
-    re: /\bunidade\s+aut[oôó]noma\s+(?:de\s+)?n?[º°o]?\.?\s*[:.\-–—]*\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?(?![a-zA-Z0-9])/i,
-  },
-  {
-    nome: "unidade_simples",
-    re: /\b(?:unidade|unid)\.?\s*n?[º°o]?\.?\s*[:.\-–—]*\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?(?![a-zA-Z0-9])/i,
-  },
-  {
-    nome: "lote",
-    re: /\blote\s*n?[º°o]?\.?\s*[:.\-–—]*\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?(?![a-zA-Z0-9])/i,
-  },
-  {
-    nome: "casa",
-    re: /\bcasa\s*n?[º°o]?\.?\s*[:.\-–—]*\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?(?![a-zA-Z0-9])/i,
-  },
-  {
-    nome: "sala_loja",
-    re: /\b(?:sala|loja|conjunto|cj)\s*n?[º°o]?\.?\s*[:.\-–—]*\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?(?![a-zA-Z0-9])/i,
-  },
-  {
-    nome: "box_vaga",
-    re: /\b(?:box|vaga)\s*n?[º°o]?\.?\s*[:.\-–—]*\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?(?![a-zA-Z0-9])/i,
-  },
-  {
-    nome: "celula_tabela",
-    re: /^\s*\|?\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?(?![a-zA-Z0-9])\s*\|/,
-  },
-] as const;
+  ancora("unidade_autonoma", "unidade\\s+aut[oôó]noma|garagem\\s+aut[oôó]noma", 40),
+  ancora("apartamento",      "APARTAMENTO|APTO|AP", 30),
+  ancora("lote",             "lote", 30),
+  ancora("casa",             "casa", 30),
+  ancora("sala_loja",        "sala|loja|conjunto|cj", 30),
+  { nome: "celula_tabela", re: /^\s*\|?\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?\s*\|/m },
+];
 
 export const PADROES_ESCOPO =
   /^\s*(?:BLOCO|TORRE|QUADRA|QD|SETOR|PISO|PAVIMENTO|ANDAR)\s*[:.\-–—]*\s*([A-Z0-9]{1,4})\b/i;
@@ -57,13 +38,16 @@ export function reconhecerEscopo(linha: string): string | null {
 
 /**
  * Testa a linha contra PADROES_ANCORA na ordem estrita e para no primeiro que casar.
- * O sufixo só é aceito se for uma letra isolada (garantido pelo lookahead (?![a-zA-Z0-9])).
+ * O sufixo só é aceito se for uma letra isolada.
  */
 export function reconhecerAncora(linha: string): AncoraReconhecida | null {
+  if (/^\s*(?:art(?:igo|\.)|par[aá]grafo|cl[aá]usula)\b/i.test(linha)) {
+    return null;
+  }
   for (const padrao of PADROES_ANCORA) {
     const m = padrao.re.exec(linha);
     if (m) {
-      const numero = m[1];
+      const numero = m[1].replace(/\./g, "");
       const sufixo = m[2] ? m[2].toUpperCase() : null;
       return {
         numero,

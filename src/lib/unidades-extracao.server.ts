@@ -273,7 +273,9 @@ import rotulosRaw from "./extracao/rotulos?raw";
 
 const MODELO = "google/gemini-2.5-flash";
 const TAMANHO_LOTE = 8_000;
-const CONCORRENCIA = 6;
+export const CONCORRENCIA = 4;
+export const TIMEOUT_CHAMADA = 30_000;
+export const DEFAULT_ORCAMENTO_MS = 50_000;
 const MAX_TENTATIVAS = 3;
 
 export const PROMPT_SISTEMA_BASE =
@@ -367,7 +369,7 @@ export async function chamarIaJson(
   userPrompt: string,
   opts: { timeoutMs?: number } = {},
 ): Promise<ChamadaIA> {
-  const timeoutMs = opts.timeoutMs ?? 30_000;
+  const timeoutMs = opts.timeoutMs ?? TIMEOUT_CHAMADA;
   let ultimaMensagem = "Falha na comunicação com a IA.";
   for (let tentativa = 0; tentativa < MAX_TENTATIVAS; tentativa++) {
     let response: Response;
@@ -1659,8 +1661,6 @@ export async function processarExtracaoRodada(
           concluidos: 1,
           estado: "processando",
           metadata: {
-            paginas,
-            textoIntegral,
             fonteUsada,
             totalPaginas,
             totalCaracteres,
@@ -1681,11 +1681,26 @@ export async function processarExtracaoRodada(
 
     // 2) ETAPA: Segmentação determinística e Leitura Descritiva
     if (job.etapa === "segmentacao_e_descritiva") {
-      const paginas = (meta.paginas as Array<{ numero: number; texto: string }>) ?? [];
-      const textoIntegral = (meta.textoIntegral as string) ?? "";
-      const fonteUsada = (meta.fonteUsada as string) ?? "storage";
-      const totalPaginas = (meta.totalPaginas as number) ?? paginas.length;
-      const totalCaracteres = (meta.totalCaracteres as number) ?? textoIntegral.length;
+      let paginas = (meta.paginas as Array<{ numero: number; texto: string }>) ?? [];
+      let textoIntegral = (meta.textoIntegral as string) ?? "";
+      let fonteUsada = (meta.fonteUsada as string) ?? "storage";
+      let totalPaginas = (meta.totalPaginas as number) ?? paginas.length;
+      let totalCaracteres = (meta.totalCaracteres as number) ?? textoIntegral.length;
+
+      if (paginas.length === 0) {
+        const carregamento = await carregarTextoIntegral(supabase, doc.id);
+        paginas = carregamento.paginas;
+        textoIntegral = carregamento.textoIntegral;
+        fonteUsada = carregamento.fonte;
+        totalPaginas = carregamento.totalPaginas;
+        totalCaracteres = carregamento.totalCaracteres;
+        if (opts.paginaInicio || opts.paginaFim) {
+          const inicioFiltro = opts.paginaInicio || 1;
+          const fimFiltro = opts.paginaFim || 99999;
+          paginas = paginas.filter((p) => p.numero <= fimFiltro && p.numero >= inicioFiltro);
+          textoIntegral = paginas.map((p) => p.texto).join("\n");
+        }
+      }
 
       const chunks: ChunkRow[] = paginas.map((p, idx) => ({
         id: `pag-${p.numero}`,
@@ -1827,12 +1842,12 @@ export async function processarExtracaoRodada(
         };
       }
 
-      // Leitura determinística por registro posicional antes de censo / IA
-      if (registros.length > 0) {
-        const { lerRegistro } = await import("./extracao/rotulos");
-        const candidatasDosRegistros: UnidadeExtraida[] = [];
-        const registrosSemMedidas: RegistroUnidade[] = [];
+      // Extração determinística (Registros Posicionais e Quadros/Tabelas)
+      const { lerRegistro } = await import("./extracao/rotulos");
+      const candidatasDosRegistros: UnidadeExtraida[] = [];
+      const registrosSemMedidas: RegistroUnidade[] = [];
 
+      if (registros.length > 0) {
         for (const reg of registros) {
           if (reg.motivo_descarte === "identidade_repetida_no_documento") continue;
           const medidasLidas = lerRegistro(reg.texto);
@@ -1905,17 +1920,46 @@ export async function processarExtracaoRodada(
             regras_aplicadas: ["registros_posicionais", reg.padrao_ancora],
           });
         }
+      }
 
-        // Se todos os registros foram resolvidos deterministicamente, conclui sem chamadas de IA
-        if (candidatasDosRegistros.length > 0 && registrosSemMedidas.length === 0) {
-          const censo = { porId: new Map(registros.map((r) => [r.registro_id, { pagina: r.pagina, texto: r.texto }])) };
-          const consolidado = consolidar(candidatasDosRegistros, conhecidas, censo, registros, tipologiaDetectada);
-          const somaFracoes = consolidado.unidades.reduce((acc, u) => acc + (u.fracao_ideal ?? 0), 0);
+      // Censo e leitor determinístico de quadros/tabelas Markdown
+      const censo = construirCenso(doc.id, chunks);
+      const { extrairUnidadesDeQuadros } = await import("./quadro-parser");
+      const quadro = extrairUnidadesDeQuadros(censo);
+
+      // Candidatas determinísticas totais
+      const candidatasDeterministas = [...candidatasDosRegistros, ...quadro.unidades];
+
+      if (candidatasDeterministas.length > 0) {
+        const censoMap = {
+          porId: new Map([
+            ...registros.map((r) => [r.registro_id, { pagina: r.pagina, texto: r.texto }] as const),
+            ...censo.candidatas.map((c) => [c.linha_id, { pagina: c.pagina, texto: c.texto }] as const),
+          ]),
+        };
+        const consolidadoDet = consolidar(candidatasDeterministas, conhecidas, censoMap, registros, tipologiaDetectada);
+
+        const temUnidades = consolidadoDet.unidades.length > 0;
+        const todasComAreaEFracao = temUnidades && consolidadoDet.unidades.every((u) => u.area_m2 != null && u.fracao_ideal != null);
+        const qtdEsperadaOk = cond?.qtd_unidades == null || consolidadoDet.unidades.length >= cond.qtd_unidades;
+        const rolDeclaradoOk = descritiva.rol?.total_declarado == null || consolidadoDet.unidades.length >= descritiva.rol.total_declarado;
+        const rolIdentificadoresOk = !descritiva.rol?.identificadores?.length || descritiva.rol.identificadores.every((id) =>
+          consolidadoDet.unidades.some((u) => u.numero === id || chaveUnidade(u.bloco, u.numero).includes(id))
+        );
+
+        // Se o parser determinístico (quadro ou registros) já extraiu todas as unidades com área e fração:
+        // NÃO chamar IA, concluir imediatamente.
+        if (todasComAreaEFracao && qtdEsperadaOk && rolDeclaradoOk && rolIdentificadoresOk) {
+          const somaFracoes = consolidadoDet.unidades.reduce((acc, u) => acc + (u.fracao_ideal ?? 0), 0);
+          const tipoLeitura = quadro.unidades.length > 0
+            ? (candidatasDosRegistros.length > 0 ? "hibrida_deterministica" : "quadro_parser")
+            : "registros_posicionais";
+
           const diagnostico: DiagnosticoExtracao = {
-            leitura: "registros_posicionais",
+            leitura: tipoLeitura as any,
             total_trechos: chunks.length,
             trechos_selecionados: 0,
-            prefiltro: "registros posicionais lidos sem IA",
+            prefiltro: "leitura determinística completa sem IA",
             chamadas_ia: 0,
             chamadas_em_cache: 0,
             tokens_input: 0,
@@ -1924,10 +1968,10 @@ export async function processarExtracaoRodada(
             lotes_processados: 0,
             lotes_com_erro: 0,
             erros: [],
-            conflitos: consolidado.conflitos,
-            escala_fracao: consolidado.escala,
+            conflitos: consolidadoDet.conflitos,
+            escala_fracao: consolidadoDet.escala,
             regra_area: tipologiaDetectada === "casas_lotes" ? "area_terreno" : "area_real_privativa",
-            total_declarado_no_texto: descritiva.rol?.total_declarado ?? registros.length,
+            total_declarado_no_texto: descritiva.rol?.total_declarado ?? consolidadoDet.unidades.length,
             quadro_fracoes_encontrado: true,
             rol_artigo_2: descritiva.rol
               ? {
@@ -1938,20 +1982,20 @@ export async function processarExtracaoRodada(
             conferencias: descritiva.conferencias,
             balanco_descritivo: descritiva.balanco,
             balanco: {
-              linhas_candidatas: registros.length,
-              lidas_pelo_parser: consolidado.unidades.length,
+              linhas_candidatas: registros.length > 0 ? registros.length : quadro.linhasLidas.size,
+              lidas_pelo_parser: consolidadoDet.unidades.length,
               lidas_pela_ia: 0,
-              nao_lidas: consolidado.unidades.filter((u) => u.area_m2 == null && u.fracao_ideal == null).length,
-              unidades_resolvidas: consolidado.unidades.length,
-              sem_correspondencia: consolidado.orfas.length,
+              nao_lidas: 0,
+              unidades_resolvidas: consolidadoDet.unidades.length,
+              sem_correspondencia: consolidadoDet.orfas.length,
               soma_fracoes: Number(somaFracoes.toFixed(6)),
               fecha: Math.abs(somaFracoes - 1) <= 0.005,
             },
-            unidades_encontradas: consolidado.unidades.length,
-            unidades_com_fracao: consolidado.unidades.filter((u) => u.fracao_ideal != null).length,
-            unidades_com_area: consolidado.unidades.filter((u) => u.area_m2 != null).length,
-            unidades_confianca_alta: consolidado.unidades.filter((u) => u.confianca === "alta").length,
-            unidades_pendentes_revisao: consolidado.unidades.filter((u) => u.confianca !== "alta").length,
+            unidades_encontradas: consolidadoDet.unidades.length,
+            unidades_com_fracao: consolidadoDet.unidades.filter((u) => u.fracao_ideal != null).length,
+            unidades_com_area: consolidadoDet.unidades.filter((u) => u.area_m2 != null).length,
+            unidades_confianca_alta: consolidadoDet.unidades.filter((u) => u.confianca === "alta").length,
+            unidades_pendentes_revisao: consolidadoDet.unidades.filter((u) => u.confianca !== "alta").length,
             duracao_ms: 0,
             fonte: fonteUsada,
             total_paginas: totalPaginas,
@@ -1960,24 +2004,24 @@ export async function processarExtracaoRodada(
             tipologia_divergente: avisoTipologiaDivergente,
             tentativa_descritiva: {
               ...descritiva.tentativa,
-              caminho_usado: "registros_posicionais",
+              caminho_usado: tipoLeitura,
               registros_segmentados: registros.length,
-              caminho_escolhido: "registros_posicionais",
-              motivo_da_escolha: descritiva.tentativa?.motivo_da_escolha ?? `usando ${registros.length} registros posicionais`,
+              caminho_escolhido: tipoLeitura,
+              motivo_da_escolha: `todas as ${consolidadoDet.unidades.length} unidades resolvidas deterministicamente com área e fração`,
             },
-            observacao: `Leitura determinística por registro: ${registros.length} registros posicionais, ${consolidado.unidades.length} unidades resolvidas sem IA.`,
+            observacao: `Leitura determinística concluída: ${consolidadoDet.unidades.length} unidades resolvidas sem IA.`,
           };
 
           const unidadesFinais = await persistirExtracao({
             supabase,
             doc,
-            unidades: consolidado.unidades,
+            unidades: consolidadoDet.unidades,
             diagnostico,
             conhecidas,
-            escala: consolidado.escala,
+            escala: consolidadoDet.escala,
             qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
             force: false,
-            pendenciasExtras: consolidado.conflitos.length + (Math.abs(somaFracoes - 1) <= 0.005 ? 0 : 1),
+            pendenciasExtras: consolidadoDet.conflitos.length + (Math.abs(somaFracoes - 1) <= 0.005 ? 0 : 1),
             registros,
           });
 
@@ -2005,14 +2049,29 @@ export async function processarExtracaoRodada(
         }
       }
 
-      // Prepara lotes para leitura com IA
-      const censo = construirCenso(doc.id, chunks);
-      const { extrairUnidadesDeQuadros } = await import("./quadro-parser");
-      const quadro = extrairUnidadesDeQuadros(censo);
-      const naoLidas = censo.candidatas.filter((l) => !quadro.linhasLidas.has(l.linha_id));
+      // Se nem todas as unidades foram resolvidas deterministicamente,
+      // filtra apenas os trechos que contêm unidades pendentes.
+      const chavesResolvidas = new Set(
+        candidatasDeterministas
+          .filter(
+            (u) =>
+              (u.medidas ?? []).some((m) => m.campo === "area_privativa" || m.campo === "area_terreno") &&
+              (u.medidas ?? []).some((m) => m.campo === "fracao_terreno" || m.campo === "coeficiente_rateio"),
+          )
+          .map((u) => chaveUnidade(u.bloco, u.numero)),
+      );
+
+      const naoLidas = censo.candidatas.filter((l) => {
+        if (quadro.linhasLidas.has(l.linha_id)) return false;
+        const id = identificadorDaLinha(l.texto);
+        if (id && chavesResolvidas.has(chaveUnidade(id.sufixoBloco, id.numero))) return false;
+        return true;
+      });
+
       const chunksComCandidatas = new Set(naoLidas.map((l) => l.chunk_id));
       const chunksRelevantes = chunks.filter((c) => chunksComCandidatas.has(c.id));
-      const lotes = montarLotes(chunksRelevantes as ChunkRow[]);
+      const lotesCompletos = montarLotes(chunksRelevantes as ChunkRow[]);
+      const lotesMagros = lotesCompletos.map((l, i) => ({ id: l.id || `lote-${i}`, texto: l.texto }));
 
       if (censo.candidatas.length === 0) {
         const mensagem = "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
@@ -2042,14 +2101,14 @@ export async function processarExtracaoRodada(
       await supabase
         .from("extracao_jobs")
         .update({
-          etapa: lotes.length > 0 ? "leitura_ia" : "gravacao",
-          total: lotes.length || 4,
+          etapa: lotesMagros.length > 0 ? "leitura_ia" : "gravacao",
+          total: lotesMagros.length || 4,
           concluidos: 0,
           estado: "processando",
           metadata: {
             ...meta,
-            lotes,
-            candidatas: quadro.unidades,
+            lotes: lotesMagros,
+            candidatas: candidatasDeterministas,
             linhasLidasQuadroIds: Array.from(quadro.linhasLidas),
             naoLidasLinhasIds: naoLidas.map((l) => l.linha_id),
             chunksCount: chunks.length,
@@ -2071,7 +2130,7 @@ export async function processarExtracaoRodada(
         ok: true,
         concluido: false,
         etapa: "segmentacao_e_descritiva",
-        total: lotes.length || 4,
+        total: lotesMagros.length || 4,
         concluidos: 0,
         estado: "processando",
       };
@@ -2079,7 +2138,7 @@ export async function processarExtracaoRodada(
 
     // 3) ETAPA: Leitura dos lotes com IA (Gemini)
     if (job.etapa === "leitura_ia") {
-      const lotes = (meta.lotes as Lote[]) ?? [];
+      let lotes = ((meta.lotes as Array<{ id?: string; texto: string }>) ?? []);
       let cursor = (meta.cursorLote as number) ?? 0;
       const candidatas = (meta.candidatas as UnidadeExtraida[]) ?? [];
       let tokensInput = (meta.tokensInput as number) ?? 0;
@@ -2097,84 +2156,127 @@ export async function processarExtracaoRodada(
       );
 
       const startMs = Date.now();
-      const budgetMs = opts.orcamentoMs ?? 18_000;
+      const budgetMs = opts.orcamentoMs ?? DEFAULT_ORCAMENTO_MS;
       let mensagemStatus: string | null = null;
+      let chamadasNestaRodada = 0;
 
       while (cursor < lotes.length) {
         const tempoDecorrido = Date.now() - startMs;
         const restante = budgetMs - tempoDecorrido;
 
-        // Se restante < 5.000, encerre a rodada e devolva o job para a próxima (sem erro)
-        if (restante < 5_000) {
+        // Condição de parada por tempo: só encerra se ao menos UMA chamada já foi realizada nesta rodada.
+        // Uma rodada NUNCA termina com 0 chamadas tentadas.
+        if (chamadasNestaRodada > 0 && restante <= 10_000) {
           break;
         }
 
-        const timeoutMs = Math.min(30_000, restante);
-        const lote = lotes[cursor];
-        mensagemStatus = `Lendo o trecho ${cursor + 1} de ${lotes.length}…`;
+        // A PRIMEIRA chamada da rodada SEMPRE recebe o TIMEOUT_CHAMADA cheio (30s).
+        // As subsequentes recebem Math.min(TIMEOUT_CHAMADA, restante).
+        const timeoutMs = chamadasNestaRodada === 0
+          ? TIMEOUT_CHAMADA
+          : Math.min(TIMEOUT_CHAMADA, restante);
 
-        try {
-          const hash = await hashLote(lote.texto);
-          const cacheado = await lerCacheExtracao(supabase, hash);
-          let bruto: unknown;
-          if (cacheado) {
+        // Bloco de até CONCORRENCIA (4) lotes paralelos
+        const blocoIndices: number[] = [];
+        for (let i = 0; i < CONCORRENCIA && cursor + i < lotes.length; i++) {
+          blocoIndices.push(cursor + i);
+        }
+
+        mensagemStatus = `Lendo trecho(s) ${cursor + 1} a ${cursor + blocoIndices.length} de ${lotes.length}…`;
+
+        const resultados = await Promise.all(
+          blocoIndices.map(async (idx) => {
+            const lote = lotes[idx];
+            try {
+              const hash = await hashLote(lote.texto);
+              const cacheado = await lerCacheExtracao(supabase, hash);
+              if (cacheado) {
+                return { tipo: "cache" as const, idx, lote, data: cacheado };
+              }
+              const chamada = await chamarIaEfetivo(
+                apiKey,
+                system,
+                `Arquivo: ${doc.nome_arquivo}\nLote ${idx + 1}/${lotes.length}:\n${lote.texto}`,
+                { timeoutMs },
+              );
+              await gravarCacheExtracao(supabase, hash, chamada.data);
+              return { tipo: "ia" as const, idx, lote, data: chamada.data, usage: chamada.usage };
+            } catch (err: unknown) {
+              return { tipo: "erro" as const, idx, lote, err };
+            }
+          }),
+        );
+
+        chamadasNestaRodada += blocoIndices.length;
+        let teveTimeout = false;
+        const novosLotesDivididos: Array<{ id?: string; texto: string }> = [];
+        let primeiroTimeoutOffset = -1;
+
+        for (let b = 0; b < resultados.length; b++) {
+          const res = resultados[b];
+          if (res.tipo === "cache") {
             chamadasCache++;
-            bruto = cacheado;
-          } else {
-            chamadasIa++;
-            const chamada = await chamarIaEfetivo(
-              apiKey,
-              system,
-              `Arquivo: ${doc.nome_arquivo}\nLote ${cursor + 1}/${lotes.length}:\n${lote.texto}`,
-              { timeoutMs },
-            );
-            tokensInput += chamada.usage.prompt_tokens;
-            tokensOutput += chamada.usage.completion_tokens;
-            await gravarCacheExtracao(supabase, hash, chamada.data);
-            bruto = chamada.data;
-          }
-
-          const parsed = bruto as { unidades?: unknown[] };
-          if (Array.isArray(parsed.unidades)) {
-            for (const u of parsed.unidades) {
-              const r = UnidadeExtraidaSchema.safeParse(u);
-              if (r.success) {
-                candidatas.push(r.data);
+            const parsed = res.data as { unidades?: unknown[] };
+            if (Array.isArray(parsed.unidades)) {
+              for (const u of parsed.unidades) {
+                const r = UnidadeExtraidaSchema.safeParse(u);
+                if (r.success) candidatas.push(r.data);
               }
             }
-          }
-
-          cursor++;
-        } catch (err: unknown) {
-          const isTimeoutOrLength =
-            err instanceof ErroTimeoutIA ||
-            err instanceof ErroTruncadoIA ||
-            (err instanceof Error && /timeout|tempo limite|truncad/i.test(err.message));
-
-          if (isTimeoutOrLength) {
-            const partes = dividirTextoAoMeio(lote.texto, 2_000);
-            if (partes) {
-              const [p1, p2] = partes;
-              lotes.splice(
-                cursor,
-                1,
-                { ...lote, id: `${lote.id || `lote-${cursor}`}-a`, texto: p1 },
-                { ...lote, id: `${lote.id || `lote-${cursor}`}-b`, texto: p2 },
-              );
-              mensagemStatus = `O trecho ${cursor + 1} excedeu o tempo e foi dividido automaticamente.`;
-              continue;
+          } else if (res.tipo === "ia") {
+            chamadasIa++;
+            tokensInput += res.usage.prompt_tokens;
+            tokensOutput += res.usage.completion_tokens;
+            const parsed = res.data as { unidades?: unknown[] };
+            if (Array.isArray(parsed.unidades)) {
+              for (const u of parsed.unidades) {
+                const r = UnidadeExtraidaSchema.safeParse(u);
+                if (r.success) candidatas.push(r.data);
+              }
             }
-          }
+          } else if (res.tipo === "erro") {
+            const isTimeoutOrLength =
+              res.err instanceof ErroTimeoutIA ||
+              res.err instanceof ErroTruncadoIA ||
+              (res.err instanceof Error && /timeout|tempo limite|truncad/i.test(res.err.message));
 
-          // Lote indivisível ou outro erro isolado
-          const motivo = err instanceof Error ? err.message : String(err);
-          lotesComErro++;
-          lotesPendentes.push({
-            lote: cursor + 1,
-            motivo,
-            texto: lote.texto,
-          });
-          cursor++;
+            if (isTimeoutOrLength) {
+              const partes = dividirTextoAoMeio(res.lote.texto, 2_000);
+              if (partes) {
+                const [p1, p2] = partes;
+                novosLotesDivididos.push(
+                  { id: `${res.lote.id || `lote-${res.idx}`}-a`, texto: p1 },
+                  { id: `${res.lote.id || `lote-${res.idx}`}-b`, texto: p2 },
+                );
+                teveTimeout = true;
+                if (primeiroTimeoutOffset === -1) {
+                  primeiroTimeoutOffset = b;
+                }
+                continue;
+              }
+            }
+
+            // Lote indivisível ou outro erro
+            const motivo = res.err instanceof Error ? res.err.message : String(res.err);
+            lotesComErro++;
+            lotesPendentes.push({
+              lote: res.idx + 1,
+              motivo,
+              texto: res.lote.texto,
+            });
+          }
+        }
+
+        if (teveTimeout) {
+          // Se houve timeout, os lotes a partir do timeout são substituídos pelas metades
+          // e a rodada se encerra imediatamente para que iniciem frescas na próxima rodada com 30s.
+          const indiceNoLotes = cursor + primeiroTimeoutOffset;
+          lotes.splice(indiceNoLotes, 1, ...novosLotesDivididos);
+          cursor = indiceNoLotes;
+          mensagemStatus = `O trecho ${cursor + 1} excedeu o tempo e foi dividido. Retomando na próxima rodada com 30s.`;
+          break;
+        } else {
+          cursor += blocoIndices.length;
         }
       }
 
@@ -2190,7 +2292,7 @@ export async function processarExtracaoRodada(
           estado: "processando",
           metadata: {
             ...meta,
-            lotes,
+            lotes: lotes.map((l) => ({ id: l.id, texto: l.texto })),
             cursorLote: cursor,
             candidatas,
             tokensInput,
@@ -2220,7 +2322,11 @@ export async function processarExtracaoRodada(
 
     // 4) ETAPA: Gravação, Reconciliação do Rol e Ledger
     const metaAtual = ((job.metadata as Record<string, unknown>) ?? {}) as Record<string, unknown>;
-    const paginas = (metaAtual.paginas as Array<{ numero: number; texto: string }>) ?? [];
+    let paginas = (metaAtual.paginas as Array<{ numero: number; texto: string }>) ?? [];
+    if (!paginas || paginas.length === 0) {
+      const carregado = await carregarTextoIntegral(supabase, doc.id);
+      paginas = carregado.paginas;
+    }
     const candidatas = (metaAtual.candidatas as UnidadeExtraida[]) ?? [];
     const fonteUsada = (metaAtual.fonteUsada as string) ?? "storage";
     const totalPaginas = (metaAtual.totalPaginas as number) ?? paginas.length;
@@ -2363,6 +2469,13 @@ export async function processarExtracaoRodada(
         concluidos: lotes.length || 4,
         estado: estadoFinal,
         erro: mensagemFinal,
+        metadata: {
+          ...metaAtual,
+          lotes: undefined,
+          paginas: undefined,
+          textoIntegral: undefined,
+          diagnostico,
+        },
         atualizado_em: new Date().toISOString(),
       })
       .eq("documento_id", doc.id);

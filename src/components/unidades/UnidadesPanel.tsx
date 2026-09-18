@@ -11,7 +11,7 @@ import type {
 } from "@/lib/convencao-descritiva";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp, History, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Pencil, Users, Loader2, Eye, Sparkles, FileUp, History, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { updateCategoriaCondominio } from "@/lib/condominios.functions";
 import {
@@ -187,6 +187,7 @@ export function UnidadesPanel({
   const [extraindo, setExtraindo] = useState(false);
   const [openImportUnificado, setOpenImportUnificado] = useState(false);
   const [categoria, setCategoria] = useState<CategoriaCondominio>("predio");
+  const [detalhesLeituraAbertos, setDetalhesLeituraAbertos] = useState<boolean | null>(null);
 
   async function handleAtualizarCategoria(detectada: string) {
     setAtualizandoCategoria(true);
@@ -510,105 +511,134 @@ export function UnidadesPanel({
             (item) => item.status === "pendente_revisao" || item.status === "pendente",
           );
           if (!sugestao) return null;
+          const totalUnidades = sugestao.payload.unidades?.length ?? 0;
+          const temLotesPendentes = (sugestao.payload.diagnostico?.lotes_pendentes?.length ?? 0) > 0;
+          const temTipologiaDivergente = Boolean(sugestao.payload.diagnostico?.tipologia_divergente);
+          const deveAbrirAuto = totalUnidades === 0 || temLotesPendentes;
+          const mostrarDetalhes = detalhesLeituraAbertos ?? deveAbrirAuto;
+
           return (
-            <Card className="app-card p-4 border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 transition-colors">
-              <Sparkles className="h-5 w-5 text-primary shrink-0" />
-              <div className="flex-1 min-w-[220px]">
-                <p className="text-sm font-medium">
-                  {sugestao.payload.unidades?.length ?? 0} {vocab.unidade.toLowerCase()}(s)
-                  detectada(s) na convenção
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {sugestao.status === "pendente_revisao"
-                    ? "Os campos de alta confiança já preencheram apenas valores vazios. Revise os demais antes de aplicar."
-                    : `Revise antes de importar para a lista de ${vocab.unidade.toLowerCase()}s.`}
-                </p>
-                {sugestao.payload.diagnostico?.observacao && (
-                  <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                    {sugestao.payload.diagnostico.observacao}
-                  </p>
-                )}
-                {(sugestao.payload.diagnostico?.balanco ||
-                  sugestao.payload.diagnostico?.tentativa_descritiva) && (
-                  <BalancoExtracao
-                    balanco={sugestao.payload.diagnostico.balanco}
-                    tentativa={sugestao.payload.diagnostico.tentativa_descritiva}
-                    balancoDescritivo={sugestao.payload.diagnostico.balanco_descritivo}
-                    conferencias={sugestao.payload.diagnostico.conferencias}
-                    naoLidas={sugestao.payload.diagnostico.linhas_nao_lidas}
-                    orfas={sugestao.payload.diagnostico.orfas}
-                  />
-                )}
-                {sugestao.payload.diagnostico?.lotes_pendentes &&
-                  sugestao.payload.diagnostico.lotes_pendentes.length > 0 && (
-                    <div className="mt-2.5 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-100">
-                      <div className="flex items-center gap-1.5">
-                        <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span>
-                          {sugestao.payload.diagnostico.lotes_pendentes.length} trecho(s) não puderam ser lidos e estão pendentes.
-                        </span>
+            <Card className="app-card p-4 border-primary/30 bg-primary/5 transition-colors">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {totalUnidades} {vocab.unidade.toLowerCase()}(s) identificada(s) na convenção
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {sugestao.status === "pendente_revisao"
+                        ? "Campos de alta confiança preenchidos. Revise antes de confirmar."
+                        : `Prontas para conferência e importação para ${vocab.unidade.toLowerCase()}s.`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      setRevisarUnidades({
+                        sugestaoId: sugestao.id,
+                        unidades: sugestao.payload.unidades ?? [],
+                        tipologiaDivergente: sugestao.payload.diagnostico?.tipologia_divergente ?? null,
+                      })
+                    }
+                  >
+                    Revisar e importar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={async () => {
+                      await updateSugestaoFn({ data: { id: sugestao.id, status: "descartada" } });
+                      setSugestoes((prev) => prev.filter((item) => item.id !== sugestao.id));
+                    }}
+                  >
+                    Descartar
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-2.5 pt-2 border-t border-border/40">
+                <button
+                  type="button"
+                  onClick={() => setDetalhesLeituraAbertos(!mostrarDetalhes)}
+                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 font-medium transition-colors"
+                >
+                  <span>{mostrarDetalhes ? "Ocultar detalhes da leitura" : "Ver detalhes da leitura"}</span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${mostrarDetalhes ? "rotate-180" : ""}`} />
+                </button>
+
+                {mostrarDetalhes && (
+                  <div className="mt-3 space-y-3">
+                    {sugestao.payload.diagnostico?.observacao && (
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        {sugestao.payload.diagnostico.observacao}
+                      </p>
+                    )}
+
+                    {(sugestao.payload.diagnostico?.balanco ||
+                      sugestao.payload.diagnostico?.tentativa_descritiva) && (
+                      <BalancoExtracao
+                        balanco={sugestao.payload.diagnostico.balanco}
+                        tentativa={sugestao.payload.diagnostico.tentativa_descritiva}
+                        balancoDescritivo={sugestao.payload.diagnostico.balanco_descritivo}
+                        conferencias={sugestao.payload.diagnostico.conferencias}
+                        naoLidas={sugestao.payload.diagnostico.linhas_nao_lidas}
+                        orfas={sugestao.payload.diagnostico.orfas}
+                      />
+                    )}
+
+                    {temLotesPendentes && (
+                      <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-100">
+                        <div className="flex items-center gap-1.5">
+                          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                          <span>
+                            {sugestao.payload.diagnostico!.lotes_pendentes!.length} trecho(s) não puderam ser lidos e estão pendentes.
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={reprocessando}
+                          className="h-7 text-xs border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 font-medium"
+                          onClick={() => reprocessar({ somenteLotesPendentes: true })}
+                        >
+                          {reprocessando && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                          Reler trechos pendentes
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={reprocessando}
-                        className="h-7 text-xs border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 font-medium"
-                        onClick={() => reprocessar({ somenteLotesPendentes: true })}
-                      >
-                        {reprocessando && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                        Reler trechos pendentes
-                      </Button>
-                    </div>
-                  )}
-                {sugestao.payload.diagnostico?.tipologia_divergente && (
-                  <div className="mt-2.5 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-100">
-                    <div className="flex items-center gap-1.5">
-                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                      <span>
-                        {sugestao.payload.diagnostico.tipologia_divergente.mensagem ||
-                          `Tipologia detectada (${sugestao.payload.diagnostico.tipologia_divergente.detectada}) diverge da categoria (${sugestao.payload.diagnostico.tipologia_divergente.cadastrada}).`}
-                      </span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={atualizandoCategoria}
-                      className="h-7 text-xs border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 font-medium"
-                      onClick={() =>
-                        handleAtualizarCategoria(
-                          sugestao.payload.diagnostico!.tipologia_divergente!.detectada,
-                        )
-                      }
-                    >
-                      {atualizandoCategoria && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                      Atualizar a categoria do condomínio para{" "}
-                      {sugestao.payload.diagnostico.tipologia_divergente.detectada}
-                    </Button>
+                    )}
+
+                    {temTipologiaDivergente && (
+                      <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-100">
+                        <div className="flex items-center gap-1.5">
+                          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                          <span>
+                            {sugestao.payload.diagnostico!.tipologia_divergente!.mensagem ||
+                              `Tipologia detectada (${sugestao.payload.diagnostico!.tipologia_divergente!.detectada}) diverge da categoria (${sugestao.payload.diagnostico!.tipologia_divergente!.cadastrada}).`}
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={atualizandoCategoria}
+                          className="h-7 text-xs border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 font-medium"
+                          onClick={() =>
+                            handleAtualizarCategoria(
+                              sugestao.payload.diagnostico!.tipologia_divergente!.detectada,
+                            )
+                          }
+                        >
+                          {atualizandoCategoria && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                          Atualizar a categoria do condomínio para{" "}
+                          {sugestao.payload.diagnostico!.tipologia_divergente!.detectada}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              <Button
-                size="sm"
-                onClick={() =>
-                  setRevisarUnidades({
-                    sugestaoId: sugestao.id,
-                    unidades: sugestao.payload.unidades ?? [],
-                    tipologiaDivergente: sugestao.payload.diagnostico?.tipologia_divergente ?? null,
-                  })
-                }
-              >
-                Revisar e importar
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={async () => {
-                  await updateSugestaoFn({ data: { id: sugestao.id, status: "descartada" } });
-                  setSugestoes((prev) => prev.filter((item) => item.id !== sugestao.id));
-                }}
-              >
-                Descartar
-              </Button>
             </Card>
           );
         })()}

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { detectarEscalaFracoes, normalizarFracao, numeroBrasileiro } from "./fracao-normalizar";
 import {
   chaveUnidade,
@@ -330,7 +334,9 @@ describe("Regressão Teste 3 — Loteamento 761 lotes e matriz de redações", (
     expect(consolidado.unidades.length).toBe(761);
 
     // lote 03
-    const lote03Quadra01 = consolidado.unidades.find((u) => u.bloco === "QUADRA 01" && u.numero === "03");
+    const lote03Quadra01 = consolidado.unidades.find(
+      (u) => (u.bloco === "01" || u.bloco === "QUADRA 01") && u.numero === "03",
+    );
     expect(lote03Quadra01).toBeDefined();
     expect(lote03Quadra01?.area_m2).toBe(250.00);
     expect(lote03Quadra01?.fracao_ideal).toBeCloseTo(0.001314, 6);
@@ -340,8 +346,8 @@ describe("Regressão Teste 3 — Loteamento 761 lotes e matriz de redações", (
     const paginas = [{ numero: 1, texto: textoLoteamento }];
     const registros = segmentarRegistros(paginas, "doc-761");
 
-    const regQ03 = registros.find((r) => r.escopo === "QUADRA 03" && r.numero === "01");
-    const regQ12 = registros.find((r) => r.escopo === "QUADRA 12" && r.numero === "01");
+    const regQ03 = registros.find((r) => (r.escopo === "03" || r.escopo === "QUADRA 03") && r.numero === "01");
+    const regQ12 = registros.find((r) => (r.escopo === "12" || r.escopo === "QUADRA 12") && r.numero === "01");
     expect(regQ03).toBeDefined();
     expect(regQ12).toBeDefined();
     expect(regQ03?.registro_id).not.toBe(regQ12?.registro_id);
@@ -664,10 +670,16 @@ describe("Regressão - Isolamento de Lotes, Timeout e Orçamento", () => {
       };
     };
 
-    const res = await processarExtracaoRodada(supabase, "doc-1", "fake-key", {
+    let res = await processarExtracaoRodada(supabase, "doc-1", "fake-key", {
       orcamentoMs: 60_000,
       chamarIa: mockChamarIa as any,
     });
+    while (!res.concluido) {
+      res = await processarExtracaoRodada(supabase, "doc-1", "fake-key", {
+        orcamentoMs: 60_000,
+        chamarIa: mockChamarIa as any,
+      });
+    }
 
     expect(res.estado).toBe("pronto");
     expect(tamanhosChamados.length).toBe(3);
@@ -675,20 +687,22 @@ describe("Regressão - Isolamento de Lotes, Timeout e Orçamento", () => {
     expect(res.lotes_pendentes).toBeUndefined();
   });
 
-  it("c) o orçamento é respeitado", async () => {
+  it("c) o orçamento é respeitado com concorrência", async () => {
     const mockDoc = { id: "doc-1", condominio_id: "cond-1", nome_arquivo: "conv.pdf", status_processamento: "pronto" };
-    const mockCond = { categoria: "predio", qtd_unidades: 2, owner_id: "u-1" };
+    const mockCond = { categoria: "predio", qtd_unidades: 5, owner_id: "u-1" };
     const mockJob = {
       documento_id: "doc-1",
       etapa: "leitura_ia",
-      total: 2,
+      total: 5,
       concluidos: 0,
       estado: "processando",
       metadata: {
-        paginas: [{ numero: 1, texto: "pagina 1" }],
         lotes: [
           { id: "lote-1", texto: "Unidade 101" },
           { id: "lote-2", texto: "Unidade 102" },
+          { id: "lote-3", texto: "Unidade 103" },
+          { id: "lote-4", texto: "Unidade 104" },
+          { id: "lote-5", texto: "Unidade 105" },
         ],
         cursorLote: 0,
         candidatas: [],
@@ -713,7 +727,7 @@ describe("Regressão - Isolamento de Lotes, Timeout e Orçamento", () => {
 
     const mockChamarIa = async () => {
       chamadas++;
-      // Avança o tempo em 14.000ms durante a primeira chamada
+      // Avança o tempo em 14.000ms durante o primeiro lote do primeiro batch
       timeOffset += 14_000;
       return {
         data: {
@@ -729,9 +743,10 @@ describe("Regressão - Isolamento de Lotes, Timeout e Orçamento", () => {
         chamarIa: mockChamarIa as any,
       });
 
-      expect(chamadas).toBe(1);
+      // Primeiro batch de 4 rodou em paralelo, consumiu tempo e sobrou < 10s, lote 5 fica para a próxima
+      expect(chamadas).toBe(4);
       expect(res.concluido).toBe(false);
-      expect(res.concluidos).toBe(1);
+      expect(res.concluidos).toBe(4);
       expect(res.etapa).toBe("leitura_ia");
     } finally {
       Date.now = realDateNow;
@@ -773,10 +788,222 @@ describe("Regressão - Isolamento de Lotes, Timeout e Orçamento", () => {
 
     expect(chamadasIaRouter).toBe(0);
     expect(supabase.getCurrentJob()?.etapa).toBe("segmentacao_e_descritiva");
-    expect((supabase.getCurrentJob()?.metadata?.paginas as any[])?.length).toBe(20);
+    expect(supabase.getCurrentJob()?.metadata?.totalPaginas).toBe(20);
+    expect(supabase.getCurrentJob()?.metadata?.paginas).toBeUndefined();
+  });
+});
+
+describe("Regressão Teste 4: Âncoras, Orçamento, Concorrência e Determinístico", () => {
+  it("a) 11 frases reais de âncora (8 casam, 3 retornam null)", async () => {
+    const { reconhecerAncora } = await import("./extracao/ancoras");
+    const frases = [
+      { texto: "A unidade autônoma habitacional (Apartamento) de n° 101", casa: true },
+      { texto: "O apartamento número 42-B do Bloco C", casa: true },
+      { texto: "A loja comercial de número 05", casa: true },
+      { texto: "CASA 12 localizada na Alameda dos Ipês", casa: true },
+      { texto: "Garagem autônoma nº 15 no subsolo", casa: true },
+      { texto: "O lote designado pelo nº 07 da Quadra 14", casa: true },
+      { texto: "Sala comercial n. 304", casa: true },
+      { texto: "Apartamento duplex nº 801", casa: true },
+      { texto: "Nos termos do artigo 101 do Código Civil", casa: false },
+      { texto: "A assembleia aprovou por 10 votos a reforma", casa: false },
+      { texto: "O condomínio terá 42 unidades no total", casa: false },
+    ];
+
+    for (const f of frases) {
+      const res = reconhecerAncora(f.texto);
+      if (f.casa) {
+        expect(res).not.toBeNull();
+      } else {
+        expect(res).toBeNull();
+      }
+    }
   });
 
-  it("e) o Teste 2 continua fechando com 32 unidades", () => {
+  it("b) Primeira chamada recebe timeout cheio de 30s; chamada de 25s passa com orçamento de 50s", async () => {
+    const mockDoc = { id: "doc-1", condominio_id: "cond-1", nome_arquivo: "conv.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 2, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-1",
+      etapa: "leitura_ia",
+      total: 1,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {
+        lotes: [{ id: "lote-1", texto: "Unidade 101" }],
+        cursorLote: 0,
+        candidatas: [],
+        tokensInput: 0,
+        tokensOutput: 0,
+        chamadasIa: 0,
+        chamadasCache: 0,
+        lotesComErro: 0,
+        lotesPendentes: [],
+      },
+    };
+
+    const supabase = createMockSupabase({
+      doc: mockDoc,
+      condominio: mockCond,
+      job: mockJob,
+      storageMd: "## Página 1\n\nUnidade 101",
+    });
+    let timeoutRecebido = 0;
+
+    const mockChamarIa = async (_key: string, _sys: string, _user: string, opts?: { timeoutMs?: number }) => {
+      timeoutRecebido = opts?.timeoutMs ?? 0;
+      return {
+        data: { unidades: [{ numero: "101", tipo: "apartamento", medidas: [] }] },
+        usage: { prompt_tokens: 10, completion_tokens: 10 },
+      };
+    };
+
+    const res = await processarExtracaoRodada(supabase, "doc-1", "fake-key", {
+      orcamentoMs: 50_000,
+      chamarIa: mockChamarIa as any,
+    });
+
+    expect(timeoutRecebido).toBe(30_000);
+    expect(res.ok).toBe(true);
+  });
+
+  it("c) Rodada nunca termina sem tentar ao menos 1 chamada", async () => {
+    const mockDoc = { id: "doc-1", condominio_id: "cond-1", nome_arquivo: "conv.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 2, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-1",
+      etapa: "leitura_ia",
+      total: 2,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {
+        lotes: [
+          { id: "lote-1", texto: "Unidade 101" },
+          { id: "lote-2", texto: "Unidade 102" },
+        ],
+        cursorLote: 0,
+        candidatas: [],
+        tokensInput: 0,
+        tokensOutput: 0,
+        chamadasIa: 0,
+        chamadasCache: 0,
+        lotesComErro: 0,
+        lotesPendentes: [],
+      },
+    };
+
+    const supabase = createMockSupabase({
+      doc: mockDoc,
+      condominio: mockCond,
+      job: mockJob,
+      storageMd: "## Página 1\n\nUnidade 101\n\nUnidade 102",
+    });
+    let chamadas = 0;
+
+    const mockChamarIa = async () => {
+      chamadas++;
+      return {
+        data: { unidades: [{ numero: "101", tipo: "apartamento", medidas: [] }] },
+        usage: { prompt_tokens: 10, completion_tokens: 10 },
+      };
+    };
+
+    // Mesmo com orçamento pequeno, a rodada sempre tenta ao menos uma chamada
+    await processarExtracaoRodada(supabase, "doc-1", "fake-key", {
+      orcamentoMs: 1,
+      chamarIa: mockChamarIa as any,
+    });
+
+    expect(chamadas).toBeGreaterThanOrEqual(1);
+  });
+
+  it("d) Metadata magro (< 200 KB para doc de 40 páginas)", async () => {
+    const paginas40Md = Array.from(
+      { length: 40 },
+      (_, i) => `---\n## Página ${i + 1}\n\nTexto longo da página ${i + 1} com múltiplos artigos e regras de condomínio repetidas para aumentar o volume.\n` +
+        "Artigo 1. O condomínio destina-se a fins residenciais.\n".repeat(20),
+    ).join("\n\n");
+
+    const mockDoc = { id: "doc-40", condominio_id: "cond-1", nome_arquivo: "conv40.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 40, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-40",
+      etapa: "carregamento_e_roteamento",
+      total: 4,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {},
+    };
+
+    const supabase = createMockSupabase({
+      doc: mockDoc,
+      condominio: mockCond,
+      job: mockJob,
+      storageMd: paginas40Md,
+    });
+
+    await processarExtracaoRodada(supabase, "doc-40", "fake-key");
+
+    const jobAposEtapa1 = supabase.getCurrentJob();
+    const tamanhoEtapa1 = JSON.stringify(jobAposEtapa1?.metadata ?? {}).length;
+    expect(tamanhoEtapa1).toBeLessThan(200 * 1024);
+    expect(jobAposEtapa1?.metadata?.paginas).toBeUndefined();
+    expect(jobAposEtapa1?.metadata?.textoIntegral).toBeUndefined();
+  });
+
+  it("e) 0 chamadas de IA quando determinístico resolve todas as unidades", async () => {
+    // Tabela com 3 unidades completas com área e fração
+    const tabelaMd = [
+      "## Página 1",
+      "| Unidade | Área Privativa | Fração Ideal |",
+      "| :--- | :--- | :--- |",
+      "| Apto 101 | 75,50 | 0,333333 |",
+      "| Apto 102 | 75,50 | 0,333333 |",
+      "| Apto 103 | 75,50 | 0,333334 |",
+      "",
+      "Texto das regras que antes geraria censo de 800 linhas:",
+      "Artigo 1. Conforme a lei 4591...",
+      "Artigo 2. Os apartamentos devem respeitar o silêncio...",
+    ].join("\n");
+
+    const mockDoc = { id: "doc-det", condominio_id: "cond-1", nome_arquivo: "tabela.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 3, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-det",
+      etapa: "carregamento_e_roteamento",
+      total: 4,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {},
+    };
+
+    const supabase = createMockSupabase({
+      doc: mockDoc,
+      condominio: mockCond,
+      job: mockJob,
+      storageMd: tabelaMd,
+    });
+
+    let chamadasIa = 0;
+    const mockChamarIa = async () => {
+      chamadasIa++;
+      return { data: {}, usage: { prompt_tokens: 0, completion_tokens: 0 } };
+    };
+
+    // Rodada 1: carregamento
+    await processarExtracaoRodada(supabase, "doc-det", "fake-key", { chamarIa: mockChamarIa as any });
+    expect(supabase.getCurrentJob()?.etapa).toBe("segmentacao_e_descritiva");
+
+    // Rodada 2: segmentacao_e_descritiva (deve concluir sem chamar IA)
+    const res2 = await processarExtracaoRodada(supabase, "doc-det", "fake-key", { chamarIa: mockChamarIa as any });
+
+    expect(chamadasIa).toBe(0);
+    expect(res2.concluido).toBe(true);
+    expect(res2.etapa).toBe("concluido");
+    expect(res2.unidades?.length).toBe(3);
+  });
+
+  it("f) Teste 2 continua passando (32 aptos, 75.90 m², fração 0.033395)", () => {
     const andares = [1, 2, 3, 4, 5, 6, 7, 8];
     const colunas = [1, 2, 3, 4];
     const fraseColunas1e3 =

@@ -90,12 +90,27 @@ export function segmentarRegistros(
     }
   }
 
+  // Regra da família majoritária (P11):
+  // O padrão com mais ocorrências é a enumeração do documento;
+  // padrões com menos de 3 ocorrências, quando existe uma enumeração com 10 ou mais, não viram registro.
+  let ancorasFiltradas = ancoras;
+  if (ancoras.length > 0) {
+    const contagemPorPadrao = new Map<string, number>();
+    for (const a of ancoras) {
+      contagemPorPadrao.set(a.padrao, (contagemPorPadrao.get(a.padrao) ?? 0) + 1);
+    }
+    const maxOcorrencias = Math.max(...contagemPorPadrao.values());
+    if (maxOcorrencias >= 10) {
+      ancorasFiltradas = ancoras.filter((a) => (contagemPorPadrao.get(a.padrao) ?? 0) >= 3);
+    }
+  }
+
   const registros: RegistroUnidade[] = [];
   const identidadesVistas = new Set<string>();
 
-  for (let i = 0; i < ancoras.length; i++) {
-    const atual = ancoras[i];
-    const proxima = i + 1 < ancoras.length ? ancoras[i + 1] : null;
+  for (let i = 0; i < ancorasFiltradas.length; i++) {
+    const atual = ancorasFiltradas[i];
+    const proxima = i + 1 < ancorasFiltradas.length ? ancorasFiltradas[i + 1] : null;
 
     let texto = "";
     let offsetFim = atual.offsetInicio;
