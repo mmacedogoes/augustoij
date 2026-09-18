@@ -34,6 +34,7 @@ export const CampoMedidaSchema = z.preprocess(
     if (typeof val !== "string") return "indeterminado";
     const allowed = [
       "area_privativa",
+      "area_terreno",
       "area_comum",
       "area_global",
       "area_equivalente",
@@ -47,6 +48,7 @@ export const CampoMedidaSchema = z.preprocess(
   },
   z.enum([
     "area_privativa",
+    "area_terreno",
     "area_comum",
     "area_global",
     "area_equivalente",
@@ -270,7 +272,7 @@ export const PROMPT_SISTEMA_BASE =
   "Se o cabeçalho da coluna não estiver visível no trecho recebido, use campo indeterminado; nunca adivinhe o rótulo. " +
   "Preserve valor_bruto exatamente como impresso, inclusive %, ‰, barra e vírgula. Não converta escalas. " +
   "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
-  'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_comum|area_global|area_equivalente|area_garagem|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
+  'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_terreno|area_comum|area_global|area_equivalente|area_garagem|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
 
 function obterConteudoArquivo(moduloRaw: string | undefined, nomeArquivo: string): string {
   if (typeof moduloRaw === "string" && moduloRaw.length > 0) {
@@ -710,7 +712,13 @@ function validarProveniencia(
     }
 
     // Se a medida veio do registro segmentado da própria unidade, o trecho já pertence a ela
-    if (registro && (medida.trecho === registro.texto || medida.trecho.trim() === registro.texto.trim())) {
+    if (
+      registro &&
+      (medida.linha_id === registro.registro_id ||
+        registro.texto.includes(medida.trecho) ||
+        medida.trecho === registro.texto ||
+        medida.trecho.trim() === registro.texto.trim())
+    ) {
       medidas.push(medida);
       continue;
     }
@@ -913,6 +921,7 @@ export function consolidar(
   conhecidas: Array<{ bloco: string | null; numero: string }>,
   censo: { porId: Map<string, { pagina: number | null; texto?: string }> } = { porId: new Map() },
   registros?: RegistroUnidade[],
+  tipologia?: string,
 ) {
   const grupos = new Map<string, UnidadeExtraida[]>();
   const orfas: NonNullable<DiagnosticoExtracao["orfas"]> = [];
@@ -955,11 +964,13 @@ export function consolidar(
   const regrasGlobais = new Set<string>();
 
   // Trava para promoção de indeterminado a área:
-  // só promove se NENHUMA unidade no documento inteiro tiver area_privativa identificada.
+  // só promove se NENHUMA unidade no documento inteiro tiver area_privativa ou area_terreno identificada.
   const documentoTemAreaPrivativa = [...grupos.values()].some((grupo) =>
     grupo.some((u) =>
       u.medidas.some(
-        (m) => m.campo === "area_privativa" && valorCanonico(m, escala.escala) != null,
+        (m) =>
+          (m.campo === "area_privativa" || m.campo === "area_terreno") &&
+          valorCanonico(m, escala.escala) != null,
       ),
     ),
   );
@@ -993,12 +1004,44 @@ export function consolidar(
         escala.escala,
         coerentes,
       );
+      const terrenoArea = resolverValorComEvidencia(
+        medidas,
+        "area_terreno",
+        escala.escala,
+        coerentes,
+      );
       const global = resolverValorComEvidencia(medidas, "area_global", escala.escala, coerentes);
       const comum = resolverValorComEvidencia(medidas, "area_comum", escala.escala, coerentes);
+
+      const isLoteOuCasa =
+        tipologia === "casas_lotes" ||
+        base.tipo === "lote" ||
+        base.tipo === "casa" ||
+        base.tipo === "terreno" ||
+        grupo.some((u) => u.tipo === "lote" || u.tipo === "casa" || u.tipo === "terreno");
+
       let area = privativa.valor;
       let areaMedida = privativa.medida;
       if (area != null) {
         regras.push("area_privativa");
+      } else if (isLoteOuCasa && terrenoArea.valor != null) {
+        area = terrenoArea.valor;
+        areaMedida = terrenoArea.medida;
+        regras.push("area_terreno");
+      } else if (isLoteOuCasa) {
+        const areasGenericas = medidas.filter(
+          (m) =>
+            (m.campo as string) === "area_generica" ||
+            (m.campo === "indeterminado" && m.escala === "m2"),
+        );
+        if (areasGenericas.length === 1) {
+          const valor = valorCanonico(areasGenericas[0], escala.escala);
+          if (valor != null) {
+            area = valor;
+            areaMedida = areasGenericas[0];
+            regras.push("area_generica");
+          }
+        }
       }
 
       const terreno = resolverValorComEvidencia(medidas, "fracao_terreno", escala.escala);
@@ -1010,6 +1053,7 @@ export function consolidar(
       );
       registrarInvalidas([
         ...privativa.invalidas,
+        ...terrenoArea.invalidas,
         ...global.invalidas,
         ...comum.invalidas,
         ...terreno.invalidas,
@@ -1051,6 +1095,7 @@ export function consolidar(
       }
 
       if (privativa.conflito) conflitos.push(`${key}: área privativa divergente`);
+      if (terrenoArea.conflito) conflitos.push(`${key}: área do terreno divergente`);
       if (terreno.conflito) conflitos.push(`${key}: fração do terreno divergente`);
       for (const regra of regras) regrasGlobais.add(regra);
       return {
@@ -1374,11 +1419,13 @@ export function unidadesDaLeituraDescritiva(
       });
     };
     push("area_privativa", u.area_privativa, "m2");
+    push("area_terreno", u.area_terreno, "m2");
     push("area_comum", u.area_comum, "m2");
     push("area_global", u.area_total, "m2");
     push("area_equivalente", u.area_equivalente, "m2");
     push("fracao_terreno", u.fracao_ideal, "decimal", 8);
-    const completa = u.area_privativa != null && u.fracao_ideal != null;
+    const areaFinal = u.area_privativa ?? u.area_terreno ?? null;
+    const completa = areaFinal != null && u.fracao_ideal != null;
     return {
       bloco,
       numero,
@@ -1390,14 +1437,14 @@ export function unidadesDaLeituraDescritiva(
       fracao_ideal: u.fracao_ideal,
       fracao_origem: u.fracao_ideal != null ? ("documento" as const) : ("ausente" as const),
       fracao_trecho: trecho,
-      area_m2: u.area_privativa,
-      area_origem: u.area_privativa != null ? ("documento" as const) : ("ausente" as const),
+      area_m2: areaFinal,
+      area_origem: areaFinal != null ? ("documento" as const) : ("ausente" as const),
       area_trecho: trecho,
       confianca:
         completa && !pendentes.has(u.identificador) ? ("alta" as const) : ("media" as const),
       regras_aplicadas: [
         "secao_descritiva",
-        "area_real_privativa",
+        u.area_privativa != null ? "area_real_privativa" : "area_terreno",
         "fracao_ideal_declarada",
         identidade.regra,
       ],
@@ -1588,7 +1635,7 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
           }
         : null;
 
-      const descritiva = interpretarConvencaoDescritiva(textoIntegral);
+      const descritiva = interpretarConvencaoDescritiva(textoIntegral, registros.length);
       if (descritiva.ok) {
         const unidades = unidadesDaLeituraDescritiva(descritiva, conhecidas);
         const diagnostico: DiagnosticoExtracao = {
@@ -1699,6 +1746,184 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
           estado: "pronto",
           unidades: unidadesFinais,
         };
+      }
+
+      // Leitura determinística por registro posicional antes de censo / IA
+      if (registros.length > 0) {
+        const { lerRegistro } = await import("./extracao/rotulos");
+        const candidatasDosRegistros: UnidadeExtraida[] = [];
+        const registrosSemMedidas: RegistroUnidade[] = [];
+
+        for (const reg of registros) {
+          if (reg.motivo_descarte === "identidade_repetida_no_documento") continue;
+          const medidasLidas = lerRegistro(reg.texto);
+          const medidas: z.infer<typeof MedidaExtraidaSchema>[] = [];
+          let vagas: number | undefined = undefined;
+
+          for (const med of medidasLidas) {
+            if (med.campo === "vagas") {
+              vagas = Math.round(med.valor_numerico);
+              continue;
+            }
+            let campo: z.infer<typeof CampoMedidaSchema> = "indeterminado";
+            if (med.campo === "area_privativa") campo = "area_privativa";
+            else if (med.campo === "area_terreno") campo = "area_terreno";
+            else if (med.campo === "area_comum") campo = "area_comum";
+            else if (med.campo === "area_total") campo = "area_global";
+            else if (med.campo === "area_equivalente") campo = "area_equivalente";
+            else if (med.campo === "area_garagem") campo = "area_garagem";
+            else if (med.campo === "fracao_ideal") campo = "fracao_terreno";
+            else if (med.campo === "area_generica") {
+              campo = (tipologiaDetectada === "casas_lotes" || reg.ancora.toLowerCase().includes("lote"))
+                ? "area_terreno"
+                : "indeterminado";
+            }
+
+            medidas.push({
+              campo,
+              valor_bruto: med.valor_bruto,
+              escala: med.escala as any,
+              trecho: med.trecho,
+              linha_id: reg.registro_id,
+              pagina: reg.pagina,
+              bloco: null,
+              fonte: `registro ${reg.registro_id}`,
+              bloco_contexto: reg.escopo,
+            });
+          }
+
+          const temArea = medidas.some(
+            (m) =>
+              m.campo === "area_privativa" ||
+              m.campo === "area_terreno" ||
+              m.campo === "area_global" ||
+              m.campo === "indeterminado",
+          );
+          const temFracao = medidas.some(
+            (m) =>
+              m.campo === "fracao_terreno" ||
+              m.campo === "coeficiente_rateio" ||
+              m.campo === "fracao_coisas_comuns",
+          );
+
+          if (!temArea && !temFracao) {
+            registrosSemMedidas.push(reg);
+          }
+
+          const tipo = (tipologiaDetectada === "casas_lotes" || reg.ancora.toLowerCase().includes("lote"))
+            ? "lote"
+            : (reg.ancora.toLowerCase().includes("casa") ? "casa" : "apartamento");
+
+          candidatasDosRegistros.push({
+            bloco: reg.escopo,
+            numero: reg.sufixo ? `${reg.numero}${reg.sufixo}` : reg.numero,
+            tipo,
+            vagas_garagem: vagas,
+            linha_id: reg.registro_id,
+            medidas,
+            medidas_descartadas: [],
+            fonte: "registros_posicionais",
+            regras_aplicadas: ["registros_posicionais", reg.padrao_ancora],
+          });
+        }
+
+        // Se todos os registros foram resolvidos deterministicamente, conclui sem chamadas de IA
+        if (candidatasDosRegistros.length > 0 && registrosSemMedidas.length === 0) {
+          const censo = { porId: new Map(registros.map((r) => [r.registro_id, { pagina: r.pagina, texto: r.texto }])) };
+          const consolidado = consolidar(candidatasDosRegistros, conhecidas, censo, registros, tipologiaDetectada);
+          const somaFracoes = consolidado.unidades.reduce((acc, u) => acc + (u.fracao_ideal ?? 0), 0);
+          const diagnostico: DiagnosticoExtracao = {
+            leitura: "registros_posicionais",
+            total_trechos: chunks.length,
+            trechos_selecionados: 0,
+            prefiltro: "registros posicionais lidos sem IA",
+            chamadas_ia: 0,
+            chamadas_em_cache: 0,
+            tokens_input: 0,
+            tokens_output: 0,
+            total_lotes: 0,
+            lotes_processados: 0,
+            lotes_com_erro: 0,
+            erros: [],
+            conflitos: consolidado.conflitos,
+            escala_fracao: consolidado.escala,
+            regra_area: tipologiaDetectada === "casas_lotes" ? "area_terreno" : "area_real_privativa",
+            total_declarado_no_texto: descritiva.rol?.total_declarado ?? registros.length,
+            quadro_fracoes_encontrado: true,
+            rol_artigo_2: descritiva.rol
+              ? {
+                  total_declarado: descritiva.rol.total_declarado,
+                  identificadores: descritiva.rol.identificadores,
+                }
+              : null,
+            conferencias: descritiva.conferencias,
+            balanco_descritivo: descritiva.balanco,
+            balanco: {
+              linhas_candidatas: registros.length,
+              lidas_pelo_parser: consolidado.unidades.length,
+              lidas_pela_ia: 0,
+              nao_lidas: consolidado.unidades.filter((u) => u.area_m2 == null && u.fracao_ideal == null).length,
+              unidades_resolvidas: consolidado.unidades.length,
+              sem_correspondencia: consolidado.orfas.length,
+              soma_fracoes: Number(somaFracoes.toFixed(6)),
+              fecha: Math.abs(somaFracoes - 1) <= 0.005,
+            },
+            unidades_encontradas: consolidado.unidades.length,
+            unidades_com_fracao: consolidado.unidades.filter((u) => u.fracao_ideal != null).length,
+            unidades_com_area: consolidado.unidades.filter((u) => u.area_m2 != null).length,
+            unidades_confianca_alta: consolidado.unidades.filter((u) => u.confianca === "alta").length,
+            unidades_pendentes_revisao: consolidado.unidades.filter((u) => u.confianca !== "alta").length,
+            duracao_ms: 0,
+            fonte: fonteUsada,
+            total_paginas: totalPaginas,
+            total_caracteres: totalCaracteres,
+            tipologia_detectada: tipologiaDetectada,
+            tipologia_divergente: avisoTipologiaDivergente,
+            tentativa_descritiva: {
+              ...descritiva.tentativa,
+              caminho_usado: "registros_posicionais",
+              registros_segmentados: registros.length,
+              caminho_escolhido: "registros_posicionais",
+              motivo_da_escolha: descritiva.tentativa?.motivo_da_escolha ?? `usando ${registros.length} registros posicionais`,
+            },
+            observacao: `Leitura determinística por registro: ${registros.length} registros posicionais, ${consolidado.unidades.length} unidades resolvidas sem IA.`,
+          };
+
+          const unidadesFinais = await persistirExtracao({
+            supabase,
+            doc,
+            unidades: consolidado.unidades,
+            diagnostico,
+            conhecidas,
+            escala: consolidado.escala,
+            qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
+            force: false,
+            pendenciasExtras: consolidado.conflitos.length + (Math.abs(somaFracoes - 1) <= 0.005 ? 0 : 1),
+            registros,
+          });
+
+          await supabase
+            .from("extracao_jobs")
+            .update({
+              etapa: "concluido",
+              total: 4,
+              concluidos: 4,
+              estado: "pronto",
+              erro: null,
+              atualizado_em: new Date().toISOString(),
+            })
+            .eq("documento_id", doc.id);
+
+          return {
+            ok: true,
+            concluido: true,
+            etapa: "concluido",
+            total: 4,
+            concluidos: 4,
+            estado: "pronto",
+            unidades: unidadesFinais,
+          };
+        }
       }
 
       // Prepara lotes para leitura com IA
@@ -1921,7 +2146,7 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     );
 
     const { unidades, conflitos, escala, somasHipoteses, regras, medidasDescartadas, orfas } =
-      consolidar(candidatas, conhecidas, censo, registros);
+      consolidar(candidatas, conhecidas, censo, registros, tipologiaDetectada);
 
     const diagnostico: DiagnosticoExtracao = {
       leitura: "quadro_ia",

@@ -120,19 +120,45 @@ export function BalancoExtracao({
               valor={formatarFracao(tentativa.soma_fracoes)}
               alerta={!tentativa.soma_ok}
             />
+            {tentativa.registros_segmentados != null && (
+              <Item
+                rotulo="Registros segmentados"
+                valor={String(tentativa.registros_segmentados)}
+              />
+            )}
+            {tentativa.unidades_descritivas != null && (
+              <Item
+                rotulo="Unidades descritivas"
+                valor={String(tentativa.unidades_descritivas)}
+              />
+            )}
+            {tentativa.cobertura != null && (
+              <Item
+                rotulo="Cobertura descritiva"
+                valor={`${(tentativa.cobertura * 100).toFixed(1)}%`}
+                alerta={tentativa.cobertura < 0.9}
+              />
+            )}
             <Item
-              rotulo="Caminho usado"
+              rotulo="Caminho escolhido"
               valor={
-                tentativa.caminho_usado === "secao_descritiva"
+                (tentativa.caminho_escolhido ?? tentativa.caminho_usado) === "secao_descritiva"
                   ? "seção descritiva"
-                  : "censo de linhas"
+                  : (tentativa.caminho_escolhido ?? tentativa.caminho_usado) === "registros_posicionais"
+                    ? "registros posicionais"
+                    : "censo de linhas"
               }
               alerta={tentativa.caminho_usado !== "secao_descritiva"}
             />
           </div>
+          {tentativa.motivo_da_escolha && (
+            <p className="mt-1 text-xs text-muted-foreground font-medium">
+              Decisão: {tentativa.motivo_da_escolha}
+            </p>
+          )}
           {tentativa.motivo_descarte && (
             <p className="mt-1 text-xs text-destructive">
-              Motivo: {tentativa.motivo_descarte}
+              Motivo do descarte: {tentativa.motivo_descarte}
             </p>
           )}
           {tentativa.amostras?.some((a) => a.ocorrencias.length > 0) && (

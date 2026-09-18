@@ -12,7 +12,8 @@ export type FamiliaRotulo =
   | "area_terreno"
   | "fracao_ideal"
   | "vagas"
-  | "area_garagem";
+  | "area_garagem"
+  | "area_generica";
 
 export type MedidaLida = {
   campo: FamiliaRotulo;
@@ -45,7 +46,8 @@ export const PADROES_FAMILIAS: Record<FamiliaRotulo, RegExp[]> = {
     /[áa]rea\s+equivalente(?:\s+de\s+constru[çc][ãa]o)?/i,
   ],
   area_terreno: [
-    /[áa]rea\s+(?:do\s+)?(?:terreno|lote|solo)/i,
+    /[áa]rea\s+(?:real\s+)?(?:privativa\s+)?(?:de|do|da)?\s*(?:terreno|lote|solo|gleba)/i,
+    /[áa]rea\s+total\s+(?:do\s+|de\s+)?(?:terreno|lote)/i,
   ],
   fracao_ideal: [
     /fra[çc][ãa]o\s+ideal/i,
@@ -58,6 +60,10 @@ export const PADROES_FAMILIAS: Record<FamiliaRotulo, RegExp[]> = {
   ],
   area_garagem: [
     /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:garagem|vaga|estacionamento)/i,
+  ],
+  area_generica: [
+    /(?:com\s+)?[áa]rea\s+(?:total\s+)?de(?=\s*[\d.])/i,
+    /medindo(?=\s*[\d.])/i,
   ],
 };
 
@@ -150,34 +156,64 @@ function capturarMedidasFamilia(
     return medidas;
   }
 
+function contemOutraFamilia(lacuna: string, campoAtual: FamiliaRotulo): boolean {
+  const termosPorFamilia: Record<FamiliaRotulo, string[]> = {
+    area_privativa: ["privativa", "exclusiva"],
+    area_comum: ["comum"],
+    area_total: ["global", "total"],
+    area_equivalente: ["equivalente"],
+    area_terreno: ["terreno", "lote", "solo", "gleba"],
+    fracao_ideal: ["fracao", "fracoes", "rateio", "permilagem", "milesimos"],
+    vagas: ["vaga", "vagas", "garagem"],
+    area_garagem: ["garagem"],
+    area_generica: [],
+  };
+
+  const norm = lacuna.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  for (const [campo, termos] of Object.entries(termosPorFamilia)) {
+    if (campo === campoAtual) continue;
+    if (campoAtual === "area_terreno" && (campo === "area_privativa" || campo === "area_total")) continue;
+    for (const t of termos) {
+      const re = new RegExp(`\\b${t}\\b`, "i");
+      if (re.test(norm)) return true;
+    }
+  }
+  return false;
+}
+
   // Para medidas numéricas de áreas e frações:
-  // Conector aceita pontilhado, dois-pontos, traços, espaços ou preposições de prosa ('de', 'do', 'no valor de', etc.)
-  const CONECTOR =
-    /(?:[\s.:\-–—]+|\s+(?:de|do|da|no\s+valor\s+de|correspondente\s+a|equivalente\s+a|igual\s+a)\s+)*/;
+  // Lacuna: conector ou até 30 caracteres não numéricos (sem vírgula, ponto-e-vírgula ou quebra de linha)
+  const LACUNA_SRC = "(?:[\\s.:\\-–—]+|\\s+(?:de|do|da|no\\s+valor\\s+de|correspondente\\s+a|equivalente\\s+a|igual\\s+a)\\s+|[^0-9,;\\n]{0,30}?)";
   // Valor aceita formato pt-BR: 1.250,75 ou 75,90 ou 0,033395 ou inteiros
-  const VALOR =
-    /(\d{1,3}(?:\.\d{3})*,\d+|\d+,\d+|\d+\.\d+|\d+)/;
-  // Unidade de medida opcional: m2, m², %, ‰, milésimos, permilagem
-  const UNIDADE =
-    /(?:\s*(m[²2]|%|‰|mil[ée]simos?|permilagem))?/;
+  const VALOR_SRC = "(\\d{1,3}(?:\\.\\d{3})*,\\d+|\\d+,\\d+|\\d+\\.\\d+|\\d+)";
+  // Unidade de medida opcional: m2, m², %, ‰, milésimos, permilagem, e aceita "m2 de área"
+  const UNIDADE_SRC = "(?:\\s*(m[²2]|%|‰|mil[ée]simos?|permilagem))?(?:\\s+de\\s+[áa]rea)?";
 
   for (const padrao of padroes) {
     const regexCompleta = new RegExp(
-      "(" + padrao.source + ")" +
-      CONECTOR.source +
-      VALOR.source +
-      UNIDADE.source +
+      "(?<rotulo>" + padrao.source + ")" +
+      "(?<lacuna>" + LACUNA_SRC + ")" +
+      "(?<valor>" + VALOR_SRC + ")" +
+      "(?<unidade>" + UNIDADE_SRC + ")" +
       "(?![a-zA-Z0-9])",
       "gi"
     );
 
     let m: RegExpExecArray | null;
     while ((m = regexCompleta.exec(texto)) !== null) {
-      const trechoCompleto = m[0].trim();
-      const rotuloEncontrado = m[1].trim();
-      const valorBruto = m[2];
-      const unidade = m[3] || null;
+      const rotuloEncontrado = (m.groups?.rotulo ?? "").trim();
+      const lacuna = m.groups?.lacuna ?? "";
+      const valorBruto = m.groups?.valor ?? "";
+      const unidade = m.groups?.unidade || null;
 
+      if (!valorBruto) continue;
+
+      // Se a lacuna tiver mais de 30 caracteres ou contiver termo de outra família, pula
+      if (lacuna.length > 30 || contemOutraFamilia(lacuna, campo)) {
+        continue;
+      }
+
+      const trechoCompleto = m[0].trim();
       const { numerico, escala } = converterValorPtBr(valorBruto, unidade);
 
       medidas.push({

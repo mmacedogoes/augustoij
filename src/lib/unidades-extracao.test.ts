@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { detectarEscalaFracoes, normalizarFracao, numeroBrasileiro } from "./fracao-normalizar";
 import {
   chaveUnidade,
@@ -10,7 +12,11 @@ import {
   type UnidadeExtraida,
   type DiagnosticoExtracao,
 } from "./unidades-extracao.server";
-import type { RegistroUnidade } from "./extracao/segmentador";
+import { segmentarRegistros, type RegistroUnidade } from "./extracao/segmentador";
+import { interpretarConvencaoDescritiva } from "./convencao-descritiva";
+import { lerRegistro } from "./extracao/rotulos";
+import { extrairUnidadesDoTexto } from "./extracao/pipeline";
+
 
 type Medida = NonNullable<UnidadeExtraida["medidas"]>[number];
 const medida = (
@@ -269,4 +275,121 @@ describe("identidade, paginação e determinismo", () => {
     expect(validacoes.some((v) => !v.ok)).toBe(true);
     expect(diagnostico.validacoes).toEqual(validacoes);
   });
+});
+
+describe("Regressão Teste 3 — Loteamento 761 lotes e matriz de redações", () => {
+  const fixturePath = path.resolve(__dirname, "extracao/fixtures/loteamento-761.txt");
+  const textoLoteamento = fs.readFileSync(fixturePath, "utf-8");
+
+  it("a) a frase normativa não vira unidade", () => {
+    const paginas = [{ numero: 1, texto: textoLoteamento }];
+    const registros = segmentarRegistros(paginas, "doc-761");
+    expect(registros.length).toBe(761);
+
+    const descritiva = interpretarConvencaoDescritiva(textoLoteamento, registros.length);
+    expect(descritiva.ok).toBe(false);
+    expect(descritiva.tentativa.motivo_descarte).toBe("cobertura_insuficiente");
+  });
+
+  it("b) o loteamento é lido por registro", () => {
+    const paginas = [{ numero: 1, texto: textoLoteamento }];
+    const registros = segmentarRegistros(paginas, "doc-761");
+    expect(registros.length).toBe(761);
+
+    const candidatas: UnidadeExtraida[] = [];
+    for (const reg of registros) {
+      const medidasLidas = lerRegistro(reg.texto);
+      const medidas: Medida[] = [];
+      for (const med of medidasLidas) {
+        let campo: Medida["campo"] = "indeterminado";
+        if (med.campo === "area_privativa") campo = "area_privativa";
+        else if (med.campo === "area_terreno") campo = "area_terreno";
+        else if (med.campo === "fracao_ideal") campo = "fracao_terreno";
+        medidas.push({
+          campo,
+          valor_bruto: med.valor_bruto,
+          escala: med.escala as any,
+          trecho: med.trecho,
+        });
+      }
+      candidatas.push({
+        bloco: reg.escopo,
+        numero: reg.numero,
+        tipo: "lote",
+        medidas,
+      });
+    }
+
+    const censo = { porId: new Map(registros.map((r) => [r.registro_id, { pagina: r.pagina, texto: r.texto }])) };
+    const consolidado = consolidar(candidatas, [], censo, registros, "casas_lotes");
+
+    expect(consolidado.unidades.length).toBe(761);
+
+    // lote 03
+    const lote03Quadra01 = consolidado.unidades.find((u) => u.bloco === "QUADRA 01" && u.numero === "03");
+    expect(lote03Quadra01).toBeDefined();
+    expect(lote03Quadra01?.area_m2).toBe(250.00);
+    expect(lote03Quadra01?.fracao_ideal).toBeCloseTo(0.001314, 6);
+  });
+
+  it("c) lote 01 da quadra 03 e lote 01 da quadra 12 são unidades distintas", () => {
+    const paginas = [{ numero: 1, texto: textoLoteamento }];
+    const registros = segmentarRegistros(paginas, "doc-761");
+
+    const regQ03 = registros.find((r) => r.escopo === "QUADRA 03" && r.numero === "01");
+    const regQ12 = registros.find((r) => r.escopo === "QUADRA 12" && r.numero === "01");
+    expect(regQ03).toBeDefined();
+    expect(regQ12).toBeDefined();
+    expect(regQ03?.registro_id).not.toBe(regQ12?.registro_id);
+
+    const ch03 = chaveUnidade(regQ03!.escopo, regQ03!.numero);
+    const ch12 = chaveUnidade(regQ12!.escopo, regQ12!.numero);
+    expect(ch03).not.toBe(ch12);
+  });
+
+  it("d) matriz de redações lê as oito redações do Defeito 3", () => {
+    const redacoes = [
+      "área de terreno de 250,00 m2",
+      "área do terreno de 250,00 m2",
+      "área do lote de 250,00 m2",
+      "com área de 250,00 m2",
+      "área privativa de terreno de 250,00 m2",
+      "área total do lote de 250,00 m2",
+      "área de solo de 250,00 m2",
+      "medindo 250,00 m2 de área",
+    ];
+
+    for (const r of redacoes) {
+      const res = lerRegistro(r);
+      expect(res.length).toBeGreaterThan(0);
+      expect(res[0].valor_numerico).toBe(250.00);
+    }
+  });
+
+  it("e) Teste 2 (32 apartamentos) continua passando", () => {
+    const andares = [1, 2, 3, 4, 5, 6, 7, 8];
+    const colunas = [1, 2, 3, 4];
+    const fraseColunas1e3 =
+      "com área privativa de 75,90 m2, área de uso comum de 24,10 m2, perfazendo a área total de 100,00 m2 e fração ideal de 0,033395.";
+    const fraseColunas2e4 =
+      "com área privativa de 62,50 m2, área de uso comum de 18,50 m2, perfazendo a área total de 81,00 m2 e fração ideal de 0,029105.";
+
+    const linhas = ["CONVENÇÃO DE CONDOMÍNIO - EDIFÍCIO TESTE 32", "QUADRO DESCRITIVO DAS UNIDADES AUTÔNOMAS:"];
+    for (const andar of andares) {
+      for (const col of colunas) {
+        const num = `${andar}0${col}`;
+        const fraseMedida = col === 1 || col === 3 ? fraseColunas1e3 : fraseColunas2e4;
+        linhas.push(`APARTAMENTO Nº ${num} - localizado no ${andar}º pavimento, ${fraseMedida}`);
+      }
+    }
+    const texto32 = linhas.join("\n\n");
+    const resultado = extrairUnidadesDoTexto(texto32);
+
+    expect(resultado.total).toBe(32);
+    const apto101 = resultado.unidades.find((u) => u.numero === "101");
+    expect(apto101).toBeDefined();
+    expect(apto101?.area_privativa).toBe(75.90);
+    expect(apto101?.fracao_ideal).toBeCloseTo(0.033395, 6);
+  });
+
 });

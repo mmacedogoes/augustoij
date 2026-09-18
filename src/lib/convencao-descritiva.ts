@@ -28,6 +28,7 @@ export type BlocoDescritivo = {
   frase: string;
   corpo: string;
   area_privativa: number | null;
+  area_terreno: number | null;
   area_comum: number | null;
   area_total: number | null;
   area_equivalente: number | null;
@@ -41,6 +42,7 @@ export type UnidadeDescritiva = {
   bloco: string | null;
   bloco_descritivo: number;
   area_privativa: number | null;
+  area_terreno: number | null;
   area_comum: number | null;
   area_total: number | null;
   area_equivalente: number | null;
@@ -82,8 +84,13 @@ export type TentativaDescritiva = {
   soma_fracoes: number;
   escala_aplicada: string;
   soma_ok: boolean;
-  caminho_usado: "secao_descritiva" | "censo_de_linhas";
+  caminho_usado: "secao_descritiva" | "censo_de_linhas" | "registros_posicionais";
   motivo_descarte: string | null;
+  registros_segmentados?: number;
+  unidades_descritivas?: number;
+  cobertura?: number;
+  caminho_escolhido?: string;
+  motivo_da_escolha?: string;
   amostras?: Array<{ termo: string; ocorrencias: string[] }>;
 };
 
@@ -266,6 +273,9 @@ const REGEX_VAGAS =
   /(\d+)\s*\((?:uma?|dois|duas|tr[êe]s|quatro|cinco|seis|sete|oito|nove|dez)\)\s*vagas?\s+de\s+garagem/i;
 export const REGEX_CAPACIDADE = /capacidade\s+para\s+(\d+)/i;
 
+const REGEX_NORMATIVO =
+  /destina[çc][ãa]o|vedad|proibid|n[ãa]o\s+poder[áa]|dever[áa]|exclusivamente\s+residencial|uso\s+exclusivo/i;
+
 export function segmentarBlocosDescritivos(prosa: string): BlocoDescritivo[] {
   type Marca = { inicio: number; fim: number; ids: string[] };
   const marcas: Marca[] = [];
@@ -282,16 +292,31 @@ export function segmentarBlocosDescritivos(prosa: string): BlocoDescritivo[] {
   }
   marcas.sort((a, b) => a.inicio - b.inicio);
 
-  return marcas.map((marca, i) => {
-    const fimBloco = i + 1 < marcas.length ? marcas[i + 1].inicio : prosa.length;
+  const blocos: BlocoDescritivo[] = [];
+
+  for (let i = 0; i < marcas.length; i++) {
+    const marca = marcas[i];
+    const proximaInicio = i + 1 < marcas.length ? marcas[i + 1].inicio : prosa.length;
+    // Limite o corpo do bloco ao MENOR entre: a próxima marca e 1.500 caracteres. Nunca até o fim do documento.
+    const fimBloco = Math.min(marca.inicio + 1500, proximaInicio);
     const corpo = prosa.slice(marca.inicio, fimBloco);
     const frase = prosa.slice(marca.inicio, Math.min(marca.fim + 400, fimBloco));
+
+    // Descarte também a marca cuja frase case com linguagem normativa e não traga medida
+    if (REGEX_NORMATIVO.test(frase)) {
+      const previa = lerRegistro(corpo);
+      if (previa.length === 0) {
+        continue;
+      }
+    }
+
     const bloco: BlocoDescritivo = {
       indice: i,
       identificadores: marca.ids,
       frase: frase.trim(),
       corpo: corpo.trim(),
       area_privativa: null,
+      area_terreno: null,
       area_comum: null,
       area_total: null,
       area_equivalente: null,
@@ -315,6 +340,8 @@ export function segmentarBlocosDescritivos(prosa: string): BlocoDescritivo[] {
     for (const med of medidas) {
       if (med.campo === "area_privativa" && bloco.area_privativa == null) {
         bloco.area_privativa = med.valor_numerico;
+      } else if (med.campo === "area_terreno" && bloco.area_terreno == null) {
+        bloco.area_terreno = med.valor_numerico;
       } else if (med.campo === "area_comum" && bloco.area_comum == null) {
         bloco.area_comum = med.valor_numerico;
       } else if (med.campo === "area_total" && bloco.area_total == null) {
@@ -328,8 +355,23 @@ export function segmentarBlocosDescritivos(prosa: string): BlocoDescritivo[] {
       }
     }
 
-    return bloco;
-  });
+    // Descarte a marca cujo corpo (já limitado) não contenha nenhuma área em m² nem fração
+    const temMedida =
+      bloco.area_privativa != null ||
+      bloco.area_terreno != null ||
+      bloco.area_comum != null ||
+      bloco.area_total != null ||
+      bloco.area_equivalente != null ||
+      bloco.fracao_ideal != null;
+
+    if (!temMedida) {
+      continue;
+    }
+
+    blocos.push(bloco);
+  }
+
+  return blocos;
 }
 
 // ---------------------------------------------------------------------------
@@ -349,7 +391,10 @@ const ESCALAS: Array<{ nome: string; fator: number }> = [
   { nome: "milionesimo", fator: 1 / 1_000_000 },
 ];
 
-export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescritiva {
+export function interpretarConvencaoDescritiva(
+  textoBruto: string,
+  qtdRegistros?: number,
+): LeituraDescritiva {
   const prosa = normalizarProsa(textoBruto);
   const rol = extrairRolArtigo2(prosa);
   const blocos = segmentarBlocosDescritivos(prosa);
@@ -371,6 +416,7 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
         bloco: letra,
         bloco_descritivo: bloco.indice,
         area_privativa: bloco.area_privativa,
+        area_terreno: bloco.area_terreno,
         area_comum: bloco.area_comum,
         area_total: bloco.area_total,
         area_equivalente: bloco.area_equivalente,
@@ -543,18 +589,47 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
     fecha: somaOk && faltando.length === 0 && sobrando.length === 0 && semMedida.length === 0,
   };
 
-  const comArea = unidades.filter((u) => u.area_privativa != null).length;
+  const comArea = unidades.filter((u) => u.area_privativa != null || u.area_terreno != null).length;
   const comFracaoFinal = unidades.filter((u) => u.fracao_ideal != null).length;
+
+  const referencia = Math.max(
+    qtdRegistros ?? 0,
+    rol?.identificadores?.length ?? 0,
+    rol?.total_declarado ?? 0,
+  );
+  const cobertura =
+    referencia > 0 ? unidades.length / referencia : unidades.length > 0 ? 1 : 0;
+  const comMedida = unidades.filter(
+    (u) => u.area_privativa != null || u.area_terreno != null || u.fracao_ideal != null,
+  ).length;
+  const descritivaVence =
+    unidades.length > 0 &&
+    (referencia === 0 || cobertura >= 0.9) &&
+    comMedida >= 0.5 * unidades.length;
+
   const motivo_descarte =
-    blocos.length === 0
-      ? "nenhum bloco descritivo ('A unidade autônoma de N.º ... possui') foi localizado no texto indexado"
-      : unidades.length === 0
-        ? "os blocos descritivos não produziram nenhum identificador de unidade"
-        : comFracaoFinal === 0
-          ? "nenhum bloco trouxe a linha FRAÇÃO IDEAL legível"
-          : !somaOk
-            ? `a soma das frações deu ${somaFracoes.toFixed(6)} e nenhuma escala fecha em 1,0`
-            : null;
+    referencia > 0 && cobertura < 0.9
+      ? "cobertura_insuficiente"
+      : blocos.length === 0
+        ? "nenhum bloco descritivo ('A unidade autônoma de N.º ... possui') foi localizado no texto indexado"
+        : unidades.length === 0
+          ? "os blocos descritivos não produziram nenhum identificador de unidade"
+          : comMedida < 0.5 * unidades.length
+            ? "medidas_insuficientes_nos_blocos"
+            : comFracaoFinal === 0
+              ? "nenhum bloco trouxe a linha FRAÇÃO IDEAL legível"
+              : !somaOk
+                ? `a soma das frações deu ${somaFracoes.toFixed(6)} e nenhuma escala fecha em 1,0`
+                : null;
+
+  const caminho_usado: "secao_descritiva" | "censo_de_linhas" | "registros_posicionais" = descritivaVence
+    ? "secao_descritiva"
+    : (qtdRegistros && qtdRegistros > 0 ? "registros_posicionais" : "censo_de_linhas");
+
+  const caminho_escolhido = caminho_usado;
+  const motivo_da_escolha = descritivaVence
+    ? `seção descritiva cobre ${(cobertura * 100).toFixed(1)}% das unidades (${unidades.length}/${referencia || unidades.length})`
+    : (motivo_descarte ?? (qtdRegistros && qtdRegistros > 0 ? `usando ${qtdRegistros} registros posicionais` : "recorrendo a censo de linhas"));
 
   return {
     rol,
@@ -580,13 +655,17 @@ export function interpretarConvencaoDescritiva(textoBruto: string): LeituraDescr
       soma_fracoes: Number(somaFracoes.toFixed(6)),
       escala_aplicada: escala,
       soma_ok: somaOk,
+      caminho_usado,
       motivo_descarte,
+      registros_segmentados: qtdRegistros,
+      unidades_descritivas: unidades.length,
+      cobertura: Number(cobertura.toFixed(4)),
+      caminho_escolhido,
+      motivo_da_escolha,
       // Sem blocos, mostre onde os termos aparecem: é o que evita adivinhação.
       amostras: blocos.length === 0 ? amostrasDeTermos(prosa) : undefined,
     },
-    // Se achou unidades, USA. A soma serve para status e confiança, não como
-    // interruptor do caminho descritivo.
-    ok: unidades.length > 0,
+    ok: descritivaVence,
   };
 }
 

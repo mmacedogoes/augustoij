@@ -1,6 +1,8 @@
-﻿import { construirCenso, type ChunkCenso } from "../censo-linhas";
+import { construirCenso, type ChunkCenso } from "../censo-linhas";
 import { interpretarConvencaoDescritiva } from "../convencao-descritiva";
 import { extrairUnidadesDeQuadros } from "../quadro-parser";
+import { segmentarRegistros } from "./segmentador";
+import { lerRegistro } from "./rotulos";
 
 export type UnidadeEsperadaFormatada = {
   escopo: string | null;
@@ -77,12 +79,14 @@ function quebrarTextoEmChunksSinteticos(texto: string, documentoId = "fixture-do
 }
 
 export function extrairUnidadesDoTexto(texto: string): ResultadoExtracaoFormatado {
-  const descritiva = interpretarConvencaoDescritiva(texto);
+  const paginas = [{ numero: 1, texto }];
+  const registros = segmentarRegistros(paginas, "fixture-doc");
+  const descritiva = interpretarConvencaoDescritiva(texto, registros.length);
   if (descritiva.ok && descritiva.unidades.length > 0) {
     const unidades: UnidadeEsperadaFormatada[] = descritiva.unidades.map((u) => ({
       escopo: u.bloco ?? null,
       numero: u.numero,
-      area_privativa: u.area_privativa ?? null,
+      area_privativa: u.area_privativa ?? u.area_terreno ?? null,
       fracao_ideal: u.fracao_ideal ?? null,
     }));
 
@@ -96,6 +100,46 @@ export function extrairUnidadesDoTexto(texto: string): ResultadoExtracaoFormatad
       total: unidades.length,
       unidades,
     };
+  }
+
+  if (registros.length > 0) {
+    const candidatas: UnidadeEsperadaFormatada[] = [];
+    for (const reg of registros) {
+      if (reg.motivo_descarte === "identidade_repetida_no_documento") continue;
+      const medidas = lerRegistro(reg.texto);
+      let area: number | null = null;
+      let fracao: number | null = null;
+      for (const m of medidas) {
+        if (
+          (m.campo === "area_privativa" || m.campo === "area_terreno" || m.campo === "area_generica") &&
+          area == null
+        ) {
+          area = m.valor_numerico;
+        }
+        if (m.campo === "fracao_ideal" && fracao == null) {
+          fracao = m.valor_numerico;
+        }
+      }
+      candidatas.push({
+        escopo: reg.escopo ?? null,
+        numero: reg.sufixo ? `${reg.numero}${reg.sufixo}` : reg.numero,
+        area_privativa: area,
+        fracao_ideal: fracao,
+      });
+    }
+
+    const comMedidas = candidatas.filter((u) => u.area_privativa != null || u.fracao_ideal != null);
+    if (comMedidas.length >= 0.5 * candidatas.length) {
+      candidatas.sort((a, b) => {
+        const cmpBloco = (a.escopo || "").localeCompare(b.escopo || "");
+        if (cmpBloco !== 0) return cmpBloco;
+        return a.numero.localeCompare(b.numero, "pt-BR", { numeric: true });
+      });
+      return {
+        total: candidatas.length,
+        unidades: candidatas,
+      };
+    }
   }
 
   const chunks = quebrarTextoEmChunksSinteticos(texto);
