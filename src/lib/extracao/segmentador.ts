@@ -1,4 +1,4 @@
-﻿import { reconhecerAncora, reconhecerEscopo, gerarChaveIdentidade } from "./ancoras";
+import { reconhecerAncora, reconhecerEscopo, gerarChaveIdentidade } from "./ancoras";
 
 export type RegistroUnidade = {
   registro_id: string;
@@ -10,6 +10,7 @@ export type RegistroUnidade = {
   numero: string;
   sufixo: string | null;
   padrao_ancora: string;
+  ancora: string;
   texto: string;
   motivo_descarte?: "identidade_repetida_no_documento" | null;
 };
@@ -22,6 +23,7 @@ type AncoraPosicional = {
   numero: string;
   sufixo: string | null;
   padrao: string;
+  ancora: string;
 };
 
 /**
@@ -79,6 +81,7 @@ export function segmentarRegistros(
             numero: ancora.numero,
             sufixo: ancora.sufixo,
             padrao: ancora.padrao,
+            ancora: ancora.ancora,
           });
         }
       }
@@ -139,6 +142,7 @@ export function segmentarRegistros(
       numero: atual.numero,
       sufixo: atual.sufixo,
       padrao_ancora: atual.padrao,
+      ancora: atual.ancora,
       texto,
       ...(motivo_descarte ? { motivo_descarte } : {}),
     });

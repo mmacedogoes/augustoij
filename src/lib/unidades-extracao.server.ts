@@ -26,6 +26,7 @@ import {
   type TentativaDescritiva,
 } from "./convencao-descritiva";
 import { carregarTextoIntegral } from "./extracao/fonte";
+import { segmentarRegistros, type RegistroUnidade } from "./extracao/segmentador";
 
 
 
@@ -139,6 +140,10 @@ const UnidadeExtraidaSchema = z.object({
   fracao_trecho: z.string().nullable().optional(),
   area_trecho: z.string().nullable().optional(),
   confianca: z.enum(["alta", "media", "conflito"]).optional(),
+  estado: z.enum(["lido", "lido_com_ressalva", "nao_lido"]).optional(),
+  origem: z.enum(["rotulo", "ia", "manual", "ausente"]).optional(),
+  motivos: z.array(z.string()).optional(),
+  trecho_fonte: z.string().nullable().optional(),
   candidatos: z.record(z.string(), z.array(MedidaExtraidaSchema)).optional(),
   medidas_descartadas: z.array(MedidaDescartadaSchema).optional(),
   regras_aplicadas: z.array(z.string()).optional(),
@@ -1347,7 +1352,10 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     },
   }));
 
-  // 0) Classificação determinística da tipologia por contagem de âncoras e termos
+  // 0) Segmentação determinística por registros (recorrente em todo o documento)
+  const registros = segmentarRegistros(paginas, doc.id);
+
+  // 0.1) Classificação determinística da tipologia por contagem de âncoras e termos
   const { detectarTipologia } = await import("./extracao/tipologia");
   const tipologiaDetectada = detectarTipologia(paginas);
   const categoriaCadastrada = cond?.categoria ? normalizeCategoria(cond.categoria as string) : null;
@@ -1362,7 +1370,7 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       }
     : null;
 
-  // 0.1) SEÇÃO DESCRITIVA — a fonte de verdade da convenção. Rol do Artigo 2,
+  // 0.2) SEÇÃO DESCRITIVA — a fonte de verdade da convenção. Rol do Artigo 2,
   //    segmentação por bloco descritivo, rótulos com preenchimento por pontos e
   //    as quatro conferências: tudo regex e aritmética, ZERO token de IA.
   const descritiva = interpretarConvencaoDescritiva(textoIntegral);
@@ -1451,14 +1459,11 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
         descritiva.sobrando.length +
         descritiva.duplicadas.length +
         (descritiva.soma_ok ? 0 : 1),
+      registros,
     });
   }
 
 
-
-  // 1) Segmentação determinística por registros
-  const { segmentarRegistros } = await import("./extracao/segmentador");
-  const registros = segmentarRegistros(paginas, doc.id);
 
   // Censo determinístico: linhas do documento
   const censo = construirCenso(doc.id, chunks);
@@ -1748,6 +1753,7 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     qtdEsperada: (cond?.qtd_unidades as number | null) ?? null,
     force: Boolean(opts.force),
     pendenciasExtras: semLeitura.length + orfas.length + (diagnostico.lotes_com_erro ?? 0),
+    registros,
   });
 }
 
@@ -1766,18 +1772,180 @@ async function persistirExtracao(entrada: {
   qtdEsperada: number | null;
   force: boolean;
   pendenciasExtras: number;
+  registros?: RegistroUnidade[];
 }): Promise<UnidadeExtraida[]> {
-  const { supabase, doc, unidades, diagnostico, conhecidas, escala } = entrada;
+  const { supabase, doc, unidades, diagnostico, escala } = entrada;
+  const registros = entrada.registros ?? [];
   validarCoberturaExtracao(unidades, diagnostico, entrada.qtdEsperada);
-  // Uma sugestão nova sempre substitui as anteriores do MESMO documento — não
-  // deve sobrar tela antiga convivendo com a leitura recém-feita.
+
+  // 1) Grava em documento_registros TODOS os registros segmentados
+  const { error: delRegError } = await supabase
+    .from("documento_registros")
+    .delete()
+    .eq("documento_id", doc.id);
+  if (delRegError) {
+    console.error("[persistirExtracao] erro ao limpar documento_registros:", delRegError);
+  }
+
+  if (registros.length > 0) {
+    const batchSize = 250;
+    for (let i = 0; i < registros.length; i += batchSize) {
+      const batch = registros.slice(i, i + batchSize).map((r) => ({
+        condominio_id: doc.condominio_id,
+        documento_id: doc.id,
+        registro_id: r.registro_id,
+        pagina: r.pagina,
+        offset_inicio: r.offset_inicio,
+        offset_fim: r.offset_fim,
+        escopo: r.escopo,
+        numero: r.numero,
+        sufixo: r.sufixo,
+        ancora: r.ancora || r.numero,
+        padrao_ancora: r.padrao_ancora,
+        texto: r.texto,
+      }));
+      const { error: insRegError } = await supabase.from("documento_registros").insert(batch);
+      if (insRegError) {
+        console.error("[persistirExtracao] erro ao gravar documento_registros:", insRegError);
+      }
+    }
+  }
+
+  // 2) Reconciliação do rol e dos registros: toda unidade do rol aparece, mesmo sem medidas
+  const unidadesFinais: UnidadeExtraida[] = [...unidades];
+  const numerosExistentes = new Set(unidadesFinais.map((u) => u.numero));
+
+  // Adiciona unidades do rol que não foram lidas
+  const idsDoRol = diagnostico.rol_artigo_2?.identificadores ?? [];
+  for (const idRol of idsDoRol) {
+    if (!numerosExistentes.has(idRol)) {
+      const matchingReg = registros.find(
+        (r) => r.numero === idRol || `${r.escopo ? r.escopo + " " : ""}${r.numero}` === idRol
+      );
+      unidadesFinais.push({
+        bloco: matchingReg?.escopo ?? null,
+        numero: matchingReg?.numero ?? idRol,
+        tipo: "outro",
+        fracao_ideal: null,
+        area_m2: null,
+        medidas: [],
+        medidas_descartadas: [],
+        regras_aplicadas: ["Consta do rol do Artigo 2 mas sem medidas no texto"],
+        estado: "nao_lido",
+        origem: "ausente",
+        motivos: ["Consta do rol do Artigo 2 mas sem medidas no texto"],
+        trecho_fonte: matchingReg?.texto ?? null,
+        linha_id: matchingReg?.registro_id ?? null,
+        confianca: "conflito",
+      });
+      numerosExistentes.add(idRol);
+    }
+  }
+
+  // Adiciona registros segmentados não vinculados a unidades lidas
+  for (const reg of registros) {
+    if (!numerosExistentes.has(reg.numero) && !reg.motivo_descarte) {
+      unidadesFinais.push({
+        bloco: reg.escopo ?? null,
+        numero: reg.numero,
+        tipo: "outro",
+        fracao_ideal: null,
+        area_m2: null,
+        medidas: [],
+        medidas_descartadas: [],
+        regras_aplicadas: ["Registro identificado pela âncora, mas sem medidas extraídas"],
+        estado: "nao_lido",
+        origem: "rotulo",
+        motivos: ["Registro identificado pela âncora, mas sem medidas extraídas"],
+        trecho_fonte: reg.texto,
+        linha_id: reg.registro_id,
+        confianca: "conflito",
+      });
+      numerosExistentes.add(reg.numero);
+    }
+  }
+
+  // Normaliza estados, origens e trechos fonte de cada unidade
+  for (const u of unidadesFinais) {
+    const matchingReg = registros.find(
+      (r) => r.numero === u.numero && (u.bloco ? r.escopo === u.bloco : true)
+    );
+    if (!u.trecho_fonte) {
+      u.trecho_fonte = u.fracao_trecho || u.area_trecho || matchingReg?.texto || null;
+    }
+    if (!u.linha_id && matchingReg) {
+      u.linha_id = matchingReg.registro_id;
+    }
+    if (!u.estado) {
+      if (u.fracao_ideal == null && u.area_m2 == null) {
+        u.estado = "nao_lido";
+      } else if (
+        u.confianca !== "alta" ||
+        (u.medidas_descartadas && u.medidas_descartadas.length > 0)
+      ) {
+        u.estado = "lido_com_ressalva";
+      } else {
+        u.estado = "lido";
+      }
+    }
+    if (!u.origem) {
+      u.origem = diagnostico.leitura === "secao_descritiva" ? "rotulo" : "ia";
+    }
+    if (!u.motivos || u.motivos.length === 0) {
+      u.motivos = [
+        ...(u.regras_aplicadas ?? []),
+        ...(u.medidas_descartadas?.map((m) => `Rejeitada (${m.medida.campo}): ${m.motivo}`) ?? []),
+      ];
+      if (u.estado === "nao_lido" && u.motivos.length === 0) {
+        u.motivos = ["Sem medidas extraídas para esta unidade"];
+      }
+    }
+  }
+
+  // 3) Grava extracao_ledger (uma linha por unidade)
+  const { error: delLedgerError } = await supabase
+    .from("extracao_ledger")
+    .delete()
+    .eq("documento_id", doc.id);
+  if (delLedgerError) {
+    console.error("[persistirExtracao] erro ao limpar extracao_ledger:", delLedgerError);
+  }
+
+  const ledgerRows = unidadesFinais.map((u) => ({
+    condominio_id: doc.condominio_id,
+    documento_id: doc.id,
+    registro_id: u.linha_id?.includes(":") ? u.linha_id : null,
+    escopo: u.bloco ?? null,
+    numero: u.numero,
+    estado: u.estado ?? "lido",
+    origem: u.origem ?? "rotulo",
+    motivos: u.motivos ?? [],
+    medidas: u.medidas ?? [],
+    medidas_rejeitadas: u.medidas_descartadas ?? [],
+    trecho_fonte: u.trecho_fonte ?? null,
+  }));
+
+  if (ledgerRows.length > 0) {
+    const batchSize = 250;
+    for (let i = 0; i < ledgerRows.length; i += batchSize) {
+      const batch = ledgerRows.slice(i, i + batchSize);
+      const { error: insLedgerError } = await supabase
+        .from("extracao_ledger")
+        .insert(batch as any);
+      if (insLedgerError) {
+        console.error("[persistirExtracao] erro ao gravar extracao_ledger:", insLedgerError);
+      }
+    }
+  }
+
+  // 4) Atualiza sugestoes_unidades (com todas as unidades do rol)
   const { error: deleteError } = await supabase
     .from("sugestoes_unidades")
     .delete()
     .eq("documento_id", doc.id);
   if (deleteError) throw new Error(deleteError.message);
 
-  const pendentes = unidades.filter((u) => u.confianca !== "alta");
+  const pendentes = unidadesFinais.filter((u) => u.confianca !== "alta" || u.estado !== "lido");
   const balancoFinal = diagnostico.balanco;
   const status =
     pendentes.length > 0 || entrada.pendenciasExtras > 0 || balancoFinal?.fecha === false
@@ -1789,7 +1957,7 @@ async function persistirExtracao(entrada: {
   const { error: insertError } = await supabase.from("sugestoes_unidades").insert({
     condominio_id: doc.condominio_id,
     documento_id: doc.id,
-    payload: { unidades, diagnostico },
+    payload: { unidades: unidadesFinais, diagnostico },
     status,
   });
   if (insertError) throw new Error(insertError.message);
@@ -1827,6 +1995,6 @@ async function persistirExtracao(entrada: {
       },
     })
     .eq("id", doc.id);
-  return unidades;
+  return unidadesFinais;
 }
 

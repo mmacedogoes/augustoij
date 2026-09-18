@@ -59,8 +59,39 @@ export function BalancoExtracao({
   orfas?: LinhaOrfa[];
 }) {
   const d = balancoDescritivo;
+
+  const noRol = d
+    ? (d.identificadores_no_rol || d.unidades_apos_expansao)
+    : (balanco?.linhas_candidatas || balanco?.unidades_resolvidas || 0);
+  const lidas = d
+    ? (d.casadas_com_o_rol || Math.max(0, d.unidades_apos_expansao - d.nao_lidas))
+    : ((balanco?.lidas_pelo_parser ?? 0) + (balanco?.lidas_pela_ia ?? 0));
+  const naoLidasCount = d ? d.nao_lidas : (balanco?.nao_lidas ?? 0);
+  const comRessalva = d
+    ? Math.max(0, (d.unidades_apos_expansao - d.fracao_equivalente_ok))
+    : (balanco?.sem_correspondencia ?? 0);
+  const somaFracoes = d ? d.soma_fracoes : (balanco?.soma_fracoes ?? 0);
+
   return (
     <div className="mt-3 w-full rounded-lg border border-border/60 bg-background/60 p-3">
+      <div className="mb-3 px-2.5 py-1.5 rounded-md bg-muted/60 border text-xs font-mono font-medium flex flex-wrap items-center gap-1.5 text-foreground">
+        <span className="font-semibold text-primary">{noRol} no rol</span>
+        <span>·</span>
+        <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{lidas} lidas</span>
+        <span>·</span>
+        <span className={comRessalva > 0 ? "text-amber-700 dark:text-amber-400 font-semibold" : "text-muted-foreground"}>
+          {comRessalva} com ressalva
+        </span>
+        <span>·</span>
+        <span className={naoLidasCount > 0 ? "text-destructive font-semibold" : "text-muted-foreground"}>
+          {naoLidasCount} não lidas
+        </span>
+        <span>·</span>
+        <span>
+          soma das frações <strong className="font-bold">{formatarFracao(somaFracoes)}</strong>
+        </span>
+      </div>
+
       {tentativa && (
         <div className="mb-3 rounded-md border border-border/60 p-2">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

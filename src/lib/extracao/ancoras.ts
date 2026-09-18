@@ -2,6 +2,7 @@ export type AncoraReconhecida = {
   numero: string;
   sufixo: string | null;
   padrao: string;
+  ancora: string;
 };
 
 export const PADROES_ANCORA = [
@@ -68,6 +69,7 @@ export function reconhecerAncora(linha: string): AncoraReconhecida | null {
         numero,
         sufixo,
         padrao: padrao.nome,
+        ancora: m[0],
       };
     }
   }

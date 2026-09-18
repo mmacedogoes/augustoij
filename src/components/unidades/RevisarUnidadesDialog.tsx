@@ -21,6 +21,12 @@ export type UnidadeSugerida = {
   area_m2: number | null;
   vagas_garagem?: number;
   confianca?: "alta" | "media" | "conflito";
+  estado?: "lido" | "lido_com_ressalva" | "nao_lido";
+  origem?: "rotulo" | "ia" | "manual" | "ausente";
+  motivos?: string[];
+  trecho_fonte?: string | null;
+  fracao_trecho?: string | null;
+  area_trecho?: string | null;
   medidas?: Array<{
     campo: string;
     valor_bruto: string;
@@ -28,6 +34,15 @@ export type UnidadeSugerida = {
     trecho: string;
     pagina?: number | null;
     bloco?: number | null;
+  }>;
+  medidas_descartadas?: Array<{
+    medida: {
+      campo: string;
+      valor_bruto: string;
+      escala: string;
+      trecho: string;
+    };
+    motivo: string;
   }>;
   regras_aplicadas?: string[];
 };
@@ -40,11 +55,37 @@ type Linha = {
   area_m2: string;
   vagas_garagem: string;
   confianca: "alta" | "media" | "conflito";
+  estado: "lido" | "lido_com_ressalva" | "nao_lido";
+  motivos: string[];
+  trecho_fonte: string;
+  fracao_trecho: string;
+  area_trecho: string;
   medidas: NonNullable<UnidadeSugerida["medidas"]>;
+  medidas_descartadas: NonNullable<UnidadeSugerida["medidas_descartadas"]>;
   regrasAplicadas: string[];
 };
 
 function toLinha(u: UnidadeSugerida): Linha {
+  let estado: "lido" | "lido_com_ressalva" | "nao_lido" = u.estado ?? "lido";
+  if (!u.estado) {
+    if (u.fracao_ideal == null && u.area_m2 == null) {
+      estado = "nao_lido";
+    } else if (u.confianca !== "alta" || (u.medidas_descartadas && u.medidas_descartadas.length > 0)) {
+      estado = "lido_com_ressalva";
+    } else {
+      estado = "lido";
+    }
+  }
+
+  const fracaoTrecho =
+    u.fracao_trecho ||
+    u.medidas?.find((m) => m.campo.includes("fracao") || m.campo.includes("coeficiente"))?.trecho ||
+    "";
+  const areaTrecho =
+    u.area_trecho ||
+    u.medidas?.find((m) => m.campo.includes("area"))?.trecho ||
+    "";
+
   return {
     bloco: u.bloco ?? "",
     numero: u.numero ?? "",
@@ -53,7 +94,13 @@ function toLinha(u: UnidadeSugerida): Linha {
     area_m2: u.area_m2 != null ? String(u.area_m2) : "",
     vagas_garagem: String(u.vagas_garagem ?? 0),
     confianca: u.confianca ?? "media",
+    estado,
+    motivos: u.motivos && u.motivos.length > 0 ? u.motivos : (u.regras_aplicadas ?? []),
+    trecho_fonte: u.trecho_fonte ?? "",
+    fracao_trecho: fracaoTrecho,
+    area_trecho: areaTrecho,
     medidas: u.medidas ?? [],
+    medidas_descartadas: u.medidas_descartadas ?? [],
     regrasAplicadas: u.regras_aplicadas ?? [],
   };
 }
@@ -121,6 +168,17 @@ export function RevisarUnidadesDialog({
   const [saving, setSaving] = useState(false);
   const [estrategia, setEstrategia] = useState<"manter" | "preencher">("preencher");
 
+  const totalNoRol = linhas.length;
+  const totalLidas = linhas.filter((l) => l.estado === "lido").length;
+  const totalComRessalva = linhas.filter((l) => l.estado === "lido_com_ressalva").length;
+  const totalNaoLidas = linhas.filter((l) => l.estado === "nao_lido").length;
+  const somaFracoes = linhas.reduce((acc, l) => {
+    const v = l.fracao_ideal ? parseFloat(l.fracao_ideal.replace(",", ".")) : 0;
+    return acc + (isNaN(v) ? 0 : v);
+  }, 0);
+  const formatarFracaoSoma = (valor: number) =>
+    valor.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 6 });
+
   const chaveExistentes = new Set(
     existentes.map((e) => `${(e.bloco ?? "").trim().toLowerCase()}::${e.numero.trim()}`),
   );
@@ -150,10 +208,50 @@ export function RevisarUnidadesDialog({
         area_m2: "",
         vagas_garagem: "0",
         confianca: "media",
+        estado: "nao_lido",
+        motivos: ["Inserida manualmente"],
+        trecho_fonte: "",
+        fracao_trecho: "",
+        area_trecho: "",
         medidas: [],
+        medidas_descartadas: [],
         regrasAplicadas: [],
       },
     ]);
+  }
+
+  function aceitarMedidaRejeitada(linhaIndex: number, rejIndex: number) {
+    setLinhas((prev) =>
+      prev.map((l, idx) => {
+        if (idx !== linhaIndex) return l;
+        const rej = l.medidas_descartadas[rejIndex];
+        if (!rej) return l;
+
+        const campo = rej.medida.campo.toLowerCase();
+        const numStr = rej.medida.valor_bruto;
+        const patch: Partial<Linha> = {
+          medidas_descartadas: l.medidas_descartadas.filter((_, rIdx) => rIdx !== rejIndex),
+          medidas: [...l.medidas, { ...rej.medida, pagina: null, bloco: null }],
+        };
+
+        if (campo.includes("fracao") || campo.includes("coeficiente")) {
+          patch.fracao_ideal = numStr;
+          patch.fracao_trecho = rej.medida.trecho;
+        } else if (campo.includes("area")) {
+          patch.area_m2 = numStr;
+          patch.area_trecho = rej.medida.trecho;
+        } else if (campo.includes("vaga")) {
+          patch.vagas_garagem = numStr;
+        }
+
+        if (l.estado === "nao_lido") {
+          patch.estado = "lido_com_ressalva";
+        }
+
+        return { ...l, ...patch };
+      }),
+    );
+    toast.success("Medida aceita com sucesso.");
   }
 
   async function confirmar() {
@@ -195,6 +293,23 @@ export function RevisarUnidadesDialog({
             A IA identificou {sugestoes.length} {vocab.unidade.toLowerCase()}(s). Confira, edite ou
             remova antes de importar.
           </DialogDescription>
+          <div className="mt-2 px-3 py-1.5 rounded-md bg-muted/60 border text-xs font-mono font-medium flex flex-wrap items-center gap-1.5 text-foreground">
+            <span className="font-semibold text-primary">{totalNoRol} no rol</span>
+            <span>·</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{totalLidas} lidas</span>
+            <span>·</span>
+            <span className={totalComRessalva > 0 ? "text-amber-700 dark:text-amber-400 font-semibold" : "text-muted-foreground"}>
+              {totalComRessalva} com ressalva
+            </span>
+            <span>·</span>
+            <span className={totalNaoLidas > 0 ? "text-destructive font-semibold" : "text-muted-foreground"}>
+              {totalNaoLidas} não lidas
+            </span>
+            <span>·</span>
+            <span>
+              soma das frações <strong className="font-bold">{formatarFracaoSoma(somaFracoes)}</strong>
+            </span>
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto -mx-6 px-6">
@@ -236,7 +351,7 @@ export function RevisarUnidadesDialog({
 
           {/* Desktop table */}
           <div className="hidden md:block">
-            <div className="grid grid-cols-[80px_100px_140px_120px_100px_80px_40px] gap-2 pb-2 text-xs font-medium text-muted-foreground border-b sticky top-0 bg-background z-10">
+            <div className="grid grid-cols-[80px_90px_130px_140px_120px_70px_40px] gap-2 pb-2 text-xs font-medium text-muted-foreground border-b sticky top-0 bg-background z-10">
               <span>{vocab.bloco}</span>
               <span>{vocab.numero}*</span>
               <span>Tipo</span>
@@ -249,7 +364,7 @@ export function RevisarUnidadesDialog({
               {linhas.map((l, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-[80px_100px_140px_120px_100px_80px_40px] gap-2 py-2 items-center"
+                  className="grid grid-cols-[80px_90px_130px_140px_120px_70px_40px] gap-2 py-2 items-start"
                 >
                   <Input
                     value={l.bloco}
@@ -276,28 +391,48 @@ export function RevisarUnidadesDialog({
                     <option value="vaga_avulsa">Vaga avulsa</option>
                     <option value="outro">Outro</option>
                   </select>
-                  <Input
-                    value={l.fracao_ideal}
-                    onChange={(e) => update(i, { fracao_ideal: e.target.value })}
-                    className={`h-9 ${l.fracao_ideal ? "" : "border-destructive/60 bg-destructive/5"}`}
-                    placeholder="não identificada"
-                    title={
-                      l.fracao_ideal
-                        ? undefined
-                        : "Fração ideal não identificada na convenção — preencha manualmente."
-                    }
-                  />
-                  <Input
-                    value={l.area_m2}
-                    onChange={(e) => update(i, { area_m2: e.target.value })}
-                    className={`h-9 ${l.area_m2 ? "" : "border-destructive/60 bg-destructive/5"}`}
-                    placeholder="não identificada"
-                    title={
-                      l.area_m2
-                        ? undefined
-                        : "Área não identificada na convenção — preencha manualmente."
-                    }
-                  />
+                  <div className="space-y-1">
+                    <Input
+                      value={l.fracao_ideal}
+                      onChange={(e) => update(i, { fracao_ideal: e.target.value })}
+                      className={`h-9 ${l.fracao_ideal ? "" : "border-destructive/60 bg-destructive/5"}`}
+                      placeholder="não identificada"
+                      title={
+                        l.fracao_ideal
+                          ? (l.fracao_trecho ? `Trecho: ${l.fracao_trecho}` : undefined)
+                          : "Fração ideal não identificada na convenção — preencha manualmente."
+                      }
+                    />
+                    {l.fracao_trecho ? (
+                      <span
+                        className="block text-[10px] text-muted-foreground truncate"
+                        title={`Trecho fonte: “${l.fracao_trecho}”`}
+                      >
+                        fonte: “{l.fracao_trecho}”
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="space-y-1">
+                    <Input
+                      value={l.area_m2}
+                      onChange={(e) => update(i, { area_m2: e.target.value })}
+                      className={`h-9 ${l.area_m2 ? "" : "border-destructive/60 bg-destructive/5"}`}
+                      placeholder="não identificada"
+                      title={
+                        l.area_m2
+                          ? (l.area_trecho ? `Trecho: ${l.area_trecho}` : undefined)
+                          : "Área não identificada na convenção — preencha manualmente."
+                      }
+                    />
+                    {l.area_trecho ? (
+                      <span
+                        className="block text-[10px] text-muted-foreground truncate"
+                        title={`Trecho fonte: “${l.area_trecho}”`}
+                      >
+                        fonte: “{l.area_trecho}”
+                      </span>
+                    ) : null}
+                  </div>
                   <Input
                     type="number"
                     min={0}
@@ -309,32 +444,96 @@ export function RevisarUnidadesDialog({
                     size="icon"
                     variant="ghost"
                     onClick={() => remove(i)}
-                    className="text-red-500 hover:text-red-600 transition-colors"
+                    className="text-red-500 hover:text-red-600 transition-colors h-9 w-9"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                  <div className="col-span-7 text-xs text-muted-foreground">
-                    <span
-                      className={
-                        l.confianca === "conflito"
-                          ? "text-destructive"
-                          : l.confianca === "alta"
-                            ? "text-primary"
-                            : "text-amber-600"
-                      }
-                    >
-                      Confiança {l.confianca}
-                    </span>
-                    {l.regrasAplicadas.length > 0 && ` · ${l.regrasAplicadas.join(" · ")}`}
+                  <div className="col-span-7 text-xs space-y-1.5 pt-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                          l.estado === "lido"
+                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                            : l.estado === "lido_com_ressalva"
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                              : "bg-destructive/15 text-destructive"
+                        }`}
+                      >
+                        {l.estado === "lido"
+                          ? "Lida"
+                          : l.estado === "lido_com_ressalva"
+                            ? "Com ressalva"
+                            : "Não lida"}
+                      </span>
+                      <span
+                        className={
+                          l.confianca === "conflito"
+                            ? "text-destructive font-medium"
+                            : l.confianca === "alta"
+                              ? "text-primary font-medium"
+                              : "text-amber-600 font-medium"
+                        }
+                      >
+                        Confiança {l.confianca}
+                      </span>
+                      {l.motivos.length > 0 && (
+                        <span className="text-muted-foreground">
+                          · {l.motivos.join(" · ")}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Trecho para digitação de não lidas */}
+                    {l.trecho_fonte && (l.estado === "nao_lido" || (!l.area_m2 && !l.fracao_ideal)) && (
+                      <div className="p-2 rounded bg-muted/40 border border-border/60 text-xs font-mono">
+                        <span className="font-semibold text-[11px] text-muted-foreground block mb-0.5">
+                          Trecho do registro na convenção (use para digitar os valores acima):
+                        </span>
+                        <p className="whitespace-pre-wrap text-foreground/90 select-all max-h-24 overflow-y-auto">
+                          {l.trecho_fonte}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Medidas rejeitadas */}
+                    {l.medidas_descartadas.length > 0 && (
+                      <div className="space-y-1">
+                        {l.medidas_descartadas.map((rej, rejIdx) => (
+                          <div
+                            key={rejIdx}
+                            className="flex items-center justify-between gap-2 p-1.5 px-2 rounded bg-amber-500/10 border border-amber-500/30 text-xs"
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                              <span className="text-amber-900 dark:text-amber-200">
+                                <strong>rejeitada: {rej.motivo}</strong> ({rej.medida.campo.replaceAll("_", " ")} ={" "}
+                                <code>{rej.medida.valor_bruto}</code>)
+                                {rej.medida.trecho ? ` — “${rej.medida.trecho}”` : ""}
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => aceitarMedidaRejeitada(i, rejIdx)}
+                              className="h-6 px-2 text-[11px] font-medium border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 shrink-0"
+                            >
+                              aceitar mesmo assim
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {l.medidas.length > 0 && (
                       <details className="mt-1">
-                        <summary className="cursor-pointer">
+                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                           Ver {l.medidas.length} medida(s) e fontes
                         </summary>
-                        <ul className="mt-1 space-y-1 border-l pl-3">
+                        <ul className="mt-1 space-y-1 border-l pl-3 text-muted-foreground">
                           {l.medidas.map((m, medidaIndex) => (
                             <li key={`${m.campo}-${medidaIndex}`}>
-                              <strong>{m.campo.replaceAll("_", " ")}:</strong> {m.valor_bruto}
+                              <strong className="text-foreground">{m.campo.replaceAll("_", " ")}:</strong> {m.valor_bruto}
                               {m.pagina ? ` · pág. ${m.pagina}` : ""} — “{m.trecho}”
                             </li>
                           ))}
@@ -352,9 +551,26 @@ export function RevisarUnidadesDialog({
             {linhas.map((l, i) => (
               <div key={i} className="border rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {vocab.unidade} #{i + 1}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold">
+                      {vocab.unidade} #{i + 1}
+                    </span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        l.estado === "lido"
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                          : l.estado === "lido_com_ressalva"
+                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                            : "bg-destructive/15 text-destructive"
+                      }`}
+                    >
+                      {l.estado === "lido"
+                        ? "Lida"
+                        : l.estado === "lido_com_ressalva"
+                          ? "Com ressalva"
+                          : "Não lida"}
+                    </span>
+                  </div>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -404,18 +620,36 @@ export function RevisarUnidadesDialog({
                     <Input
                       value={l.fracao_ideal}
                       onChange={(e) => update(i, { fracao_ideal: e.target.value })}
-                      className="h-9"
+                      className={`h-9 ${l.fracao_ideal ? "" : "border-destructive/60 bg-destructive/5"}`}
+                      placeholder="não identificada"
                     />
+                    {l.fracao_trecho ? (
+                      <span
+                        className="block text-[10px] text-muted-foreground truncate mt-0.5"
+                        title={`Trecho fonte: “${l.fracao_trecho}”`}
+                      >
+                        fonte: “{l.fracao_trecho}”
+                      </span>
+                    ) : null}
                   </div>
                   <div>
                     <Label className="text-xs">Área m²</Label>
                     <Input
                       value={l.area_m2}
                       onChange={(e) => update(i, { area_m2: e.target.value })}
-                      className="h-9"
+                      className={`h-9 ${l.area_m2 ? "" : "border-destructive/60 bg-destructive/5"}`}
+                      placeholder="não identificada"
                     />
+                    {l.area_trecho ? (
+                      <span
+                        className="block text-[10px] text-muted-foreground truncate mt-0.5"
+                        title={`Trecho fonte: “${l.area_trecho}”`}
+                      >
+                        fonte: “{l.area_trecho}”
+                      </span>
+                    ) : null}
                   </div>
-                  <div>
+                  <div className="col-span-2">
                     <Label className="text-xs">Vagas</Label>
                     <Input
                       type="number"
@@ -426,6 +660,54 @@ export function RevisarUnidadesDialog({
                     />
                   </div>
                 </div>
+
+                {l.motivos.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Motivo: {l.motivos.join(" · ")}
+                  </p>
+                )}
+
+                {/* Trecho para digitação de não lidas no mobile */}
+                {l.trecho_fonte && (l.estado === "nao_lido" || (!l.area_m2 && !l.fracao_ideal)) && (
+                  <div className="p-2 rounded bg-muted/40 border border-border/60 text-xs font-mono">
+                    <span className="font-semibold text-[11px] text-muted-foreground block mb-0.5">
+                      Trecho do registro na convenção:
+                    </span>
+                    <p className="whitespace-pre-wrap text-foreground/90 select-all max-h-24 overflow-y-auto">
+                      {l.trecho_fonte}
+                    </p>
+                  </div>
+                )}
+
+                {/* Medidas rejeitadas no mobile */}
+                {l.medidas_descartadas.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    {l.medidas_descartadas.map((rej, rejIdx) => (
+                      <div
+                        key={rejIdx}
+                        className="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-xs space-y-1.5"
+                      >
+                        <div className="flex items-start gap-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                          <span className="text-amber-900 dark:text-amber-200">
+                            <strong>rejeitada: {rej.motivo}</strong> ({rej.medida.campo.replaceAll("_", " ")} ={" "}
+                            <code>{rej.medida.valor_bruto}</code>)
+                            {rej.medida.trecho ? ` — “${rej.medida.trecho}”` : ""}
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => aceitarMedidaRejeitada(i, rejIdx)}
+                          className="w-full h-7 text-xs font-medium border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50"
+                        >
+                          aceitar mesmo assim
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

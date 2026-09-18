@@ -3452,6 +3452,72 @@ export type Database = {
           },
         ]
       }
+      documento_registros: {
+        Row: {
+          ancora: string | null
+          condominio_id: string
+          created_at: string
+          documento_id: string
+          escopo: string | null
+          id: string
+          numero: string
+          offset_fim: number | null
+          offset_inicio: number | null
+          padrao_ancora: string | null
+          pagina: number | null
+          registro_id: string
+          sufixo: string | null
+          texto: string
+        }
+        Insert: {
+          ancora?: string | null
+          condominio_id: string
+          created_at?: string
+          documento_id: string
+          escopo?: string | null
+          id?: string
+          numero: string
+          offset_fim?: number | null
+          offset_inicio?: number | null
+          padrao_ancora?: string | null
+          pagina?: number | null
+          registro_id: string
+          sufixo?: string | null
+          texto: string
+        }
+        Update: {
+          ancora?: string | null
+          condominio_id?: string
+          created_at?: string
+          documento_id?: string
+          escopo?: string | null
+          id?: string
+          numero?: string
+          offset_fim?: number | null
+          offset_inicio?: number | null
+          padrao_ancora?: string | null
+          pagina?: number | null
+          registro_id?: string
+          sufixo?: string | null
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_registros_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_registros_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -3615,6 +3681,72 @@ export type Database = {
           versao_prompt?: string
         }
         Relationships: []
+      }
+      extracao_ledger: {
+        Row: {
+          condominio_id: string
+          created_at: string
+          documento_id: string
+          escopo: string | null
+          estado: "lido" | "lido_com_ressalva" | "nao_lido"
+          id: string
+          medidas: Json
+          medidas_rejeitadas: Json
+          motivos: Json
+          numero: string
+          origem: "rotulo" | "ia" | "manual" | "ausente"
+          registro_id: string | null
+          trecho_fonte: string | null
+          updated_at: string
+        }
+        Insert: {
+          condominio_id: string
+          created_at?: string
+          documento_id: string
+          escopo?: string | null
+          estado: "lido" | "lido_com_ressalva" | "nao_lido"
+          id?: string
+          medidas?: Json
+          medidas_rejeitadas?: Json
+          motivos?: Json
+          numero: string
+          origem?: "rotulo" | "ia" | "manual" | "ausente"
+          registro_id?: string | null
+          trecho_fonte?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condominio_id?: string
+          created_at?: string
+          documento_id?: string
+          escopo?: string | null
+          estado?: "lido" | "lido_com_ressalva" | "nao_lido"
+          id?: string
+          medidas?: Json
+          medidas_rejeitadas?: Json
+          motivos?: Json
+          numero?: string
+          origem?: "rotulo" | "ia" | "manual" | "ausente"
+          registro_id?: string | null
+          trecho_fonte?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extracao_ledger_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extracao_ledger_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       helpdesk_mensagens: {
         Row: {
