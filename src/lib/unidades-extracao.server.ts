@@ -225,9 +225,24 @@ export type DiagnosticoExtracao = {
     detectada: string;
     mensagem?: string;
   } | null;
+  lotes_pendentes?: Array<{ lote: number; motivo: string; texto?: string }>;
 };
 
+export class ErroTimeoutIA extends Error {
+  timeoutMs: number;
+  constructor(timeoutMs: number, message?: string) {
+    super(message ?? `A chamada à IA excedeu o tempo limite de ${timeoutMs}ms.`);
+    this.name = "ErroTimeoutIA";
+    this.timeoutMs = timeoutMs;
+  }
+}
 
+export class ErroTruncadoIA extends Error {
+  constructor(message = "A resposta da IA foi truncada; o lote será dividido em partes menores.") {
+    super(message);
+    this.name = "ErroTruncadoIA";
+  }
+}
 
 type ChunkRow = {
   id: string;
@@ -257,7 +272,7 @@ import segmentadorRaw from "./extracao/segmentador?raw";
 import rotulosRaw from "./extracao/rotulos?raw";
 
 const MODELO = "google/gemini-2.5-flash";
-const TAMANHO_LOTE = 25_000;
+const TAMANHO_LOTE = 8_000;
 const CONCORRENCIA = 6;
 const MAX_TENTATIVAS = 3;
 
@@ -350,13 +365,15 @@ export async function chamarIaJson(
   apiKey: string,
   systemPrompt: string,
   userPrompt: string,
+  opts: { timeoutMs?: number } = {},
 ): Promise<ChamadaIA> {
+  const timeoutMs = opts.timeoutMs ?? 30_000;
   let ultimaMensagem = "Falha na comunicação com a IA.";
   for (let tentativa = 0; tentativa < MAX_TENTATIVAS; tentativa++) {
     let response: Response;
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 90_000);
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
         response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -379,6 +396,12 @@ export async function chamarIaJson(
         clearTimeout(timer);
       }
     } catch (error) {
+      const isAbort =
+        (error instanceof Error && (error.name === "AbortError" || /abort|timeout|timed out/i.test(error.message))) ||
+        (typeof DOMException !== "undefined" && error instanceof DOMException && error.name === "AbortError");
+      if (isAbort) {
+        throw new ErroTimeoutIA(timeoutMs);
+      }
       ultimaMensagem = error instanceof Error ? error.message : ultimaMensagem;
       if (tentativa === MAX_TENTATIVAS - 1) {
         throw new Error(`A leitura foi interrompida temporariamente: ${ultimaMensagem}`);
@@ -413,7 +436,7 @@ export async function chamarIaJson(
     };
     const choice = json.choices?.[0];
     if (choice?.finish_reason === "length") {
-      throw new Error("A resposta da IA foi truncada; o documento será relido em lotes menores.");
+      throw new ErroTruncadoIA();
     }
     const raw = choice?.message?.content?.trim() ?? "";
     if (!raw) throw new Error("A IA devolveu uma resposta vazia.");
@@ -440,7 +463,45 @@ export async function chamarIaJson(
       aigRunId,
     };
   }
-  throw new Error(ultimaMensagem);
+
+  throw new Error(`A leitura foi interrompida temporariamente: ${ultimaMensagem}`);
+}
+
+export function dividirTextoAoMeio(texto: string, tamanhoMinimo = 2_000): [string, string] | null {
+  if (texto.length <= tamanhoMinimo) return null;
+  const meio = Math.floor(texto.length / 2);
+  const anterior = texto.lastIndexOf("\n", meio);
+  const proxima = texto.indexOf("\n", meio);
+
+  let pontoCorte = -1;
+  if (anterior !== -1 && proxima !== -1) {
+    pontoCorte = (meio - anterior <= proxima - meio) ? anterior : proxima;
+  } else if (anterior !== -1) {
+    pontoCorte = anterior;
+  } else if (proxima !== -1) {
+    pontoCorte = proxima;
+  }
+
+  if (pontoCorte <= 0 || pontoCorte >= texto.length - 1) {
+    const espacoAnt = texto.lastIndexOf(" ", meio);
+    const espacoProx = texto.indexOf(" ", meio);
+    if (espacoAnt !== -1 && espacoProx !== -1) {
+      pontoCorte = (meio - espacoAnt <= espacoProx - meio) ? espacoAnt : espacoProx;
+    } else if (espacoAnt !== -1) {
+      pontoCorte = espacoAnt;
+    } else if (espacoProx !== -1) {
+      pontoCorte = espacoProx;
+    }
+  }
+
+  if (pontoCorte <= 0 || pontoCorte >= texto.length - 1) {
+    return null;
+  }
+
+  const parte1 = texto.slice(0, pontoCorte).trim();
+  const parte2 = texto.slice(pontoCorte + 1).trim();
+  if (parte1.length === 0 || parte2.length === 0) return null;
+  return [parte1, parte2];
 }
 
 function ordenarChunks(chunks: ChunkRow[]) {
@@ -1458,10 +1519,12 @@ export type ResultadoRodadaExtracao = {
   etapa: string;
   total: number;
   concluidos: number;
-  estado: "processando" | "pronto" | "falhou";
+  estado: "processando" | "pronto" | "falhou" | "pronto_com_pendencias";
   aviso?: string | null;
-  erro?: string;
+  erro?: string | null;
   unidades?: UnidadeExtraida[];
+  mensagem?: string | null;
+  lotes_pendentes?: Array<{ lote: number; motivo: string; texto?: string }>;
 };
 
 export async function processarExtracaoRodada(
@@ -1473,8 +1536,11 @@ export async function processarExtracaoRodada(
     paginaInicio?: number;
     paginaFim?: number;
     orcamentoMs?: number;
+    chamarIa?: typeof chamarIaJson;
+    somenteLotesPendentes?: boolean;
   } = {},
 ): Promise<ResultadoRodadaExtracao> {
+  const chamarIaEfetivo = opts.chamarIa ?? chamarIaJson;
   const { data: doc, error } = await supabase
     .from("documentos")
     .select("id, condominio_id, nome_arquivo, status_processamento")
@@ -1507,7 +1573,46 @@ export async function processarExtracaoRodada(
 
   let job = jobDb;
 
-  if (opts.reiniciar || !job || job.estado === "pronto" || job.estado === "falhou") {
+  // Reprocessamento exclusivo dos lotes pendentes
+  if (opts.somenteLotesPendentes && job?.metadata) {
+    const metaExistente = job.metadata as Record<string, unknown>;
+    const pendentes = (metaExistente.lotesPendentes as Array<{ lote: number; motivo: string; texto?: string }>) ?? [];
+    if (pendentes.length > 0) {
+      const novosLotes: Lote[] = pendentes.map((p, idx) => ({
+        numero: idx + 1,
+        texto: p.texto ?? "",
+      }));
+      const metaAtualizada = {
+        ...metaExistente,
+        lotes: novosLotes,
+        cursorLote: 0,
+        lotesComErro: 0,
+        lotesPendentes: [],
+      };
+      await supabase
+        .from("extracao_jobs")
+        .update({
+          etapa: "leitura_ia",
+          total: novosLotes.length,
+          concluidos: 0,
+          estado: "processando",
+          erro: null,
+          metadata: metaAtualizada,
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq("documento_id", doc.id);
+
+      job = {
+        ...job,
+        etapa: "leitura_ia",
+        total: novosLotes.length,
+        concluidos: 0,
+        estado: "processando",
+        erro: null,
+        metadata: metaAtualizada,
+      };
+    }
+  } else if (opts.reiniciar || !job || job.estado === "pronto" || job.estado === "falhou" || job.estado === "pronto_com_pendencias") {
     const { data: novoJob, error: novoErr } = await supabase
       .from("extracao_jobs")
       .upsert(
@@ -1538,38 +1643,12 @@ export async function processarExtracaoRodada(
       let { paginas, textoIntegral } = carregamento;
       const { fonte: fonteUsada, totalPaginas, totalCaracteres } = carregamento;
 
-      // LLM Router se doc > 5 páginas e sem filtro manual
+      // Filtro manual de páginas, sem chamada de IA de roteamento
       if (opts.paginaInicio || opts.paginaFim) {
         const inicioFiltro = opts.paginaInicio || 1;
         const fimFiltro = opts.paginaFim || 99999;
         paginas = paginas.filter((p) => p.numero <= fimFiltro && p.numero >= inicioFiltro);
         textoIntegral = paginas.map((p) => p.texto).join("\n");
-      } else if (paginas.length > 5) {
-        try {
-          const textoCompleto = paginas
-            .map((p) => `[Página ${p.numero}]\n${p.texto}`)
-            .join("\n---\n");
-          const textoResumido = textoCompleto.slice(0, 200000);
-
-          const routerPrompt = `Você é um classificador estrutural de convenções de condomínio.
-Analise o documento abaixo e identifique em quais páginas encontra-se o Quadro de Áreas, a Tabela de Frações Ideais, ou a descrição textual que contenha as METRAGENS e FRAÇÕES das unidades.
-ATENÇÃO: Ignore páginas que apenas listam os números das unidades (como sumários, índices, regulamentos ou seções de "posição/situação") sem informar suas áreas. Seja cirúrgico.
-Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encontrar nada claro, retorne { "paginas": [] }.`;
-
-          const routerRes = await chamarIaJson(apiKey, "Você é um analista.", routerPrompt + "\n\n" + textoResumido);
-          const parsedRouter = routerRes.data as { paginas?: number[] };
-
-          if (Array.isArray(parsedRouter.paginas) && parsedRouter.paginas.length > 0) {
-            const paginasFiltro = new Set(parsedRouter.paginas);
-            const filtered = paginas.filter((p) => paginasFiltro.has(p.numero));
-            if (filtered.length > 0) {
-              paginas = filtered;
-              textoIntegral = paginas.map((p) => p.texto).join("\n");
-            }
-          }
-        } catch (e) {
-          console.error("Erro no LLM Router, prosseguindo com todas as páginas", e);
-        }
       }
 
       await supabase
@@ -2007,6 +2086,8 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       let tokensOutput = (meta.tokensOutput as number) ?? 0;
       let chamadasIa = (meta.chamadasIa as number) ?? 0;
       let chamadasCache = (meta.chamadasCache as number) ?? 0;
+      let lotesComErro = (meta.lotesComErro as number) ?? 0;
+      const lotesPendentes = (meta.lotesPendentes as Array<{ lote: number; motivo: string; texto?: string }>) ?? [];
       const tipologiaDetectada = (meta.tipologiaDetectada as string) ?? "predio";
 
       const categoria = getCategoriaMeta(tipologiaDetectada);
@@ -2017,42 +2098,84 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
 
       const startMs = Date.now();
       const budgetMs = opts.orcamentoMs ?? 18_000;
-      const maxLotesNestaRodada = 2;
-      let processadosNestaRodada = 0;
+      let mensagemStatus: string | null = null;
 
-      while (cursor < lotes.length && processadosNestaRodada < maxLotesNestaRodada && Date.now() - startMs < budgetMs) {
-        const lote = lotes[cursor];
-        const hash = await hashLote(lote.texto);
-        const cacheado = await lerCacheExtracao(supabase, hash);
-        let bruto: unknown;
-        if (cacheado) {
-          chamadasCache++;
-          bruto = cacheado;
-        } else {
-          chamadasIa++;
-          const chamada = await chamarIaJson(
-            apiKey,
-            system,
-            `Arquivo: ${doc.nome_arquivo}\nLote ${cursor + 1}/${lotes.length}:\n${lote.texto}`,
-          );
-          tokensInput += chamada.usage.prompt_tokens;
-          tokensOutput += chamada.usage.completion_tokens;
-          await gravarCacheExtracao(supabase, hash, chamada.data);
-          bruto = chamada.data;
+      while (cursor < lotes.length) {
+        const tempoDecorrido = Date.now() - startMs;
+        const restante = budgetMs - tempoDecorrido;
+
+        // Se restante < 5.000, encerre a rodada e devolva o job para a próxima (sem erro)
+        if (restante < 5_000) {
+          break;
         }
 
-        const parsed = bruto as { unidades?: unknown[] };
-        if (Array.isArray(parsed.unidades)) {
-          for (const u of parsed.unidades) {
-            const r = UnidadeExtraidaSchema.safeParse(u);
-            if (r.success) {
-              candidatas.push(r.data);
+        const timeoutMs = Math.min(30_000, restante);
+        const lote = lotes[cursor];
+        mensagemStatus = `Lendo o trecho ${cursor + 1} de ${lotes.length}…`;
+
+        try {
+          const hash = await hashLote(lote.texto);
+          const cacheado = await lerCacheExtracao(supabase, hash);
+          let bruto: unknown;
+          if (cacheado) {
+            chamadasCache++;
+            bruto = cacheado;
+          } else {
+            chamadasIa++;
+            const chamada = await chamarIaEfetivo(
+              apiKey,
+              system,
+              `Arquivo: ${doc.nome_arquivo}\nLote ${cursor + 1}/${lotes.length}:\n${lote.texto}`,
+              { timeoutMs },
+            );
+            tokensInput += chamada.usage.prompt_tokens;
+            tokensOutput += chamada.usage.completion_tokens;
+            await gravarCacheExtracao(supabase, hash, chamada.data);
+            bruto = chamada.data;
+          }
+
+          const parsed = bruto as { unidades?: unknown[] };
+          if (Array.isArray(parsed.unidades)) {
+            for (const u of parsed.unidades) {
+              const r = UnidadeExtraidaSchema.safeParse(u);
+              if (r.success) {
+                candidatas.push(r.data);
+              }
             }
           }
-        }
 
-        cursor++;
-        processadosNestaRodada++;
+          cursor++;
+        } catch (err: unknown) {
+          const isTimeoutOrLength =
+            err instanceof ErroTimeoutIA ||
+            err instanceof ErroTruncadoIA ||
+            (err instanceof Error && /timeout|tempo limite|truncad/i.test(err.message));
+
+          if (isTimeoutOrLength) {
+            const partes = dividirTextoAoMeio(lote.texto, 2_000);
+            if (partes) {
+              const [p1, p2] = partes;
+              lotes.splice(
+                cursor,
+                1,
+                { ...lote, id: `${lote.id || `lote-${cursor}`}-a`, texto: p1 },
+                { ...lote, id: `${lote.id || `lote-${cursor}`}-b`, texto: p2 },
+              );
+              mensagemStatus = `O trecho ${cursor + 1} excedeu o tempo e foi dividido automaticamente.`;
+              continue;
+            }
+          }
+
+          // Lote indivisível ou outro erro isolado
+          const motivo = err instanceof Error ? err.message : String(err);
+          lotesComErro++;
+          lotesPendentes.push({
+            lote: cursor + 1,
+            motivo,
+            texto: lote.texto,
+          });
+          cursor++;
+        }
       }
 
       const concluidoLotes = cursor >= lotes.length;
@@ -2067,12 +2190,16 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
           estado: "processando",
           metadata: {
             ...meta,
+            lotes,
             cursorLote: cursor,
             candidatas,
             tokensInput,
             tokensOutput,
             chamadasIa,
             chamadasCache,
+            lotesComErro,
+            lotesPendentes,
+            mensagemStatus,
           },
           atualizado_em: new Date().toISOString(),
         })
@@ -2086,6 +2213,7 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
           total: lotes.length,
           concluidos: cursor,
           estado: "processando",
+          mensagem: mensagemStatus ?? `Lendo lotes com IA (${cursor}/${lotes.length})`,
         };
       }
     }
@@ -2107,6 +2235,8 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
     const chamadasCache = (metaAtual.chamadasCache as number) ?? 0;
     const lotes = (metaAtual.lotes as Lote[]) ?? [];
     const linhasLidasQuadroIds = new Set((metaAtual.linhasLidasQuadroIds as string[]) ?? []);
+    const lotesComErro = (metaAtual.lotesComErro as number) ?? 0;
+    const lotesPendentes = (metaAtual.lotesPendentes as Array<{ lote: number; motivo: string; texto?: string }>) ?? [];
 
     const chunks: ChunkRow[] = paginas.map((p, idx) => ({
       id: `pag-${p.numero}`,
@@ -2163,7 +2293,8 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       linhas_do_quadro: linhasLidasQuadroIds.size,
       total_lotes: lotes.length,
       lotes_processados: lotes.length,
-      lotes_com_erro: 0,
+      lotes_com_erro: lotesComErro,
+      lotes_pendentes: lotesPendentes,
       chamadas_ia: chamadasIa,
       chamadas_em_cache: chamadasCache,
       erros: [],
@@ -2214,14 +2345,24 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       registros,
     });
 
+    const temPendenciasLotes = lotesPendentes.length > 0;
+    const estadoFinal: "pronto" | "pronto_com_pendencias" = temPendenciasLotes
+      ? "pronto_com_pendencias"
+      : "pronto";
+
+    const totalLidos = lotes.length - lotesPendentes.length;
+    const mensagemFinal = temPendenciasLotes
+      ? `${totalLidos} de ${lotes.length} trechos lidos. ${lotesPendentes.length} não puderam ser lidos — Reler trechos pendentes.`
+      : null;
+
     await supabase
       .from("extracao_jobs")
       .update({
         etapa: "concluido",
         total: lotes.length || 4,
         concluidos: lotes.length || 4,
-        estado: "pronto",
-        erro: null,
+        estado: estadoFinal,
+        erro: mensagemFinal,
         atualizado_em: new Date().toISOString(),
       })
       .eq("documento_id", doc.id);
@@ -2232,8 +2373,10 @@ Responda EXCLUSIVAMENTE no formato JSON: { "paginas": [1, 2, 3] }. Se não encon
       etapa: "concluido",
       total: lotes.length || 4,
       concluidos: lotes.length || 4,
-      estado: "pronto",
+      estado: estadoFinal,
       unidades: unidadesFinais,
+      mensagem: mensagemFinal,
+      lotes_pendentes: temPendenciasLotes ? lotesPendentes : undefined,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

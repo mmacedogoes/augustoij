@@ -357,6 +357,7 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
       paginaInicio?: number;
       paginaFim?: number;
       reiniciar?: boolean;
+      somenteLotesPendentes?: boolean;
     }) =>
       z
         .object({
@@ -365,6 +366,7 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
           paginaInicio: z.number().int().positive().optional(),
           paginaFim: z.number().int().positive().optional(),
           reiniciar: z.boolean().optional(),
+          somenteLotesPendentes: z.boolean().optional(),
         })
         .parse(input),
   )
@@ -409,6 +411,7 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
           reiniciar: data.reiniciar,
           paginaInicio: data.paginaInicio,
           paginaFim: data.paginaFim,
+          somenteLotesPendentes: data.somenteLotesPendentes,
         });
 
         if (!rodada.concluido) {
@@ -422,12 +425,13 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
             unidades: rodada.unidades ?? [],
             modo: "indice_completo",
             chunks: rodada.total,
+            mensagem: rodada.mensagem,
           };
         }
 
         if ((rodada.unidades?.length ?? 0) > 0) {
           return {
-            status: "gerada" as const,
+            status: rodada.estado === "pronto_com_pendencias" ? ("pronto_com_pendencias" as const) : ("gerada" as const),
             concluido: true,
             documentoId: doc.id,
             unidades: rodada.unidades!,
@@ -436,6 +440,8 @@ export const reprocessarConvencao = createServerFn({ method: "POST" })
             etapa: rodada.etapa,
             total: rodada.total,
             concluidos: rodada.concluidos,
+            mensagem: rodada.mensagem,
+            lotes_pendentes: rodada.lotes_pendentes,
           };
         }
       } catch (err: unknown) {

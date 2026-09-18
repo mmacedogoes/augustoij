@@ -251,6 +251,7 @@ export function UnidadesPanel({
                 unidades_pendentes_revisao?: number;
                 escala_fracao?: string | null;
                 somas_hipoteses?: Record<string, number>;
+                lotes_pendentes?: Array<{ lote: number; motivo: string; texto?: string }>;
               };
             };
           }[]) ?? [];
@@ -267,11 +268,14 @@ export function UnidadesPanel({
   const [paginaFim, setPaginaFim] = useState("");
   const [progresso, setProgresso] = useState<string | null>(null);
 
-  async function reprocessar() {
+  async function reprocessar(optsReprocessar: { somenteLotesPendentes?: boolean } = {}) {
     setOpenReprocessDialog(false);
     setReprocessando(true);
-    setProgresso("Iniciando extração da convenção…");
-    const t = toast.loading("Iniciando extração da convenção…");
+    const msgInicial = optsReprocessar.somenteLotesPendentes
+      ? "Relendo trechos pendentes da convenção…"
+      : "Iniciando extração da convenção…";
+    setProgresso(msgInicial);
+    const t = toast.loading(msgInicial);
     try {
       const pInicio = paginaInicio ? parseInt(paginaInicio, 10) : undefined;
       const pFim = paginaFim ? parseInt(paginaFim, 10) : undefined;
@@ -281,7 +285,8 @@ export function UnidadesPanel({
           condominioId,
           paginaInicio: pInicio,
           paginaFim: pFim,
-          reiniciar: true,
+          reiniciar: !optsReprocessar.somenteLotesPendentes,
+          somenteLotesPendentes: optsReprocessar.somenteLotesPendentes,
         } 
       })) as any;
 
@@ -296,7 +301,7 @@ export function UnidadesPanel({
 
         const etapaRotulo =
           r.etapa === "carregamento_e_roteamento"
-            ? "Carregando e roteando páginas"
+            ? "Carregando páginas"
             : r.etapa === "segmentacao_e_descritiva"
               ? "Segmentando registros e analisando frações"
               : r.etapa === "leitura_ia"
@@ -305,7 +310,7 @@ export function UnidadesPanel({
                   ? "Gravando ledger e registros"
                   : `Etapa: ${r.etapa}`;
 
-        const msgProgresso = `${etapaRotulo}…`;
+        const msgProgresso = r.mensagem || `${etapaRotulo}…`;
         setProgresso(msgProgresso);
         toast.loading(msgProgresso, { id: t });
 
@@ -315,6 +320,7 @@ export function UnidadesPanel({
             paginaInicio: pInicio,
             paginaFim: pFim,
             reiniciar: false,
+            somenteLotesPendentes: optsReprocessar.somenteLotesPendentes,
           },
         })) as any;
 
@@ -353,6 +359,15 @@ export function UnidadesPanel({
         case "sem_unidades":
           toast.warning(
             `Convenção reprocessada, mas a IA não localizou uma lista de ${vocab.unidade.toLowerCase()}s. Confirme se o arquivo enviado é a convenção completa (com quadro de frações/anexos).`,
+          );
+          refresh();
+          break;
+        case "pronto_com_pendencias":
+          setErroExtracao(null);
+          toast.warning(
+            r.mensagem ??
+              `${r.unidades?.length ?? 0} ${vocab.unidade.toLowerCase()}(s) lida(s), mas alguns trechos não puderam ser lidos.`,
+            { duration: 8000 },
           );
           refresh();
           break;
@@ -522,9 +537,29 @@ export function UnidadesPanel({
                     conferencias={sugestao.payload.diagnostico.conferencias}
                     naoLidas={sugestao.payload.diagnostico.linhas_nao_lidas}
                     orfas={sugestao.payload.diagnostico.orfas}
-
                   />
                 )}
+                {sugestao.payload.diagnostico?.lotes_pendentes &&
+                  sugestao.payload.diagnostico.lotes_pendentes.length > 0 && (
+                    <div className="mt-2.5 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-100">
+                      <div className="flex items-center gap-1.5">
+                        <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>
+                          {sugestao.payload.diagnostico.lotes_pendentes.length} trecho(s) não puderam ser lidos e estão pendentes.
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={reprocessando}
+                        className="h-7 text-xs border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 font-medium"
+                        onClick={() => reprocessar({ somenteLotesPendentes: true })}
+                      >
+                        {reprocessando && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                        Reler trechos pendentes
+                      </Button>
+                    </div>
+                  )}
                 {sugestao.payload.diagnostico?.tipologia_divergente && (
                   <div className="mt-2.5 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-100">
                     <div className="flex items-center gap-1.5">

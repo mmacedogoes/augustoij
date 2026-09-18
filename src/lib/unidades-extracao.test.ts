@@ -9,6 +9,10 @@ import {
   normalizarParaCadastro,
   trechoContemIdentidade,
   validarCoberturaExtracao,
+  processarExtracaoRodada,
+  ErroTimeoutIA,
+  ErroTruncadoIA,
+  dividirTextoAoMeio,
   type UnidadeExtraida,
   type DiagnosticoExtracao,
 } from "./unidades-extracao.server";
@@ -391,5 +395,411 @@ describe("Regressão Teste 3 — Loteamento 761 lotes e matriz de redações", (
     expect(apto101?.area_privativa).toBe(75.90);
     expect(apto101?.fracao_ideal).toBeCloseTo(0.033395, 6);
   });
-
 });
+
+function createMockSupabase(initial: {
+  doc?: any;
+  condominio?: any;
+  job?: any;
+  chunks?: any[];
+  storageMd?: string;
+}) {
+  let currentJob = initial.job ? JSON.parse(JSON.stringify(initial.job)) : null;
+  const db: Record<string, any[]> = {
+    documentos: initial.doc ? [initial.doc] : [],
+    condominios: initial.condominio ? [initial.condominio] : [],
+    unidades: [],
+    extracao_jobs: currentJob ? [currentJob] : [],
+    extracao_cache: [],
+    document_chunks: initial.chunks ?? [],
+    sugestoes_unidades: [],
+    extracao_diagnosticos: [],
+    extracao_ledger: [],
+  };
+
+  const client: any = {
+    from: (table: string) => {
+      const filters: Record<string, any> = {};
+      let updates: any = null;
+      let rangeStart = 0;
+      let rangeEnd = 99999;
+
+      const chain: any = {
+        select: () => chain,
+        order: () => chain,
+        range: (start: number, end: number) => {
+          rangeStart = start;
+          rangeEnd = end;
+          return chain;
+        },
+        eq: (col: string, val: any) => {
+          filters[col] = val;
+          return chain;
+        },
+        in: () => chain,
+        maybeSingle: async () => {
+          const rows = db[table] || [];
+          const found = rows.find((r) =>
+            Object.entries(filters).every(([k, v]) => r[k] === v),
+          );
+          return { data: found ? JSON.parse(JSON.stringify(found)) : null, error: null };
+        },
+        single: async () => {
+          const rows = db[table] || [];
+          const found = rows.find((r) =>
+            Object.entries(filters).every(([k, v]) => r[k] === v),
+          );
+          if (!found) return { data: null, error: { message: "Not found" } };
+          return { data: JSON.parse(JSON.stringify(found)), error: null };
+        },
+        then: (resolve: any) => {
+          const rows = db[table] || [];
+          const filtered = rows.filter((r) =>
+            Object.entries(filters).every(([k, v]) => r[k] === v),
+          );
+          return Promise.resolve({
+            data: JSON.parse(JSON.stringify(filtered.slice(rangeStart, rangeEnd + 1))),
+            error: null,
+          }).then(resolve);
+        },
+        update: (values: any) => {
+          updates = values;
+          return {
+            eq: async (col: string, val: any) => {
+              const rows = db[table] || [];
+              for (const row of rows) {
+                if (row[col] === val) {
+                  Object.assign(row, JSON.parse(JSON.stringify(updates)));
+                  if (table === "extracao_jobs") {
+                    currentJob = JSON.parse(JSON.stringify(row));
+                  }
+                }
+              }
+              return { data: null, error: null };
+            },
+          };
+        },
+        upsert: async (values: any) => {
+          const rows = db[table] || [];
+          const docId = values.documento_id ?? values.id;
+          const idx = rows.findIndex((r) => (r.documento_id ?? r.id) === docId);
+          if (idx >= 0) {
+            rows[idx] = { ...rows[idx], ...JSON.parse(JSON.stringify(values)) };
+            if (table === "extracao_jobs") currentJob = JSON.parse(JSON.stringify(rows[idx]));
+          } else {
+            const copy = JSON.parse(JSON.stringify(values));
+            rows.push(copy);
+            if (table === "extracao_jobs") currentJob = copy;
+          }
+          return { data: values, error: null };
+        },
+        insert: async (values: any) => {
+          const rows = db[table] || [];
+          if (Array.isArray(values)) rows.push(...JSON.parse(JSON.stringify(values)));
+          else rows.push(JSON.parse(JSON.stringify(values)));
+          return { data: values, error: null };
+        },
+        delete: () => {
+          return {
+            eq: () => ({
+              in: async () => ({ data: null, error: null }),
+            }),
+          };
+        },
+      };
+      return chain;
+    },
+    storage: {
+      from: () => ({
+        download: async () => {
+          if (initial.storageMd) {
+            return {
+              data: {
+                text: async () => initial.storageMd,
+              },
+              error: null,
+            };
+          }
+          return { data: null, error: { message: "Storage file not found" } };
+        },
+      }),
+    },
+    getCurrentJob: () => currentJob,
+  };
+
+  return client;
+}
+
+describe("Regressão - Isolamento de Lotes, Timeout e Orçamento", () => {
+  it("a) um lote que estoura não derruba a leitura", async () => {
+    const mockDoc = { id: "doc-1", condominio_id: "cond-1", nome_arquivo: "conv.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 4, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-1",
+      etapa: "leitura_ia",
+      total: 4,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {
+        paginas: [{ numero: 1, texto: "pagina 1" }],
+        lotes: [
+          { id: "lote-1", texto: "Unidade 101 área 50m2" },
+          { id: "lote-2", texto: "Unidade com erro irrevogável" }, // < 2000 caracteres, não divisível
+          { id: "lote-3", texto: "Unidade 103 área 52m2" },
+          { id: "lote-4", texto: "Unidade 104 área 53m2" },
+        ],
+        cursorLote: 0,
+        candidatas: [],
+        tokensInput: 0,
+        tokensOutput: 0,
+        chamadasIa: 0,
+        chamadasCache: 0,
+        lotesComErro: 0,
+        lotesPendentes: [],
+        tipologiaDetectada: "predio",
+        linhasLidasQuadroIds: [],
+      },
+    };
+
+    const supabase = createMockSupabase({ doc: mockDoc, condominio: mockCond, job: mockJob });
+    const chamadasFeitas: string[] = [];
+
+    const mockChamarIa = async (_apiKey: string, _system: string, userPrompt: string) => {
+      chamadasFeitas.push(userPrompt);
+      if (userPrompt.includes("Lote 2/4")) {
+        throw new ErroTimeoutIA(30000, "Timeout simulado no lote 2");
+      }
+      const match = userPrompt.match(/Unidade (\d+)/);
+      const num = match ? match[1] : "100";
+      return {
+        data: {
+          unidades: [
+            {
+              numero: num,
+              tipo: "apartamento",
+              medidas: [
+                {
+                  campo: "area_privativa",
+                  valor_bruto: "50,00",
+                  escala: "m2",
+                  trecho: `Unidade ${num} área 50m2`,
+                },
+              ],
+            },
+          ],
+        },
+        usage: { prompt_tokens: 10, completion_tokens: 10 },
+      };
+    };
+
+    const res = await processarExtracaoRodada(supabase, "doc-1", "fake-key", {
+      orcamentoMs: 60_000,
+      chamarIa: mockChamarIa as any,
+    });
+
+    expect(res.estado).toBe("pronto_com_pendencias");
+    expect(res.lotes_pendentes).toBeDefined();
+    expect(res.lotes_pendentes?.length).toBe(1);
+    expect(res.lotes_pendentes?.[0]?.lote).toBe(2);
+
+    const numerosLidos = res.unidades?.map((u) => u.numero) ?? [];
+    expect(numerosLidos).toContain("101");
+    expect(numerosLidos).toContain("103");
+    expect(numerosLidos).toContain("104");
+  });
+
+  it("b) timeout divide em vez de repetir", async () => {
+    const textoLongo = "A".repeat(2000) + "\n\n" + "B".repeat(2000); // 4002 caracteres
+    const mockDoc = { id: "doc-1", condominio_id: "cond-1", nome_arquivo: "conv.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 2, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-1",
+      etapa: "leitura_ia",
+      total: 1,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {
+        paginas: [{ numero: 1, texto: "pagina 1" }],
+        lotes: [{ id: "lote-1", texto: textoLongo }],
+        cursorLote: 0,
+        candidatas: [],
+        tokensInput: 0,
+        tokensOutput: 0,
+        chamadasIa: 0,
+        chamadasCache: 0,
+        lotesComErro: 0,
+        lotesPendentes: [],
+        tipologiaDetectada: "predio",
+        linhasLidasQuadroIds: [],
+      },
+    };
+
+    const supabase = createMockSupabase({ doc: mockDoc, condominio: mockCond, job: mockJob });
+    const tamanhosChamados: number[] = [];
+
+    const mockChamarIa = async (_apiKey: string, _system: string, userPrompt: string) => {
+      tamanhosChamados.push(userPrompt.length);
+      // Na primeira chamada com o texto integral (~4000 caracteres), estoura
+      if (userPrompt.length > 3000) {
+        throw new ErroTimeoutIA(30000, "Timeout simulado no lote grande");
+      }
+      return {
+        data: {
+          unidades: [
+            {
+              numero: tamanhosChamados.length === 2 ? "101" : "102",
+              tipo: "apartamento",
+              medidas: [
+                {
+                  campo: "area_privativa",
+                  valor_bruto: "60,00",
+                  escala: "m2",
+                  trecho: "60m2",
+                },
+              ],
+            },
+          ],
+        },
+        usage: { prompt_tokens: 10, completion_tokens: 10 },
+      };
+    };
+
+    const res = await processarExtracaoRodada(supabase, "doc-1", "fake-key", {
+      orcamentoMs: 60_000,
+      chamarIa: mockChamarIa as any,
+    });
+
+    expect(res.estado).toBe("pronto");
+    expect(tamanhosChamados.length).toBe(3);
+    expect(tamanhosChamados.filter((t) => t > 3000).length).toBe(1);
+    expect(res.lotes_pendentes).toBeUndefined();
+  });
+
+  it("c) o orçamento é respeitado", async () => {
+    const mockDoc = { id: "doc-1", condominio_id: "cond-1", nome_arquivo: "conv.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 2, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-1",
+      etapa: "leitura_ia",
+      total: 2,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {
+        paginas: [{ numero: 1, texto: "pagina 1" }],
+        lotes: [
+          { id: "lote-1", texto: "Unidade 101" },
+          { id: "lote-2", texto: "Unidade 102" },
+        ],
+        cursorLote: 0,
+        candidatas: [],
+        tokensInput: 0,
+        tokensOutput: 0,
+        chamadasIa: 0,
+        chamadasCache: 0,
+        lotesComErro: 0,
+        lotesPendentes: [],
+        tipologiaDetectada: "predio",
+        linhasLidasQuadroIds: [],
+      },
+    };
+
+    const supabase = createMockSupabase({ doc: mockDoc, condominio: mockCond, job: mockJob });
+    let chamadas = 0;
+
+    const realDateNow = Date.now;
+    const startMockTime = realDateNow();
+    let timeOffset = 0;
+    Date.now = () => startMockTime + timeOffset;
+
+    const mockChamarIa = async () => {
+      chamadas++;
+      // Avança o tempo em 14.000ms durante a primeira chamada
+      timeOffset += 14_000;
+      return {
+        data: {
+          unidades: [{ numero: "101", tipo: "apartamento", medidas: [] }],
+        },
+        usage: { prompt_tokens: 10, completion_tokens: 10 },
+      };
+    };
+
+    try {
+      const res = await processarExtracaoRodada(supabase, "doc-1", "fake-key", {
+        orcamentoMs: 18_000,
+        chamarIa: mockChamarIa as any,
+      });
+
+      expect(chamadas).toBe(1);
+      expect(res.concluido).toBe(false);
+      expect(res.concluidos).toBe(1);
+      expect(res.etapa).toBe("leitura_ia");
+    } finally {
+      Date.now = realDateNow;
+    }
+  });
+
+  it("d) o Router não existe mais", async () => {
+    const paginas20Md = Array.from(
+      { length: 20 },
+      (_, i) => `---\n## Página ${i + 1}\n\nPágina ${i + 1} da convenção com regras.`,
+    ).join("\n\n");
+    const mockDoc = { id: "doc-1", condominio_id: "cond-1", nome_arquivo: "conv.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 20, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-1",
+      etapa: "carregamento_e_roteamento",
+      total: 4,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {},
+    };
+
+    const supabase = createMockSupabase({
+      doc: mockDoc,
+      condominio: mockCond,
+      job: mockJob,
+      storageMd: paginas20Md,
+    });
+
+    let chamadasIaRouter = 0;
+    const mockChamarIa = async () => {
+      chamadasIaRouter++;
+      return { data: {}, usage: { prompt_tokens: 0, completion_tokens: 0 } };
+    };
+
+    await processarExtracaoRodada(supabase, "doc-1", "fake-key", {
+      chamarIa: mockChamarIa as any,
+    });
+
+    expect(chamadasIaRouter).toBe(0);
+    expect(supabase.getCurrentJob()?.etapa).toBe("segmentacao_e_descritiva");
+    expect((supabase.getCurrentJob()?.metadata?.paginas as any[])?.length).toBe(20);
+  });
+
+  it("e) o Teste 2 continua fechando com 32 unidades", () => {
+    const andares = [1, 2, 3, 4, 5, 6, 7, 8];
+    const colunas = [1, 2, 3, 4];
+    const fraseColunas1e3 =
+      "com área privativa de 75,90 m2, área de uso comum de 24,10 m2, perfazendo a área total de 100,00 m2 e fração ideal de 0,033395.";
+    const fraseColunas2e4 =
+      "com área privativa de 62,50 m2, área de uso comum de 18,50 m2, perfazendo a área total de 81,00 m2 e fração ideal de 0,029105.";
+
+    const linhas = ["CONVENÇÃO DE CONDOMÍNIO - EDIFÍCIO TESTE 32", "QUADRO DESCRITIVO DAS UNIDADES AUTÔNOMAS:"];
+    for (const andar of andares) {
+      for (const col of colunas) {
+        const num = `${andar}0${col}`;
+        const fraseMedida = col === 1 || col === 3 ? fraseColunas1e3 : fraseColunas2e4;
+        linhas.push(`APARTAMENTO Nº ${num} - localizado no ${andar}º pavimento, ${fraseMedida}`);
+      }
+    }
+    const texto32 = linhas.join("\n\n");
+    const resultado = extrairUnidadesDoTexto(texto32);
+
+    expect(resultado.total).toBe(32);
+    const apto101 = resultado.unidades.find((u) => u.numero === "101");
+    expect(apto101).toBeDefined();
+    expect(apto101?.area_privativa).toBe(75.90);
+    expect(apto101?.fracao_ideal).toBeCloseTo(0.033395, 6);
+  });
+});
+
