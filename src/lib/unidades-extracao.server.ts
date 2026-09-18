@@ -39,6 +39,8 @@ export const CampoMedidaSchema = z.preprocess(
       "area_global",
       "area_equivalente",
       "area_garagem",
+      "area_construcao",
+      "cota_terreno",
       "fracao_terreno",
       "fracao_coisas_comuns",
       "coeficiente_rateio",
@@ -53,6 +55,8 @@ export const CampoMedidaSchema = z.preprocess(
     "area_global",
     "area_equivalente",
     "area_garagem",
+    "area_construcao",
+    "cota_terreno",
     "fracao_terreno",
     "fracao_coisas_comuns",
     "coeficiente_rateio",
@@ -289,7 +293,7 @@ export const PROMPT_SISTEMA_BASE =
   "Se o cabeçalho da coluna não estiver visível no trecho recebido, use campo indeterminado; nunca adivinhe o rótulo. " +
   "Preserve valor_bruto exatamente como impresso, inclusive %, ‰, barra e vírgula. Não converta escalas. " +
   "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
-  'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_terreno|area_comum|area_global|area_equivalente|area_garagem|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
+  'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_terreno|area_comum|area_global|area_equivalente|area_garagem|area_construcao|cota_terreno|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
 
 function obterConteudoArquivo(moduloRaw: string | undefined, nomeArquivo: string): string {
   if (typeof moduloRaw === "string" && moduloRaw.length > 0) {
@@ -1056,6 +1060,9 @@ export function consolidar(
           coerentes.add(global);
           if (priv) coerentes.add(priv);
           if (comum) coerentes.add(comum);
+          if (dentroTolerancia(vg, vp + vc, 0.02)) {
+            regras.push("area_total_conferida_com_comum");
+          }
         }
       }
       const registrarInvalidas = (lista: Medida[]) => {
@@ -1198,7 +1205,8 @@ export function consolidar(
   }
 
   const unidades = parciais.map((p) => {
-    const completa = p.area != null && p.fracao != null;
+    const conferiuAritmetica = p.regras.includes("area_total_conferida_com_comum");
+    const completa = (p.area != null && p.fracao != null) || (p.area != null && conferiuAritmetica);
     const pendentePromocao = p.regras.includes("promocao_desfeita_soma_nao_fecha");
     const motivos: string[] = [...new Set([...(p.base.motivos ?? []), ...p.regras])];
     if (p.area == null && !motivos.includes("area_privativa_ausente")) {
@@ -1211,7 +1219,7 @@ export function consolidar(
       estado =
         p.conflito
           ? "lido_com_ressalva"
-          : completa && !pendentePromocao
+          : (completa && !pendentePromocao) || conferiuAritmetica
             ? "lido"
             : "lido_com_ressalva";
     }
@@ -1230,7 +1238,7 @@ export function consolidar(
       area_trecho: p.areaMedida?.trecho ?? null,
       confianca: p.conflito
         ? ("conflito" as const)
-        : completa && !pendentePromocao
+        : (completa && !pendentePromocao) || conferiuAritmetica
           ? ("alta" as const)
           : ("media" as const),
       estado,
@@ -1866,6 +1874,8 @@ export async function processarExtracaoRodada(
             else if (med.campo === "area_total") campo = "area_global";
             else if (med.campo === "area_equivalente") campo = "area_equivalente";
             else if (med.campo === "area_garagem") campo = "area_garagem";
+            else if (med.campo === "area_construcao") campo = "area_construcao";
+            else if (med.campo === "cota_terreno") campo = "cota_terreno";
             else if (med.campo === "fracao_ideal") campo = "fracao_terreno";
             else if (med.campo === "area_generica") {
               campo = (tipologiaDetectada === "casas_lotes" || reg.ancora.toLowerCase().includes("lote"))
@@ -2070,7 +2080,20 @@ export async function processarExtracaoRodada(
 
       const chunksComCandidatas = new Set(naoLidas.map((l) => l.chunk_id));
       const chunksRelevantes = chunks.filter((c) => chunksComCandidatas.has(c.id));
-      const lotesCompletos = montarLotes(chunksRelevantes as ChunkRow[]);
+      let lotesCompletos: Lote[];
+      if (registros.length > 0) {
+        const registrosPendentes = registros.filter((reg) => {
+          const numFinal = reg.sufixo ? `${reg.numero}${reg.sufixo}` : reg.numero;
+          return !chavesResolvidas.has(chaveUnidade(reg.escopo, numFinal));
+        });
+        lotesCompletos = registrosPendentes.map((reg) => ({
+          id: reg.registro_id,
+          texto: `[Unidade ${reg.numero}${reg.sufixo ?? ""}${reg.escopo ? ` - ${reg.escopo}` : ""}]\n${reg.texto}`,
+          linhas: [],
+        }));
+      } else {
+        lotesCompletos = montarLotes(chunksRelevantes as ChunkRow[]);
+      }
       const lotesMagros = lotesCompletos.map((l, i) => ({ id: l.id || `lote-${i}`, texto: l.texto }));
 
       if (censo.candidatas.length === 0) {

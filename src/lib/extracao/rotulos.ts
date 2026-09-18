@@ -6,13 +6,15 @@
 
 export type FamiliaRotulo =
   | "area_privativa"
+  | "area_garagem"
   | "area_comum"
   | "area_total"
+  | "area_construcao"
   | "area_equivalente"
-  | "area_terreno"
+  | "cota_terreno"
   | "fracao_ideal"
+  | "area_terreno"
   | "vagas"
-  | "area_garagem"
   | "area_generica";
 
 export type MedidaLida = {
@@ -28,26 +30,117 @@ export type MedidaLida = {
 };
 
 /**
+ * Famílias em ordem estrita de prioridade (a mais específica primeiro).
+ * area_garagem vem ANTES de area_comum para capturar "Área de Uso Comum (... Garagem)".
+ */
+export const FAMILIAS_ORDENADAS: [FamiliaRotulo, RegExp][] = [
+  [
+    "area_privativa",
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:uso\s+)?(?:privativ[oa]|exclusiv[oa]|[úu]til)(?:\s+real)?(?:\s+de\s+constru[çc][ãa]o)?/i,
+  ],
+  [
+    "area_garagem",
+    /[áa]rea[^|]*\bgaragem\b|[áa]rea\s+de\s+vagas?/i,
+  ],
+  [
+    "area_comum",
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?uso\s+comum(?:\s+real)?|[áa]rea\s+comum(?:\s+real)?/i,
+  ],
+  [
+    "area_total",
+    /[áa]rea\s+(?:real\s+)?total|[áa]rea\s+global/i,
+  ],
+  [
+    "area_construcao",
+    /[áa]rea\s+d[ae]\s+unidade(?:\s*\(?\s*de\s+constru[çc][ãa]o\s*\)?)?|[áa]rea\s+de\s+constru[çc][ãa]o\s+da\s+unidade/i,
+  ],
+  [
+    "area_equivalente",
+    /[áa]rea\s+equivalente/i,
+  ],
+  [
+    "cota_terreno",
+    /cota\s+(?:ideal|parte)\s+do\s+terreno/i,
+  ],
+  [
+    "fracao_ideal",
+    /fra[çc][ãa]o\s+ideal|coeficiente\s+de\s+(?:rateio|propriedade)|permilagem|mil[ée]simos/i,
+  ],
+  [
+    "area_terreno",
+    /[áa]rea\s+(?:real\s+)?(?:de|do|da)?\s*(?:terreno|lote|solo)\b/i,
+  ],
+];
+
+export const NUMERO = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
+
+/**
+ * Leitor determinístico de linha no formato de tabela | rótulo | valor | unidade |.
+ * Prioritário sobre heurísticas de prosa e sem guarda contemOutraFamilia.
+ */
+export function lerLinhaTabela(linha: string): {
+  campo: FamiliaRotulo | "indeterminado";
+  valor_bruto: string;
+  unidade: string | null;
+  rotulo: string;
+} | null {
+  if (!/\|/.test(linha)) return null;
+  const c = linha
+    .split("|")
+    .map((s) => s.trim())
+    .filter((s, i, a) => !(s === "" && (i === 0 || i === a.length - 1)));
+  for (let i = 1; i < c.length; i++) {
+    if (!NUMERO.test(c[i])) continue;
+    const rotulo = c[i - 1].replace(/^[-–—\s]+/, "");
+    for (const [campo, re] of FAMILIAS_ORDENADAS) {
+      if (re.test(rotulo)) {
+        return {
+          campo,
+          valor_bruto: c[i],
+          unidade: c[i + 1] && c[i + 1].trim() ? c[i + 1].trim() : null,
+          rotulo,
+        };
+      }
+    }
+    return {
+      campo: "indeterminado",
+      valor_bruto: c[i],
+      unidade: c[i + 1] && c[i + 1].trim() ? c[i + 1].trim() : null,
+      rotulo,
+    };
+  }
+  return null;
+}
+
+/**
  * Famílias de rótulos com várias redações típicas de convenções condominiais.
  */
 export const PADROES_FAMILIAS: Record<FamiliaRotulo, RegExp[]> = {
   area_privativa: [
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:uso\s+)?(?:privativ[oa]|exclusiv[oa]|[úu]til)(?:\s+real)?(?:\s+de\s+constru[çc][ãa]o)?/i,
     /[áa]rea\s+(?:real\s+)?(?:de\s+constru[çc][ãa]o\s+)?privativa(?:\s+real)?/i,
     /[áa]rea\s+(?:privativa|[úu]til|exclusiva)(?:\s+coberta)?/i,
   ],
+  area_garagem: [
+    /[áa]rea[^|]*\bgaragem\b|[áa]rea\s+de\s+vagas?/i,
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:garagem|vaga|estacionamento)/i,
+  ],
   area_comum: [
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?uso\s+comum(?:\s+real)?|[áa]rea\s+comum(?:\s+real)?/i,
     /[áa]rea\s+(?:real\s+)?(?:de\s+constru[çc][ãa]o\s+)?(?:de\s+)?uso\s+comum(?:\s+real)?/i,
   ],
   area_total: [
+    /[áa]rea\s+(?:real\s+)?total|[áa]rea\s+global/i,
     /[áa]rea\s+(?:real\s+)?(?:de\s+constru[çc][ãa]o\s+)?(?:real\s+)?total/i,
-    /[áa]rea\s+global/i,
+  ],
+  area_construcao: [
+    /[áa]rea\s+d[ae]\s+unidade(?:\s*\(?\s*de\s+constru[çc][ãa]o\s*\)?)?|[áa]rea\s+de\s+constru[çc][ãa]o\s+da\s+unidade/i,
   ],
   area_equivalente: [
     /[áa]rea\s+equivalente(?:\s+de\s+constru[çc][ãa]o)?/i,
   ],
-  area_terreno: [
-    /[áa]rea\s+(?:real\s+)?(?:privativa\s+)?(?:de|do|da)?\s*(?:terreno|lote|solo|gleba)/i,
-    /[áa]rea\s+total\s+(?:do\s+|de\s+)?(?:terreno|lote)/i,
+  cota_terreno: [
+    /cota\s+(?:ideal|parte)\s+do\s+terreno/i,
   ],
   fracao_ideal: [
     /fra[çc][ãa]o\s+ideal/i,
@@ -55,17 +148,43 @@ export const PADROES_FAMILIAS: Record<FamiliaRotulo, RegExp[]> = {
     /permilagem/i,
     /mil[ée]simos/i,
   ],
-  vagas: [
-    /(\d+)\s*(?:\([^)]*\))?\s*vagas?\s+de\s+garagem/i,
+  area_terreno: [
+    /[áa]rea\s+(?:real\s+)?(?:privativa\s+)?(?:de|do|da)?\s*(?:terreno|lote|solo|gleba)\b/i,
+    /[áa]rea\s+total\s+(?:do\s+|de\s+)?(?:terreno|lote)/i,
   ],
-  area_garagem: [
-    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:garagem|vaga|estacionamento)/i,
+  vagas: [
+    /(\d+|uma|um|duas|dois|tr[êe]s|quatro|cinco|seis|sete|oito|nove|dez)\s*(?:\([^)]*\))?\s*vagas?\s+(?:de\s+)?(?:garagens?|estacionamento)/i,
   ],
   area_generica: [
     /(?:com\s+)?[áa]rea\s+(?:total\s+)?de(?=\s*[\d.])/i,
     /medindo(?=\s*[\d.])/i,
   ],
 };
+
+const MAPA_NUMEROS_EXTENSO: Record<string, number> = {
+  um: 1,
+  uma: 1,
+  dois: 2,
+  duas: 2,
+  tres: 3,
+  três: 3,
+  quatro: 4,
+  cinco: 5,
+  seis: 6,
+  sete: 7,
+  oito: 8,
+  nove: 9,
+  dez: 10,
+};
+
+function converterNumeroOuExtenso(val: string): number | null {
+  const limpo = val.trim().toLowerCase();
+  if (MAPA_NUMEROS_EXTENSO[limpo] !== undefined) {
+    return MAPA_NUMEROS_EXTENSO[limpo];
+  }
+  const n = Number(limpo);
+  return Number.isFinite(n) ? n : null;
+}
 
 /**
  * Converte valor numérico brasileiro (com ponto de milhar e vírgula decimal)
@@ -110,15 +229,18 @@ function capturarMedidasFamilia(
 ): MedidaLida[] {
   const medidas: MedidaLida[] = [];
 
-  // Tratamento especial para vagas (onde o número normalmente vem antes da palavra 'vagas')
+  // Tratamento especial para vagas (onde o número normalmente vem antes da palavra 'vagas' ou em algarismo/extenso)
   if (campo === "vagas") {
-    // 1. "4 (quatro) vagas de garagem" ou "2 vagas de garagem"
-    const reVagasAntes =
-      /(\d+)\s*(?:\([^)]*\))?\s*vagas?\s+(?:de\s+garagem|de\s+estacionamento|para\s+ve[íi]culos?)?/gi;
+    // 1. "duas vagas de garagens descobertas", "4 (quatro) vagas de garagem", "2 vagas"
+    const NUM_OU_EXTENSO = "(\\d+|uma|um|duas|dois|tr[êe]s|quatro|cinco|seis|sete|oito|nove|dez)";
+    const reVagasAntes = new RegExp(
+      `${NUM_OU_EXTENSO}\\s*(?:\\([^)]*\\))?\\s*vagas?\\s+(?:de\\s+)?(?:garagens?|estacionamento|para\\s+ve[íi]culos?)?(?:\\s+descobertas?|\\s+cobertas?|\\s+privativas?)?`,
+      "gi"
+    );
     let m: RegExpExecArray | null;
     while ((m = reVagasAntes.exec(texto)) !== null) {
-      const valorNum = Number(m[1]);
-      if (Number.isFinite(valorNum)) {
+      const valorNum = converterNumeroOuExtenso(m[1]);
+      if (valorNum != null) {
         medidas.push({
           campo: "vagas",
           rotulo_encontrado: "vagas de garagem",
@@ -133,12 +255,14 @@ function capturarMedidasFamilia(
       }
     }
 
-    // 2. "vagas de garagem: 2" ou "vagas: 2"
-    const reVagasDepois =
-      /vagas?\s*(?:de\s+garagem)?[\s.:\-–—]*(?:de\s+)?(\d+)/gi;
+    // 2. "vagas de garagem: 2" ou "vagas: duas"
+    const reVagasDepois = new RegExp(
+      `vagas?\\s*(?:de\\s+garagens?)?[\\s.:\\-–—]*(?:de\\s+)?${NUM_OU_EXTENSO}`,
+      "gi"
+    );
     while ((m = reVagasDepois.exec(texto)) !== null) {
-      const valorNum = Number(m[1]);
-      if (Number.isFinite(valorNum)) {
+      const valorNum = converterNumeroOuExtenso(m[1]);
+      if (valorNum != null) {
         medidas.push({
           campo: "vagas",
           rotulo_encontrado: "vagas de garagem",
@@ -156,30 +280,16 @@ function capturarMedidasFamilia(
     return medidas;
   }
 
-function contemOutraFamilia(lacuna: string, campoAtual: FamiliaRotulo): boolean {
-  const termosPorFamilia: Record<FamiliaRotulo, string[]> = {
-    area_privativa: ["privativa", "exclusiva"],
-    area_comum: ["comum"],
-    area_total: ["global", "total"],
-    area_equivalente: ["equivalente"],
-    area_terreno: ["terreno", "lote", "solo", "gleba"],
-    fracao_ideal: ["fracao", "fracoes", "rateio", "permilagem", "milesimos"],
-    vagas: ["vaga", "vagas", "garagem"],
-    area_garagem: ["garagem"],
-    area_generica: [],
-  };
-
-  const norm = lacuna.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  for (const [campo, termos] of Object.entries(termosPorFamilia)) {
-    if (campo === campoAtual) continue;
-    if (campoAtual === "area_terreno" && (campo === "area_privativa" || campo === "area_total")) continue;
-    for (const t of termos) {
-      const re = new RegExp(`\\b${t}\\b`, "i");
-      if (re.test(norm)) return true;
+  function contemOutraFamilia(lacuna: string, campoAtual: FamiliaRotulo): boolean {
+    // Na captura em prosa, rejeita se a lacuna contiver um rótulo COMPLETO de outra família.
+    // Nunca rejeita por palavras soltas como "terreno" ou "garagem".
+    for (const [campo, re] of FAMILIAS_ORDENADAS) {
+      if (campo === campoAtual) continue;
+      if (campo === "vagas" || campo === "area_generica") continue;
+      if (re.test(lacuna)) return true;
     }
+    return false;
   }
-  return false;
-}
 
   // Para medidas numéricas de áreas e frações:
   // Lacuna: conector ou até 30 caracteres não numéricos (sem vírgula, ponto-e-vírgula ou quebra de linha)
@@ -234,8 +344,9 @@ function contemOutraFamilia(lacuna: string, campoAtual: FamiliaRotulo): boolean 
 }
 
 /**
- * Lê todas as medidas de um registro aplicando as famílias de rótulos
- * diretamente ao texto completo do registro (não por linha).
+ * Lê todas as medidas de um registro aplicando as famílias de rótulos:
+ * 1. Prioritariamente por linha de tabela (| rótulo | valor | unidade |)
+ * 2. Em prosa para trechos não tabulares (preservando índices exatos)
  */
 export function lerRegistro(registro: { texto: string } | string): MedidaLida[] {
   const texto = typeof registro === "string" ? registro : registro.texto;
@@ -243,9 +354,43 @@ export function lerRegistro(registro: { texto: string } | string): MedidaLida[] 
 
   const todasMedidas: MedidaLida[] = [];
 
+  // 1. Linhas de tabela (| rótulo | valor | unidade |) - Prioritárias sobre heurísticas de prosa
+  const linhas = texto.split(/\r?\n/);
+  const linhasTabelaIdx = new Set<number>();
+  let offset = 0;
+
+  for (let idx = 0; idx < linhas.length; idx++) {
+    const linha = linhas[idx];
+    const medTab = lerLinhaTabela(linha);
+    if (medTab) {
+      linhasTabelaIdx.add(idx);
+      if (medTab.campo !== "indeterminado") {
+        const { numerico, escala } = converterValorPtBr(medTab.valor_bruto, medTab.unidade);
+        todasMedidas.push({
+          campo: medTab.campo,
+          rotulo_encontrado: medTab.rotulo,
+          valor_bruto: medTab.valor_bruto,
+          valor_numerico: numerico,
+          unidade_medida: medTab.unidade,
+          escala,
+          trecho: linha.trim(),
+          inicio: offset,
+          fim: offset + linha.length,
+        });
+      }
+    }
+    offset += linha.length + 1;
+  }
+
+  // 2. Prosa: para linhas que não foram tabela, executa heurísticas em prosa.
+  // Substitui linhas de tabela por espaços para preservar índices exatos sem interferência.
+  const textoProsa = linhas
+    .map((linha, idx) => (linhasTabelaIdx.has(idx) ? " ".repeat(linha.length) : linha))
+    .join("\n");
+
   for (const [campoStr, padroes] of Object.entries(PADROES_FAMILIAS)) {
     const campo = campoStr as FamiliaRotulo;
-    const medidas = capturarMedidasFamilia(texto, campo, padroes);
+    const medidas = capturarMedidasFamilia(textoProsa, campo, padroes);
     todasMedidas.push(...medidas);
   }
 

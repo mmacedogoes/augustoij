@@ -1,0 +1,23 @@
+CONVENÇÃO DE CONDOMÍNIO - CONTEMPORÂNEO RESIDENCE
+
+QUADRO DESCRITIVO DAS UNIDADES AUTÔNOMAS
+
+a) A unidade autônoma habitacional (Apartamento) de nº 101, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              | 129,32   | m² |
+| - Área de Uso Comum Real                                  | 102,35   | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |  23,00   | m² |
+| - Área da Unidade (de construção)                         | 200,73   | m² |
+| - Fração Ideal do terreno                                 | 0,011054 |    |
+| - Cota Ideal do Terreno                                   |  40,9462 | m² |
+| - Área Real Total                                         | 231,67   | m² |
+
+b) A unidade autônoma habitacional (Apartamento) de nº 102, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              | 132,11   | m² |
+| - Área de Uso Comum Real                                  | 103,82   | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |  23,00   | m² |
+| - Área da Unidade (de construção)                         | 204,46   | m² |
+| - Fração Ideal do terreno                                 | 0,011260 |    |
+| - Cota Ideal do Terreno                                   |  41,7064 | m² |
+| - Área Real Total                                         | 235,93   | m² |

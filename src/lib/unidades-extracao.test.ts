@@ -22,7 +22,7 @@ import {
 } from "./unidades-extracao.server";
 import { segmentarRegistros, type RegistroUnidade } from "./extracao/segmentador";
 import { interpretarConvencaoDescritiva } from "./convencao-descritiva";
-import { lerRegistro } from "./extracao/rotulos";
+import { lerRegistro, lerLinhaTabela } from "./extracao/rotulos";
 import { extrairUnidadesDoTexto } from "./extracao/pipeline";
 
 
@@ -1004,6 +1004,229 @@ describe("Regressão Teste 4: Âncoras, Orçamento, Concorrência e Determiníst
   });
 
   it("f) Teste 2 continua passando (32 aptos, 75.90 m², fração 0.033395)", () => {
+    const andares = [1, 2, 3, 4, 5, 6, 7, 8];
+    const colunas = [1, 2, 3, 4];
+    const fraseColunas1e3 =
+      "com área privativa de 75,90 m2, área de uso comum de 24,10 m2, perfazendo a área total de 100,00 m2 e fração ideal de 0,033395.";
+    const fraseColunas2e4 =
+      "com área privativa de 62,50 m2, área de uso comum de 18,50 m2, perfazendo a área total de 81,00 m2 e fração ideal de 0,029105.";
+
+    const linhas = ["CONVENÇÃO DE CONDOMÍNIO - EDIFÍCIO TESTE 32", "QUADRO DESCRITIVO DAS UNIDADES AUTÔNOMAS:"];
+    for (const andar of andares) {
+      for (const col of colunas) {
+        const num = `${andar}0${col}`;
+        const fraseMedida = col === 1 || col === 3 ? fraseColunas1e3 : fraseColunas2e4;
+        linhas.push(`APARTAMENTO Nº ${num} - localizado no ${andar}º pavimento, ${fraseMedida}`);
+      }
+    }
+    const texto32 = linhas.join("\n\n");
+    const resultado = extrairUnidadesDoTexto(texto32);
+
+    expect(resultado.total).toBe(32);
+    const apto101 = resultado.unidades.find((u) => u.numero === "101");
+    expect(apto101).toBeDefined();
+    expect(apto101?.area_privativa).toBe(75.90);
+    expect(apto101?.fracao_ideal).toBeCloseTo(0.033395, 6);
+  });
+});
+
+describe("Regressão - Convenção Contemporâneo Residence (7 medidas, leitor de tabela e sem IA)", () => {
+  const fixturePath = path.resolve(__dirname, "extracao/fixtures/contemporaneo-residence.txt");
+  const textoFixture = fs.readFileSync(fixturePath, "utf-8");
+
+  it("a) as sete medidas são lidas: lerRegistro devolve todas para o apto 102", () => {
+    const reg102Texto = `b) A unidade autônoma habitacional (Apartamento) de nº 102, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              | 132,11   | m² |
+| - Área de Uso Comum Real                                  | 103,82   | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |  23,00   | m² |
+| - Área da Unidade (de construção)                         | 204,46   | m² |
+| - Fração Ideal do terreno                                 | 0,011260 |    |
+| - Cota Ideal do Terreno                                   |  41,7064 | m² |
+| - Área Real Total                                         | 235,93   | m² |`;
+
+    const medidas = lerRegistro(reg102Texto);
+    const mPriv = medidas.find((m) => m.campo === "area_privativa");
+    const mComum = medidas.find((m) => m.campo === "area_comum");
+    const mGar = medidas.find((m) => m.campo === "area_garagem");
+    const mConst = medidas.find((m) => m.campo === "area_construcao");
+    const mFrac = medidas.find((m) => m.campo === "fracao_ideal");
+    const mCota = medidas.find((m) => m.campo === "cota_terreno");
+    const mTot = medidas.find((m) => m.campo === "area_total");
+
+    expect(mPriv, "area_privativa deve existir").toBeDefined();
+    expect(mPriv?.valor_numerico).toBe(132.11);
+
+    expect(mComum, "area_comum deve existir").toBeDefined();
+    expect(mComum?.valor_numerico).toBe(103.82);
+
+    expect(mGar, "area_garagem deve existir").toBeDefined();
+    expect(mGar?.valor_numerico).toBe(23.00);
+
+    expect(mConst, "area_construcao deve existir").toBeDefined();
+    expect(mConst?.valor_numerico).toBe(204.46);
+
+    expect(mFrac, "fracao_ideal deve existir").toBeDefined();
+    expect(mFrac?.valor_numerico).toBe(0.011260);
+
+    expect(mCota, "cota_terreno deve existir").toBeDefined();
+    expect(mCota?.valor_numerico).toBe(41.7064);
+
+    expect(mTot, "area_total deve existir").toBeDefined();
+    expect(mTot?.valor_numerico).toBe(235.93);
+  });
+
+  it("b) a área do sistema é a privativa: area_m2 = 132.11 (nunca 204.46 nem 235.93)", () => {
+    const resultado = extrairUnidadesDoTexto(textoFixture);
+    const u102 = resultado.unidades.find((u) => u.numero === "102");
+    expect(u102).toBeDefined();
+    expect(u102?.area_privativa).toBe(132.11);
+    expect(u102?.area_privativa).not.toBe(204.46);
+    expect(u102?.area_privativa).not.toBe(235.93);
+  });
+
+  it("c) fração com sufixo no rótulo: '| - Fração Ideal do terreno | 0,011260 |' é lida", () => {
+    const linha = "| - Fração Ideal do terreno | 0,011260 |";
+    const lida = lerLinhaTabela(linha);
+    expect(lida).not.toBeNull();
+    expect(lida?.campo).toBe("fracao_ideal");
+    expect(lida?.valor_bruto).toBe("0,011260");
+
+    const med = lerRegistro(linha);
+    expect(med.length).toBe(1);
+    expect(med[0].campo).toBe("fracao_ideal");
+    expect(med[0].valor_numerico).toBe(0.011260);
+  });
+
+  it("d) garagem não é área comum: a linha da garagem vira area_garagem, e area_comum continua 103,82 (uma só)", () => {
+    const reg102Texto = `A unidade possui:
+| - Área Real de Uso Privativo                              | 132,11   | m² |
+| - Área de Uso Comum Real                                  | 103,82   | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |  23,00   | m² |
+| - Área da Unidade (de construção)                         | 204,46   | m² |
+| - Fração Ideal do terreno                                 | 0,011260 |    |
+| - Cota Ideal do Terreno                                   |  41,7064 | m² |
+| - Área Real Total                                         | 235,93   | m² |`;
+
+    const medidas = lerRegistro(reg102Texto);
+    const comuns = medidas.filter((m) => m.campo === "area_comum");
+    const garagens = medidas.filter((m) => m.campo === "area_garagem");
+
+    expect(garagens.length).toBe(1);
+    expect(garagens[0].valor_numerico).toBe(23.00);
+
+    expect(comuns.length).toBe(1);
+    expect(comuns[0].valor_numerico).toBe(103.82);
+  });
+
+  it("e) vagas por extenso: 'duas vagas de garagens descobertas' -> 2", () => {
+    const texto = "varanda e duas vagas de garagens descobertas.";
+    const medidas = lerRegistro(texto);
+    const vagas = medidas.find((m) => m.campo === "vagas");
+    expect(vagas).toBeDefined();
+    expect(vagas?.valor_numerico).toBe(2);
+  });
+
+  it("f) conferência fecha: area_total = area_privativa + area_comum nas duas unidades, e ambas saem como lidas com confiança alta", async () => {
+    const paginas = [{ numero: 1, texto: textoFixture }];
+    const registros = segmentarRegistros(paginas, "doc-contemp");
+    expect(registros.length).toBe(2);
+
+    const candidatas: any[] = [];
+    for (const reg of registros) {
+      const medidasLidas = lerRegistro(reg.texto);
+      const medidas: any[] = [];
+      let vagas: number | undefined = undefined;
+      for (const med of medidasLidas) {
+        if (med.campo === "vagas") {
+          vagas = Math.round(med.valor_numerico!);
+          continue;
+        }
+        let campo = "indeterminado";
+        if (med.campo === "area_privativa") campo = "area_privativa";
+        else if (med.campo === "area_comum") campo = "area_comum";
+        else if (med.campo === "area_total") campo = "area_global";
+        else if (med.campo === "area_garagem") campo = "area_garagem";
+        else if (med.campo === "area_construcao") campo = "area_construcao";
+        else if (med.campo === "cota_terreno") campo = "cota_terreno";
+        else if (med.campo === "fracao_ideal") campo = "fracao_terreno";
+        medidas.push({
+          campo,
+          valor_bruto: med.valor_bruto,
+          escala: med.escala,
+          trecho: med.trecho,
+          linha_id: reg.registro_id,
+        });
+      }
+      candidatas.push({
+        bloco: null,
+        numero: reg.numero,
+        tipo: "apartamento",
+        vagas_garagem: vagas,
+        linha_id: reg.registro_id,
+        medidas,
+        medidas_descartadas: [],
+        fonte: "registros_posicionais",
+        regras_aplicadas: ["registros_posicionais"],
+      });
+    }
+
+    const consolidado = consolidar(candidatas, [], { porId: new Map() }, registros, "padrao");
+    expect(consolidado.unidades.length).toBe(2);
+    for (const u of consolidado.unidades) {
+      expect(u.confianca).toBe("alta");
+      expect(u.estado).toBe("lido");
+      expect(u.regras_aplicadas).toContain("area_total_conferida_com_comum");
+    }
+  });
+
+  it("g) sem IA: a extração desta fixture termina com chamadas_ia = 0", async () => {
+    let chamadasIa = 0;
+    const mockChamarIa = async () => {
+      chamadasIa++;
+      return { data: {}, usage: { prompt_tokens: 0, completion_tokens: 0 } };
+    };
+
+    const mockDoc = { id: "doc-contemp", condominio_id: "cond-contemp", nome_arquivo: "contemporaneo.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 2, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-contemp",
+      etapa: "carregamento_e_roteamento",
+      total: 4,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {},
+    };
+
+    const supabase = createMockSupabase({
+      doc: mockDoc,
+      condominio: mockCond,
+      job: mockJob,
+      storageMd: textoFixture,
+    });
+
+    // Rodada 1: carregamento e roteamento
+    await processarExtracaoRodada(supabase, "doc-contemp", "fake-key", { chamarIa: mockChamarIa as any });
+    expect(supabase.getCurrentJob()?.etapa).toBe("segmentacao_e_descritiva");
+
+    // Rodada 2: segmentação e determinístico
+    const res = await processarExtracaoRodada(supabase, "doc-contemp", "fake-key", { chamarIa: mockChamarIa as any });
+
+    expect(chamadasIa).toBe(0);
+    expect(res.concluido).toBe(true);
+    expect(res.etapa).toBe("concluido");
+    expect(res.unidades?.length).toBe(2);
+    const u101 = res.unidades?.find((u) => u.numero === "101");
+    const u102 = res.unidades?.find((u) => u.numero === "102");
+    expect(u101?.area_m2).toBe(129.32);
+    expect(u101?.fracao_ideal).toBeCloseTo(0.011054, 6);
+    expect(u101?.confianca).toBe("alta");
+    expect(u102?.area_m2).toBe(132.11);
+    expect(u102?.fracao_ideal).toBeCloseTo(0.011260, 6);
+    expect(u102?.confianca).toBe("alta");
+  });
+
+  it("h) Teste 2 continua com 32 unidades, área 75,90 e fração 0,033395 no 101", () => {
     const andares = [1, 2, 3, 4, 5, 6, 7, 8];
     const colunas = [1, 2, 3, 4];
     const fraseColunas1e3 =
