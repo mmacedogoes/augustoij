@@ -1669,8 +1669,13 @@ export async function processarExtracaoRodada(
 
   let job = jobDb;
 
-  // Reprocessamento exclusivo dos lotes pendentes
-  if (opts.somenteLotesPendentes && job?.metadata) {
+  // Reprocessamento exclusivo dos lotes pendentes.
+  // IMPORTANTE: só pode ocorrer UMA vez, no disparo inicial. A tela repete a
+  // chamada a cada rodada; se reconstruíssemos a lista de lotes em toda rodada,
+  // os trechos ainda não lidos seriam descartados e a extração terminaria
+  // "concluída" com unidades faltando.
+  if (opts.somenteLotesPendentes && job?.metadata && job.estado !== "processando") {
+
     const metaExistente = job.metadata as Record<string, unknown>;
     const pendentes = (metaExistente.lotesPendentes as Array<{ lote: number; motivo: string; texto?: string }>) ?? [];
     if (pendentes.length > 0) {

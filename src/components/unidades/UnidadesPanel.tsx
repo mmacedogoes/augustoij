@@ -321,9 +321,12 @@ export function UnidadesPanel({
             paginaInicio: pInicio,
             paginaFim: pFim,
             reiniciar: false,
-            somenteLotesPendentes: optsReprocessar.somenteLotesPendentes,
+            // Só o disparo inicial reconstrói a lista de trechos pendentes; as
+            // rodadas seguintes apenas continuam a leitura já em andamento.
+            somenteLotesPendentes: false,
           },
         })) as any;
+
 
         rodadas += 1;
         if ((r?.concluidos ?? 0) > anterior) {
