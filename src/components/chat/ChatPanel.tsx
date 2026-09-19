@@ -590,8 +590,8 @@ export function ChatPanel({
     file: File,
     onAdded?: (att: ChatAttachment) => void,
   ) => {
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Arquivo excede 10 MB");
+    if (file.size > 6 * 1024 * 1024) {
+      toast.error("Arquivo excede 6 MB");
       return;
     }
     if (!/\.(pdf|docx|jpe?g|png|webp)$/i.test(file.name)) {
