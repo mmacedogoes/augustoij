@@ -392,7 +392,7 @@ export function processarRespostaIA(
     const medidas: z.infer<typeof MedidaExtraidaSchema>[] = [];
     let vagas: number | undefined = undefined;
 
-    const camposMapeados: Array<[string, z.infer<typeof CampoMedidaSchema>, "m2" | "decimal" | "inteiro"]> = [
+    const camposMapeados: Array<[string, z.infer<typeof CampoMedidaSchema>, "m2" | "decimal"]> = [
       ["area_privativa", "area_privativa", "m2"],
       ["area_comum", "area_comum", "m2"],
       ["area_garagem", "area_garagem", "m2"],
@@ -1956,7 +1956,7 @@ export async function processarExtracaoRodada(
 
           for (const med of medidasLidas) {
             if (med.campo === "vagas") {
-              vagas = Math.round(med.valor_numerico);
+              vagas = Math.round(med.valor_numerico ?? 0);
               continue;
             }
             let campo: z.infer<typeof CampoMedidaSchema> = "indeterminado";
@@ -2046,7 +2046,7 @@ export async function processarExtracaoRodada(
         const qtdEsperadaOk = cond?.qtd_unidades == null || consolidadoDet.unidades.length >= cond.qtd_unidades;
         const rolDeclaradoOk = descritiva.rol?.total_declarado == null || consolidadoDet.unidades.length >= descritiva.rol.total_declarado;
         const rolIdentificadoresOk = !descritiva.rol?.identificadores?.length || descritiva.rol.identificadores.every((id) =>
-          consolidadoDet.unidades.some((u) => u.numero === id || chaveUnidade(u.bloco, u.numero).includes(id))
+          consolidadoDet.unidades.some((u) => u.numero === id || chaveUnidade(u.bloco ?? null, u.numero).includes(id))
         );
 
         // Se o parser determinístico (quadro ou registros) já extraiu todas as unidades com área e fração:
@@ -2106,7 +2106,10 @@ export async function processarExtracaoRodada(
             tipologia_divergente: avisoTipologiaDivergente,
             tentativa_descritiva: {
               ...descritiva.tentativa,
-              caminho_usado: tipoLeitura,
+              caminho_usado:
+                tipoLeitura === "secao_descritiva" || tipoLeitura === "registros_posicionais"
+                  ? tipoLeitura
+                  : "censo_de_linhas",
               registros_segmentados: registros.length,
               caminho_escolhido: tipoLeitura,
               motivo_da_escolha: `todas as ${consolidadoDet.unidades.length} unidades resolvidas deterministicamente com área e fração`,
@@ -2160,7 +2163,7 @@ export async function processarExtracaoRodada(
               (u.medidas ?? []).some((m) => m.campo === "area_privativa" || m.campo === "area_terreno") &&
               (u.medidas ?? []).some((m) => m.campo === "fracao_terreno" || m.campo === "coeficiente_rateio"),
           )
-          .map((u) => chaveUnidade(u.bloco, u.numero)),
+          .map((u) => chaveUnidade(u.bloco ?? null, u.numero)),
       );
 
       const naoLidas = censo.candidatas.filter((l) => {
@@ -2186,7 +2189,7 @@ export async function processarExtracaoRodada(
         }));
       } else {
         const lotesCompletos = montarLotes(chunksRelevantes as ChunkRow[]);
-        lotesMagros = lotesCompletos.map((l, i) => ({ id: l.id || `lote-${i}`, texto: l.texto }));
+        lotesMagros = lotesCompletos.map((l, i) => ({ id: `lote-${i}`, texto: l.texto }));
       }
 
       if (censo.candidatas.length === 0) {
