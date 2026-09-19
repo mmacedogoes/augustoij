@@ -66,10 +66,13 @@ export const createCondominio = createServerFn({ method: "POST" })
       throw new Error(gateMessages.condominiosMax(plano.nome, plano.condomíniosMax));
     }
 
+    // "casas_lotes" é apelido de "casas": normaliza antes de gravar.
+    const { normalizeCategoria } = await import("@/lib/categorias-condominio");
+    const categoriaNormalizada = normalizeCategoria(data.categoria ?? "predio");
 
     const { data: row, error } = await context.supabase
       .from("condominios")
-      .insert({ ...data, owner_id: context.userId })
+      .insert({ ...data, categoria: categoriaNormalizada, owner_id: context.userId })
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -178,9 +181,14 @@ export const updateCondominio = createServerFn({ method: "POST" })
       throw new Error("Apenas o dono do condomínio pode editar estes dados.");
     }
     const { id, ...patch } = data;
+    const { normalizeCategoria } = await import("@/lib/categorias-condominio");
     const { data: row, error } = await supabaseAdmin
       .from("condominios")
-      .update({ ...patch, updated_at: new Date().toISOString() })
+      .update({
+        ...patch,
+        ...(patch.categoria ? { categoria: normalizeCategoria(patch.categoria) } : {}),
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .select()
       .single();

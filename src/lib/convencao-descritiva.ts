@@ -655,7 +655,6 @@ export function interpretarConvencaoDescritiva(
       soma_fracoes: Number(somaFracoes.toFixed(6)),
       escala_aplicada: escala,
       soma_ok: somaOk,
-      caminho_usado,
       motivo_descarte,
       registros_segmentados: qtdRegistros,
       unidades_descritivas: unidades.length,

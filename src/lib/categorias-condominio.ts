@@ -51,13 +51,9 @@ export const CATEGORIAS_CONDOMINIO: CategoriaMeta[] = [
     vocab: { bloco: "Quadra", numero: "Lote", unidade: "Lote", tipoPadrao: "lote" },
     vocabIA: "",
   },
-  {
-    id: "casas_lotes",
-    label: "Condomínio de casas / lotes",
-    descricaoCurta: "Casas ou lotes distribuídos em quadras",
-    vocab: { bloco: "Quadra", numero: "Lote", unidade: "Lote", tipoPadrao: "lote" },
-    vocabIA: "",
-  },
+  // "casas_lotes" é apelido histórico de "casas"; não aparece na lista de
+  // opções para não duplicar o mesmo rótulo no seletor.
+
   {
     id: "salas_comerciais",
     label: "Salas comerciais / lojas",

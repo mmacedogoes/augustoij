@@ -517,10 +517,19 @@ export async function processarDocumentoCore(
       .select("metadata")
       .eq("documento_id", documento.id);
     const prontos = new Set<number>();
-    for (const r of (existentes ?? []) as Array<{ metadata: { bloco?: number } | null }>) {
+    // Blocos cujo "conteúdo" é apenas um marcador de lacuna (página que não
+    // pôde ser lida). Eles destravam a fila, mas NÃO contam como lidos.
+    const lacunas = new Set<number>();
+    for (const r of (existentes ?? []) as Array<{
+      metadata: { bloco?: number; origem?: string } | null;
+    }>) {
       const b = r.metadata?.bloco;
-      if (typeof b === "number") prontos.add(b);
+      if (typeof b === "number") {
+        prontos.add(b);
+        if (r.metadata?.origem === "ocr_lacuna") lacunas.add(b);
+      }
     }
+
 
     const pendentes = blocos.filter((b) => !prontos.has(b.indice));
     const falhas: number[] = [];
@@ -567,6 +576,8 @@ export async function processarDocumentoCore(
             } catch { /* noop */ }
             await salvarBlocoOcrTemp(supabaseAdmin, documento.condominio_id, documento.id, bloco.indice, placeholderBranco);
             prontos.add(bloco.indice);
+            lacunas.add(bloco.indice);
+
             continue;
           }
           novosChunks += await indexar([txt], {
@@ -592,6 +603,8 @@ export async function processarDocumentoCore(
               pagina_fim: bloco.fim,
             });
             prontos.add(bloco.indice);
+            lacunas.add(bloco.indice);
+
           } catch { /* noop */ }
           await salvarBlocoOcrTemp(supabaseAdmin, documento.condominio_id, documento.id, bloco.indice, placeholderErro);
         }
@@ -619,7 +632,10 @@ export async function processarDocumentoCore(
       ),
     );
 
-    const blocosProntos = prontos.size;
+    // Blocos efetivamente lidos = processados menos os marcados como lacuna.
+    // Sem este desconto um documento cheio de páginas ilegíveis aparecia
+    // "Pronto" e a IA respondia sem o texto real.
+    const blocosProntos = Math.max(0, prontos.size - lacunas.size);
     try {
       const { registrarEventoIa } = await import("./uso-ia.server");
       await registrarEventoIa({
@@ -683,6 +699,7 @@ export async function processarDocumentoCore(
       total_paginas: totalPaginas,
       blocos_prontos: blocosProntos,
       total_blocos: blocos.length,
+      blocos_lacuna: lacunas.size,
       paginas_falhas: falhas,
       // Motivo técnico da última falha de bloco — sem isso o documento só
       // exibia a frase genérica "tentada várias vezes sem avançar".
@@ -717,13 +734,19 @@ export async function processarDocumentoCore(
   } catch (e) {
     const ing = humanizeIngestError(e, "leitura");
 
-    // Confere se o documento já possui chunks válidos indexados
+    // Confere se o documento já possui chunks válidos indexados.
+    // Marcadores de lacuna (páginas ilegíveis) não são conteúdo válido.
     const { count: chunksRestantes } = await supabaseAdmin
       .from("document_chunks")
       .select("id", { count: "exact", head: true })
       .eq("documento_id", documento.id);
+    const { count: chunksLacuna } = await supabaseAdmin
+      .from("document_chunks")
+      .select("id", { count: "exact", head: true })
+      .eq("documento_id", documento.id)
+      .eq("metadata->>origem", "ocr_lacuna");
 
-    const possuiConteudoValido = (chunksRestantes ?? 0) > 0;
+    const possuiConteudoValido = (chunksRestantes ?? 0) - (chunksLacuna ?? 0) > 0;
 
     await supabaseAdmin
       .from("documentos")

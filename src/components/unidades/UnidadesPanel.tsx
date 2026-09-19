@@ -166,6 +166,7 @@ export function UnidadesPanel({
             detectada: string;
             mensagem?: string;
           } | null;
+          lotes_pendentes?: Array<{ lote: number; motivo: string; texto?: string }>;
         };
       };
     }[]
@@ -321,9 +322,12 @@ export function UnidadesPanel({
             paginaInicio: pInicio,
             paginaFim: pFim,
             reiniciar: false,
-            somenteLotesPendentes: optsReprocessar.somenteLotesPendentes,
+            // Só o disparo inicial reconstrói a lista de trechos pendentes; as
+            // rodadas seguintes apenas continuam a leitura já em andamento.
+            somenteLotesPendentes: false,
           },
         })) as any;
+
 
         rodadas += 1;
         if ((r?.concluidos ?? 0) > anterior) {
@@ -379,7 +383,22 @@ export function UnidadesPanel({
           );
           refresh();
           break;
+        default:
+          // A leitura parou sem um desfecho (ex.: rodadas sem avanço). Sem esta
+          // mensagem o botão apenas girava e terminava em silêncio.
+          setErroExtracao(
+            r?.mensagem ??
+              "A leitura dos trechos não avançou. Tente novamente em alguns minutos.",
+          );
+          toast.warning(
+            r?.mensagem ??
+              "A leitura dos trechos não avançou nesta tentativa. Tente novamente em alguns minutos.",
+            { duration: 8000 },
+          );
+          refresh();
+          break;
       }
+
     } catch (e) {
       toast.dismiss(t);
       toast.error(e instanceof Error ? e.message : "Falha ao reprocessar a convenção");
@@ -390,8 +409,8 @@ export function UnidadesPanel({
   }
 
   async function abrirImportarCondominos(file: File) {
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Arquivo maior que 10 MB.");
+    if (file.size > 6 * 1024 * 1024) {
+      toast.error("Arquivo maior que 6 MB.");
       return;
     }
     setExtraindo(true);
@@ -976,7 +995,7 @@ export function UnidadesPanel({
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpenReprocessDialog(false)}>Cancelar</Button>
-              <Button onClick={reprocessar}>Iniciar Extração</Button>
+              <Button onClick={() => reprocessar()}>Iniciar Extração</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

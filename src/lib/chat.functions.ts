@@ -113,22 +113,30 @@ export const extractAttachmentForChat = createServerFn({ method: "POST" })
     const { humanizeIngestError, IngestError } = await import("./ingest-errors");
 
     // Validação de tamanho ANTES de qualquer alocação pesada.
-    // base64 cresce ~33% sobre o binário → 14 MB de base64 ≈ 10 MB de arquivo.
-    const MAX_B64 = 14 * 1024 * 1024;
+    // O runtime do servidor tem memória limitada: base64 + cópia binária +
+    // reconversão para data URL triplicam o pico. 8 MB de base64 ≈ 6 MB de arquivo.
+    const MAX_B64 = 8 * 1024 * 1024;
     if (data.base64.length > MAX_B64) {
       throw new Error(
         new IngestError(
           "tamanho",
-          "Anexo maior que o limite de 10 MB",
+          "Anexo maior que o limite de 6 MB",
           "Comprima ou divida o arquivo antes de enviar.",
         ).toHuman(),
       );
     }
 
-    // base64 -> Uint8Array
-    const binStr = atob(data.base64);
-    const buffer = new Uint8Array(binStr.length);
-    for (let i = 0; i < binStr.length; i++) buffer[i] = binStr.charCodeAt(i);
+    // base64 -> Uint8Array (Buffer evita a cópia caractere a caractere)
+    const buffer =
+      typeof Buffer !== "undefined"
+        ? new Uint8Array(Buffer.from(data.base64, "base64"))
+        : (() => {
+            const binStr = atob(data.base64);
+            const out = new Uint8Array(binStr.length);
+            for (let i = 0; i < binStr.length; i++) out[i] = binStr.charCodeAt(i);
+            return out;
+          })();
+
 
     let text = "";
     try {
