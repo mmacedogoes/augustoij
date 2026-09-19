@@ -166,6 +166,7 @@ export function UnidadesPanel({
             detectada: string;
             mensagem?: string;
           } | null;
+          lotes_pendentes?: Array<{ lote: number; motivo: string; texto?: string }>;
         };
       };
     }[]
