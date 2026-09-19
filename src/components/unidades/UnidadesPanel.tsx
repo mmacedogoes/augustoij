@@ -382,7 +382,22 @@ export function UnidadesPanel({
           );
           refresh();
           break;
+        default:
+          // A leitura parou sem um desfecho (ex.: rodadas sem avanço). Sem esta
+          // mensagem o botão apenas girava e terminava em silêncio.
+          setErroExtracao(
+            r?.mensagem ??
+              "A leitura dos trechos não avançou. Tente novamente em alguns minutos.",
+          );
+          toast.warning(
+            r?.mensagem ??
+              "A leitura dos trechos não avançou nesta tentativa. Tente novamente em alguns minutos.",
+            { duration: 8000 },
+          );
+          refresh();
+          break;
       }
+
     } catch (e) {
       toast.dismiss(t);
       toast.error(e instanceof Error ? e.message : "Falha ao reprocessar a convenção");
