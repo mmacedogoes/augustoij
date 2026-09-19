@@ -994,7 +994,7 @@ export function UnidadesPanel({
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpenReprocessDialog(false)}>Cancelar</Button>
-              <Button onClick={reprocessar}>Iniciar Extração</Button>
+              <Button onClick={() => reprocessar()}>Iniciar Extração</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

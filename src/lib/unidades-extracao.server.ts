@@ -1679,8 +1679,9 @@ export async function processarExtracaoRodada(
     const metaExistente = job.metadata as Record<string, unknown>;
     const pendentes = (metaExistente.lotesPendentes as Array<{ lote: number; motivo: string; texto?: string }>) ?? [];
     if (pendentes.length > 0) {
-      const novosLotes: Lote[] = pendentes.map((p, idx) => ({
-        numero: idx + 1,
+      // A etapa de leitura consome os lotes no formato { id, texto }.
+      const novosLotes: Array<{ id: string; texto: string }> = pendentes.map((p, idx) => ({
+        id: `pendente-${idx + 1}`,
         texto: p.texto ?? "",
       }));
       const metaAtualizada = {
