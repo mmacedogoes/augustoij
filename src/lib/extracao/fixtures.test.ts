@@ -1,7 +1,11 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { extrairUnidadesDoTexto, type UnidadeEsperadaFormatada } from "./pipeline";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 type FixtureEsperada = {
   total: number;
@@ -55,7 +59,7 @@ describe("Regressão de Extração de Unidades (Fixtures)", () => {
 
       expect(fs.existsSync(textoPath), `Arquivo de texto não encontrado: ${slug}.txt`).toBe(true);
 
-      const esperadoRaw = fs.readFileSync(esperadoPath, "utf-8");
+      const esperadoRaw = fs.readFileSync(esperadoPath, "utf-8").replace(/^\uFEFF/, "");
       const esperado: FixtureEsperada = JSON.parse(esperadoRaw);
 
       const texto = fs.readFileSync(textoPath, "utf-8");

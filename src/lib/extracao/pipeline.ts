@@ -103,9 +103,8 @@ export function extrairUnidadesDoTexto(texto: string): ResultadoExtracaoFormatad
   }
 
   if (registros.length > 0) {
-    const candidatas: UnidadeEsperadaFormatada[] = [];
+    const mapaUnidades = new Map<string, UnidadeEsperadaFormatada>();
     for (const reg of registros) {
-      if (reg.motivo_descarte === "identidade_repetida_no_documento") continue;
       const medidas = lerRegistro(reg.texto);
       let area: number | null = null;
       let fracao: number | null = null;
@@ -120,13 +119,32 @@ export function extrairUnidadesDoTexto(texto: string): ResultadoExtracaoFormatad
           fracao = m.valor_numerico;
         }
       }
-      candidatas.push({
+      const numFormatado = reg.sufixo ? `${reg.numero}${reg.sufixo}` : reg.numero;
+      const chave = `${reg.escopo ?? ""}|${numFormatado}`;
+      const candidata: UnidadeEsperadaFormatada = {
         escopo: reg.escopo ?? null,
-        numero: reg.sufixo ? `${reg.numero}${reg.sufixo}` : reg.numero,
+        numero: numFormatado,
         area_privativa: area,
         fracao_ideal: fracao,
-      });
+      };
+
+      const existente = mapaUnidades.get(chave);
+      if (!existente) {
+        if (reg.motivo_descarte !== "identidade_repetida_no_documento") {
+          mapaUnidades.set(chave, candidata);
+        }
+      } else {
+        if (
+          existente.area_privativa == null &&
+          existente.fracao_ideal == null &&
+          (candidata.area_privativa != null || candidata.fracao_ideal != null)
+        ) {
+          mapaUnidades.set(chave, candidata);
+        }
+      }
     }
+
+    const candidatas = Array.from(mapaUnidades.values());
 
     const comMedidas = candidatas.filter((u) => u.area_privativa != null || u.fracao_ideal != null);
     if (comMedidas.length >= 0.5 * candidatas.length) {

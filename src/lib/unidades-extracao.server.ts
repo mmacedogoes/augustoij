@@ -233,6 +233,8 @@ export type DiagnosticoExtracao = {
     mensagem?: string;
   } | null;
   lotes_pendentes?: Array<{ lote: number; motivo: string; texto?: string }>;
+  registros_bloco_individual?: number;
+  registros_bloco_grupo?: number;
 };
 
 export class ErroTimeoutIA extends Error {
@@ -1815,6 +1817,8 @@ export async function processarExtracaoRodada(
       }));
 
       const registros = segmentarRegistros(paginas, doc.id);
+      const registrosGrupo = registros.filter((r) => r.padrao_ancora.startsWith("grupo:")).length;
+      const registrosIndividual = registros.length - registrosGrupo;
 
       const { detectarTipologia } = await import("./extracao/tipologia");
       const tipologiaDetectada = detectarTipologia(paginas);
@@ -1834,6 +1838,8 @@ export async function processarExtracaoRodada(
         const unidades = unidadesDaLeituraDescritiva(descritiva, conhecidas);
         const diagnostico: DiagnosticoExtracao = {
           leitura: "secao_descritiva",
+          registros_bloco_individual: registrosIndividual,
+          registros_bloco_grupo: registrosGrupo,
           total_trechos: chunks.length,
           trechos_selecionados: 0,
           prefiltro: "seção descritiva lida sem IA",
@@ -2059,6 +2065,8 @@ export async function processarExtracaoRodada(
 
           const diagnostico: DiagnosticoExtracao = {
             leitura: tipoLeitura as any,
+            registros_bloco_individual: registrosIndividual,
+            registros_bloco_grupo: registrosGrupo,
             total_trechos: chunks.length,
             trechos_selecionados: 0,
             prefiltro: "leitura determinística completa sem IA",
@@ -2465,6 +2473,8 @@ export async function processarExtracaoRodada(
     }));
     const censo = construirCenso(doc.id, chunks);
     const registros = segmentarRegistros(paginas, doc.id);
+    const registrosGrupo = registros.filter((r) => r.padrao_ancora.startsWith("grupo:")).length;
+    const registrosIndividual = registros.length - registrosGrupo;
 
     const lidasPelaIa = new Set<string>();
     for (const c of candidatas) {
@@ -2494,6 +2504,8 @@ export async function processarExtracaoRodada(
 
     const diagnostico: DiagnosticoExtracao = {
       leitura: "quadro_ia",
+      registros_bloco_individual: registrosIndividual,
+      registros_bloco_grupo: registrosGrupo,
       tentativa_descritiva: { ...descritivaTentativa, caminho_usado: "censo_de_linhas" },
       rol_artigo_2: descritivaRol
         ? {

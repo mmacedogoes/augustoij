@@ -1033,6 +1033,24 @@ describe("Regressão Teste 4: Âncoras, Orçamento, Concorrência e Determiníst
 describe("Regressão - Convenção Contemporâneo Residence (7 medidas, leitor de tabela e sem IA)", () => {
   const fixturePath = path.resolve(__dirname, "extracao/fixtures/contemporaneo-residence.txt");
   const textoFixture = fs.readFileSync(fixturePath, "utf-8");
+  const textoDuasUnidades = `a) A unidade autônoma habitacional (Apartamento) de nº 101, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              | 129,32   | m² |
+| - Área de Uso Comum Real                                  | 102,35   | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |  23,00   | m² |
+| - Área da Unidade (de construção)                         | 200,73   | m² |
+| - Fração Ideal do terreno                                 | 0,011054 |    |
+| - Cota Ideal do Terreno                                   |  40,9462 | m² |
+| - Área Real Total                                         | 231,67   | m² |
+b) A unidade autônoma habitacional (Apartamento) de nº 102, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              | 132,11   | m² |
+| - Área de Uso Comum Real                                  | 103,82   | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |  23,00   | m² |
+| - Área da Unidade (de construção)                         | 204,46   | m² |
+| - Fração Ideal do terreno                                 | 0,011260 |    |
+| - Cota Ideal do Terreno                                   |  41,7064 | m² |
+| - Área Real Total                                         | 235,93   | m² |`;
 
   it("a) as sete medidas são lidas: lerRegistro devolve todas para o apto 102", () => {
     const reg102Texto = `b) A unidade autônoma habitacional (Apartamento) de nº 102, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
@@ -1128,7 +1146,7 @@ A unidade possui:
   });
 
   it("f) conferência fecha: area_total = area_privativa + area_comum nas duas unidades, e ambas saem como lidas com confiança alta", async () => {
-    const paginas = [{ numero: 1, texto: textoFixture }];
+    const paginas = [{ numero: 1, texto: textoDuasUnidades }];
     const registros = segmentarRegistros(paginas, "doc-contemp");
     expect(registros.length).toBe(2);
 
@@ -1202,7 +1220,7 @@ A unidade possui:
       doc: mockDoc,
       condominio: mockCond,
       job: mockJob,
-      storageMd: textoFixture,
+      storageMd: textoDuasUnidades,
     });
 
     // Rodada 1: carregamento e roteamento
@@ -1485,6 +1503,127 @@ A unidade possui:
     const tamanhoEtapa1 = JSON.stringify(jobAposEtapa1?.metadata ?? {}).length;
     expect(tamanhoEtapa1).toBeLessThan(200 * 1024);
     expect(jobAposEtapa1?.metadata?.paginas).toBeUndefined();
+  });
+});
+
+describe("BLOCO 9 — Testes de Regressão T1 a T7 (P16 - Blocos de Grupo)", () => {
+  const fixturePath = path.resolve(__dirname, "extracao/fixtures/contemporaneo-residence.txt");
+  const textoContemporaneo = fs.readFileSync(fixturePath, "utf-8");
+
+  it("T1 'bloco de grupo expande': frase com 13 unidades gera 13 registros com mesmas medidas e números distintos", () => {
+    const textoGrupo = `TORRE B:\nu) As unidades autônomas habitacionais (Apartamentos) de nºs 105, 106, 405, 406, 506, 605, 606, 705, 706, 805, 806, 905 e 906, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              | 85,20    | m² |
+| - Área de Uso Comum Real                                  | 68,45    | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  | 23,00    | m² |
+| - Área da Unidade (de construção)                         | 134,12   | m² |
+| - Fração Ideal do terreno                                 | 0,007140 |    |
+| - Cota Ideal do Terreno                                   | 26,4512  | m² |
+| - Área Real Total                                         | 153,65   | m² |`;
+
+    const regs = segmentarRegistros([{ numero: 1, texto: textoGrupo }], "doc-grupo-13");
+    expect(regs.length).toBe(13);
+    const numerosEsperados = ["105", "106", "405", "406", "506", "605", "606", "705", "706", "805", "806", "905", "906"];
+    expect(regs.map((r) => r.numero)).toEqual(numerosEsperados);
+
+    for (const r of regs) {
+      expect(r.escopo).toBe("B");
+      expect(r.padrao_ancora).toBe("grupo:grupo_unidades");
+      const medidas = lerRegistro(r.texto);
+      const priv = medidas.find((m) => m.campo === "area_privativa");
+      const frac = medidas.find((m) => m.campo === "fracao_ideal");
+      expect(priv?.valor_numerico).toBe(85.20);
+      expect(frac?.valor_numerico).toBe(0.007140);
+    }
+  });
+
+  it("T2 'o total é 102': extração do Contemporâneo produz 102 unidades", () => {
+    const extraido = extrairUnidadesDoTexto(textoContemporaneo);
+    expect(extraido.total).toBe(102);
+    expect(extraido.unidades.length).toBe(102);
+  });
+
+  it("T3 'os dois 102 coexistem': Torre A 102 e Torre B 102 são unidades distintas", () => {
+    const extraido = extrairUnidadesDoTexto(textoContemporaneo);
+    const a102 = extraido.unidades.find((u) => u.escopo === "A" && u.numero === "102");
+    const b102 = extraido.unidades.find((u) => u.escopo === "B" && u.numero === "102");
+
+    expect(a102).toBeDefined();
+    expect(b102).toBeDefined();
+    expect(a102?.area_privativa).toBe(132.11);
+    expect(a102?.fracao_ideal).toBeCloseTo(0.011260, 6);
+    expect(b102?.area_privativa).toBe(92.33);
+    expect(b102?.fracao_ideal).toBeCloseTo(0.007571, 6);
+  });
+
+  it("T4 'a soma das frações fecha': soma entre 0.995 e 1.005", () => {
+    const extraido = extrairUnidadesDoTexto(textoContemporaneo);
+    const soma = extraido.unidades.reduce((acc, u) => acc + (u.fracao_ideal ?? 0), 0);
+    expect(soma).toBeGreaterThanOrEqual(0.995);
+    expect(soma).toBeLessThan(1.005);
+  });
+
+  it("T5 'sem IA': extração do Contemporâneo termina com chamadas_ia = 0", async () => {
+    let chamadasIa = 0;
+    const mockChamarIa = async () => {
+      chamadasIa++;
+      return { data: {}, usage: { prompt_tokens: 0, completion_tokens: 0 } };
+    };
+
+    const mockDoc = { id: "doc-contemp-p16", condominio_id: "cond-p16", nome_arquivo: "contemporaneo.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 102, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-contemp-p16",
+      etapa: "carregamento_e_roteamento",
+      total: 4,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {},
+    };
+
+    const supabase = createMockSupabase({
+      doc: mockDoc,
+      condominio: mockCond,
+      job: mockJob,
+      storageMd: textoContemporaneo,
+    });
+
+    await processarExtracaoRodada(supabase, "doc-contemp-p16", "fake-key", { chamarIa: mockChamarIa as any });
+    const res = await processarExtracaoRodada(supabase, "doc-contemp-p16", "fake-key", { chamarIa: mockChamarIa as any });
+
+    expect(chamadasIa).toBe(0);
+    expect(res.concluido).toBe(true);
+    expect(res.unidades?.length).toBe(102);
+  });
+
+  it("T6 'conferência C1': area_total = area_privativa + area_comum nas unidades", () => {
+    const regs = segmentarRegistros([{ numero: 1, texto: textoContemporaneo }], "doc-cr-c1");
+    expect(regs.length).toBe(102);
+
+    let conferidas = 0;
+    for (const r of regs) {
+      const medidas = lerRegistro(r.texto);
+      const priv = medidas.find((m) => m.campo === "area_privativa")?.valor_numerico;
+      const comum = medidas.find((m) => m.campo === "area_comum")?.valor_numerico;
+      const total = medidas.find((m) => m.campo === "area_total")?.valor_numerico;
+      if (priv != null && comum != null && total != null) {
+        expect(Math.abs(total - (priv + comum))).toBeLessThan(0.05);
+        conferidas++;
+      }
+    }
+    expect(conferidas).toBe(102);
+  });
+
+  it("T7 'Teste 2 e loteamento continuam': 32 unidades em Park Güell e 761 lotes em loteamento", () => {
+    const fixturePg = path.resolve(__dirname, "extracao/fixtures/park-guell.txt");
+    const textoPg = fs.readFileSync(fixturePg, "utf-8");
+    const extraidoPg = extrairUnidadesDoTexto(textoPg);
+    expect(extraidoPg.total).toBe(32);
+
+    const fixtureLote = path.resolve(__dirname, "extracao/fixtures/loteamento-761.txt");
+    const textoLote = fs.readFileSync(fixtureLote, "utf-8");
+    const extraidoLote = extrairUnidadesDoTexto(textoLote);
+    expect(extraidoLote.total).toBe(761);
   });
 });
 

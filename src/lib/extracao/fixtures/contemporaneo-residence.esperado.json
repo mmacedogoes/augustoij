@@ -1,0 +1,617 @@
+{
+  "total": 102,
+  "unidades": [
+    {
+      "escopo": "A",
+      "numero": "101",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011054
+    },
+    {
+      "escopo": "A",
+      "numero": "102",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "103",
+      "area_privativa": 131.04,
+      "fracao_ideal": 0.011088
+    },
+    {
+      "escopo": "A",
+      "numero": "104",
+      "area_privativa": 131.77,
+      "fracao_ideal": 0.011144
+    },
+    {
+      "escopo": "A",
+      "numero": "105",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011054
+    },
+    {
+      "escopo": "A",
+      "numero": "106",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "201",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011069
+    },
+    {
+      "escopo": "A",
+      "numero": "202",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.011275
+    },
+    {
+      "escopo": "A",
+      "numero": "203",
+      "area_privativa": 131.04,
+      "fracao_ideal": 0.011102
+    },
+    {
+      "escopo": "A",
+      "numero": "204",
+      "area_privativa": 131.77,
+      "fracao_ideal": 0.01115
+    },
+    {
+      "escopo": "A",
+      "numero": "205",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011069
+    },
+    {
+      "escopo": "A",
+      "numero": "206",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "301",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011008
+    },
+    {
+      "escopo": "A",
+      "numero": "302",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "303",
+      "area_privativa": 131.04,
+      "fracao_ideal": 0.011088
+    },
+    {
+      "escopo": "A",
+      "numero": "304",
+      "area_privativa": 131.77,
+      "fracao_ideal": 0.01115
+    },
+    {
+      "escopo": "A",
+      "numero": "305",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011008
+    },
+    {
+      "escopo": "A",
+      "numero": "306",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "401",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011008
+    },
+    {
+      "escopo": "A",
+      "numero": "402",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "403",
+      "area_privativa": 131.04,
+      "fracao_ideal": 0.011088
+    },
+    {
+      "escopo": "A",
+      "numero": "404",
+      "area_privativa": 131.77,
+      "fracao_ideal": 0.01115
+    },
+    {
+      "escopo": "A",
+      "numero": "405",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011008
+    },
+    {
+      "escopo": "A",
+      "numero": "406",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "501",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011054
+    },
+    {
+      "escopo": "A",
+      "numero": "502",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "503",
+      "area_privativa": 131.04,
+      "fracao_ideal": 0.011088
+    },
+    {
+      "escopo": "A",
+      "numero": "504",
+      "area_privativa": 131.77,
+      "fracao_ideal": 0.01115
+    },
+    {
+      "escopo": "A",
+      "numero": "505",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011008
+    },
+    {
+      "escopo": "A",
+      "numero": "506",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "601",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011008
+    },
+    {
+      "escopo": "A",
+      "numero": "602",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "603",
+      "area_privativa": 131.04,
+      "fracao_ideal": 0.011088
+    },
+    {
+      "escopo": "A",
+      "numero": "604",
+      "area_privativa": 131.77,
+      "fracao_ideal": 0.01115
+    },
+    {
+      "escopo": "A",
+      "numero": "605",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011008
+    },
+    {
+      "escopo": "A",
+      "numero": "606",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "701",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011008
+    },
+    {
+      "escopo": "A",
+      "numero": "702",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "703",
+      "area_privativa": 131.04,
+      "fracao_ideal": 0.011088
+    },
+    {
+      "escopo": "A",
+      "numero": "704",
+      "area_privativa": 131.77,
+      "fracao_ideal": 0.01115
+    },
+    {
+      "escopo": "A",
+      "numero": "705",
+      "area_privativa": 129.32,
+      "fracao_ideal": 0.011054
+    },
+    {
+      "escopo": "A",
+      "numero": "706",
+      "area_privativa": 132.11,
+      "fracao_ideal": 0.01126
+    },
+    {
+      "escopo": "A",
+      "numero": "801",
+      "area_privativa": 260.13,
+      "fracao_ideal": 0.020502
+    },
+    {
+      "escopo": "A",
+      "numero": "802",
+      "area_privativa": 263.9,
+      "fracao_ideal": 0.020809
+    },
+    {
+      "escopo": "A",
+      "numero": "803",
+      "area_privativa": 263.29,
+      "fracao_ideal": 0.020536
+    },
+    {
+      "escopo": "A",
+      "numero": "804",
+      "area_privativa": 263.47,
+      "fracao_ideal": 0.02055
+    },
+    {
+      "escopo": "A",
+      "numero": "805",
+      "area_privativa": 260.05,
+      "fracao_ideal": 0.020445
+    },
+    {
+      "escopo": "A",
+      "numero": "806",
+      "area_privativa": 263.87,
+      "fracao_ideal": 0.020804
+    },
+    {
+      "escopo": "B",
+      "numero": "101",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.00762
+    },
+    {
+      "escopo": "B",
+      "numero": "102",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "103",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "104",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "105",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "106",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "201",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "202",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007583
+    },
+    {
+      "escopo": "B",
+      "numero": "203",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007506
+    },
+    {
+      "escopo": "B",
+      "numero": "204",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007506
+    },
+    {
+      "escopo": "B",
+      "numero": "205",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007647
+    },
+    {
+      "escopo": "B",
+      "numero": "206",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007632
+    },
+    {
+      "escopo": "B",
+      "numero": "301",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.00758
+    },
+    {
+      "escopo": "B",
+      "numero": "302",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.00758
+    },
+    {
+      "escopo": "B",
+      "numero": "303",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "304",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "305",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007619
+    },
+    {
+      "escopo": "B",
+      "numero": "306",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007619
+    },
+    {
+      "escopo": "B",
+      "numero": "401",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007583
+    },
+    {
+      "escopo": "B",
+      "numero": "402",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "403",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "404",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "405",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "406",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "501",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "502",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "503",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "504",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "505",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007619
+    },
+    {
+      "escopo": "B",
+      "numero": "506",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "601",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007583
+    },
+    {
+      "escopo": "B",
+      "numero": "602",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "603",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "604",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "605",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "606",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "701",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "702",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "703",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "704",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "705",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "706",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "801",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "802",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "803",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "804",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "805",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "806",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "901",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "902",
+      "area_privativa": 92.33,
+      "fracao_ideal": 0.007571
+    },
+    {
+      "escopo": "B",
+      "numero": "903",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "904",
+      "area_privativa": 89.14,
+      "fracao_ideal": 0.007478
+    },
+    {
+      "escopo": "B",
+      "numero": "905",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    },
+    {
+      "escopo": "B",
+      "numero": "906",
+      "area_privativa": 92.79,
+      "fracao_ideal": 0.007626
+    }
+  ]
+}

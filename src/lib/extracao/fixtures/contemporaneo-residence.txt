@@ -1,23 +1,408 @@
 CONVENÇÃO DE CONDOMÍNIO - CONTEMPORÂNEO RESIDENCE
 
+
+
 QUADRO DESCRITIVO DAS UNIDADES AUTÔNOMAS
+
+
+
+TORRE A:
+
+
 
 a) A unidade autônoma habitacional (Apartamento) de nº 101, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
 A unidade possui:
-| - Área Real de Uso Privativo                              | 129,32   | m² |
-| - Área de Uso Comum Real                                  | 102,35   | m² |
-| - Área de Uso Comum (Divisão não proporcional - Garagem)  |  23,00   | m² |
-| - Área da Unidade (de construção)                         | 200,73   | m² |
+| - Área Real de Uso Privativo                              |   129,32 | m² |
+| - Área de Uso Comum Real                                  |   102,35 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   200,73 | m² |
 | - Fração Ideal do terreno                                 | 0,011054 |    |
 | - Cota Ideal do Terreno                                   |  40,9462 | m² |
-| - Área Real Total                                         | 231,67   | m² |
+| - Área Real Total                                         |   231,67 | m² |
 
 b) A unidade autônoma habitacional (Apartamento) de nº 102, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
 A unidade possui:
-| - Área Real de Uso Privativo                              | 132,11   | m² |
-| - Área de Uso Comum Real                                  | 103,82   | m² |
-| - Área de Uso Comum (Divisão não proporcional - Garagem)  |  23,00   | m² |
-| - Área da Unidade (de construção)                         | 204,46   | m² |
+| - Área Real de Uso Privativo                              |   132,11 | m² |
+| - Área de Uso Comum Real                                  |   103,82 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   204,46 | m² |
 | - Fração Ideal do terreno                                 | 0,011260 |    |
 | - Cota Ideal do Terreno                                   |  41,7064 | m² |
-| - Área Real Total                                         | 235,93   | m² |
+| - Área Real Total                                         |   235,93 | m² |
+
+c) A unidade autônoma habitacional (Apartamento) de nº 103, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   131,04 | m² |
+| - Área de Uso Comum Real                                  |   102,59 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   201,33 | m² |
+| - Fração Ideal do terreno                                 | 0,011088 |    |
+| - Cota Ideal do Terreno                                   |  41,0688 | m² |
+| - Área Real Total                                         |   233,63 | m² |
+
+d) A unidade autônoma habitacional (Apartamento) de nº 104, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   131,77 | m² |
+| - Área de Uso Comum Real                                  |   102,99 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   202,36 | m² |
+| - Fração Ideal do terreno                                 | 0,011144 |    |
+| - Cota Ideal do Terreno                                   |  41,2793 | m² |
+| - Área Real Total                                         |   234,76 | m² |
+
+e) A unidade autônoma habitacional (Apartamento) de nº 105, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   129,32 | m² |
+| - Área de Uso Comum Real                                  |   102,35 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   200,73 | m² |
+| - Fração Ideal do terreno                                 | 0,011054 |    |
+| - Cota Ideal do Terreno                                   |  40,9462 | m² |
+| - Área Real Total                                         |   231,67 | m² |
+
+e.1) As unidades autônomas habitacionais (Apartamentos) de nºs 201 e 205, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   129,32 | m² |
+| - Área de Uso Comum Real                                  |   102,78 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,32 | m² |
+| - Área da Unidade (de construção)                         |   201,00 | m² |
+| - Fração Ideal do terreno                                 | 0,011069 |    |
+| - Cota Ideal do Terreno                                   |  41,0016 | m² |
+| - Área Real Total                                         |   232,10 | m² |
+
+e.2) As unidades autônomas habitacionais (Apartamentos) de nºs 301, 305, 401, 405, 505, 601, 605 e 701, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   129,32 | m² |
+| - Área de Uso Comum Real                                  |   101,01 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    22,00 | m² |
+| - Área da Unidade (de construção)                         |   199,88 | m² |
+| - Fração Ideal do terreno                                 | 0,011008 |    |
+| - Cota Ideal do Terreno                                   |  40,7732 | m² |
+| - Área Real Total                                         |   230,33 | m² |
+
+f) A unidade autônoma habitacional (Apartamento) de nº 106, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   132,11 | m² |
+| - Área de Uso Comum Real                                  |   103,82 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   204,46 | m² |
+| - Fração Ideal do terreno                                 | 0,011260 |    |
+| - Cota Ideal do Terreno                                   |  41,7064 | m² |
+| - Área Real Total                                         |   235,93 | m² |
+
+f.1) As unidades autônomas habitacionais (Apartamentos) de nºs 206, 302, 306, 406, 502, 506, 602, 606, 702 e 706, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   132,11 | m² |
+| - Área de Uso Comum Real                                  |   103,82 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   204,46 | m² |
+| - Fração Ideal do terreno                                 | 0,011260 |    |
+| - Cota Ideal do Terreno                                   |  41,7064 | m² |
+| - Área Real Total                                         |   235,93 | m² |
+
+g) A unidade autônoma habitacional (Apartamento) de nº 202, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   132,11 | m² |
+| - Área de Uso Comum Real                                  |   104,25 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,32 | m² |
+| - Área da Unidade (de construção)                         |   204,73 | m² |
+| - Fração Ideal do terreno                                 | 0,011275 |    |
+| - Cota Ideal do Terreno                                   |  41,7618 | m² |
+| - Área Real Total                                         |   236,36 | m² |
+
+h) A unidade autônoma habitacional (Apartamento) de nº 203, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   131,04 | m² |
+| - Área de Uso Comum Real                                  |   103,01 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,32 | m² |
+| - Área da Unidade (de construção)                         |   201,60 | m² |
+| - Fração Ideal do terreno                                 | 0,011102 |    |
+| - Cota Ideal do Terreno                                   |  41,1241 | m² |
+| - Área Real Total                                         |   234,05 | m² |
+
+i) As unidades autônomas habitacionais (Apartamentos) de nºs 204, 304, 404, 504, 604 e 704, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   131,77 | m² |
+| - Área de Uso Comum Real                                  |   103,15 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,12 | m² |
+| - Área da Unidade (de construção)                         |   202,46 | m² |
+| - Fração Ideal do terreno                                 | 0,011150 |    |
+| - Cota Ideal do Terreno                                   |  41,3001 | m² |
+| - Área Real Total                                         |   234,92 | m² |
+
+j) As unidades autônomas habitacionais (Apartamentos) de nºs 303, 403, 503, 603 e 703, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   131,04 | m² |
+| - Área de Uso Comum Real                                  |   102,59 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   201,33 | m² |
+| - Fração Ideal do terreno                                 | 0,011088 |    |
+| - Cota Ideal do Terreno                                   |  41,0688 | m² |
+| - Área Real Total                                         |   233,63 | m² |
+
+k) A unidade autônoma habitacional (Apartamento) de nº 402, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   132,11 | m² |
+| - Área de Uso Comum Real                                  |   103,82 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   204,46 | m² |
+| - Fração Ideal do terreno                                 | 0,011260 |    |
+| - Cota Ideal do Terreno                                   |  41,7064 | m² |
+| - Área Real Total                                         |   235,93 | m² |
+
+l) A unidade autônoma habitacional (Apartamento) de nº 501, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   129,32 | m² |
+| - Área de Uso Comum Real                                  |   102,35 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   200,73 | m² |
+| - Fração Ideal do terreno                                 | 0,011054 |    |
+| - Cota Ideal do Terreno                                   |  40,9462 | m² |
+| - Área Real Total                                         |   231,67 | m² |
+
+m) A unidade autônoma habitacional (Apartamento) de nº 705, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   129,32 | m² |
+| - Área de Uso Comum Real                                  |   102,35 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   200,73 | m² |
+| - Fração Ideal do terreno                                 | 0,011054 |    |
+| - Cota Ideal do Terreno                                   |  40,9462 | m² |
+| - Área Real Total                                         |   231,67 | m² |
+
+n) A unidade autônoma habitacional (Dupléx) de nº 801, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   260,13 | m² |
+| - Área de Uso Comum Real                                  |   171,66 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    24,50 | m² |
+| - Área da Unidade (de construção)                         |   372,29 | m² |
+| - Fração Ideal do terreno                                 | 0,020502 |    |
+| - Cota Ideal do Terreno                                   |  75,9418 | m² |
+| - Área Real Total                                         |   431,79 | m² |
+
+o) A unidade autônoma habitacional (Dupléx) de nº 802, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   263,90 | m² |
+| - Área de Uso Comum Real                                  |   172,37 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   377,86 | m² |
+| - Fração Ideal do terreno                                 | 0,020809 |    |
+| - Cota Ideal do Terreno                                   |  77,0773 | m² |
+| - Área Real Total                                         |   436,27 | m² |
+
+p) A unidade autônoma habitacional (Dupléx) de nº 803, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   263,29 | m² |
+| - Área de Uso Comum Real                                  |   170,41 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   372,91 | m² |
+| - Fração Ideal do terreno                                 | 0,020536 |    |
+| - Cota Ideal do Terreno                                   |  76,0675 | m² |
+| - Área Real Total                                         |   433,70 | m² |
+
+q) A unidade autônoma habitacional (Dupléx) de nº 804, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   263,47 | m² |
+| - Área de Uso Comum Real                                  |   170,51 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   373,16 | m² |
+| - Fração Ideal do terreno                                 | 0,020550 |    |
+| - Cota Ideal do Terreno                                   |  76,1194 | m² |
+| - Área Real Total                                         |   433,98 | m² |
+
+r) A unidade autônoma habitacional (Dupléx) de nº 805, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   260,05 | m² |
+| - Área de Uso Comum Real                                  |   169,76 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   371,25 | m² |
+| - Fração Ideal do terreno                                 | 0,020445 |    |
+| - Cota Ideal do Terreno                                   |  75,7305 | m² |
+| - Área Real Total                                         |   429,81 | m² |
+
+s) A unidade autônoma habitacional (Dupléx) de nº 806, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |   263,87 | m² |
+| - Área de Uso Comum Real                                  |   172,33 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    23,00 | m² |
+| - Área da Unidade (de construção)                         |   377,77 | m² |
+| - Fração Ideal do terreno                                 | 0,020804 |    |
+| - Cota Ideal do Terreno                                   |  77,0597 | m² |
+| - Área Real Total                                         |   436,20 | m² |
+
+
+
+TORRE B:
+
+
+
+t) A unidade autônoma habitacional (Apartamento) de nº 101, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,33 | m² |
+| - Área de Uso Comum Real                                  |    67,00 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    12,30 | m² |
+| - Área da Unidade (de construção)                         |   138,37 | m² |
+| - Fração Ideal do terreno                                 | 0,007620 |    |
+| - Cota Ideal do Terreno                                   |  28,2246 | m² |
+| - Área Real Total                                         |   159,32 | m² |
+
+u) As unidades autônomas habitacionais (Apartamentos) de nºs 102, 201, 402, 501, 502, 602, 701, 702, 801, 802, 901 e 902, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,33 | m² |
+| - Área de Uso Comum Real                                  |    65,59 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,25 | m² |
+| - Área da Unidade (de construção)                         |   137,47 | m² |
+| - Fração Ideal do terreno                                 | 0,007571 |    |
+| - Cota Ideal do Terreno                                   |  28,0429 | m² |
+| - Área Real Total                                         |   157,92 | m² |
+
+u.1) As unidades autônomas habitacionais (Apartamentos) de nºs 301 e 302, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,33 | m² |
+| - Área de Uso Comum Real                                  |    65,86 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,45 | m² |
+| - Área da Unidade (de construção)                         |   137,64 | m² |
+| - Fração Ideal do terreno                                 | 0,007580 |    |
+| - Cota Ideal do Terreno                                   |  28,0775 | m² |
+| - Área Real Total                                         |   158,19 | m² |
+
+v) As unidades autônomas habitacionais (Apartamentos) de nºs 103, 104, 403, 404, 503, 504, 604, 704, 803, 804, 903 e 904, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    89,14 | m² |
+| - Área de Uso Comum Real                                  |    65,17 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   135,78 | m² |
+| - Fração Ideal do terreno                                 | 0,007478 |    |
+| - Cota Ideal do Terreno                                   |  27,6976 | m² |
+| - Área Real Total                                         |   154,31 | m² |
+
+x) As unidades autônomas habitacionais (Apartamentos) de nºs 105, 106, 405, 406, 506, 605, 606, 705, 706, 805, 806, 905 e 906, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,79 | m² |
+| - Área de Uso Comum Real                                  |    66,39 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,65 | m² |
+| - Área da Unidade (de construção)                         |   138,48 | m² |
+| - Fração Ideal do terreno                                 | 0,007626 |    |
+| - Cota Ideal do Terreno                                   |  28,2473 | m² |
+| - Área Real Total                                         |   159,18 | m² |
+
+x.1) A unidade autônoma habitacional (Apartamento) de nº 206, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,79 | m² |
+| - Área de Uso Comum Real                                  |    66,55 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,77 | m² |
+| - Área da Unidade (de construção)                         |   138,58 | m² |
+| - Fração Ideal do terreno                                 | 0,007632 |    |
+| - Cota Ideal do Terreno                                   |  28,2680 | m² |
+| - Área Real Total                                         |   159,34 | m² |
+
+z) A unidade autônoma habitacional (Apartamento) de nº 202, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,33 | m² |
+| - Área de Uso Comum Real                                  |    65,93 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   137,69 | m² |
+| - Fração Ideal do terreno                                 | 0,007583 |    |
+| - Cota Ideal do Terreno                                   |  28,0862 | m² |
+| - Área Real Total                                         |   158,25 | m² |
+
+1) As unidades autônomas habitacionais (Apartamentos) de nºs 203 e 204, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    89,14 | m² |
+| - Área de Uso Comum Real                                  |    65,98 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    12,10 | m² |
+| - Área da Unidade (de construção)                         |   136,29 | m² |
+| - Fração Ideal do terreno                                 | 0,007506 |    |
+| - Cota Ideal do Terreno                                   |  27,8014 | m² |
+| - Área Real Total                                         |   155,12 | m² |
+
+2) As unidades autônomas habitacionais (Apartamentos) de nºs 305 e 306, possuem os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,79 | m² |
+| - Área de Uso Comum Real                                  |    66,19 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   138,35 | m² |
+| - Fração Ideal do terreno                                 | 0,007619 |    |
+| - Cota Ideal do Terreno                                   |  28,2213 | m² |
+| - Área Real Total                                         |   158,98 | m² |
+
+2.1) A unidade autônoma habitacional (Apartamento) de nº 205, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,79 | m² |
+| - Área de Uso Comum Real                                  |    66,99 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    12,10 | m² |
+| - Área da Unidade (de construção)                         |   138,86 | m² |
+| - Fração Ideal do terreno                                 | 0,007647 |    |
+| - Cota Ideal do Terreno                                   |  28,3251 | m² |
+| - Área Real Total                                         |   159,78 | m² |
+
+3) A unidade autônoma habitacional (Apartamento) de nº 303, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    89,14 | m² |
+| - Área de Uso Comum Real                                  |    65,17 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   135,78 | m² |
+| - Fração Ideal do terreno                                 | 0,007478 |    |
+| - Cota Ideal do Terreno                                   |  27,6976 | m² |
+| - Área Real Total                                         |   154,31 | m² |
+
+4) A unidade autônoma habitacional (Apartamento) de nº 304, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    89,14 | m² |
+| - Área de Uso Comum Real                                  |    65,17 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   135,78 | m² |
+| - Fração Ideal do terreno                                 | 0,007478 |    |
+| - Cota Ideal do Terreno                                   |  27,6976 | m² |
+| - Área Real Total                                         |   154,31 | m² |
+
+5) A unidade autônoma habitacional (Apartamento) de nº 401, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,33 | m² |
+| - Área de Uso Comum Real                                  |    65,93 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   137,69 | m² |
+| - Fração Ideal do terreno                                 | 0,007583 |    |
+| - Cota Ideal do Terreno                                   |  28,0862 | m² |
+| - Área Real Total                                         |   158,25 | m² |
+
+6) A unidade autônoma habitacional (Apartamento) de nº 505, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,79 | m² |
+| - Área de Uso Comum Real                                  |    66,19 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   138,35 | m² |
+| - Fração Ideal do terreno                                 | 0,007619 |    |
+| - Cota Ideal do Terreno                                   |  28,2213 | m² |
+| - Área Real Total                                         |   158,98 | m² |
+
+7) A unidade autônoma habitacional (Apartamento) de nº 601, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    92,33 | m² |
+| - Área de Uso Comum Real                                  |    65,93 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   137,69 | m² |
+| - Fração Ideal do terreno                                 | 0,007583 |    |
+| - Cota Ideal do Terreno                                   |  28,0862 | m² |
+| - Área Real Total                                         |   158,25 | m² |
+
+8) A unidade autônoma habitacional (Apartamento) de nº 603, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    89,14 | m² |
+| - Área de Uso Comum Real                                  |    65,17 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   135,78 | m² |
+| - Fração Ideal do terreno                                 | 0,007478 |    |
+| - Cota Ideal do Terreno                                   |  27,6976 | m² |
+| - Área Real Total                                         |   154,31 | m² |
+
+9) A unidade autônoma habitacional (Apartamento) de nº 703, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              |    89,14 | m² |
+| - Área de Uso Comum Real                                  |    65,17 | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |    11,50 | m² |
+| - Área da Unidade (de construção)                         |   135,78 | m² |
+| - Fração Ideal do terreno                                 | 0,007478 |    |
+| - Cota Ideal do Terreno                                   |  27,6976 | m² |
+| - Área Real Total                                         |   154,31 | m² |
+
