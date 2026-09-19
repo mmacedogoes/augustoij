@@ -576,6 +576,8 @@ export async function processarDocumentoCore(
             } catch { /* noop */ }
             await salvarBlocoOcrTemp(supabaseAdmin, documento.condominio_id, documento.id, bloco.indice, placeholderBranco);
             prontos.add(bloco.indice);
+            lacunas.add(bloco.indice);
+
             continue;
           }
           novosChunks += await indexar([txt], {
@@ -601,6 +603,8 @@ export async function processarDocumentoCore(
               pagina_fim: bloco.fim,
             });
             prontos.add(bloco.indice);
+            lacunas.add(bloco.indice);
+
           } catch { /* noop */ }
           await salvarBlocoOcrTemp(supabaseAdmin, documento.condominio_id, documento.id, bloco.indice, placeholderErro);
         }
