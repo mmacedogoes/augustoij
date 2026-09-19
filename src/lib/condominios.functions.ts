@@ -66,6 +66,9 @@ export const createCondominio = createServerFn({ method: "POST" })
       throw new Error(gateMessages.condominiosMax(plano.nome, plano.condomíniosMax));
     }
 
+    // "casas_lotes" é apelido de "casas": normaliza antes de gravar.
+    const { normalizeCategoria } = await import("@/lib/categorias-condominio");
+    const categoriaNormalizada = normalizeCategoria(data.categoria ?? "predio");
 
     const { data: row, error } = await context.supabase
       .from("condominios")
