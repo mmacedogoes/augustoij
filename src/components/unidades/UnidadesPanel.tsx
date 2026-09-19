@@ -409,8 +409,8 @@ export function UnidadesPanel({
   }
 
   async function abrirImportarCondominos(file: File) {
-    if (file.size > 6 * 1024 * 1024) {
-      toast.error("Arquivo maior que 6 MB.");
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Arquivo maior que 15 MB.");
       return;
     }
     setExtraindo(true);
