@@ -2107,9 +2107,7 @@ export async function processarExtracaoRodada(
             tentativa_descritiva: {
               ...descritiva.tentativa,
               caminho_usado:
-                tipoLeitura === "secao_descritiva" || tipoLeitura === "registros_posicionais"
-                  ? tipoLeitura
-                  : "censo_de_linhas",
+                tipoLeitura === "registros_posicionais" ? tipoLeitura : "censo_de_linhas",
               registros_segmentados: registros.length,
               caminho_escolhido: tipoLeitura,
               motivo_da_escolha: `todas as ${consolidadoDet.unidades.length} unidades resolvidas deterministicamente com área e fração`,
