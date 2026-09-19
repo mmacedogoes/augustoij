@@ -279,6 +279,21 @@ export function normalizarParte(valor: string) {
     .toLowerCase();
 }
 
+/**
+ * Normaliza número de unidade aplicando equivalências (Mudança 2 da NBR 12.721):
+ * "2", "02", "nº 2", "n° 02", "Apto 2", "Apartamento 02" e "Unidade 2" -> "2"
+ */
+export function normalizarNumeroUnidade(num: string): string {
+  const sem = semAcento(num)
+    .replace(/^(?:unidades?|unid|un|apartamentos?|aptos?|apart|ap|casas?|lojas?|salas?|lotes?|vagas?|n[º°o.]*)\s*/i, "")
+    .trim();
+  const m = /^0*(\d+)\s*([a-zA-Z])?$/.exec(sem);
+  if (m) {
+    return `${m[1]}${(m[2] ?? "").toUpperCase()}`;
+  }
+  return semAcento(num).replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+}
+
 export type ResultadoIdentidade =
   | { status: "resolvida"; bloco: string | null; numero: string; regra: string }
   | { status: "sem_correspondencia"; regra: "sem_correspondencia" };
@@ -297,12 +312,20 @@ export function resolverIdentidade(
   }
   const numero = normalizarParte(candidata.numero);
   const bloco = normalizarParte(candidata.bloco ?? "");
+  const normNum = normalizarNumeroUnidade(candidata.numero);
 
   // 1) chave exata
   const exata = conhecidas.find(
     (item) => normalizarParte(item.numero) === numero && normalizarParte(item.bloco ?? "") === bloco,
   );
   if (exata) return { status: "resolvida", ...exata, regra: "identidade_exata" };
+
+  // 1b) equivalência numérica com remoção de zeros à esquerda e prefixos ("02" == "2", "Apto 2" == "2")
+  const porEquiv = conhecidas.filter(
+    (item) => normalizarNumeroUnidade(item.numero) === normNum && normalizarParte(item.bloco ?? "") === bloco,
+  );
+  if (porEquiv.length === 1)
+    return { status: "resolvida", ...porEquiv[0], regra: "identidade_equivalente" };
 
   // 2) identificador composto (601A -> A/601), nos dois sentidos
   const compostos = conhecidas.filter((item) => {
@@ -318,14 +341,17 @@ export function resolverIdentidade(
   if (contexto) {
     const porContexto = conhecidas.filter(
       (item) =>
-        normalizarParte(item.numero) === numero && normalizarParte(item.bloco ?? "") === contexto,
+        (normalizarParte(item.numero) === numero || normalizarNumeroUnidade(item.numero) === normNum) &&
+        normalizarParte(item.bloco ?? "") === contexto,
     );
     if (porContexto.length === 1)
       return { status: "resolvida", ...porContexto[0], regra: "identidade_bloco_contexto" };
   }
 
   // 4) número único no cadastro inteiro
-  const porNumero = conhecidas.filter((item) => normalizarParte(item.numero) === numero);
+  const porNumero = conhecidas.filter(
+    (item) => normalizarParte(item.numero) === numero || normalizarNumeroUnidade(item.numero) === normNum,
+  );
   if (porNumero.length === 1)
     return { status: "resolvida", ...porNumero[0], regra: "identidade_numero_unico" };
 

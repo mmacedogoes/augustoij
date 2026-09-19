@@ -1590,7 +1590,6 @@ A unidade possui:
 
     await processarExtracaoRodada(supabase, "doc-contemp-p16", "fake-key", { chamarIa: mockChamarIa as any });
     const res = await processarExtracaoRodada(supabase, "doc-contemp-p16", "fake-key", { chamarIa: mockChamarIa as any });
-
     expect(chamadasIa).toBe(0);
     expect(res.concluido).toBe(true);
     expect(res.unidades?.length).toBe(102);
@@ -1624,6 +1623,69 @@ A unidade possui:
     const textoLote = fs.readFileSync(fixtureLote, "utf-8");
     const extraidoLote = extrairUnidadesDoTexto(textoLote);
     expect(extraidoLote.total).toBe(761);
+  });
+
+  it("T8_NBR 'Quadro NBR 12.721 e Coeficiente de Proporcionalidade': lê medidas do bloco, reconhece fração, valida contas e aceita equivalência 02 = 2", () => {
+    const linhasDocRaw = [
+      "Apartamento 02",
+      "Área Real Privativa (Principal) | 64,20 m²",
+      "Área Real Privativa Acessória (vaga de garagem) | 23,00 m²",
+      "Área Real Privativa Total | 87,20 m²",
+      "Área Real de Uso Comum | 69,18 m²",
+      "Área Real Total | 156,38 m²",
+      "Coeficiente de Proporcionalidade | 0,027350",
+    ];
+
+    const txt = linhasDocRaw.join("\n");
+    const regs = segmentarRegistros([{ numero: 1, texto: txt }], "doc-t5");
+    expect(regs.length).toBe(1);
+    expect(regs[0].numero).toBe("02");
+
+    const medidas = lerRegistro(regs[0].texto);
+    const candidatas: UnidadeExtraida[] = [
+      {
+        bloco: null,
+        numero: "02",
+        tipo: "apartamento",
+        linha_id: "lin-1",
+        medidas: medidas.map((m) => ({
+          campo: m.campo === "fracao_ideal" ? "fracao_terreno" : m.campo,
+          valor_bruto: m.valor_bruto,
+          escala: m.escala,
+          trecho: m.trecho,
+          linha_id: "lin-1",
+        })),
+        medidas_descartadas: [],
+        fonte: "quadro",
+        regras_aplicadas: ["quadro"],
+      },
+    ];
+
+    const censo = {
+      porId: new Map([["lin-1", { pagina: 1, texto: regs[0].texto }]]),
+    };
+
+    const consolidado = consolidar(
+      candidatas,
+      [{ bloco: null, numero: "2" }],
+      censo,
+      regs,
+      "padrao",
+      linhasDocRaw.map((texto) => ({ texto, pagina: 1, bloco_contexto: null })),
+    );
+
+    expect(consolidado.unidades.length).toBe(1);
+    const u = consolidado.unidades[0];
+    expect(u.numero).toBe("2");
+    // Área m² recebe privativa principal (64.20)
+    expect(u.area_m2).toBe(64.2);
+    // Fração ideal reconhecida do coeficiente de proporcionalidade (0.02735)
+    expect(u.fracao_ideal).toBe(0.02735);
+    // As contas fecham (64.20 + 23.00 = 87.20 e 87.20 + 69.18 = 156.38)
+    expect(u.regras_aplicadas).toContain("contas_do_quadro_fecham");
+    expect(u.estado).toBe("lido");
+    expect(u.confianca).toBe("alta");
+    expect(u.medidas_descartadas?.length || 0).toBe(0);
   });
 });
 

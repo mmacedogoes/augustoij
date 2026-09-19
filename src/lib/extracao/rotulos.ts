@@ -6,6 +6,7 @@
 
 export type FamiliaRotulo =
   | "area_privativa"
+  | "area_privativa_total"
   | "area_garagem"
   | "area_comum"
   | "area_total"
@@ -31,16 +32,21 @@ export type MedidaLida = {
 
 /**
  * Famílias em ordem estrita de prioridade (a mais específica primeiro).
+ * area_privativa_total vem ANTES de area_privativa.
  * area_garagem vem ANTES de area_comum para capturar "Área de Uso Comum (... Garagem)".
  */
 export const FAMILIAS_ORDENADAS: [FamiliaRotulo, RegExp][] = [
   [
-    "area_privativa",
-    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:uso\s+)?(?:privativ[oa]|exclusiv[oa]|[úu]til)(?:\s+real)?(?:\s+de\s+constru[çc][ãa]o)?/i,
+    "area_privativa_total",
+    /[áa]rea\s+(?:real\s+)?(?:privativa|priv\.?)\s+total|[áa]rea\s+total\s+(?:real\s+)?(?:privativa|priv\.?)/i,
   ],
   [
     "area_garagem",
-    /[áa]rea[^|]*\bgaragem\b|[áa]rea\s+de\s+vagas?/i,
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:uso\s+)?(?:privativ[oa]|priv\.?)\s+acess[óo]ria|[áa]rea[^|]*\bgaragem\b|[áa]rea\s+de\s+vagas?/i,
+  ],
+  [
+    "area_privativa",
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:uso\s+)?(?:privativ[oa]|priv\.?|exclusiv[oa]|[úu]til)(?:\s*\(\s*principal\s*\))?(?:\s+real)?(?:\s+de\s+constru[çc][ãa]o)?/i,
   ],
   [
     "area_comum",
@@ -64,7 +70,7 @@ export const FAMILIAS_ORDENADAS: [FamiliaRotulo, RegExp][] = [
   ],
   [
     "fracao_ideal",
-    /fra[çc][ãa]o\s+ideal|coeficiente\s+de\s+(?:rateio|propriedade)|permilagem|mil[ée]simos/i,
+    /fra[çc][ãa]o\s+ideal(?:\s+(?:do\s+terreno|de\s+terreno\s+e\s+(?:coisas|partes)\s+comuns?|no\s+terreno|das\s+coisas\s+comuns?))?|coef(?:iciente|\.)?\s+de\s+proporcionalidade|(?:quota|cota)(?:-|\s+)parte\s+ideal|(?:quota|cota|parte)\s+ideal|permilagem|mil[ée]simos/i,
   ],
   [
     "area_terreno",
@@ -90,22 +96,28 @@ export function lerLinhaTabela(linha: string): {
     .map((s) => s.trim())
     .filter((s, i, a) => !(s === "" && (i === 0 || i === a.length - 1)));
   for (let i = 1; i < c.length; i++) {
-    if (!NUMERO.test(c[i])) continue;
+    const mNum = c[i].match(/^([-+]?\d{1,3}(?:\.\d{3})*(?:,\d+)?|[-+]?\d+(?:,\d+)?)(?:\s*([^\d\s].*))?$/);
+    if (!mNum) continue;
+    const valor_bruto = mNum[1];
+    let unidade = mNum[2]?.trim() || (c[i + 1] && c[i + 1].trim() ? c[i + 1].trim() : null);
     const rotulo = c[i - 1].replace(/^[-–—\s]+/, "");
+    if (!unidade && /m[²2]|metros?\s+quadrados?/i.test(rotulo)) {
+      unidade = "m²";
+    }
     for (const [campo, re] of FAMILIAS_ORDENADAS) {
       if (re.test(rotulo)) {
         return {
           campo,
-          valor_bruto: c[i],
-          unidade: c[i + 1] && c[i + 1].trim() ? c[i + 1].trim() : null,
+          valor_bruto,
+          unidade,
           rotulo,
         };
       }
     }
     return {
       campo: "indeterminado",
-      valor_bruto: c[i],
-      unidade: c[i + 1] && c[i + 1].trim() ? c[i + 1].trim() : null,
+      valor_bruto,
+      unidade,
       rotulo,
     };
   }
@@ -116,12 +128,17 @@ export function lerLinhaTabela(linha: string): {
  * Famílias de rótulos com várias redações típicas de convenções condominiais.
  */
 export const PADROES_FAMILIAS: Record<FamiliaRotulo, RegExp[]> = {
+  area_privativa_total: [
+    /[áa]rea\s+(?:real\s+)?(?:privativa|priv\.?)\s+total/i,
+    /[áa]rea\s+total\s+(?:real\s+)?(?:privativa|priv\.?)/i,
+  ],
   area_privativa: [
-    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:uso\s+)?(?:privativ[oa]|exclusiv[oa]|[úu]til)(?:\s+real)?(?:\s+de\s+constru[çc][ãa]o)?/i,
-    /[áa]rea\s+(?:real\s+)?(?:de\s+constru[çc][ãa]o\s+)?privativa(?:\s+real)?/i,
-    /[áa]rea\s+(?:privativa|[úu]til|exclusiva)(?:\s+coberta)?/i,
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:uso\s+)?(?:privativ[oa]|priv\.?|exclusiv[oa]|[úu]til)(?!\s+(?:total|acess[óo]ria))\b(?:\s*\(\s*principal\s*\))?(?:\s+real)?(?:\s+de\s+constru[çc][ãa]o)?/i,
+    /[áa]rea\s+(?:real\s+)?(?:de\s+constru[çc][ãa]o\s+)?privativa(?!\s+(?:total|acess[óo]ria))\b(?:\s+real)?/i,
+    /[áa]rea\s+(?:privativa|priv\.?|[úu]til|exclusiva)(?!\s+(?:total|acess[óo]ria))\b(?:\s+coberta)?/i,
   ],
   area_garagem: [
+    /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:uso\s+)?(?:privativ[oa]|priv\.?)\s+acess[óo]ria/i,
     /[áa]rea[^|]*\bgaragem\b|[áa]rea\s+de\s+vagas?/i,
     /[áa]rea\s+(?:real\s+)?(?:de\s+)?(?:garagem|vaga|estacionamento)/i,
   ],
@@ -143,8 +160,10 @@ export const PADROES_FAMILIAS: Record<FamiliaRotulo, RegExp[]> = {
     /cota\s+(?:ideal|parte)\s+do\s+terreno/i,
   ],
   fracao_ideal: [
-    /fra[çc][ãa]o\s+ideal/i,
-    /coeficiente\s+de\s+(?:rateio|propriedade)/i,
+    /fra[çc][ãa]o\s+ideal(?:\s+(?:do\s+terreno|de\s+terreno\s+e\s+(?:coisas|partes)\s+comuns?|no\s+terreno|das\s+coisas\s+comuns?))?/i,
+    /coef(?:iciente|\.)?\s+de\s+proporcionalidade/i,
+    /(?:quota|cota)(?:-|\s+)parte\s+ideal/i,
+    /(?:quota|cota|parte)\s+ideal/i,
     /permilagem/i,
     /mil[ée]simos/i,
   ],
@@ -318,6 +337,11 @@ function capturarMedidasFamilia(
 
       if (!valorBruto) continue;
 
+      // Um número só vale como área se vier com "m²", "m2" ou "metros quadrados". "garagem 2" não é área.
+      if (campo.startsWith("area_") && (!unidade || !/m[²2]|metros?\s+quadrados?/i.test(unidade))) {
+        continue;
+      }
+
       // Rótulo pontilhado aceita lacuna arbitrária de pontos/espaços; prosa limita em 30 caracteres
       const isPontilhado = /^[\s.:\-–—]+$/.test(lacuna);
       if (!isPontilhado && lacuna.length > 30) {
@@ -401,13 +425,14 @@ export function lerRegistro(registro: { texto: string } | string): MedidaLida[] 
   // Ordena por posição no texto
   todasMedidas.sort((a, b) => a.inicio - b.inicio);
 
-  // Remove sobreposições exatas de mesmo campo
+  // Remove sobreposições exatas de mesmo campo ou duplicatas (mesmo valor e mesmo trecho)
   const unicas: MedidaLida[] = [];
   for (const med of todasMedidas) {
     const sobreposta = unicas.find(
       (u) =>
         u.campo === med.campo &&
-        Math.abs(u.inicio - med.inicio) < 5
+        (Math.abs(u.inicio - med.inicio) < 5 ||
+          (u.valor_bruto === med.valor_bruto && u.trecho === med.trecho))
     );
     if (!sobreposta) {
       unicas.push(med);

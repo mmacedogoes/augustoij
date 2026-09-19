@@ -15,6 +15,7 @@ import {
   construirCenso,
   resolverIdentidade,
   identificadorDaLinha,
+  normalizarNumeroUnidade,
   type Conhecida,
   type LinhaCenso,
 } from "./censo-linhas";
@@ -29,12 +30,14 @@ import { carregarTextoIntegral } from "./extracao/fonte";
 import { segmentarRegistros, type RegistroUnidade } from "./extracao/segmentador";
 import { gerarChaveIdentidade } from "./extracao/ancoras";
 import { converterNumeroOuExtenso } from "./extracao/rotulos";
+import { construirIndiceQuadros } from "./extracao/quadro-nbr";
 
 export const CampoMedidaSchema = z.preprocess(
   (val) => {
     if (typeof val !== "string") return "indeterminado";
     const allowed = [
       "area_privativa",
+      "area_privativa_total",
       "area_terreno",
       "area_comum",
       "area_global",
@@ -51,6 +54,7 @@ export const CampoMedidaSchema = z.preprocess(
   },
   z.enum([
     "area_privativa",
+    "area_privativa_total",
     "area_terreno",
     "area_comum",
     "area_global",
@@ -96,7 +100,7 @@ export const MedidaExtraidaSchema = z.object({
 
 export const MedidaDescartadaSchema = z.object({
   medida: MedidaExtraidaSchema,
-  motivo: z.enum(["escala_invalida", "identidade_nao_confere", "valor_nao_confere"]),
+  motivo: z.string(),
 });
 
 
@@ -290,17 +294,18 @@ const MAX_TENTATIVAS = 3;
 export const PROMPT_SISTEMA_BASE =
   "Você está lendo o trecho de uma CONVENÇÃO DE CONDOMÍNIO brasileira que descreve UMA unidade autônoma já identificada. Sua tarefa é transcrever as medidas dessa unidade, não interpretá-las.\n\n" +
   "O que cada campo significa neste documento:\n" +
-  "- area_privativa: a área de uso exclusivo do proprietário. Aparece como 'Área Real de Uso Privativo', 'Área Privativa', 'Área Real Privativa', 'Área de construção privativa real', 'Área Útil'. É a área da unidade.\n" +
+  "- area_privativa: a área de uso exclusivo do proprietário (Área Privativa Principal ou Área Privativa sem qualificador). Aparece como 'Área Real Privativa (Principal)', 'Área Real de Uso Privativo', 'Área Privativa', 'Área Real Privativa', 'Área de construção privativa real', 'Área Útil'. É a área principal da unidade.\n" +
+  "- area_privativa_total: 'Área Real Privativa Total' ou 'Área Privativa Total'. É a soma da privativa principal com a acessória. NÃO coloque em area_privativa.\n" +
   "- area_comum: a parte das áreas comuns atribuída à unidade ('Área de Uso Comum Real', 'Área Real de Uso Comum').\n" +
-  "- area_garagem: área de garagem ou vaga, ainda que escrita como área comum de divisão não proporcional.\n" +
+  "- area_garagem: área de garagem, vaga ou acessória ('Área Real Privativa Acessória', 'Área de Uso Comum - Garagem').\n" +
   "- area_total: a soma da privativa com a comum ('Área Real Total', 'Área Global').\n" +
   "- area_construcao: 'Área da Unidade (de construção)'. NÃO é a área privativa.\n" +
   "- area_terreno: área do terreno ou do lote, em loteamentos.\n" +
   "- cota_terreno: 'Cota Ideal do Terreno', em m². NÃO é a fração ideal.\n" +
-  "- fracao_ideal: a fração ideal do terreno e das coisas comuns. Número entre 0 e 1, ou percentual, ou milésimos, ou fração ordinária.\n" +
+  "- fracao_ideal: a fração ideal do terreno e das coisas comuns. Aparece como 'Fração Ideal', 'Coeficiente de Proporcionalidade' (ou 'Coef. de Proporcionalidade'), 'Quota-Parte Ideal', 'Cota-Parte Ideal', 'Parte Ideal', 'Permilagem' ou 'Milésimos'. Número entre 0 e 1, ou percentual, ou milésimos, ou fração ordinária. NÃO confundir com coeficiente de rateio de despesas.\n" +
   "- vagas: quantidade de vagas de garagem, inclusive por extenso ('duas vagas' = 2).\n\n" +
   "Regras: transcreva valor_bruto exatamente como impresso, com vírgula decimal e símbolo. Não converta escalas, não calcule, não estime, não complete séries, não traga valor que não esteja escrito NESTE trecho. Campo ausente = null. Para cada valor, informe também o rótulo literal que você leu, em 'rotulo_lido' — é assim que conferimos a sua leitura.\n\n" +
-  'Responda apenas JSON no formato: {"area_privativa":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_comum":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_garagem":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_total":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_construcao":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_terreno":{"valor_bruto":string|null,"rotulo_lido":string|null},"cota_terreno":{"valor_bruto":string|null,"rotulo_lido":string|null},"fracao_ideal":{"valor_bruto":string|null,"rotulo_lido":string|null},"vagas":{"valor_bruto":string|null,"rotulo_lido":string|null}}.';
+  'Responda apenas JSON no formato: {"area_privativa":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_privativa_total":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_comum":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_garagem":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_total":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_construcao":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_terreno":{"valor_bruto":string|null,"rotulo_lido":string|null},"cota_terreno":{"valor_bruto":string|null,"rotulo_lido":string|null},"fracao_ideal":{"valor_bruto":string|null,"rotulo_lido":string|null},"vagas":{"valor_bruto":string|null,"rotulo_lido":string|null}}.';
 
 function obterConteudoArquivo(moduloRaw: string | undefined, nomeArquivo: string): string {
   if (typeof moduloRaw === "string" && moduloRaw.length > 0) {
@@ -386,6 +391,7 @@ export function processarRespostaIA(
   // Formato novo (Bloco 5): objeto único com campos de medidas
   if (
     "area_privativa" in parsed ||
+    "area_privativa_total" in parsed ||
     "area_comum" in parsed ||
     "area_garagem" in parsed ||
     "area_total" in parsed ||
@@ -396,6 +402,7 @@ export function processarRespostaIA(
 
     const camposMapeados: Array<[string, z.infer<typeof CampoMedidaSchema>, "m2" | "decimal"]> = [
       ["area_privativa", "area_privativa", "m2"],
+      ["area_privativa_total", "area_privativa_total", "m2"],
       ["area_comum", "area_comum", "m2"],
       ["area_garagem", "area_garagem", "m2"],
       ["area_total", "area_global", "m2"],
@@ -812,21 +819,24 @@ function validarProveniencia(
   unidade: UnidadeExtraida,
   censo: { porId: Map<string, { pagina: number | null; texto?: string }> },
   registros?: RegistroUnidade[],
+  quadroIndex?: ReturnType<typeof construirIndiceQuadros>,
 ) {
   const medidas: UnidadeExtraida["medidas"] = [];
   const descartadas: NonNullable<UnidadeExtraida["medidas_descartadas"]> = [
     ...(unidade.medidas_descartadas ?? []),
   ];
 
-  // 1) Localiza o registro da unidade pela identidade `${escopo ?? ""}|${numero}`
-  const chave = gerarChaveIdentidade(unidade.numero, null, unidade.bloco ?? null);
+  // 1) Localiza o registro da unidade pela identidade normalizada
+  const uNumNorm = normalizarNumeroUnidade(unidade.numero);
+  const chave = gerarChaveIdentidade(uNumNorm, null, unidade.bloco ?? null);
   const registro = registros?.find((r) => {
-    const chaveReg = gerarChaveIdentidade(r.numero, r.sufixo, r.escopo);
-    const chaveRegSemSufixo = gerarChaveIdentidade(r.numero, null, r.escopo);
+    const rNumNorm = normalizarNumeroUnidade(r.numero);
+    const chaveReg = gerarChaveIdentidade(rNumNorm, r.sufixo, r.escopo);
+    const chaveRegSemSufixo = gerarChaveIdentidade(rNumNorm, null, r.escopo);
     return (
       chaveReg === chave ||
       chaveRegSemSufixo === chave ||
-      (r.numero === unidade.numero && (unidade.bloco == null || r.escopo === unidade.bloco))
+      (rNumNorm === uNumNorm && (unidade.bloco == null || r.escopo === unidade.bloco))
     );
   });
 
@@ -849,6 +859,9 @@ function validarProveniencia(
   }
 
   let temMedidaSemProveniencia = false;
+  const regrasAplicadas = [...(unidade.regras_aplicadas ?? [])];
+  const motivos = [...(unidade.motivos ?? [])];
+  let estado = unidade.estado;
 
   for (const medida of unidade.medidas ?? []) {
     const trecho = (medida.trecho ?? "").trim();
@@ -878,6 +891,44 @@ function validarProveniencia(
       continue;
     }
 
+    // Se a linha em si já contém a identidade da unidade (tabelas horizontais ou linha com identificador)
+    if (trechoContemIdentidade(unidade, trecho, medida.bloco_contexto)) {
+      medidas.push(medida);
+      continue;
+    }
+
+    // Validação para quadros (NBR 12.721 / tabelas markdown)
+    const ehQuadro =
+      trecho.includes("|") ||
+      (quadroIndex != null && quadroIndex.linhasQuadro.has(trecho)) ||
+      (medida.fonte != null && medida.fonte.includes("quadro"));
+
+    if (ehQuadro && quadroIndex) {
+      const conf = quadroIndex.conferirIdentidadeQuadro(trecho, {
+        numero: unidade.numero,
+        bloco: unidade.bloco,
+      });
+      if (conf.ok) {
+        if (conf.aberturaLinha && !medida.trecho.includes("—") && !medida.trecho.includes(conf.aberturaLinha)) {
+          medida.trecho = `${conf.aberturaLinha} — ${medida.trecho}`;
+        }
+        if (conf.comRessalva && conf.motivoRessalva) {
+          if (!regrasAplicadas.includes(conf.motivoRessalva)) {
+            regrasAplicadas.push(conf.motivoRessalva);
+          }
+          if (!motivos.includes(conf.motivoRessalva)) {
+            motivos.push(conf.motivoRessalva);
+          }
+          estado = "lido_com_ressalva";
+        }
+        medidas.push(medida);
+        continue;
+      } else {
+        descartadas.push({ medida, motivo: conf.motivo || "identidade_nao_confere" });
+        continue;
+      }
+    }
+
     // Regra 2 (prosa vs bloco para outras fontes de trecho):
     if (unidade.bloco) {
       // Documento tabular — aplica a regra estrita de identidade
@@ -898,10 +949,6 @@ function validarProveniencia(
     }
     medidas.push(medida);
   }
-
-  const regrasAplicadas = [...(unidade.regras_aplicadas ?? [])];
-  const motivos = [...(unidade.motivos ?? [])];
-  let estado = unidade.estado;
 
   if (temMedidaSemProveniencia) {
     if (!regrasAplicadas.includes("sem_proveniencia")) {
@@ -1071,13 +1118,68 @@ function detectarEscalaGlobal(grupos: Map<string, UnidadeExtraida[]>) {
   return detectarEscalaFracoes(valores);
 }
 
+function deduplicarMedidas(lista: Medida[]): Medida[] {
+  const vistas = new Set<string>();
+  const res: Medida[] = [];
+  for (const m of lista) {
+    const key = `${m.campo}|${m.valor_bruto}|${(m.trecho ?? "").trim()}`;
+    if (!vistas.has(key)) {
+      vistas.add(key);
+      res.push(m);
+    }
+  }
+  return res;
+}
+
+function deduplicarDescartadas(lista: NonNullable<UnidadeExtraida["medidas_descartadas"]>) {
+  const vistas = new Set<string>();
+  const res: NonNullable<UnidadeExtraida["medidas_descartadas"]> = [];
+  for (const d of lista) {
+    const key = `${d.medida.campo}|${d.medida.valor_bruto}|${(d.medida.trecho ?? "").trim()}|${d.motivo}`;
+    if (!vistas.has(key)) {
+      vistas.add(key);
+      res.push(d);
+    }
+  }
+  return res;
+}
+
 export function consolidar(
   candidatas: UnidadeExtraida[],
   conhecidas: Array<{ bloco: string | null; numero: string }>,
-  censo: { porId: Map<string, { pagina: number | null; texto?: string }> } = { porId: new Map() },
+  censo: {
+    porId: Map<string, { pagina: number | null; texto?: string }>;
+    linhas?: Array<{ texto: string; pagina?: number | null; bloco_contexto?: string | null }>;
+  } = { porId: new Map() },
   registros?: RegistroUnidade[],
   tipologia?: string,
+  linhasDoc?: Array<{ texto: string; pagina?: number | null; bloco_contexto?: string | null }>,
 ) {
+  const linhasDocParaQuadros: Array<{ texto: string; pagina?: number | null; bloco_contexto?: string | null }> = [
+    ...(linhasDoc ?? []),
+    ...(censo as any)?.linhas ?? [],
+    ...(registros ?? []).flatMap((r) =>
+      r.texto.split("\n").map((l) => ({ texto: l, pagina: r.pagina, bloco_contexto: r.escopo })),
+    ),
+    ...[...censo.porId.values()].flatMap((v) =>
+      (v.texto ?? "").split("\n").map((l) => ({ texto: l, pagina: v.pagina, bloco_contexto: null })),
+    ),
+  ];
+  if (linhasDocParaQuadros.length === 0) {
+    for (const c of candidatas) {
+      for (const m of c.medidas ?? []) {
+        if (m.trecho) {
+          linhasDocParaQuadros.push({
+            texto: m.trecho,
+            pagina: m.pagina ?? null,
+            bloco_contexto: m.bloco_contexto ?? null,
+          });
+        }
+      }
+    }
+  }
+  const quadroIndex = construirIndiceQuadros(linhasDocParaQuadros);
+
   const grupos = new Map<string, UnidadeExtraida[]>();
   const orfas: NonNullable<DiagnosticoExtracao["orfas"]> = [];
   for (const bruta of candidatas) {
@@ -1110,6 +1212,7 @@ export function consolidar(
       },
       censo,
       registros,
+      quadroIndex,
     );
     const key = chaveUnidade(atualizada.bloco ?? null, atualizada.numero);
     grupos.set(key, [...(grupos.get(key) ?? []), atualizada]);
@@ -1162,6 +1265,18 @@ export function consolidar(
         escala.escala,
         coerentes,
       );
+      const privativaTotal = resolverValorComEvidencia(
+        medidas,
+        "area_privativa_total",
+        escala.escala,
+        coerentes,
+      );
+      const garagem = resolverValorComEvidencia(
+        medidas,
+        "area_garagem",
+        escala.escala,
+        coerentes,
+      );
       const terrenoArea = resolverValorComEvidencia(
         medidas,
         "area_terreno",
@@ -1170,6 +1285,53 @@ export function consolidar(
       );
       const global = resolverValorComEvidencia(medidas, "area_global", escala.escala, coerentes);
       const comum = resolverValorComEvidencia(medidas, "area_comum", escala.escala, coerentes);
+
+      // Conferência de contas do quadro NBR 12.721 (tolerância 0.015 m²)
+      const vp = privativa.valor;
+      const va = garagem.valor;
+      const vpt = privativaTotal.valor;
+      const vc = comum.valor;
+      const vg = global.valor;
+
+      let contasFecham = false;
+      let contasNaoFecham = false;
+
+      if (vp != null && va != null && vpt != null) {
+        if (Math.abs(vp + va - vpt) <= 0.015) {
+          contasFecham = true;
+          if (privativa.medida) coerentes.add(privativa.medida);
+          if (garagem.medida) coerentes.add(garagem.medida);
+          if (privativaTotal.medida) coerentes.add(privativaTotal.medida);
+        } else {
+          contasNaoFecham = true;
+        }
+      }
+
+      if (vpt != null && vc != null && vg != null) {
+        if (Math.abs(vpt + vc - vg) <= 0.015) {
+          contasFecham = true;
+          if (privativaTotal.medida) coerentes.add(privativaTotal.medida);
+          if (comum.medida) coerentes.add(comum.medida);
+          if (global.medida) coerentes.add(global.medida);
+        } else {
+          contasNaoFecham = true;
+        }
+      } else if (vp != null && va == null && vc != null && vg != null) {
+        if (Math.abs(vp + vc - vg) <= 0.015) {
+          contasFecham = true;
+          if (privativa.medida) coerentes.add(privativa.medida);
+          if (comum.medida) coerentes.add(comum.medida);
+          if (global.medida) coerentes.add(global.medida);
+        } else {
+          contasNaoFecham = true;
+        }
+      }
+
+      if (contasFecham && !contasNaoFecham) {
+        regras.push("contas_do_quadro_fecham");
+      } else if (contasNaoFecham) {
+        regras.push("contas do quadro não fecham");
+      }
 
       const isLoteOuCasa =
         tipologia === "casas_lotes" ||
@@ -1182,6 +1344,10 @@ export function consolidar(
       let areaMedida = privativa.medida;
       if (area != null) {
         regras.push("area_privativa");
+      } else if (privativaTotal.valor != null) {
+        area = privativaTotal.valor;
+        areaMedida = privativaTotal.medida;
+        regras.push("área privativa total usada como principal");
       } else if (isLoteOuCasa && terrenoArea.valor != null) {
         area = terrenoArea.valor;
         areaMedida = terrenoArea.medida;
@@ -1211,6 +1377,8 @@ export function consolidar(
       );
       registrarInvalidas([
         ...privativa.invalidas,
+        ...privativaTotal.invalidas,
+        ...garagem.invalidas,
         ...terrenoArea.invalidas,
         ...global.invalidas,
         ...comum.invalidas,
@@ -1221,8 +1389,8 @@ export function consolidar(
       let fracao = terreno.valor;
       let fracaoMedida = terreno.medida;
       if (fracao == null && !terreno.conflito) {
-        fracao = rateio.valor ?? coisasComuns.valor;
-        fracaoMedida = rateio.medida ?? coisasComuns.medida;
+        fracao = coisasComuns.valor;
+        fracaoMedida = coisasComuns.medida;
       }
       if (terreno.valor != null) regras.push("fracao_terreno");
       else if (rateio.valor != null) regras.push("coeficiente_rateio");
@@ -1253,6 +1421,7 @@ export function consolidar(
       }
 
       if (privativa.conflito) conflitos.push(`${key}: área privativa divergente`);
+      if (privativaTotal.conflito) conflitos.push(`${key}: área privativa total divergente`);
       if (terrenoArea.conflito) conflitos.push(`${key}: área do terreno divergente`);
       if (terreno.conflito) conflitos.push(`${key}: fração do terreno divergente`);
       for (const regra of regras) regrasGlobais.add(regra);
@@ -1268,7 +1437,7 @@ export function consolidar(
         fracao,
         fracaoMedida,
         promocaoFracao,
-        conflito: privativa.conflito || terreno.conflito,
+        conflito: privativa.conflito || privativaTotal.conflito || terreno.conflito,
       };
     });
 
@@ -1293,7 +1462,10 @@ export function consolidar(
   }
 
   const unidades = parciais.map((p) => {
-    const conferiuAritmetica = p.regras.includes("area_total_conferida_com_comum");
+    const conferiuAritmetica =
+      p.regras.includes("area_total_conferida_com_comum") ||
+      p.regras.includes("contas_do_quadro_fecham");
+    const contasNaoFecham = p.regras.includes("contas do quadro não fecham");
     const completa = (p.area != null && p.fracao != null) || (p.area != null && conferiuAritmetica);
     const pendentePromocao = p.regras.includes("promocao_desfeita_soma_nao_fecha");
     const motivos: string[] = [...new Set([...(p.base.motivos ?? []), ...p.regras])];
@@ -1303,19 +1475,22 @@ export function consolidar(
     let estado = p.base.estado;
     if (p.area == null) {
       estado = "nao_lido";
-    } else if (!estado) {
-      estado =
-        p.conflito
-          ? "lido_com_ressalva"
-          : (completa && !pendentePromocao) || conferiuAritmetica
-            ? "lido"
-            : "lido_com_ressalva";
+    } else if (!estado || estado === "lido" || estado === "lido_com_ressalva") {
+      if (p.conflito || contasNaoFecham) {
+        estado = "lido_com_ressalva";
+      } else if (conferiuAritmetica && p.area != null) {
+        estado = "lido";
+      } else if (completa && !pendentePromocao) {
+        estado = "lido";
+      } else {
+        estado = "lido_com_ressalva";
+      }
     }
 
     return {
       ...p.base,
-      medidas: p.medidas,
-      medidas_descartadas: p.descartadas,
+      medidas: deduplicarMedidas(p.medidas),
+      medidas_descartadas: deduplicarDescartadas(p.descartadas),
       tipo: p.grupo.find((item) => item.tipo)?.tipo,
       vagas_garagem: p.grupo.find((item) => item.vagas_garagem != null)?.vagas_garagem,
       fracao_ideal: p.fracao,
@@ -2712,14 +2887,17 @@ async function persistirExtracao(entrada: {
 
   // 2) Reconciliação do rol e dos registros: toda unidade do rol aparece, mesmo sem medidas
   const unidadesFinais: UnidadeExtraida[] = [...unidades];
-  const numerosExistentes = new Set(unidadesFinais.map((u) => u.numero));
+  const numerosExistentes = new Set(unidadesFinais.map((u) => normalizarNumeroUnidade(u.numero)));
 
   // Adiciona unidades do rol que não foram lidas
   const idsDoRol = diagnostico.rol_artigo_2?.identificadores ?? [];
   for (const idRol of idsDoRol) {
-    if (!numerosExistentes.has(idRol)) {
+    const idRolNorm = normalizarNumeroUnidade(idRol);
+    if (!numerosExistentes.has(idRolNorm)) {
       const matchingReg = registros.find(
-        (r) => r.numero === idRol || `${r.escopo ? r.escopo + " " : ""}${r.numero}` === idRol
+        (r) =>
+          normalizarNumeroUnidade(r.numero) === idRolNorm ||
+          `${r.escopo ? r.escopo + " " : ""}${normalizarNumeroUnidade(r.numero)}` === idRolNorm
       );
       unidadesFinais.push({
         bloco: matchingReg?.escopo ?? null,
@@ -2737,13 +2915,14 @@ async function persistirExtracao(entrada: {
         linha_id: matchingReg?.registro_id ?? null,
         confianca: "conflito",
       });
-      numerosExistentes.add(idRol);
+      numerosExistentes.add(idRolNorm);
     }
   }
 
   // Adiciona registros segmentados não vinculados a unidades lidas
   for (const reg of registros) {
-    if (!numerosExistentes.has(reg.numero) && !reg.motivo_descarte) {
+    const regNorm = normalizarNumeroUnidade(reg.numero);
+    if (!numerosExistentes.has(regNorm) && !reg.motivo_descarte) {
       unidadesFinais.push({
         bloco: reg.escopo ?? null,
         numero: reg.numero,
@@ -2760,14 +2939,15 @@ async function persistirExtracao(entrada: {
         linha_id: reg.registro_id,
         confianca: "conflito",
       });
-      numerosExistentes.add(reg.numero);
+      numerosExistentes.add(regNorm);
     }
   }
 
   // Normaliza estados, origens e trechos fonte de cada unidade
   for (const u of unidadesFinais) {
+    const uNorm = normalizarNumeroUnidade(u.numero);
     const matchingReg = registros.find(
-      (r) => r.numero === u.numero && (u.bloco ? r.escopo === u.bloco : true)
+      (r) => normalizarNumeroUnidade(r.numero) === uNorm && (u.bloco ? r.escopo === u.bloco : true)
     );
     if (!u.trecho_fonte) {
       u.trecho_fonte = u.fracao_trecho || u.area_trecho || matchingReg?.texto || null;

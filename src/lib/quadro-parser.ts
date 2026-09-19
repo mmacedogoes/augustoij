@@ -46,9 +46,14 @@ export function classificarColuna(cabecalho: string): Coluna {
   });
   if (/(fracao|fracao ideal|ideal)/.test(t) && /(comum|coisas comuns)/.test(t))
     return medida("fracao_coisas_comuns", false);
-  if (/(coeficiente|rateio)/.test(t)) return medida("coeficiente_rateio", false);
+  if (/proporcionalidade|quota|cota/.test(t)) return medida("fracao_terreno", false);
+  if (/rateio/.test(t)) return medida("coeficiente_rateio", false);
   if (/(fracao|ideal|permilagem|milesim)/.test(t)) return medida("fracao_terreno", false);
   if (/equivalente/.test(t)) return medida("area_equivalente", true);
+  if (/(privativa|priv|exclusiva|util).*total|total.*(privativa|priv)/.test(t))
+    return medida("area_privativa_total" as any, true);
+  if (/acessoria/.test(t) || (/(privativa|priv)/.test(t) && /garagem|vaga|box|deposito/.test(t)))
+    return medida("area_garagem", true);
   if (/(privativa|exclusiva|util)/.test(t)) return medida("area_privativa", true);
   if (/comum/.test(t)) return medida("area_comum", true);
   if (/(global|total|real total)/.test(t)) return medida("area_global", true);

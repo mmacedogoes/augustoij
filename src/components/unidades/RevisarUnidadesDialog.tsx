@@ -47,6 +47,32 @@ export type UnidadeSugerida = {
   regras_aplicadas?: string[];
 };
 
+function deduplicarMedidasDialog<T extends { campo: string; valor_bruto: string; trecho?: string | null }>(lista: T[]): T[] {
+  const vistas = new Set<string>();
+  const res: T[] = [];
+  for (const m of lista) {
+    const key = `${m.campo}|${m.valor_bruto}|${(m.trecho ?? "").trim()}`;
+    if (!vistas.has(key)) {
+      vistas.add(key);
+      res.push(m);
+    }
+  }
+  return res;
+}
+
+function deduplicarDescartadasDialog<T extends { medida: { campo: string; valor_bruto: string; trecho?: string | null }; motivo: string }>(lista: T[]): T[] {
+  const vistas = new Set<string>();
+  const res: T[] = [];
+  for (const d of lista) {
+    const key = `${d.medida.campo}|${d.medida.valor_bruto}|${(d.medida.trecho ?? "").trim()}|${d.motivo}`;
+    if (!vistas.has(key)) {
+      vistas.add(key);
+      res.push(d);
+    }
+  }
+  return res;
+}
+
 type Linha = {
   bloco: string;
   numero: string;
@@ -66,15 +92,13 @@ type Linha = {
 };
 
 function toLinha(u: UnidadeSugerida): Linha {
-  let estado: "lido" | "lido_com_ressalva" | "nao_lido" = u.estado ?? "lido";
-  if (!u.estado) {
-    if (u.fracao_ideal == null && u.area_m2 == null) {
-      estado = "nao_lido";
-    } else if (u.confianca !== "alta" || (u.medidas_descartadas && u.medidas_descartadas.length > 0)) {
-      estado = "lido_com_ressalva";
-    } else {
-      estado = "lido";
-    }
+  let estado: Linha["estado"] = "lido";
+  if (u.area_m2 == null) {
+    estado = "nao_lido";
+  } else if (u.fracao_ideal == null) {
+    estado = "lido_com_ressalva";
+  } else if (u.confianca !== "alta" || (u.medidas_descartadas && u.medidas_descartadas.length > 0)) {
+    estado = "lido_com_ressalva";
   }
 
   const fracaoTrecho =
@@ -99,8 +123,8 @@ function toLinha(u: UnidadeSugerida): Linha {
     trecho_fonte: u.trecho_fonte ?? "",
     fracao_trecho: fracaoTrecho,
     area_trecho: areaTrecho,
-    medidas: u.medidas ?? [],
-    medidas_descartadas: u.medidas_descartadas ?? [],
+    medidas: deduplicarMedidasDialog(u.medidas ?? []),
+    medidas_descartadas: deduplicarDescartadasDialog(u.medidas_descartadas ?? []),
     regrasAplicadas: u.regras_aplicadas ?? [],
   };
 }
@@ -496,34 +520,77 @@ export function RevisarUnidadesDialog({
                     )}
 
                     {/* Medidas rejeitadas */}
-                    {l.medidas_descartadas.length > 0 && (
-                      <div className="space-y-1">
-                        {l.medidas_descartadas.map((rej, rejIdx) => (
-                          <div
-                            key={rejIdx}
-                            className="flex items-center justify-between gap-2 p-1.5 px-2 rounded bg-amber-500/10 border border-amber-500/30 text-xs"
-                          >
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                              <span className="text-amber-900 dark:text-amber-200">
-                                <strong>rejeitada: {rej.motivo}</strong> ({rej.medida.campo.replaceAll("_", " ")} ={" "}
-                                <code>{rej.medida.valor_bruto}</code>)
-                                {rej.medida.trecho ? ` — “${rej.medida.trecho}”` : ""}
-                              </span>
-                            </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => aceitarMedidaRejeitada(i, rejIdx)}
-                              className="h-6 px-2 text-[11px] font-medium border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 shrink-0"
+                    {l.medidas_descartadas.length > 0 && (() => {
+                      const descartadasIdentidade = l.medidas_descartadas
+                        .map((rej, rejIdx) => ({ rej, rejIdx }))
+                        .filter(({ rej }) => rej.motivo === "identidade_nao_confere" || rej.motivo.includes("identidade") || rej.motivo.includes("quadro sem indicação"));
+                      const outrasDescartadas = l.medidas_descartadas
+                        .map((rej, rejIdx) => ({ rej, rejIdx }))
+                        .filter(({ rej }) => rej.motivo !== "identidade_nao_confere" && !rej.motivo.includes("identidade") && !rej.motivo.includes("quadro sem indicação"));
+
+                      return (
+                        <div className="space-y-1">
+                          {outrasDescartadas.map(({ rej, rejIdx }) => (
+                            <div
+                              key={rejIdx}
+                              className="flex items-center justify-between gap-2 p-1.5 px-2 rounded bg-amber-500/10 border border-amber-500/30 text-xs"
                             >
-                              aceitar mesmo assim
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                                <span className="text-amber-900 dark:text-amber-200">
+                                  <strong>rejeitada: {rej.motivo}</strong> ({rej.medida.campo.replaceAll("_", " ")} ={" "}
+                                  <code>{rej.medida.valor_bruto}</code>)
+                                  {rej.medida.trecho ? ` — “${rej.medida.trecho}”` : ""}
+                                </span>
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => aceitarMedidaRejeitada(i, rejIdx)}
+                                className="h-6 px-2 text-[11px] font-medium border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 shrink-0"
+                              >
+                                aceitar mesmo assim
+                              </Button>
+                            </div>
+                          ))}
+
+                          {descartadasIdentidade.length > 0 && (
+                            <details className="mt-1">
+                              <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                                Ver candidatos descartados ({descartadasIdentidade.length})
+                              </summary>
+                              <div className="mt-1 space-y-1 border-l pl-2">
+                                {descartadasIdentidade.map(({ rej, rejIdx }) => (
+                                  <div
+                                    key={rejIdx}
+                                    className="flex items-center justify-between gap-2 p-1.5 px-2 rounded bg-amber-500/10 border border-amber-500/30 text-xs"
+                                  >
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                                      <span className="text-amber-900 dark:text-amber-200">
+                                        <strong>rejeitada: {rej.motivo}</strong> ({rej.medida.campo.replaceAll("_", " ")} ={" "}
+                                        <code>{rej.medida.valor_bruto}</code>)
+                                        {rej.medida.trecho ? ` — “${rej.medida.trecho}”` : ""}
+                                      </span>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => aceitarMedidaRejeitada(i, rejIdx)}
+                                      className="h-6 px-2 text-[11px] font-medium border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50 shrink-0"
+                                    >
+                                      aceitar mesmo assim
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {l.medidas.length > 0 && (
                       <details className="mt-1">
@@ -680,34 +747,77 @@ export function RevisarUnidadesDialog({
                 )}
 
                 {/* Medidas rejeitadas no mobile */}
-                {l.medidas_descartadas.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
-                    {l.medidas_descartadas.map((rej, rejIdx) => (
-                      <div
-                        key={rejIdx}
-                        className="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-xs space-y-1.5"
-                      >
-                        <div className="flex items-start gap-1.5">
-                          <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                          <span className="text-amber-900 dark:text-amber-200">
-                            <strong>rejeitada: {rej.motivo}</strong> ({rej.medida.campo.replaceAll("_", " ")} ={" "}
-                            <code>{rej.medida.valor_bruto}</code>)
-                            {rej.medida.trecho ? ` — “${rej.medida.trecho}”` : ""}
-                          </span>
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => aceitarMedidaRejeitada(i, rejIdx)}
-                          className="w-full h-7 text-xs font-medium border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50"
+                {l.medidas_descartadas.length > 0 && (() => {
+                  const descartadasIdentidade = l.medidas_descartadas
+                    .map((rej, rejIdx) => ({ rej, rejIdx }))
+                    .filter(({ rej }) => rej.motivo === "identidade_nao_confere" || rej.motivo.includes("identidade") || rej.motivo.includes("quadro sem indicação"));
+                  const outrasDescartadas = l.medidas_descartadas
+                    .map((rej, rejIdx) => ({ rej, rejIdx }))
+                    .filter(({ rej }) => rej.motivo !== "identidade_nao_confere" && !rej.motivo.includes("identidade") && !rej.motivo.includes("quadro sem indicação"));
+
+                  return (
+                    <div className="space-y-1.5 pt-1">
+                      {outrasDescartadas.map(({ rej, rejIdx }) => (
+                        <div
+                          key={rejIdx}
+                          className="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-xs space-y-1.5"
                         >
-                          aceitar mesmo assim
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                          <div className="flex items-start gap-1.5">
+                            <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                            <span className="text-amber-900 dark:text-amber-200">
+                              <strong>rejeitada: {rej.motivo}</strong> ({rej.medida.campo.replaceAll("_", " ")} ={" "}
+                              <code>{rej.medida.valor_bruto}</code>)
+                              {rej.medida.trecho ? ` — “${rej.medida.trecho}”` : ""}
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => aceitarMedidaRejeitada(i, rejIdx)}
+                            className="w-full h-7 text-xs font-medium border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50"
+                          >
+                            aceitar mesmo assim
+                          </Button>
+                        </div>
+                      ))}
+
+                      {descartadasIdentidade.length > 0 && (
+                        <details className="mt-1">
+                          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                            Ver candidatos descartados ({descartadasIdentidade.length})
+                          </summary>
+                          <div className="mt-1 space-y-1.5 border-l pl-2">
+                            {descartadasIdentidade.map(({ rej, rejIdx }) => (
+                              <div
+                                key={rejIdx}
+                                className="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-xs space-y-1.5"
+                              >
+                                <div className="flex items-start gap-1.5">
+                                  <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                  <span className="text-amber-900 dark:text-amber-200">
+                                    <strong>rejeitada: {rej.motivo}</strong> ({rej.medida.campo.replaceAll("_", " ")} ={" "}
+                                    <code>{rej.medida.valor_bruto}</code>)
+                                    {rej.medida.trecho ? ` — “${rej.medida.trecho}”` : ""}
+                                  </span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => aceitarMedidaRejeitada(i, rejIdx)}
+                                  className="w-full h-7 text-xs font-medium border-amber-600/40 hover:bg-amber-500/20 text-amber-950 dark:text-amber-50"
+                                >
+                                  aceitar mesmo assim
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </div>

@@ -268,7 +268,8 @@ const ROTULOS: Array<[keyof BlocoDescritivo, RegExp]> = [
   ["area_total", /[ÁA]REA\s+REAL\s+TOTAL[\s.]*([\d.,]+)\s*m/i],
   ["area_equivalente", /[ÁA]REA\s+EQUIVALENTE\s+DE\s+CONSTRU[ÇC][ÃA]O[\s.]*([\d.,]+)\s*m/i],
 ];
-const REGEX_FRACAO = /FRA[ÇC][ÃA]O\s+IDEAL[\s.]*([\d.,]+)\s*(%)?/i;
+const REGEX_FRACAO =
+  /(?:FRA[ÇC][ÃA]O\s+IDEAL|COEF(?:ICIENTE|\.)?\s+DE\s+PROPORCIONALIDADE|(?:QUOTA|COTA)(?:-|\s+)PARTE\s+IDEAL|(?:QUOTA|COTA|PARTE)\s+IDEAL)[\s.]*([\d.,]+)\s*(%)?/i;
 const REGEX_VAGAS =
   /(\d+)\s*\((?:uma?|dois|duas|tr[êe]s|quatro|cinco|seis|sete|oito|nove|dez)\)\s*vagas?\s+de\s+garagem/i;
 export const REGEX_CAPACIDADE = /capacidade\s+para\s+(\d+)/i;
