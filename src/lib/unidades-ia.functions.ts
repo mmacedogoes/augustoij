@@ -182,13 +182,13 @@ export const extrairCondominosDeArquivo = createServerFn({ method: "POST" })
     const { extractText, extractTextWithVision } = await import("./documentos.server");
     const { humanizeIngestError, IngestError } = await import("./ingest-errors");
 
-    // Limite alinhado à memória do runtime: 8 MB de base64 ≈ 6 MB de arquivo.
-    const MAX_B64 = 8 * 1024 * 1024;
+    // Limite alinhado à memória do runtime: 20 MB de base64 ≈ 15 MB de arquivo.
+    const MAX_B64 = 20 * 1024 * 1024;
     if (data.base64.length > MAX_B64) {
       throw new Error(
         new IngestError(
           "tamanho",
-          "Anexo maior que o limite de 6 MB",
+          "Anexo maior que o limite de 15 MB",
           "Comprima ou divida o arquivo antes de enviar.",
         ).toHuman(),
       );
