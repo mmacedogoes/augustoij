@@ -632,7 +632,10 @@ export async function processarDocumentoCore(
       ),
     );
 
-    const blocosProntos = prontos.size;
+    // Blocos efetivamente lidos = processados menos os marcados como lacuna.
+    // Sem este desconto um documento cheio de páginas ilegíveis aparecia
+    // "Pronto" e a IA respondia sem o texto real.
+    const blocosProntos = Math.max(0, prontos.size - lacunas.size);
     try {
       const { registrarEventoIa } = await import("./uso-ia.server");
       await registrarEventoIa({
