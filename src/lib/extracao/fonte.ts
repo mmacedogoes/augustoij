@@ -1,5 +1,6 @@
-﻿import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { consolidarMdDeDocumentoPronto } from "../documentos-processar.server";
+import { normalizarLayout } from "./normalizador";
 
 export type PaginaDocumento = {
   numero: number;
@@ -12,6 +13,8 @@ export type ResultadoCarregamentoTexto = {
   totalCaracteres: number;
   totalPaginas: number;
   textoIntegral: string;
+  linhas_antes_normalizacao?: number;
+  linhas_apos_normalizacao?: number;
 };
 
 const BUCKET = "documentos";
@@ -79,13 +82,33 @@ export function separarPaginasMarkdown(mdConteudo: string): PaginaDocumento[] {
   return paginas;
 }
 
-export type CarregarTextoIntegralResult = Promise<{
-  paginas: { numero: number; texto: string }[];
-  fonte: "storage_md" | "reconstruido_md" | "fallback_chunks";
-  totalCaracteres: number;
-  totalPaginas: number;
-  textoIntegral: string;
-}>;
+export type CarregarTextoIntegralResult = Promise<ResultadoCarregamentoTexto>;
+
+function processarPaginasCarregadas(
+  paginas: PaginaDocumento[],
+  fonte: "storage_md" | "reconstruido_md" | "fallback_chunks"
+): ResultadoCarregamentoTexto {
+  let linhasAntes = 0;
+  let linhasApos = 0;
+
+  for (const p of paginas) {
+    linhasAntes += p.texto ? p.texto.split("\n").length : 0;
+    p.texto = normalizarLayout(p.texto);
+    linhasApos += p.texto ? p.texto.split("\n").length : 0;
+  }
+
+  const textoIntegral = paginas.map((p) => p.texto).join("\n");
+
+  return {
+    paginas,
+    fonte,
+    totalCaracteres: textoIntegral.length,
+    totalPaginas: paginas.length,
+    textoIntegral,
+    linhas_antes_normalizacao: linhasAntes,
+    linhas_apos_normalizacao: linhasApos,
+  };
+}
 
 /**
  * Carrega o texto integral da transcrição de um documento diretamente do Storage.
@@ -94,7 +117,7 @@ export type CarregarTextoIntegralResult = Promise<{
  * 2. Se não existir, tenta reconstruí-lo via `consolidarMdDeDocumentoPronto`.
  * 3. Se ainda assim não existir, cai para os chunks de `document_chunks` como fallback.
  *
- * NÃO normaliza espaços, NÃO remove linhas em branco, NÃO deduplica nada.
+ * Aplica normalizarLayout em cada página e computa linhas antes e depois da normalização.
  */
 export async function carregarTextoIntegral(
   supabase: SupabaseClient,
@@ -122,13 +145,7 @@ export async function carregarTextoIntegral(
       const mdTexto = await fileData.text();
       if (mdTexto && mdTexto.length > 0) {
         const paginas = separarPaginasMarkdown(mdTexto);
-        return {
-          paginas,
-          fonte: "storage_md",
-          totalCaracteres: mdTexto.length,
-          totalPaginas: paginas.length,
-          textoIntegral: mdTexto,
-        };
+        return processarPaginasCarregadas(paginas, "storage_md");
       }
     }
   } catch (errStorage) {
@@ -147,13 +164,7 @@ export async function carregarTextoIntegral(
         const mdTexto = await fileReconst.text();
         if (mdTexto && mdTexto.length > 0) {
           const paginas = separarPaginasMarkdown(mdTexto);
-          return {
-            paginas,
-            fonte: "reconstruido_md",
-            totalCaracteres: mdTexto.length,
-            totalPaginas: paginas.length,
-            textoIntegral: mdTexto,
-          };
+          return processarPaginasCarregadas(paginas, "reconstruido_md");
         }
       }
     }
@@ -176,10 +187,8 @@ export async function carregarTextoIntegral(
 
   // Agrupa chunks por página se metadata.pagina_inicio existir
   const paginasMap = new Map<number, string[]>();
-  const todosConteudos: string[] = [];
 
   for (const c of chunks) {
-    todosConteudos.push(c.conteudo);
     const pag = (c.metadata as any)?.pagina_inicio ?? (c.metadata as any)?.bloco ?? 1;
     if (!paginasMap.has(pag)) {
       paginasMap.set(pag, []);
@@ -194,13 +203,5 @@ export async function carregarTextoIntegral(
       texto: partes.join("\n"),
     }));
 
-  const textoIntegral = todosConteudos.join("\n");
-
-  return {
-    paginas,
-    fonte: "fallback_chunks",
-    totalCaracteres: textoIntegral.length,
-    totalPaginas: paginas.length,
-    textoIntegral,
-  };
+  return processarPaginasCarregadas(paginas, "fallback_chunks");
 }

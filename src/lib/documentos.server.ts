@@ -51,7 +51,10 @@ const PROMPT_OCR =
   "5. Reproduza assinaturas, datas, números de processo e valores monetários sem reformatar.\n" +
   "6. Se houver carimbos ou anotações manuscritas legíveis, transcreva-as entre colchetes: [manuscrito: ...].\n" +
   "7. Onde um caractere estiver ilegível, escreva [ilegível] no lugar — nunca adivinhe números.\n" +
-  "8. NÃO resuma, NÃO interprete, NÃO adicione comentários — devolva APENAS o texto extraído.";
+  "8. NÃO resuma, NÃO interprete, NÃO adicione comentários — devolva APENAS o texto extraído.\n" +
+  "9. Cada linha de tabela deve sair em UMA linha própria, no formato | célula | célula |. Nunca emende uma linha de tabela na linha seguinte.\n" +
+  "10. Comece uma NOVA LINHA a cada item de lista ('a)', 'b)', '1)', 'I –') e a cada cabeçalho de bloco, torre, quadra ou pavimento.\n" +
+  "11. Preserve as quebras de linha e de parágrafo do original; não junte parágrafos.";
 
 const OCR_MODEL = "google/gemini-2.5-flash";
 const OCR_FALLBACK_MODEL = "google/gemini-2.5-flash-lite";

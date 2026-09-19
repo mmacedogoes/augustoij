@@ -21,15 +21,17 @@ export const PADROES_ANCORA = [
   { nome: "celula_tabela", re: /^\s*\|?\s*(\d{1,5})(?:\s*[-–—]?\s*([A-Z]))?\s*\|/m },
 ];
 
-export const PADROES_ESCOPO =
-  /^\s*(?:BLOCO|TORRE|QUADRA|QD|SETOR|PISO|PAVIMENTO|ANDAR)\s*[:.\-–—]*\s*([A-Z0-9]{1,4})\b/i;
+export const REGEX_ESCOPO_GLOBAL =
+  /\b(?:BLOCO|TORRE|QUADRA|QD|SETOR|PISO|PAVIMENTO|ANDAR)\s*[:.\-–—]*\s*([A-Z0-9]{1,4})\b/i;
+
+export const PADROES_ESCOPO = REGEX_ESCOPO_GLOBAL;
 
 /**
- * Reconhece cabeçalho de escopo (bloco/torre/quadra/etc.) em uma linha.
+ * Reconhece cabeçalho de escopo (bloco/torre/quadra/etc.) no texto.
  * Devolve o identificador do escopo (ex: "A", "03", "12") ou null.
  */
 export function reconhecerEscopo(linha: string): string | null {
-  const m = PADROES_ESCOPO.exec(linha.trim());
+  const m = REGEX_ESCOPO_GLOBAL.exec(linha.trim());
   if (m && m[1]) {
     return m[1].toUpperCase();
   }
@@ -39,14 +41,17 @@ export function reconhecerEscopo(linha: string): string | null {
 /**
  * Testa a linha contra PADROES_ANCORA na ordem estrita e para no primeiro que casar.
  * O sufixo só é aceito se for uma letra isolada.
+ * A guarda normativa inspeciona apenas os 60 caracteres anteriores ao casamento.
  */
 export function reconhecerAncora(linha: string): AncoraReconhecida | null {
-  if (/^\s*(?:art(?:igo|\.)|par[aá]grafo|cl[aá]usula)\b/i.test(linha)) {
-    return null;
-  }
   for (const padrao of PADROES_ANCORA) {
     const m = padrao.re.exec(linha);
     if (m) {
+      // Guarda normativa (Defeito 0.2): olha apenas os 60 caracteres antes da âncora
+      const contextoAntes = linha.slice(Math.max(0, m.index - 60), m.index);
+      if (/(?:art(?:igo|\.)|par[aá]grafo|cl[aá]usula)\s*(?:n[º°o.]\s*)?$/i.test(contextoAntes.trim())) {
+        continue;
+      }
       const numero = m[1].replace(/\./g, "");
       const sufixo = m[2] ? m[2].toUpperCase() : null;
       return {

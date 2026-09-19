@@ -28,6 +28,7 @@ import {
 import { carregarTextoIntegral } from "./extracao/fonte";
 import { segmentarRegistros, type RegistroUnidade } from "./extracao/segmentador";
 import { gerarChaveIdentidade } from "./extracao/ancoras";
+import { converterNumeroOuExtenso } from "./extracao/rotulos";
 
 export const CampoMedidaSchema = z.preprocess(
   (val) => {
@@ -163,6 +164,8 @@ export type DiagnosticoExtracao = {
   quadro_fracoes_encontrado?: boolean | null;
   observacao?: string | null;
   total_trechos?: number;
+  linhas_antes_normalizacao?: number;
+  linhas_apos_normalizacao?: number;
   trechos_selecionados?: number;
   prefiltro?: string | null;
   linhas_do_quadro?: number;
@@ -283,17 +286,19 @@ export const DEFAULT_ORCAMENTO_MS = 50_000;
 const MAX_TENTATIVAS = 3;
 
 export const PROMPT_SISTEMA_BASE =
-  "Extraia dados literais de unidades autônomas de uma convenção condominial brasileira. " +
-  "Cada linha do texto recebido vem prefixada por um identificador, seguido de ': '. Ao informar linha_id, copie o identificador EXATAMENTE como ele aparece antes da linha — não o reescreva, não o reformate e não invente um. " +
-  "Para cada unidade identificada, informe o campo linha_id com o identificador estável da linha de onde foi lida. " +
-  "Em cada medida, devolva o campo linha_id com o identificador da linha de onde o valor foi lido; NÃO redigite o trecho. " +
-  "Leia cada trecho integralmente. Linhas agrupadas como '701A, 901A e 1501A' devem gerar uma linha para cada unidade somente se o texto atribuir explicitamente os mesmos valores ao grupo. " +
-  "Devolva TODAS as medidas numéricas que o documento associa à unidade, cada uma com seu rótulo. " +
-  "Se houver múltiplas seções, priorize extrair as unidades a partir da seção mais detalhada (que contém as metragens e frações ideais). Ignore índices e listas simplificadas se o detalhamento existir em outro trecho. " +
-  "Se o cabeçalho da coluna não estiver visível no trecho recebido, use campo indeterminado; nunca adivinhe o rótulo. " +
-  "Preserve valor_bruto exatamente como impresso, inclusive %, ‰, barra e vírgula. Não converta escalas. " +
-  "É proibido calcular, estimar, completar séries ou copiar valores por semelhança. " +
-  'Responda apenas JSON: {"unidades":[{"bloco":string|null,"numero":string,"tipo":"apartamento|casa|lote|terreno|sala_comercial|loja|galpao|vaga_avulsa|outro","vagas_garagem":number,"linha_id":string|null,"medidas":[{"campo":"area_privativa|area_terreno|area_comum|area_global|area_equivalente|area_garagem|area_construcao|cota_terreno|fracao_terreno|fracao_coisas_comuns|coeficiente_rateio|indeterminado","valor_bruto":string,"escala":"percentual|decimal|milesimo|fracao_ordinaria|m2","linha_id":string}]}],"diagnostico":{"total_declarado_no_texto":number|null,"quadro_fracoes_encontrado":boolean,"observacao":string|null}}.';
+  "Você está lendo o trecho de uma CONVENÇÃO DE CONDOMÍNIO brasileira que descreve UMA unidade autônoma já identificada. Sua tarefa é transcrever as medidas dessa unidade, não interpretá-las.\n\n" +
+  "O que cada campo significa neste documento:\n" +
+  "- area_privativa: a área de uso exclusivo do proprietário. Aparece como 'Área Real de Uso Privativo', 'Área Privativa', 'Área Real Privativa', 'Área de construção privativa real', 'Área Útil'. É a área da unidade.\n" +
+  "- area_comum: a parte das áreas comuns atribuída à unidade ('Área de Uso Comum Real', 'Área Real de Uso Comum').\n" +
+  "- area_garagem: área de garagem ou vaga, ainda que escrita como área comum de divisão não proporcional.\n" +
+  "- area_total: a soma da privativa com a comum ('Área Real Total', 'Área Global').\n" +
+  "- area_construcao: 'Área da Unidade (de construção)'. NÃO é a área privativa.\n" +
+  "- area_terreno: área do terreno ou do lote, em loteamentos.\n" +
+  "- cota_terreno: 'Cota Ideal do Terreno', em m². NÃO é a fração ideal.\n" +
+  "- fracao_ideal: a fração ideal do terreno e das coisas comuns. Número entre 0 e 1, ou percentual, ou milésimos, ou fração ordinária.\n" +
+  "- vagas: quantidade de vagas de garagem, inclusive por extenso ('duas vagas' = 2).\n\n" +
+  "Regras: transcreva valor_bruto exatamente como impresso, com vírgula decimal e símbolo. Não converta escalas, não calcule, não estime, não complete séries, não traga valor que não esteja escrito NESTE trecho. Campo ausente = null. Para cada valor, informe também o rótulo literal que você leu, em 'rotulo_lido' — é assim que conferimos a sua leitura.\n\n" +
+  'Responda apenas JSON no formato: {"area_privativa":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_comum":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_garagem":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_total":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_construcao":{"valor_bruto":string|null,"rotulo_lido":string|null},"area_terreno":{"valor_bruto":string|null,"rotulo_lido":string|null},"cota_terreno":{"valor_bruto":string|null,"rotulo_lido":string|null},"fracao_ideal":{"valor_bruto":string|null,"rotulo_lido":string|null},"vagas":{"valor_bruto":string|null,"rotulo_lido":string|null}}.';
 
 function obterConteudoArquivo(moduloRaw: string | undefined, nomeArquivo: string): string {
   if (typeof moduloRaw === "string" && moduloRaw.length > 0) {
@@ -365,6 +370,87 @@ function retryAfterMs(response: Response, tentativa: number) {
     if (Number.isFinite(data)) return Math.max(1_000, data - Date.now());
   }
   return Math.min(8_000, 1_000 * 2 ** tentativa);
+}
+
+export function processarRespostaIA(
+  data: unknown,
+  lote: { id?: string; escopo?: string | null; numero?: string; texto: string },
+  tipologia: string,
+  candidatas: UnidadeExtraida[],
+) {
+  const parsed = data as Record<string, unknown>;
+  if (!parsed || typeof parsed !== "object") return;
+
+  // Formato novo (Bloco 5): objeto único com campos de medidas
+  if (
+    "area_privativa" in parsed ||
+    "area_comum" in parsed ||
+    "area_garagem" in parsed ||
+    "area_total" in parsed ||
+    "fracao_ideal" in parsed
+  ) {
+    const medidas: z.infer<typeof MedidaExtraidaSchema>[] = [];
+    let vagas: number | undefined = undefined;
+
+    const camposMapeados: Array<[string, z.infer<typeof CampoMedidaSchema>, "m2" | "decimal" | "inteiro"]> = [
+      ["area_privativa", "area_privativa", "m2"],
+      ["area_comum", "area_comum", "m2"],
+      ["area_garagem", "area_garagem", "m2"],
+      ["area_total", "area_global", "m2"],
+      ["area_construcao", "area_construcao", "m2"],
+      ["area_terreno", "area_terreno", "m2"],
+      ["cota_terreno", "cota_terreno", "m2"],
+      ["fracao_ideal", "fracao_terreno", "decimal"],
+    ];
+
+    for (const [chave, campo, escalaPadrao] of camposMapeados) {
+      const item = parsed[chave] as { valor_bruto?: string | null; rotulo_lido?: string | null } | null | undefined;
+      if (item && item.valor_bruto && typeof item.valor_bruto === "string" && item.valor_bruto.trim().length > 0) {
+        medidas.push({
+          campo,
+          valor_bruto: item.valor_bruto.trim(),
+          escala: escalaPadrao,
+          trecho: item.rotulo_lido ? `${item.rotulo_lido} ${item.valor_bruto}` : item.valor_bruto,
+          linha_id: lote.id,
+          fonte: `ia ${lote.id ?? ""}`,
+          bloco_contexto: lote.escopo ?? null,
+        });
+      }
+    }
+
+    const vagasItem = parsed["vagas"] as { valor_bruto?: string | null } | null | undefined;
+    if (vagasItem && vagasItem.valor_bruto) {
+      const vNum = converterNumeroOuExtenso(String(vagasItem.valor_bruto));
+      if (vNum != null) vagas = vNum;
+    }
+
+    if (lote.numero) {
+      const tipo = (tipologia === "casas_lotes" || (lote.texto && lote.texto.toLowerCase().includes("lote")))
+        ? "lote"
+        : ((lote.texto && lote.texto.toLowerCase().includes("casa")) ? "casa" : "apartamento");
+
+      candidatas.push({
+        bloco: lote.escopo ?? null,
+        numero: lote.numero,
+        tipo,
+        vagas_garagem: vagas,
+        linha_id: lote.id,
+        medidas,
+        medidas_descartadas: [],
+        fonte: "ia_unitaria",
+        regras_aplicadas: ["ia_unitaria"],
+      });
+    }
+    return;
+  }
+
+  // Fallback para lista de unidades (mocks/testes legados)
+  if (Array.isArray(parsed.unidades)) {
+    for (const u of parsed.unidades) {
+      const r = UnidadeExtraidaSchema.safeParse(u);
+      if (r.success) candidatas.push(r.data);
+    }
+  }
 }
 
 export async function chamarIaJson(
@@ -2080,21 +2166,22 @@ export async function processarExtracaoRodada(
 
       const chunksComCandidatas = new Set(naoLidas.map((l) => l.chunk_id));
       const chunksRelevantes = chunks.filter((c) => chunksComCandidatas.has(c.id));
-      let lotesCompletos: Lote[];
+      let lotesMagros: Array<{ id: string; escopo?: string | null; numero?: string; texto: string }>;
       if (registros.length > 0) {
         const registrosPendentes = registros.filter((reg) => {
           const numFinal = reg.sufixo ? `${reg.numero}${reg.sufixo}` : reg.numero;
           return !chavesResolvidas.has(chaveUnidade(reg.escopo, numFinal));
         });
-        lotesCompletos = registrosPendentes.map((reg) => ({
+        lotesMagros = registrosPendentes.map((reg) => ({
           id: reg.registro_id,
-          texto: `[Unidade ${reg.numero}${reg.sufixo ?? ""}${reg.escopo ? ` - ${reg.escopo}` : ""}]\n${reg.texto}`,
-          linhas: [],
+          escopo: reg.escopo ?? null,
+          numero: reg.sufixo ? `${reg.numero}${reg.sufixo}` : reg.numero,
+          texto: reg.texto,
         }));
       } else {
-        lotesCompletos = montarLotes(chunksRelevantes as ChunkRow[]);
+        const lotesCompletos = montarLotes(chunksRelevantes as ChunkRow[]);
+        lotesMagros = lotesCompletos.map((l, i) => ({ id: l.id || `lote-${i}`, texto: l.texto }));
       }
-      const lotesMagros = lotesCompletos.map((l, i) => ({ id: l.id || `lote-${i}`, texto: l.texto }));
 
       if (censo.candidatas.length === 0) {
         const mensagem = "Nenhum trecho sobre unidades, áreas ou frações foi localizado no texto indexado.";
@@ -2216,10 +2303,13 @@ export async function processarExtracaoRodada(
               if (cacheado) {
                 return { tipo: "cache" as const, idx, lote, data: cacheado };
               }
+              const userPrompt = (lote as any).numero
+                ? `Unidade: ${(lote as any).escopo ? `${(lote as any).escopo} ` : ""}${(lote as any).numero}\nTrecho:\n${lote.texto}`
+                : `Arquivo: ${doc.nome_arquivo}\nLote ${idx + 1}/${lotes.length}:\n${lote.texto}`;
               const chamada = await chamarIaEfetivo(
                 apiKey,
                 system,
-                `Arquivo: ${doc.nome_arquivo}\nLote ${idx + 1}/${lotes.length}:\n${lote.texto}`,
+                userPrompt,
                 { timeoutMs },
               );
               await gravarCacheExtracao(supabase, hash, chamada.data);
@@ -2239,24 +2329,12 @@ export async function processarExtracaoRodada(
           const res = resultados[b];
           if (res.tipo === "cache") {
             chamadasCache++;
-            const parsed = res.data as { unidades?: unknown[] };
-            if (Array.isArray(parsed.unidades)) {
-              for (const u of parsed.unidades) {
-                const r = UnidadeExtraidaSchema.safeParse(u);
-                if (r.success) candidatas.push(r.data);
-              }
-            }
+            processarRespostaIA(res.data, res.lote as any, tipologiaDetectada, candidatas);
           } else if (res.tipo === "ia") {
             chamadasIa++;
             tokensInput += res.usage.prompt_tokens;
             tokensOutput += res.usage.completion_tokens;
-            const parsed = res.data as { unidades?: unknown[] };
-            if (Array.isArray(parsed.unidades)) {
-              for (const u of parsed.unidades) {
-                const r = UnidadeExtraidaSchema.safeParse(u);
-                if (r.success) candidatas.push(r.data);
-              }
-            }
+            processarRespostaIA(res.data, res.lote as any, tipologiaDetectada, candidatas);
           } else if (res.tipo === "erro") {
             const isTimeoutOrLength =
               res.err instanceof ErroTimeoutIA ||

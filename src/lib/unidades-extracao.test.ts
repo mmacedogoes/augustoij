@@ -1253,3 +1253,239 @@ A unidade possui:
   });
 });
 
+describe("BLOCO 8 — Testes de Regressão T1 a T11 (P15)", () => {
+  const textoCorrido101_103 = `Parágrafo Único - A cada unidade autônoma habitacional acima descrita, corresponderá uma fração ideal do terreno e coisas de propriedade comum (...) a saber: TORRE A: a) A unidade autônoma habitacional (Apartamento) de nº 101, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas. A unidade possui: | - Área Real de Uso Privativo | 129,32 | m² | | - Área de Uso Comum Real | 102,35 | m² | | - Área de Uso Comum (Divisão não proporcional - Garagem) | 23,00 | m² | | - Área da Unidade (de construção) | 200,73 | m² | | - Fração Ideal do terreno | 0,011054 | | | - Cota Ideal do Terreno | 40,9462 | m² | | - Área Real Total | 231,67 | m² | b) A unidade autônoma habitacional (Apartamento) de nº 102, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas. A unidade possui: | - Área Real de Uso Privativo | 132,11 | m² | | - Área de Uso Comum Real | 103,82 | m² | | - Área de Uso Comum (Divisão não proporcional - Garagem) | 23,00 | m² | | - Área da Unidade (de construção) | 204,46 | m² | | - Fração Ideal do terreno | 0,011260 | | | - Cota Ideal do Terreno | 41,7064 | m² | | - Área Real Total | 235,93 | m² | c) A unidade autônoma habitacional (Apartamento) de nº 103, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas. A unidade possui: | - Área Real de Uso Privativo | 131,04 | m² | | - Área de Uso Comum Real | 103,00 | m² | | - Área de Uso Comum (Divisão não proporcional - Garagem) | 23,00 | m² | | - Área da Unidade (de construção) | 202,00 | m² | | - Fração Ideal do terreno | 0,011180 | | | - Cota Ideal do Terreno | 41,0000 | m² | | - Área Real Total | 234,04 | m² |`;
+
+  it("T1 'texto corrido vira registros': parágrafo único com 101, 102 e 103 produz 3 registros, escopo A, com privativa e fração corretas", () => {
+    const regs = segmentarRegistros([{ numero: 1, texto: textoCorrido101_103 }]);
+    expect(regs.length).toBe(3);
+    expect(regs.map((r) => r.numero)).toEqual(["101", "102", "103"]);
+    for (const r of regs) {
+      expect(r.escopo).toBe("A");
+    }
+
+    const m101 = lerRegistro(regs[0].texto);
+    const m102 = lerRegistro(regs[1].texto);
+    const m103 = lerRegistro(regs[2].texto);
+
+    expect(m101.find((m) => m.campo === "area_privativa")?.valor_bruto).toBe("129,32");
+    expect(m101.find((m) => m.campo === "fracao_ideal")?.valor_bruto).toBe("0,011054");
+
+    expect(m102.find((m) => m.campo === "area_privativa")?.valor_bruto).toBe("132,11");
+    expect(m102.find((m) => m.campo === "fracao_ideal")?.valor_bruto).toBe("0,011260");
+
+    expect(m103.find((m) => m.campo === "area_privativa")?.valor_bruto).toBe("131,04");
+    expect(m103.find((m) => m.campo === "fracao_ideal")?.valor_bruto).toBe("0,011180");
+  });
+
+  it("T2 'âncora dentro de artigo': 'Parágrafo Único - ... TORRE A: a) A unidade autônoma ... de n° 101' produz registro", () => {
+    const texto = "Parágrafo Único - A cada unidade autônoma habitacional acima descrita (...) TORRE A: a) A unidade autônoma habitacional (Apartamento) de nº 101, possui...";
+    const regs = segmentarRegistros([{ numero: 1, texto }]);
+    expect(regs.length).toBe(1);
+    expect(regs[0].numero).toBe("101");
+    expect(regs[0].escopo).toBe("A");
+  });
+
+  it("T3 'escopo no meio da linha': 'a saber: TORRE A: a) ...' atribui escopo A", () => {
+    const texto = "a saber: TORRE A: a) A unidade autônoma habitacional (Apartamento) de nº 101";
+    const regs = segmentarRegistros([{ numero: 1, texto }]);
+    expect(regs.length).toBe(1);
+    expect(regs[0].escopo).toBe("A");
+  });
+
+  it("T4 'duas torres, mesmo número': 101 da Torre A e 101 da Torre B são duas identidades", () => {
+    const texto = "TORRE A: a) A unidade autônoma habitacional (Apartamento) de nº 101\nTORRE B: a) A unidade autônoma habitacional (Apartamento) de nº 101";
+    const regs = segmentarRegistros([{ numero: 1, texto }]);
+    expect(regs.length).toBe(2);
+    expect(regs[0].escopo).toBe("A");
+    expect(regs[0].numero).toBe("101");
+    expect(regs[1].escopo).toBe("B");
+    expect(regs[1].numero).toBe("101");
+  });
+
+  it("T5 'sete medidas': o registro do 102 devolve as sete medidas do quadro, com area_m2 = 132,11 e nunca 204,46 nem 235,93", () => {
+    const reg102Texto = `b) A unidade autônoma habitacional (Apartamento) de nº 102, possui os seguintes cômodos: sala de estar/jantar, varanda e duas vagas de garagens descobertas.
+A unidade possui:
+| - Área Real de Uso Privativo                              | 132,11   | m² |
+| - Área de Uso Comum Real                                  | 103,82   | m² |
+| - Área de Uso Comum (Divisão não proporcional - Garagem)  |  23,00   | m² |
+| - Área da Unidade (de construção)                         | 204,46   | m² |
+| - Fração Ideal do terreno                                 | 0,011260 |    |
+| - Cota Ideal do Terreno                                   |  41,7064 | m² |
+| - Área Real Total                                         | 235,93   | m² |`;
+
+    const medidas = lerRegistro(reg102Texto);
+    expect(medidas.length).toBe(8); // 7 medidas + 1 vaga
+    const priv = medidas.find((m) => m.campo === "area_privativa");
+    expect(priv?.valor_numerico).toBe(132.11);
+    expect(priv?.valor_numerico).not.toBe(204.46);
+    expect(priv?.valor_numerico).not.toBe(235.93);
+  });
+
+  it("T6 'vagas por extenso': 'duas vagas de garagens descobertas' = 2", () => {
+    const texto = "varanda e duas vagas de garagens descobertas.";
+    const medidas = lerRegistro(texto);
+    const vagas = medidas.find((m) => m.campo === "vagas");
+    expect(vagas).toBeDefined();
+    expect(vagas?.valor_bruto).toBe("2");
+    expect(vagas?.valor_numerico).toBe(2);
+  });
+
+  it("T7 'conferência C1 fecha': 101 e 102 saem como lidas com confiança alta", () => {
+    const regs = segmentarRegistros([{ numero: 1, texto: textoCorrido101_103 }]);
+    const candidatas: any[] = [];
+    for (const reg of regs.slice(0, 2)) {
+      const medidasLidas = lerRegistro(reg.texto);
+      const medidas: any[] = [];
+      let vagas: number | undefined = undefined;
+      for (const med of medidasLidas) {
+        if (med.campo === "vagas") {
+          vagas = Math.round(med.valor_numerico!);
+          continue;
+        }
+        let campo = "indeterminado";
+        if (med.campo === "area_privativa") campo = "area_privativa";
+        else if (med.campo === "area_comum") campo = "area_comum";
+        else if (med.campo === "area_total") campo = "area_global";
+        else if (med.campo === "area_garagem") campo = "area_garagem";
+        else if (med.campo === "area_construcao") campo = "area_construcao";
+        else if (med.campo === "cota_terreno") campo = "cota_terreno";
+        else if (med.campo === "fracao_ideal") campo = "fracao_terreno";
+        medidas.push({
+          campo,
+          valor_bruto: med.valor_bruto,
+          escala: med.escala,
+          trecho: med.trecho,
+          linha_id: reg.registro_id,
+        });
+      }
+      candidatas.push({
+        bloco: reg.escopo,
+        numero: reg.numero,
+        tipo: "apartamento",
+        vagas_garagem: vagas,
+        linha_id: reg.registro_id,
+        medidas,
+        medidas_descartadas: [],
+        fonte: "registros_posicionais",
+        regras_aplicadas: ["registros_posicionais"],
+      });
+    }
+
+    const consolidado = consolidar(candidatas, [], { porId: new Map() }, regs.slice(0, 2), "padrao");
+    expect(consolidado.unidades.length).toBe(2);
+    for (const u of consolidado.unidades) {
+      expect(u.confianca).toBe("alta");
+      expect(u.estado).toBe("lido");
+      expect(u.regras_aplicadas).toContain("area_total_conferida_com_comum");
+    }
+  });
+
+  it("T8 'sem IA': a fixture do Contemporâneo termina com chamadas_ia = 0", async () => {
+    let chamadasIa = 0;
+    const mockChamarIa = async () => {
+      chamadasIa++;
+      return { data: {}, usage: { prompt_tokens: 0, completion_tokens: 0 } };
+    };
+
+    const mockDoc = { id: "doc-contemp-t8", condominio_id: "cond-contemp", nome_arquivo: "contemporaneo.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 2, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-contemp-t8",
+      etapa: "carregamento_e_roteamento",
+      total: 4,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {},
+    };
+
+    const supabase = createMockSupabase({
+      doc: mockDoc,
+      condominio: mockCond,
+      job: mockJob,
+      storageMd: textoCorrido101_103,
+    });
+
+    await processarExtracaoRodada(supabase, "doc-contemp-t8", "fake-key", { chamarIa: mockChamarIa as any });
+    const res = await processarExtracaoRodada(supabase, "doc-contemp-t8", "fake-key", { chamarIa: mockChamarIa as any });
+
+    expect(chamadasIa).toBe(0);
+    expect(res.concluido).toBe(true);
+    expect(res.etapa).toBe("concluido");
+  });
+
+  it("T9 'prosa continua': Teste 2 fecha com 32 unidades, 75,90 e 0,033395 no 101", () => {
+    const andares = [1, 2, 3, 4, 5, 6, 7, 8];
+    const colunas = [1, 2, 3, 4];
+    const fraseColunas1e3 =
+      "com área privativa de 75,90 m2, área de uso comum de 24,10 m2, perfazendo a área total de 100,00 m2 e fração ideal de 0,033395.";
+    const fraseColunas2e4 =
+      "com área privativa de 62,50 m2, área de uso comum de 18,50 m2, perfazendo a área total de 81,00 m2 e fração ideal de 0,029105.";
+
+    const linhas = ["CONVENÇÃO DE CONDOMÍNIO - EDIFÍCIO TESTE 32", "QUADRO DESCRITIVO DAS UNIDADES AUTÔNOMAS:"];
+    for (const andar of andares) {
+      for (const col of colunas) {
+        const num = `${andar}0${col}`;
+        const fraseMedida = col === 1 || col === 3 ? fraseColunas1e3 : fraseColunas2e4;
+        linhas.push(`APARTAMENTO Nº ${num} - localizado no ${andar}º pavimento, ${fraseMedida}`);
+      }
+    }
+    const texto32 = linhas.join("\n\n");
+    const resultado = extrairUnidadesDoTexto(texto32);
+
+    expect(resultado.total).toBe(32);
+    const apto101 = resultado.unidades.find((u) => u.numero === "101");
+    expect(apto101).toBeDefined();
+    expect(apto101?.area_privativa).toBe(75.90);
+    expect(apto101?.fracao_ideal).toBeCloseTo(0.033395, 6);
+  });
+
+  it("T10 'loteamento continua': a fixture de 761 lotes fecha com escopo de quadra correto", () => {
+    const fixtureLoteamento = path.resolve(__dirname, "extracao/fixtures/loteamento-761.txt");
+    const textoLoteamento = fs.readFileSync(fixtureLoteamento, "utf-8");
+    const paginas = [{ numero: 1, texto: textoLoteamento }];
+    const registros = segmentarRegistros(paginas, "doc-761");
+
+    expect(registros.length).toBe(761);
+    const lote01Q03 = registros.find((r) => (r.escopo === "03" || r.escopo === "QUADRA 03") && r.numero === "01");
+    const lote01Q12 = registros.find((r) => (r.escopo === "12" || r.escopo === "QUADRA 12") && r.numero === "01");
+    expect(lote01Q03).toBeDefined();
+    expect(lote01Q12).toBeDefined();
+    expect(lote01Q03?.registro_id).not.toBe(lote01Q12?.registro_id);
+  });
+
+  it("T11 'metadata magra': JSON.stringify(job.metadata).length < 200 KB num documento de 40 páginas", async () => {
+    const paginas40Md = Array.from(
+      { length: 40 },
+      (_, i) => `---\n## Página ${i + 1}\n\nTexto longo da página ${i + 1} com múltiplos artigos e regras de condomínio repetidas.\n` +
+        "Artigo 1. O condomínio destina-se a fins residenciais.\n".repeat(20),
+    ).join("\n\n");
+
+    const mockDoc = { id: "doc-40-t11", condominio_id: "cond-1", nome_arquivo: "conv40.pdf", status_processamento: "pronto" };
+    const mockCond = { categoria: "predio", qtd_unidades: 40, owner_id: "u-1" };
+    const mockJob = {
+      documento_id: "doc-40-t11",
+      etapa: "carregamento_e_roteamento",
+      total: 4,
+      concluidos: 0,
+      estado: "processando",
+      metadata: {},
+    };
+
+    const supabase = createMockSupabase({
+      doc: mockDoc,
+      condominio: mockCond,
+      job: mockJob,
+      storageMd: paginas40Md,
+    });
+
+    await processarExtracaoRodada(supabase, "doc-40-t11", "fake-key");
+
+    const jobAposEtapa1 = supabase.getCurrentJob();
+    const tamanhoEtapa1 = JSON.stringify(jobAposEtapa1?.metadata ?? {}).length;
+    expect(tamanhoEtapa1).toBeLessThan(200 * 1024);
+    expect(jobAposEtapa1?.metadata?.paginas).toBeUndefined();
+  });
+});
+
+

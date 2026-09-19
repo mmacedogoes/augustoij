@@ -1,4 +1,5 @@
-import { reconhecerAncora, reconhecerEscopo, gerarChaveIdentidade } from "./ancoras";
+import { PADROES_ANCORA, REGEX_ESCOPO_GLOBAL, gerarChaveIdentidade } from "./ancoras";
+import { normalizarLayout } from "./normalizador";
 
 export type RegistroUnidade = {
   registro_id: string;
@@ -15,84 +16,137 @@ export type RegistroUnidade = {
   motivo_descarte?: "identidade_repetida_no_documento" | null;
 };
 
-type AncoraPosicional = {
+type AncoraCandidata = {
   pageIndex: number;
   pagina: number;
   offsetInicio: number;
+  offsetFimMatch: number;
   escopo: string | null;
   numero: string;
   sufixo: string | null;
   padrao: string;
+  precedencia: number;
   ancora: string;
 };
 
 /**
- * Segmenta o texto do documento em registros de unidades posicionais.
+ * Segmenta o texto do documento em registros de unidades por VARREDURA GLOBAL (Bloco 2 do P15).
  *
  * Algoritmo:
- * - percorre o texto na ordem, mantendo o escopo vigente (PADROES_ESCOPO);
- * - toda vez que reconhecerAncora() casar, abre um registro;
- * - o registro vai da posição da âncora até a posição da PRÓXIMA âncora (ou o fim da página
- *   seguinte, o que vier primeiro);
- * - registro_id = `${documentoId}:${pagina}:${offsetInicio}` — POSICIONAL;
- * - NÃO deduplica nada. Dois registros com texto idêntico são duas unidades diferentes.
- *   Se a mesma identidade (escopo|numero) aparecer em dois registros, guarda os dois e
- *   marca o segundo com o motivo "identidade_repetida_no_documento".
+ * - Varre com regex global todos os PADROES_ANCORA sobre o texto da página;
+ * - Ordena por índice e resolve sobreposições pela ordem de precedência;
+ * - Guarda normativa (Defeito 0.2): inspeciona apenas os 60 caracteres anteriores ao casamento;
+ * - Escopo global (Defeito 0.3): busca retrospectivamente o último casamento de escopo antes do índice;
+ * - Limita o registro do início da âncora até o início da próxima, com teto de 1.500 caracteres;
+ * - Regra da família majoritária (P11) preservada;
+ * - Identidades repetidas são marcadas, nunca descartadas.
  */
 export function segmentarRegistros(
-  paginas: { numero: number; texto: string }[],
+  paginasEntrada: { numero: number; texto: string }[],
   documentoId: string = "doc",
 ): RegistroUnidade[] {
+  const paginas = paginasEntrada.map((p) => ({
+    numero: p.numero,
+    texto: normalizarLayout(p.texto),
+  }));
   let escopoVigente: string | null = null;
-  const ancoras: AncoraPosicional[] = [];
+  const ancoras: AncoraCandidata[] = [];
 
   for (let pi = 0; pi < paginas.length; pi++) {
     const textoPagina = paginas[pi].texto;
-    let lineStart = 0;
 
-    while (lineStart < textoPagina.length) {
-      const lineEnd = textoPagina.indexOf("\n", lineStart);
-      let nextLineStart: number;
-      let linha: string;
-
-      if (lineEnd === -1) {
-        linha = textoPagina.slice(lineStart);
-        nextLineStart = textoPagina.length;
-      } else {
-        linha = textoPagina.slice(lineStart, lineEnd);
-        if (linha.endsWith("\r")) linha = linha.slice(0, -1);
-        nextLineStart = lineEnd + 1;
+    // Coleta todos os escopos na página com seus offsets (busca global)
+    const escoposNaPagina: Array<{ offset: number; escopo: string }> = [];
+    const reEscopo = new RegExp(REGEX_ESCOPO_GLOBAL.source, "gi");
+    let matchEscopo: RegExpExecArray | null;
+    while ((matchEscopo = reEscopo.exec(textoPagina)) !== null) {
+      if (matchEscopo[1]) {
+        escoposNaPagina.push({
+          offset: matchEscopo.index,
+          escopo: matchEscopo[1].toUpperCase(),
+        });
       }
+    }
 
-      const linhaTrim = linha.trim();
-      if (linhaTrim.length > 0) {
-        const escopo = reconhecerEscopo(linha);
-        if (escopo && !/^\s*\|/.test(linha)) {
-          escopoVigente = escopo;
+    // Coleta candidatos de âncora para cada padrão
+    const candidatos: AncoraCandidata[] = [];
+    for (let pIndex = 0; pIndex < PADROES_ANCORA.length; pIndex++) {
+      const padrao = PADROES_ANCORA[pIndex];
+      const flags = "g" + (padrao.re.flags.includes("m") ? "m" : "") + (padrao.re.flags.includes("i") ? "i" : "");
+      const globalRe = new RegExp(padrao.re.source, flags);
+      let m: RegExpExecArray | null;
+      while ((m = globalRe.exec(textoPagina)) !== null) {
+        const matchStart = m.index;
+        const matchEnd = m.index + m[0].length;
+
+        // Guarda normativa (Defeito 0.2): inspeciona apenas os 60 caracteres anteriores
+        const contextoAntes = textoPagina.slice(Math.max(0, matchStart - 60), matchStart);
+        if (/(?:art(?:igo|\.)|par[aá]grafo|cl[aá]usula)\s*(?:n[º°o.]\s*)?$/i.test(contextoAntes.trim())) {
+          continue;
         }
 
-        const ancora = reconhecerAncora(linha);
-        if (ancora) {
-          ancoras.push({
-            pageIndex: pi,
-            pagina: paginas[pi].numero,
-            offsetInicio: lineStart,
-            escopo: escopoVigente,
-            numero: ancora.numero,
-            sufixo: ancora.sufixo,
-            padrao: ancora.padrao,
-            ancora: ancora.ancora,
-          });
+        const numero = m[1].replace(/\./g, "");
+        const sufixo = m[2] ? m[2].toUpperCase() : null;
+
+        candidatos.push({
+          pageIndex: pi,
+          pagina: paginas[pi].numero,
+          offsetInicio: matchStart,
+          offsetFimMatch: matchEnd,
+          escopo: null,
+          numero,
+          sufixo,
+          padrao: padrao.nome,
+          precedencia: pIndex,
+          ancora: m[0],
+        });
+      }
+    }
+
+    // Ordena candidatos por offsetInicio e depois por precedência
+    candidatos.sort((a, b) => {
+      if (a.offsetInicio !== b.offsetInicio) return a.offsetInicio - b.offsetInicio;
+      return a.precedencia - b.precedencia;
+    });
+
+    // Resolve sobreposições pela ordem de precedência dos padrões
+    const semSobreposicao: AncoraCandidata[] = [];
+    for (const cand of candidatos) {
+      if (semSobreposicao.length > 0) {
+        const ultimo = semSobreposicao[semSobreposicao.length - 1];
+        if (cand.offsetInicio < ultimo.offsetFimMatch) {
+          if (cand.precedencia < ultimo.precedencia) {
+            semSobreposicao[semSobreposicao.length - 1] = cand;
+          }
+          continue;
         }
       }
+      semSobreposicao.push(cand);
+    }
 
-      lineStart = nextLineStart;
+    // Atribui escopo global: último match de escopo ANTES daquele índice
+    for (const cand of semSobreposicao) {
+      let escopoDaAncora = escopoVigente;
+      for (const e of escoposNaPagina) {
+        if (e.offset < cand.offsetInicio) {
+          escopoDaAncora = e.escopo;
+        } else {
+          break;
+        }
+      }
+      ancoras.push({
+        ...cand,
+        escopo: escopoDaAncora,
+      });
+    }
+
+    // Atualiza escopo vigente para páginas seguintes
+    if (escoposNaPagina.length > 0) {
+      escopoVigente = escoposNaPagina[escoposNaPagina.length - 1].escopo;
     }
   }
 
-  // Regra da família majoritária (P11):
-  // O padrão com mais ocorrências é a enumeração do documento;
-  // padrões com menos de 3 ocorrências, quando existe uma enumeração com 10 ou mais, não viram registro.
+  // Regra da família majoritária (P11)
   let ancorasFiltradas = ancoras;
   if (ancoras.length > 0) {
     const contagemPorPadrao = new Map<string, number>();
@@ -116,18 +170,14 @@ export function segmentarRegistros(
     let offsetFim = atual.offsetInicio;
 
     if (proxima && proxima.pageIndex === atual.pageIndex) {
-      // Próxima âncora na mesma página
       offsetFim = proxima.offsetInicio;
       texto = paginas[atual.pageIndex].texto.slice(atual.offsetInicio, proxima.offsetInicio).trim();
     } else if (proxima && proxima.pageIndex === atual.pageIndex + 1) {
-      // Próxima âncora na página seguinte
       offsetFim = proxima.offsetInicio;
       const parteAtual = paginas[atual.pageIndex].texto.slice(atual.offsetInicio).trim();
       const parteProx = paginas[proxima.pageIndex].texto.slice(0, proxima.offsetInicio).trim();
       texto = [parteAtual, parteProx].filter(Boolean).join("\n");
     } else {
-      // Próxima âncora a 2+ páginas ou última âncora do documento.
-      // O registro vai até o fim da página seguinte (ou da atual se for a última).
       offsetFim = paginas[atual.pageIndex].texto.length;
       const parteAtual = paginas[atual.pageIndex].texto.slice(atual.offsetInicio).trim();
       let parteProx = "";
@@ -135,6 +185,11 @@ export function segmentarRegistros(
         parteProx = paginas[atual.pageIndex + 1].texto.trim();
       }
       texto = [parteAtual, parteProx].filter(Boolean).join("\n");
+    }
+
+    // Teto de 1.500 caracteres por registro
+    if (texto.length > 1500) {
+      texto = texto.slice(0, 1500);
     }
 
     const chaveIdentidade = gerarChaveIdentidade(atual.numero, atual.sufixo, atual.escopo);

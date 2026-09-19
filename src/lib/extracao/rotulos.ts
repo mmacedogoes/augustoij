@@ -177,7 +177,7 @@ const MAPA_NUMEROS_EXTENSO: Record<string, number> = {
   dez: 10,
 };
 
-function converterNumeroOuExtenso(val: string): number | null {
+export function converterNumeroOuExtenso(val: string): number | null {
   const limpo = val.trim().toLowerCase();
   if (MAPA_NUMEROS_EXTENSO[limpo] !== undefined) {
     return MAPA_NUMEROS_EXTENSO[limpo];
@@ -244,7 +244,7 @@ function capturarMedidasFamilia(
         medidas.push({
           campo: "vagas",
           rotulo_encontrado: "vagas de garagem",
-          valor_bruto: m[1],
+          valor_bruto: String(valorNum),
           valor_numerico: valorNum,
           unidade_medida: "vagas",
           escala: "inteiro",
@@ -266,7 +266,7 @@ function capturarMedidasFamilia(
         medidas.push({
           campo: "vagas",
           rotulo_encontrado: "vagas de garagem",
-          valor_bruto: m[1],
+          valor_bruto: String(valorNum),
           valor_numerico: valorNum,
           unidade_medida: "vagas",
           escala: "inteiro",
@@ -318,8 +318,12 @@ function capturarMedidasFamilia(
 
       if (!valorBruto) continue;
 
-      // Se a lacuna tiver mais de 30 caracteres ou contiver termo de outra família, pula
-      if (lacuna.length > 30 || contemOutraFamilia(lacuna, campo)) {
+      // Rótulo pontilhado aceita lacuna arbitrária de pontos/espaços; prosa limita em 30 caracteres
+      const isPontilhado = /^[\s.:\-–—]+$/.test(lacuna);
+      if (!isPontilhado && lacuna.length > 30) {
+        continue;
+      }
+      if (contemOutraFamilia(lacuna, campo)) {
         continue;
       }
 
