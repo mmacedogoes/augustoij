@@ -517,10 +517,19 @@ export async function processarDocumentoCore(
       .select("metadata")
       .eq("documento_id", documento.id);
     const prontos = new Set<number>();
-    for (const r of (existentes ?? []) as Array<{ metadata: { bloco?: number } | null }>) {
+    // Blocos cujo "conteúdo" é apenas um marcador de lacuna (página que não
+    // pôde ser lida). Eles destravam a fila, mas NÃO contam como lidos.
+    const lacunas = new Set<number>();
+    for (const r of (existentes ?? []) as Array<{
+      metadata: { bloco?: number; origem?: string } | null;
+    }>) {
       const b = r.metadata?.bloco;
-      if (typeof b === "number") prontos.add(b);
+      if (typeof b === "number") {
+        prontos.add(b);
+        if (r.metadata?.origem === "ocr_lacuna") lacunas.add(b);
+      }
     }
+
 
     const pendentes = blocos.filter((b) => !prontos.has(b.indice));
     const falhas: number[] = [];
