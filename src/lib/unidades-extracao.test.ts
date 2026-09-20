@@ -1649,9 +1649,15 @@ A unidade possui:
         tipo: "apartamento",
         linha_id: "lin-1",
         medidas: medidas.map((m) => ({
-          campo: m.campo === "fracao_ideal" ? "fracao_terreno" : m.campo,
+          campo: ((): UnidadeExtraida["medidas"][number]["campo"] => {
+            if (m.campo === "fracao_ideal") return "fracao_terreno";
+            if (m.campo === "area_generica" || m.campo === "area_total") return "area_global";
+            if (m.campo === "cota_terreno") return "fracao_terreno";
+            if (m.campo === "vagas") return "indeterminado";
+            return m.campo;
+          })(),
           valor_bruto: m.valor_bruto,
-          escala: m.escala,
+          escala: m.escala ?? "decimal",
           trecho: m.trecho,
           linha_id: "lin-1",
         })),

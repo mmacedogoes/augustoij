@@ -316,7 +316,7 @@ function capturarMedidasFamilia(
   // Valor aceita formato pt-BR: 1.250,75 ou 75,90 ou 0,033395 ou inteiros
   const VALOR_SRC = "(\\d{1,3}(?:\\.\\d{3})*,\\d+|\\d+,\\d+|\\d+\\.\\d+|\\d+)";
   // Unidade de medida opcional: m2, m², %, ‰, milésimos, permilagem, e aceita "m2 de área"
-  const UNIDADE_SRC = "(?:\\s*(m[²2]|%|‰|mil[ée]simos?|permilagem))?(?:\\s+de\\s+[áa]rea)?";
+  const UNIDADE_SRC = "(?:\\s*(metros?\\s+quadrados?|m[²2]|%|‰|mil[ée]simos?|permilagem))?(?:\\s+de\\s+[áa]rea)?";
 
   for (const padrao of padroes) {
     const regexCompleta = new RegExp(
