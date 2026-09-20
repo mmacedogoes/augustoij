@@ -2862,9 +2862,14 @@ async function persistirExtracao(entrada: {
   }
 
   if (registros.length > 0) {
+    // Deduplica por registro_id: o mesmo registro pode ser detectado duas vezes no documento
+    // e a chave única (documento_id, registro_id) derrubaria o lote inteiro.
+    const registrosUnicos = Array.from(
+      new Map(registros.map((r) => [r.registro_id, r])).values(),
+    );
     const batchSize = 250;
-    for (let i = 0; i < registros.length; i += batchSize) {
-      const batch = registros.slice(i, i + batchSize).map((r) => ({
+    for (let i = 0; i < registrosUnicos.length; i += batchSize) {
+      const batch = registrosUnicos.slice(i, i + batchSize).map((r) => ({
         condominio_id: doc.condominio_id,
         documento_id: doc.id,
         registro_id: r.registro_id,
@@ -2878,9 +2883,15 @@ async function persistirExtracao(entrada: {
         padrao_ancora: r.padrao_ancora,
         texto: r.texto,
       }));
-      const { error: insRegError } = await supabase.from("documento_registros").insert(batch);
+      const { error: insRegError } = await supabase
+        .from("documento_registros")
+        .upsert(batch, { onConflict: "documento_id,registro_id" });
       if (insRegError) {
         console.error("[persistirExtracao] erro ao gravar documento_registros:", insRegError);
+        diagnostico.erros = diagnostico.erros ?? [];
+        diagnostico.erros.push(
+          `Falha ao gravar ${batch.length} registro(s) do documento: ${insRegError.message}`,
+        );
       }
     }
   }

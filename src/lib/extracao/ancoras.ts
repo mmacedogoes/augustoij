@@ -51,14 +51,27 @@ export const PADROES_ANCORA: PadraoAncoraDef[] = [
 export const REGEX_ESCOPO_GLOBAL =
   /(?<!\b(?:da|do|das|dos)\s+)\b(?:BLOCO|TORRE|QUADRA|QD|SETOR)\s*[:.\-–—]*\s*(?!DE\b|DO\b|DA\b|DOS\b|DAS\b)([A-Z0-9]{1,4})\b/iu;
 
-export const PADROES_ESCOPO = REGEX_ESCOPO_GLOBAL;
+/**
+ * Cabeçalho de escopo ancorado no início da linha. Aceita também pavimentos
+ * (PISO/PAVIMENTO/ANDAR), que em prédios comerciais e shoppings agrupam as unidades.
+ * Ancorado na linha para não capturar menções em prosa ("situada no pavimento térreo").
+ */
+export const REGEX_ESCOPO_LINHA =
+  /^\s*(?:BLOCO|TORRE|QUADRA|QD|SETOR|PISO|PAVIMENTO|ANDAR)\s*[:.\-–—]*\s*(?!DE\b|DO\b|DA\b|DOS\b|DAS\b)([A-Z0-9]{1,4})\b/i;
+
+export const PADROES_ESCOPO = REGEX_ESCOPO_LINHA;
 
 /**
- * Reconhece cabeçalho de escopo (bloco/torre/quadra/etc.) no texto.
+ * Reconhece cabeçalho de escopo (bloco/torre/quadra/piso/pavimento/andar) no texto.
  * Devolve o identificador do escopo (ex: "A", "03", "12") ou null.
  */
 export function reconhecerEscopo(linha: string): string | null {
-  const m = REGEX_ESCOPO_GLOBAL.exec(linha.trim());
+  const texto = linha.trim();
+  const mLinha = REGEX_ESCOPO_LINHA.exec(texto);
+  if (mLinha && mLinha[1]) {
+    return mLinha[1].toUpperCase();
+  }
+  const m = REGEX_ESCOPO_GLOBAL.exec(texto);
   if (m && m[1]) {
     return m[1].toUpperCase();
   }

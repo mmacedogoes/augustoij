@@ -1,4 +1,4 @@
-import { PADROES_ANCORA, REGEX_ESCOPO_GLOBAL, expandirListaDeNumeros, gerarChaveIdentidade } from "./ancoras";
+import { PADROES_ANCORA, REGEX_ESCOPO_GLOBAL, REGEX_ESCOPO_LINHA, expandirListaDeNumeros, gerarChaveIdentidade } from "./ancoras";
 import { normalizarLayout } from "./normalizador";
 
 export type RegistroUnidade = {
@@ -59,18 +59,25 @@ export function segmentarRegistros(
   for (let pi = 0; pi < paginas.length; pi++) {
     const textoPagina = paginas[pi].texto;
 
-    // Coleta todos os escopos na página com seus offsets (busca global)
+    // Coleta todos os escopos na página com seus offsets (busca global + cabeçalhos de linha)
     const escoposNaPagina: Array<{ offset: number; escopo: string }> = [];
-    const reEscopo = new RegExp(REGEX_ESCOPO_GLOBAL.source, "gi");
-    let matchEscopo: RegExpExecArray | null;
-    while ((matchEscopo = reEscopo.exec(textoPagina)) !== null) {
-      if (matchEscopo[1]) {
-        escoposNaPagina.push({
-          offset: matchEscopo.index,
-          escopo: matchEscopo[1].toUpperCase(),
-        });
+    for (const [fonte, flags] of [
+      [REGEX_ESCOPO_GLOBAL.source, "gi"],
+      [REGEX_ESCOPO_LINHA.source, "gim"],
+    ] as const) {
+      const reEscopo = new RegExp(fonte, flags);
+      let matchEscopo: RegExpExecArray | null;
+      while ((matchEscopo = reEscopo.exec(textoPagina)) !== null) {
+        if (matchEscopo[1]) {
+          escoposNaPagina.push({
+            offset: matchEscopo.index,
+            escopo: matchEscopo[1].toUpperCase(),
+          });
+        }
+        if (matchEscopo[0].length === 0) reEscopo.lastIndex++;
       }
     }
+    escoposNaPagina.sort((a, b) => a.offset - b.offset);
 
     // Coleta candidatos de âncora para cada padrão
     const candidatos: AncoraCandidata[] = [];
