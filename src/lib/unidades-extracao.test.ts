@@ -1657,7 +1657,7 @@ A unidade possui:
             return m.campo;
           })(),
           valor_bruto: m.valor_bruto,
-          escala: m.escala ?? "decimal",
+          escala: m.escala == null || m.escala === "inteiro" ? "decimal" : m.escala,
           trecho: m.trecho,
           linha_id: "lin-1",
         })),
