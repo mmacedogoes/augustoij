@@ -1648,7 +1648,7 @@ A unidade possui:
         numero: "02",
         tipo: "apartamento",
         linha_id: "lin-1",
-        medidas: medidas.map((m) => ({
+        medidas: medidas.map((m): UnidadeExtraida["medidas"][number] => ({
           campo: ((): UnidadeExtraida["medidas"][number]["campo"] => {
             if (m.campo === "fracao_ideal") return "fracao_terreno";
             if (m.campo === "area_generica" || m.campo === "area_total") return "area_global";
