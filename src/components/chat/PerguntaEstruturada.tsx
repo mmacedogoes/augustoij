@@ -86,6 +86,19 @@ export function PerguntaEstruturada({
         const r = respostas[k];
         const modo = p.modo ?? "unica";
         const opcoes = p.opcoes ?? [];
+        if (opcoes.length === 0) {
+          return (
+            <div key={k} className="space-y-2">
+              <Label className="text-sm font-medium">{labelDe(p, i)}</Label>
+              <Input
+                placeholder="Digite sua resposta…"
+                value={r.outroTexto}
+                disabled={bloqueado}
+                onChange={(e) => update(k, { outroTexto: e.target.value, outroAtivo: true })}
+              />
+            </div>
+          );
+        }
         return (
           <div key={k} className="space-y-2">
             <Label className="text-sm font-medium">{labelDe(p, i)}</Label>
@@ -229,8 +242,8 @@ function tentarParse(candidato: string): PerguntaEstruturadaDados | null {
       p
       && (typeof p.pergunta === "string" || typeof p.pregunta === "string" || typeof p.label === "string")
       && (p.modo === undefined || p.modo === "unica" || p.modo === "multipla")
-      && Array.isArray(p.opcoes)
-      && p.opcoes.length > 0,
+      && (p.opcoes === undefined || Array.isArray(p.opcoes))
+      && ((p.opcoes?.length ?? 0) > 0 || p.permite_outro === true),
     );
     if (!perguntasValidas) return null;
     return parsed as PerguntaEstruturadaDados;
